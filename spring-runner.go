@@ -20,7 +20,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/go-spring/go-spring-parent/spring-logger"
+	"github.com/go-spring/spring-logger"
 )
 
 // Runner 立即执行器

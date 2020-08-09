@@ -25,8 +25,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-spring/go-spring-parent/spring-logger"
-	"github.com/go-spring/go-spring-parent/spring-utils"
+	"github.com/go-spring/spring-logger"
+	"github.com/go-spring/spring-utils"
 	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 )

@@ -25,10 +25,10 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/go-spring/go-spring-core"
-	pkg1 "github.com/go-spring/go-spring-core/testdata/pkg/bar"
-	pkg2 "github.com/go-spring/go-spring-core/testdata/pkg/foo"
-	"github.com/go-spring/go-spring-parent/spring-utils"
+	"github.com/go-spring/spring-core"
+	pkg1 "github.com/go-spring/spring-core/testdata/pkg/bar"
+	pkg2 "github.com/go-spring/spring-core/testdata/pkg/foo"
+	"github.com/go-spring/spring-utils"
 	"github.com/magiconair/properties/assert"
 )
 
@@ -408,16 +408,16 @@ func TestTypeName(t *testing.T) {
 			reflect.TypeOf(&[]string{"string"}):     {"string", "*[]string"},
 			reflect.TypeOf(make(map[string]string)): {"map[string]string", "map[string]string"},
 
-			reflect.TypeOf(pkg1.SamePkg{}):             {"github.com/go-spring/go-spring-core/testdata/pkg/bar/pkg.SamePkg", "pkg.SamePkg"},
-			reflect.TypeOf(new(pkg1.SamePkg)):          {"github.com/go-spring/go-spring-core/testdata/pkg/bar/pkg.SamePkg", "*pkg.SamePkg"},
-			reflect.TypeOf(make([]pkg1.SamePkg, 0)):    {"github.com/go-spring/go-spring-core/testdata/pkg/bar/pkg.SamePkg", "[]pkg.SamePkg"},
-			reflect.TypeOf(&[]pkg1.SamePkg{}):          {"github.com/go-spring/go-spring-core/testdata/pkg/bar/pkg.SamePkg", "*[]pkg.SamePkg"},
+			reflect.TypeOf(pkg1.SamePkg{}):             {"github.com/go-spring/spring-core/testdata/pkg/bar/pkg.SamePkg", "pkg.SamePkg"},
+			reflect.TypeOf(new(pkg1.SamePkg)):          {"github.com/go-spring/spring-core/testdata/pkg/bar/pkg.SamePkg", "*pkg.SamePkg"},
+			reflect.TypeOf(make([]pkg1.SamePkg, 0)):    {"github.com/go-spring/spring-core/testdata/pkg/bar/pkg.SamePkg", "[]pkg.SamePkg"},
+			reflect.TypeOf(&[]pkg1.SamePkg{}):          {"github.com/go-spring/spring-core/testdata/pkg/bar/pkg.SamePkg", "*[]pkg.SamePkg"},
 			reflect.TypeOf(make(map[int]pkg1.SamePkg)): {"map[int]pkg.SamePkg", "map[int]pkg.SamePkg"},
 
-			reflect.TypeOf(pkg2.SamePkg{}):             {"github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg", "pkg.SamePkg"},
-			reflect.TypeOf(new(pkg2.SamePkg)):          {"github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg", "*pkg.SamePkg"},
-			reflect.TypeOf(make([]pkg2.SamePkg, 0)):    {"github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg", "[]pkg.SamePkg"},
-			reflect.TypeOf(&[]pkg2.SamePkg{}):          {"github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg", "*[]pkg.SamePkg"},
+			reflect.TypeOf(pkg2.SamePkg{}):             {"github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg", "pkg.SamePkg"},
+			reflect.TypeOf(new(pkg2.SamePkg)):          {"github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg", "*pkg.SamePkg"},
+			reflect.TypeOf(make([]pkg2.SamePkg, 0)):    {"github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg", "[]pkg.SamePkg"},
+			reflect.TypeOf(&[]pkg2.SamePkg{}):          {"github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg", "*[]pkg.SamePkg"},
 			reflect.TypeOf(make(map[int]pkg2.SamePkg)): {"map[int]pkg.SamePkg", "map[int]pkg.SamePkg"},
 		}
 
@@ -525,13 +525,13 @@ func TestBeanDefinition_Match(t *testing.T) {
 		{SpringCore.ToBeanDefinition("i", new(int)), "", "i", true},
 		{SpringCore.ToBeanDefinition("i", new(int)), "int", "", true},
 
-		{SpringCore.ToBeanDefinition("", new(pkg2.SamePkg)), "github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg", "*pkg.SamePkg", true},
+		{SpringCore.ToBeanDefinition("", new(pkg2.SamePkg)), "github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg", "*pkg.SamePkg", true},
 		{SpringCore.ToBeanDefinition("", new(pkg2.SamePkg)), "", "*pkg.SamePkg", true},
-		{SpringCore.ToBeanDefinition("", new(pkg2.SamePkg)), "github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg", "", true},
+		{SpringCore.ToBeanDefinition("", new(pkg2.SamePkg)), "github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg", "", true},
 
-		{SpringCore.ToBeanDefinition("pkg2", new(pkg2.SamePkg)), "github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg", "pkg2", true},
+		{SpringCore.ToBeanDefinition("pkg2", new(pkg2.SamePkg)), "github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg", "pkg2", true},
 		{SpringCore.ToBeanDefinition("pkg2", new(pkg2.SamePkg)), "", "pkg2", true},
-		{SpringCore.ToBeanDefinition("pkg2", new(pkg2.SamePkg)), "github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg", "pkg2", true},
+		{SpringCore.ToBeanDefinition("pkg2", new(pkg2.SamePkg)), "github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg", "pkg2", true},
 	}
 
 	for i, s := range data {
@@ -597,7 +597,7 @@ func TestToBeanDefinition(t *testing.T) {
 
 			SpringCore.ToBeanDefinition("", newHistoryTeacher("")): {
 				"*SpringCore_test.historyTeacher",
-				"github.com/go-spring/go-spring-core_test/SpringCore_test.historyTeacher",
+				"github.com/go-spring/spring-core_test/SpringCore_test.historyTeacher",
 			},
 
 			SpringCore.ToBeanDefinition("", new(int)): {
@@ -610,12 +610,12 @@ func TestToBeanDefinition(t *testing.T) {
 
 			SpringCore.ToBeanDefinition("", new(pkg2.SamePkg)): {
 				"*pkg.SamePkg",
-				"github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg",
+				"github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg",
 			},
 
 			SpringCore.ToBeanDefinition("pkg2", new(pkg2.SamePkg)): {
 				"pkg2",
-				"github.com/go-spring/go-spring-core/testdata/pkg/foo/pkg.SamePkg",
+				"github.com/go-spring/spring-core/testdata/pkg/foo/pkg.SamePkg",
 			},
 		}
 

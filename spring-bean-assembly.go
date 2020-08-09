@@ -23,8 +23,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-spring/go-spring-parent/spring-logger"
-	"github.com/go-spring/go-spring-parent/spring-utils"
+	"github.com/go-spring/spring-logger"
+	"github.com/go-spring/spring-utils"
 )
 
 // beanAssembly Bean 组装车间

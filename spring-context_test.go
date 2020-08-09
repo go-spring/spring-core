@@ -23,8 +23,8 @@ import (
 	"reflect"
 	"testing"
 
-	pkg1 "github.com/go-spring/go-spring-core/testdata/pkg/bar"
-	pkg2 "github.com/go-spring/go-spring-core/testdata/pkg/foo"
+	pkg1 "github.com/go-spring/spring-core/testdata/pkg/bar"
+	pkg2 "github.com/go-spring/spring-core/testdata/pkg/foo"
 	"github.com/magiconair/properties/assert"
 )
 

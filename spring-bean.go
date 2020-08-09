@@ -23,7 +23,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/go-spring/go-spring-parent/spring-utils"
+	"github.com/go-spring/spring-utils"
 )
 
 // errorType error 的反射类型

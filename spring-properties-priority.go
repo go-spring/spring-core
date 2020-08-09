@@ -20,7 +20,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/go-spring/go-spring-parent/spring-const"
+	"github.com/go-spring/spring-const"
 	"github.com/spf13/cast"
 )
 

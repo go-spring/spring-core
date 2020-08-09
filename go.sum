@@ -23,8 +23,12 @@ github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeME
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-logfmt/logfmt v0.3.0/go.mod h1:Qt1PoO58o5twSAckw1HlFXLmHsOX5/0LbT9GBnD5lWE=
 github.com/go-logfmt/logfmt v0.4.0/go.mod h1:3RMwSq7FuexP4Kalkev3ejPJsZTpXXBr9+V4qmtdjCk=
-github.com/go-spring/go-spring-parent v1.0.5-0.20200807023228-0cde18dccd0b h1:McsaPjLQQeLZTKYbPaGSfvS8wrgw85kov3rCILQhy90=
-github.com/go-spring/go-spring-parent v1.0.5-0.20200807023228-0cde18dccd0b/go.mod h1:/ABXFJozlTW7YrEs2U1EmTtWCG0gufSgDQnCfkOnkWs=
+github.com/go-spring/spring-const v0.0.0-20200809010018-216088f08c7a h1:83weDH4e7lKkibRNCZx80HT36pwkH1FRaV/fIWPfa4A=
+github.com/go-spring/spring-const v0.0.0-20200809010018-216088f08c7a/go.mod h1:WBXCBvxv5cf0RIqnEB3wxoZ2y1G3XIUEYk7i5KDXInw=
+github.com/go-spring/spring-logger v0.0.0-20200809011130-4fc0ca70bbdb h1:CPKNDKNTZcPiN3VOwZOXv4vSO/zBQG4a1cuzdudu2l0=
+github.com/go-spring/spring-logger v0.0.0-20200809011130-4fc0ca70bbdb/go.mod h1:eZENHurOPb4+c586XBNv+M2HzWSAbRQLCNu49t8xsSc=
+github.com/go-spring/spring-utils v0.0.0-20200809010418-ad9c325fc2db h1:agxZmTXJ5gDrBb7VgEKh2kdUwYtehHHizqpOPkFURfM=
+github.com/go-spring/spring-utils v0.0.0-20200809010418-ad9c325fc2db/go.mod h1:nt7zbJs5DiOCoi548jzBC06reyS0apM6YchDY0eMbjM=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.1/go.mod h1:hp+jE20tsWTFYpLwKvXlhS1hjn+gTNwPg2I6zVXpSg4=
@@ -134,6 +138,7 @@ golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5h
 golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20181116152217-5ac8a444bdc5/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a h1:1BGLXjeY4akVXGgbC9HugT3Jv3hCI0z56oJR5vAMgBU=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a h1:aYOabOQFp6Vj6W1F80affTUvO9UxmJRx8K0gsfABByQ=

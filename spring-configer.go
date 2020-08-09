@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-spring/go-spring-parent/spring-utils"
+	"github.com/go-spring/spring-utils"
 )
 
 // runnable 执行器，不能返回 error 以外的其他值

@@ -26,9 +26,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-spring/go-spring-core/sort"
-	"github.com/go-spring/go-spring-parent/spring-logger"
-	"github.com/go-spring/go-spring-parent/spring-utils"
+	"github.com/go-spring/spring-core/sort"
+	"github.com/go-spring/spring-logger"
+	"github.com/go-spring/spring-utils"
 )
 
 // beanKey Bean's unique key, with type and name.

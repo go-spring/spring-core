@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-spring/go-spring-core"
+	"github.com/go-spring/spring-core"
 	"github.com/magiconair/properties/assert"
 )
 

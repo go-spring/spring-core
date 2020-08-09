@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-spring/go-spring-parent/spring-logger"
+	"github.com/go-spring/spring-logger"
 )
 
 // fnBindingArg 存储函数的参数绑定

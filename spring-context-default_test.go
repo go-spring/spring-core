@@ -29,11 +29,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-spring/go-spring-core"
-	pkg1 "github.com/go-spring/go-spring-core/testdata/pkg/bar"
-	pkg2 "github.com/go-spring/go-spring-core/testdata/pkg/foo"
-	"github.com/go-spring/go-spring-parent/spring-logger"
-	"github.com/go-spring/go-spring-parent/spring-utils"
+	"github.com/go-spring/spring-core"
+	pkg1 "github.com/go-spring/spring-core/testdata/pkg/bar"
+	pkg2 "github.com/go-spring/spring-core/testdata/pkg/foo"
+	"github.com/go-spring/spring-logger"
+	"github.com/go-spring/spring-utils"
 	"github.com/magiconair/properties/assert"
 )
 
@@ -527,7 +527,7 @@ type Pkg interface {
 
 type SamePkgHolder struct {
 	// Pkg `autowire:""` // 这种方式会找到多个符合条件的 Bean
-	Pkg `autowire:"github.com/go-spring/go-spring-core/testdata/pkg/bar/pkg.SamePkg:*pkg.SamePkg"`
+	Pkg `autowire:"github.com/go-spring/spring-core/testdata/pkg/bar/pkg.SamePkg:*pkg.SamePkg"`
 }
 
 func TestDefaultSpringContext_SameNameBean(t *testing.T) {
@@ -545,19 +545,19 @@ type DiffPkgOne struct {
 }
 
 func (d *DiffPkgOne) Package() {
-	fmt.Println("github.com/go-spring/go-spring-core_test/SpringCore_test.DiffPkgOne")
+	fmt.Println("github.com/go-spring/spring-core_test/SpringCore_test.DiffPkgOne")
 }
 
 type DiffPkgTwo struct {
 }
 
 func (d *DiffPkgTwo) Package() {
-	fmt.Println("github.com/go-spring/go-spring-core_test/SpringCore_test.DiffPkgTwo")
+	fmt.Println("github.com/go-spring/spring-core_test/SpringCore_test.DiffPkgTwo")
 }
 
 type DiffPkgHolder struct {
 	// Pkg `autowire:"same"` // 如果两个 Bean 不小心重名了，也会找到多个符合条件的 Bean
-	Pkg `autowire:"github.com/go-spring/go-spring-core_test/SpringCore_test.DiffPkgTwo:same"`
+	Pkg `autowire:"github.com/go-spring/spring-core_test/SpringCore_test.DiffPkgTwo:same"`
 }
 
 func TestDefaultSpringContext_DiffNameBean(t *testing.T) {
@@ -695,10 +695,10 @@ func TestDefaultSpringContext_GetBean(t *testing.T) {
 		ok = ctx.GetBean(&grouper, ":*SpringCore_test.BeanTwo")
 		assert.Equal(t, ok, true)
 
-		ok = ctx.GetBean(&two, "github.com/go-spring/go-spring-core_test/SpringCore_test.BeanTwo:*SpringCore_test.BeanTwo")
+		ok = ctx.GetBean(&two, "github.com/go-spring/spring-core_test/SpringCore_test.BeanTwo:*SpringCore_test.BeanTwo")
 		assert.Equal(t, ok, true)
 
-		ok = ctx.GetBean(&grouper, "github.com/go-spring/go-spring-core_test/SpringCore_test.BeanTwo:*SpringCore_test.BeanTwo")
+		ok = ctx.GetBean(&grouper, "github.com/go-spring/spring-core_test/SpringCore_test.BeanTwo:*SpringCore_test.BeanTwo")
 		assert.Equal(t, ok, true)
 
 		ok = ctx.GetBean(&two, "xxx:*SpringCore_test.BeanTwo")
@@ -740,7 +740,7 @@ func TestDefaultSpringContext_FindBeanByName(t *testing.T) {
 	fmt.Println(SpringUtils.ToJson(i.Bean()))
 	assert.Equal(t, ok, true)
 
-	i, ok = ctx.FindBean("github.com/go-spring/go-spring-core_test/SpringCore_test.BeanTwo:*SpringCore_test.BeanTwo")
+	i, ok = ctx.FindBean("github.com/go-spring/spring-core_test/SpringCore_test.BeanTwo:*SpringCore_test.BeanTwo")
 	fmt.Println(SpringUtils.ToJson(i.Bean()))
 	assert.Equal(t, ok, true)
 
@@ -917,7 +917,7 @@ func TestDefaultSpringContext_DependsOn(t *testing.T) {
 
 		dependsOn := []SpringCore.BeanSelector{
 			(*BeanOne)(nil), // 通过类型定义查找
-			"github.com/go-spring/go-spring-core_test/SpringCore_test.BeanZero:*SpringCore_test.BeanZero",
+			"github.com/go-spring/spring-core_test/SpringCore_test.BeanZero:*SpringCore_test.BeanZero",
 		}
 
 		ctx := SpringCore.NewDefaultSpringContext()

@@ -20,7 +20,7 @@ import (
 	"container/list"
 	"errors"
 
-	"github.com/go-spring/go-spring-parent/spring-utils"
+	"github.com/go-spring/spring-utils"
 )
 
 // GetBeforeItems 获取 sorting 中排在 current 前面的元素
