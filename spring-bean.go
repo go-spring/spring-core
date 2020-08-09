@@ -87,8 +87,8 @@ func validBean(v reflect.Value) (reflect.Type, bool) {
 // TypeOrPtr 可以是 reflect.Type 对象或者形如 (*error)(nil) 的对象指针。
 type TypeOrPtr interface{}
 
-// TypeName 返回原始类型的全限定名，因为 Go 语言允许不同的路径下存在相同的包，
-// "github.com/go-spring/go-spring-core/SpringCore.BeanDefinition"。
+// TypeName 返回原始类型的全限定名，Go 语言允许不同的路径下存在相同的包，因此有全限定名
+// 的需求，形如 "github.com/go-spring/spring-core/SpringCore.BeanDefinition"。
 func TypeName(typOrPtr TypeOrPtr) string {
 
 	if typOrPtr == nil {

@@ -1399,7 +1399,7 @@ type RedisCluster struct {
 func TestDefaultSpringContext_ValueBinding(t *testing.T) {
 
 	ctx := SpringCore.NewDefaultSpringContext()
-	ctx.SetProperty("redis.endpoints", "redis://127.0.0.1:6379")
+	ctx.SetProperty("redis.endpoints", "redis://localhost:6379")
 	ctx.RegisterBean(new(RedisCluster))
 	ctx.AutoWireBeans()
 
@@ -1416,7 +1416,7 @@ func TestDefaultSpringContext_CollectBeans(t *testing.T) {
 	t.Run("more than one *", func(t *testing.T) {
 
 		ctx := SpringCore.NewDefaultSpringContext()
-		ctx.SetProperty("redis.endpoints", "redis://127.0.0.1:6379")
+		ctx.SetProperty("redis.endpoints", "redis://localhost:6379")
 		ctx.RegisterNameBean("one", new(RedisCluster))
 		ctx.RegisterBean(new(RedisCluster))
 		ctx.AutoWireBeans()
@@ -1430,7 +1430,7 @@ func TestDefaultSpringContext_CollectBeans(t *testing.T) {
 	t.Run("before *", func(t *testing.T) {
 
 		ctx := SpringCore.NewDefaultSpringContext()
-		ctx.SetProperty("redis.endpoints", "redis://127.0.0.1:6379")
+		ctx.SetProperty("redis.endpoints", "redis://localhost:6379")
 		d1 := ctx.RegisterNameBean("one", new(RedisCluster))
 		d2 := ctx.RegisterBean(new(RedisCluster))
 		ctx.AutoWireBeans()
@@ -1446,7 +1446,7 @@ func TestDefaultSpringContext_CollectBeans(t *testing.T) {
 	t.Run("after *", func(t *testing.T) {
 
 		ctx := SpringCore.NewDefaultSpringContext()
-		ctx.SetProperty("redis.endpoints", "redis://127.0.0.1:6379")
+		ctx.SetProperty("redis.endpoints", "redis://localhost:6379")
 		d1 := ctx.RegisterNameBean("one", new(RedisCluster))
 		d2 := ctx.RegisterBean(new(RedisCluster))
 		ctx.AutoWireBeans()
@@ -1462,7 +1462,7 @@ func TestDefaultSpringContext_CollectBeans(t *testing.T) {
 	t.Run("only *", func(t *testing.T) {
 
 		ctx := SpringCore.NewDefaultSpringContext()
-		ctx.SetProperty("redis.endpoints", "redis://127.0.0.1:6379")
+		ctx.SetProperty("redis.endpoints", "redis://localhost:6379")
 		ctx.RegisterNameBean("one", new(RedisCluster))
 		ctx.RegisterBean(new(RedisCluster))
 		ctx.AutoWireBeans()
@@ -1474,7 +1474,7 @@ func TestDefaultSpringContext_CollectBeans(t *testing.T) {
 	})
 
 	ctx := SpringCore.NewDefaultSpringContext()
-	ctx.SetProperty("redis.endpoints", "redis://127.0.0.1:6379")
+	ctx.SetProperty("redis.endpoints", "redis://localhost:6379")
 
 	ctx.RegisterBean([]*RedisCluster{new(RedisCluster)})
 	ctx.RegisterBean([]RedisCluster{{}})
@@ -1487,7 +1487,7 @@ func TestDefaultSpringContext_CollectBeans(t *testing.T) {
 		fmt.Println(SpringUtils.ToJson(rcs))
 
 		assert.Equal(t, len(rcs), 2)
-		assert.Equal(t, rcs[0].Endpoints, "redis://127.0.0.1:6379")
+		assert.Equal(t, rcs[0].Endpoints, "redis://localhost:6379")
 	})
 	assert.Equal(t, intBean.Name(), "*int")
 
@@ -1498,13 +1498,13 @@ func TestDefaultSpringContext_CollectBeans(t *testing.T) {
 	fmt.Println(SpringUtils.ToJson(rcs))
 
 	assert.Equal(t, len(rcs), 1)
-	assert.Equal(t, rcs[0].Endpoints, "redis://127.0.0.1:6379")
+	assert.Equal(t, rcs[0].Endpoints, "redis://localhost:6379")
 }
 
 func TestDefaultSpringContext_WireSliceBean(t *testing.T) {
 
 	ctx := SpringCore.NewDefaultSpringContext()
-	ctx.SetProperty("redis.endpoints", "redis://127.0.0.1:6379")
+	ctx.SetProperty("redis.endpoints", "redis://localhost:6379")
 	ctx.RegisterBean([]*RedisCluster{new(RedisCluster)})
 	ctx.RegisterBean([]RedisCluster{{}})
 	ctx.AutoWireBeans()
@@ -1514,7 +1514,7 @@ func TestDefaultSpringContext_WireSliceBean(t *testing.T) {
 		ctx.GetBean(&rcs)
 		fmt.Println(SpringUtils.ToJson(rcs))
 
-		assert.Equal(t, rcs[0].Endpoints, "redis://127.0.0.1:6379")
+		assert.Equal(t, rcs[0].Endpoints, "redis://localhost:6379")
 	}
 
 	{
@@ -1522,7 +1522,7 @@ func TestDefaultSpringContext_WireSliceBean(t *testing.T) {
 		ctx.GetBean(&rcs)
 		fmt.Println(SpringUtils.ToJson(rcs))
 
-		assert.Equal(t, rcs[0].Endpoints, "redis://127.0.0.1:6379")
+		assert.Equal(t, rcs[0].Endpoints, "redis://localhost:6379")
 	}
 }
 

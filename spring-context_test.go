@@ -169,7 +169,7 @@ func TestReflectType(t *testing.T) {
 			reflect.TypeOf(pkg1.SamePkg{}),
 			reflect.Struct,
 			"SamePkg",
-			"github.com/go-spring/go-spring-core/testdata/pkg/bar",
+			"github.com/go-spring/spring-core/testdata/pkg/bar",
 		},
 		{
 			reflect.TypeOf(new(pkg1.SamePkg)),
@@ -193,7 +193,7 @@ func TestReflectType(t *testing.T) {
 			reflect.TypeOf(pkg2.SamePkg{}),
 			reflect.Struct,
 			"SamePkg",
-			"github.com/go-spring/go-spring-core/testdata/pkg/foo",
+			"github.com/go-spring/spring-core/testdata/pkg/foo",
 		},
 		{
 			reflect.TypeOf(new(pkg2.SamePkg)),
