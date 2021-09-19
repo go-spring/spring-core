@@ -14,4 +14,17 @@
  * limitations under the License.
  */
 
-package tools
+package util
+
+import (
+	"github.com/go-spring/spring-boost/json"
+)
+
+// CopyBean 使用 JSON 序列化的方式进行拷贝，支持匿名字段，支持类型转换。
+func CopyBean(src interface{}, dest interface{}) error {
+	bytes, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bytes, dest)
+}
