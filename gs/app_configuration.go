@@ -21,7 +21,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-spring/spring-boost/conf"
+	"github.com/go-spring/spring-base/conf"
 )
 
 // EnvPrefix 属性覆盖的环境变量需要携带该前缀。
@@ -45,6 +45,15 @@ type configuration struct {
 func loadCmdArgs(p *conf.Properties) error {
 	for i := 0; i < len(os.Args); i++ {
 		s := os.Args[i]
+		if strings.HasPrefix(s, "--") {
+			ss := strings.SplitN(strings.TrimPrefix(s, "--"), "=", 2)
+			k, v := ss[0], ""
+			if len(ss) > 1 {
+				v = ss[1]
+			}
+			p.Set(k, v)
+			continue
+		}
 		if strings.HasPrefix(s, "-") {
 			k, v := s[1:], ""
 			if i >= len(os.Args)-1 {
@@ -55,13 +64,6 @@ func loadCmdArgs(p *conf.Properties) error {
 			if !strings.HasPrefix(next, "-") && !strings.HasPrefix(next, "--") {
 				v = os.Args[i+1]
 				i++
-			}
-			p.Set(k, v)
-		} else if strings.HasPrefix(s, "--") {
-			ss := strings.SplitN(strings.TrimPrefix(s, "--"), "=", 2)
-			k, v := ss[0], ""
-			if len(ss) > 1 {
-				v = ss[1]
 			}
 			p.Set(k, v)
 		}

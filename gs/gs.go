@@ -29,9 +29,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-spring/spring-boost/conf"
-	"github.com/go-spring/spring-boost/log"
-	"github.com/go-spring/spring-boost/util"
+	"github.com/go-spring/spring-base/conf"
+	"github.com/go-spring/spring-base/log"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/cond"
 	"github.com/go-spring/spring-core/gs/internal"
@@ -305,32 +305,6 @@ func (c *container) registerBean(b *BeanDefinition) error {
 	return nil
 }
 
-type condContext struct {
-	c *container
-}
-
-func (c *condContext) Properties() Properties {
-	return c.c.p
-}
-
-func (c *condContext) BeanRegistry() cond.BeanRegistry {
-	return c
-}
-
-// Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，即未被
-// 标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *condContext) Find(selector BeanSelector) ([]cond.BeanDefinition, error) {
-	beans, err := c.c.findBean(selector)
-	if err != nil {
-		return nil, err
-	}
-	var ret []cond.BeanDefinition
-	for _, b := range beans {
-		ret = append(ret, b)
-	}
-	return ret, nil
-}
-
 // resolveBean 判断 bean 的有效性，如果 bean 是无效的则被标记为已删除。
 func (c *container) resolveBean(b *BeanDefinition) error {
 
@@ -340,8 +314,33 @@ func (c *container) resolveBean(b *BeanDefinition) error {
 
 	b.status = Resolving
 
+	// method bean 先确定 parent bean 是否存在
+	if b.method {
+		selector, ok := b.f.Arg(0)
+		if !ok || selector == nil {
+			selector = b.t.In(0)
+		}
+		parents, err := c.findBean(selector)
+		if err != nil {
+			return err
+		}
+		n := len(parents)
+		if n > 1 {
+			msg := fmt.Sprintf("found %d parent beans, bean:%q type:%q [", n, selector, b.t.In(0))
+			for _, b := range parents {
+				msg += "( " + b.String() + " ), "
+			}
+			msg = msg[:len(msg)-2] + "]"
+			return errors.New(msg)
+		} else if n == 0 {
+			delete(c.beansById, b.ID())
+			b.status = Deleted
+			return nil
+		}
+	}
+
 	if b.cond != nil {
-		if ok, err := b.cond.Matches(&condContext{c}); err != nil {
+		if ok, err := b.cond.Matches(c); err != nil {
 			return err
 		} else if !ok {
 			delete(c.beansById, b.ID())
@@ -442,15 +441,15 @@ func (c *container) findBean(selector BeanSelector) ([]*BeanDefinition, error) {
 		return result, nil
 	}
 
-	t := reflect.TypeOf(selector)
-
-	if t.Kind() == reflect.String {
+	switch selector.(type) {
+	case string, BeanDefinition, *BeanDefinition:
 		tag := toWireTag(selector)
 		return finder(func(b *BeanDefinition) bool {
 			return b.Match(tag.typeName, tag.beanName)
 		})
 	}
 
+	t := reflect.TypeOf(selector)
 	if t.Kind() == reflect.Ptr {
 		if e := t.Elem(); e.Kind() == reflect.Interface {
 			t = e // 指 (*error)(nil) 形式的 bean 选择器
@@ -576,7 +575,7 @@ type argContext struct {
 }
 
 func (a *argContext) Matches(c cond.Condition) (bool, error) {
-	return c.Matches(&condContext{a.c})
+	return c.Matches(a.c)
 }
 
 func (a *argContext) Bind(v reflect.Value, tag string) error {
@@ -988,9 +987,11 @@ func (c *container) Close() {
 func (c *container) Go(fn func(ctx context.Context)) {
 	c.wg.Add(1)
 	go func() {
+		defer c.wg.Done()
 		defer func() {
-			c.wg.Done()
-			log.Recovery(recover())
+			if r := recover(); r != nil {
+				log.Panic(r)
+			}
 		}()
 		fn(c.ctx)
 	}()

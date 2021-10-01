@@ -27,20 +27,15 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/go-spring/spring-boost/cast"
-	"github.com/go-spring/spring-boost/conf"
-	"github.com/go-spring/spring-boost/log"
-	"github.com/go-spring/spring-boost/util"
+	"github.com/go-spring/spring-base/cast"
+	"github.com/go-spring/spring-base/conf"
+	"github.com/go-spring/spring-base/log"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/internal"
 	"github.com/go-spring/spring-core/mq"
 	"github.com/go-spring/spring-core/web"
-)
-
-const (
-	Version = "go-spring@v1.0.5"
-	Website = "https://go-spring.com/"
 )
 
 // SpringBannerVisible 是否显示 banner。
@@ -57,17 +52,11 @@ type AppEvent interface {
 	OnStopApp(ctx context.Context) // 应用停止的事件
 }
 
-type propertySource struct {
-	file   string
-	prefix string
-	object interface{}
-}
-
 type tempApp struct {
 	banner          string
 	router          web.Router
 	consumers       *Consumers
-	propertySources []*propertySource
+	grpcServers     *GrpcServers
 	mapOfOnProperty map[string]interface{} // 属性列表解析完成后的回调
 }
 
@@ -97,13 +86,30 @@ func (c *Consumers) ForEach(fn func(mq.Consumer)) {
 	}
 }
 
+type GrpcServers struct {
+	servers map[string]*grpc.Server
+}
+
+func (s *GrpcServers) Add(serviceName string, server *grpc.Server) {
+	s.servers[serviceName] = server
+}
+
+func (s *GrpcServers) ForEach(fn func(string, *grpc.Server)) {
+	for serviceName, server := range s.servers {
+		fn(serviceName, server)
+	}
+}
+
 // NewApp application 的构造函数
 func NewApp() *App {
 	return &App{
 		c: New().(*container),
 		tempApp: &tempApp{
-			router:          web.NewRouter(),
-			consumers:       new(Consumers),
+			router:    web.NewRouter(),
+			consumers: new(Consumers),
+			grpcServers: &GrpcServers{
+				servers: map[string]*grpc.Server{},
+			},
 			mapOfOnProperty: make(map[string]interface{}),
 		},
 		exitChan: make(chan struct{}),
@@ -151,8 +157,9 @@ func (app *App) clear() {
 func (app *App) start() error {
 
 	app.Object(app)
-	app.Object(app.router)
 	app.Object(app.consumers)
+	app.Object(app.grpcServers)
+	app.Object(app.router).Export((*web.Router)(nil))
 
 	e := &configuration{
 		p:               conf.New(),
@@ -161,24 +168,6 @@ func (app *App) start() error {
 
 	if err := e.prepare(); err != nil {
 		return err
-	}
-
-	for _, ps := range app.propertySources {
-		files, err := app.loadResource(e, ps.file)
-		if err != nil {
-			return err
-		}
-		p := conf.New()
-		for _, file := range files {
-			if err = p.Load(file.Name()); err != nil {
-				return err
-			}
-		}
-		err = p.Bind(ps.object, conf.Key(ps.prefix))
-		if err != nil {
-			return err
-		}
-		app.Object(ps.object)
 	}
 
 	showBanner := cast.ToBool(e.p.Get(SpringBannerVisible))
@@ -216,7 +205,7 @@ func (app *App) start() error {
 	}
 
 	var runners []AppRunner
-	if err := app.c.Get(&runners, "?"); err != nil {
+	if err := app.c.GetBean(&runners, "?"); err != nil {
 		return err
 	}
 
@@ -327,7 +316,7 @@ func (app *App) loadProperties(e *configuration) error {
 		if err != nil {
 			return err
 		}
-		p, err := conf.Read(b, filepath.Ext(resource.Name()))
+		p, err := conf.Bytes(b, filepath.Ext(resource.Name()))
 		if err != nil {
 			return err
 		}
@@ -397,11 +386,6 @@ func (app *App) Object(i interface{}) *BeanDefinition {
 // Provide 参考 Container.Provide 的解释。
 func (app *App) Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition {
 	return app.c.register(NewBean(ctor, args...))
-}
-
-func (app *App) PropertySource(file string, prefix string, object interface{}) {
-	ps := &propertySource{file: file, prefix: prefix, object: object}
-	app.propertySources = append(app.propertySources, ps)
 }
 
 // HandleGet 注册 GET 方法处理函数。
@@ -484,14 +468,14 @@ func (app *App) Consume(fn interface{}, topics ...string) {
 	app.consumers.Add(mq.Bind(fn, topics...))
 }
 
-// GrpcClient 注册 gRPC 服务客户端，fn 是 gRPC 自动生成的客户端构造函数。
-func (app *App) GrpcClient(fn interface{}, endpoint string) *BeanDefinition {
-	return app.c.register(NewBean(fn, endpoint))
-}
-
 // GrpcServer 注册 gRPC 服务提供者，fn 是 gRPC 自动生成的服务注册函数，
 // serviceName 是服务名称，必须对应 *_grpc.pg.go 文件里面 grpc.ServerDesc
 // 的 ServiceName 字段，server 是服务提供者对象。
-func (app *App) GrpcServer(serviceName string, server *grpc.Server) *BeanDefinition {
-	return app.c.register(NewBean(server)).Name(serviceName)
+func (app *App) GrpcServer(serviceName string, server *grpc.Server) {
+	app.grpcServers.Add(serviceName, server)
+}
+
+// GrpcClient 注册 gRPC 服务客户端，fn 是 gRPC 自动生成的客户端构造函数。
+func (app *App) GrpcClient(fn interface{}, endpoint string) *BeanDefinition {
+	return app.c.register(NewBean(fn, endpoint))
 }

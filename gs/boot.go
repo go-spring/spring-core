@@ -20,7 +20,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/go-spring/spring-boost/util"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/web"
@@ -79,11 +79,6 @@ func Object(i interface{}) *BeanDefinition {
 // Provide 参考 Container.Provide 的解释。
 func Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition {
 	return app().c.register(NewBean(ctor, args...))
-}
-
-// PropertySource 参考 app.PropertySource 的解释。
-func PropertySource(file string, prefix string, object interface{}) {
-	app().PropertySource(file, prefix, object)
 }
 
 // HandleGet 参考 App.HandleGet 的解释。
@@ -166,12 +161,12 @@ func Consume(fn interface{}, topics ...string) {
 	app().Consume(fn, topics...)
 }
 
+// GrpcServer 参考 App.GrpcServer 的解释。
+func GrpcServer(serviceName string, server *grpc.Server) {
+	app().GrpcServer(serviceName, server)
+}
+
 // GrpcClient 参考 App.GrpcClient 的解释。
 func GrpcClient(fn interface{}, endpoint string) *BeanDefinition {
 	return app().c.register(NewBean(fn, endpoint))
-}
-
-// GrpcServer 参考 App.GrpcServer 的解释。
-func GrpcServer(serviceName string, server *grpc.Server) *BeanDefinition {
-	return app().GrpcServer(serviceName, server)
 }

@@ -14,4 +14,9 @@
  * limitations under the License.
  */
 
-package tools
+package gs
+
+const (
+	Version = "go-spring@v1.0.5"
+	Website = "https://go-spring.com/"
+)

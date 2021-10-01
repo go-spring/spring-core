@@ -23,22 +23,19 @@ import (
 	"go/types"
 	"strings"
 
-	"github.com/go-spring/spring-boost/cast"
-	"github.com/go-spring/spring-boost/util"
+	"github.com/go-spring/spring-base/cast"
+	"github.com/go-spring/spring-base/conf"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/internal"
 )
 
-type Properties = internal.Properties
 type BeanSelector = internal.BeanSelector
 type BeanDefinition = internal.BeanDefinition
 
-type BeanRegistry interface {
-	Find(selector BeanSelector) ([]BeanDefinition, error)
-}
-
 type Context interface {
-	Properties() Properties
-	BeanRegistry() BeanRegistry
+	HasProperty(key string) bool
+	GetProperty(key string, opts ...conf.GetOption) string
+	FindBean(selector BeanSelector) ([]BeanDefinition, error)
 }
 
 // Condition 条件接口，条件成立 Matches 方法返回 true，否则返回 false。
@@ -55,6 +52,13 @@ type onMatches struct {
 
 func (c *onMatches) Matches(ctx Context) (bool, error) {
 	return c.fn(ctx)
+}
+
+// OK 永远成立的 Condition 实现。
+func OK() Condition {
+	return &onMatches{fn: func(ctx Context) (bool, error) {
+		return true, nil
+	}}
 }
 
 // not 对一个条件进行取反的 Condition 实现。
@@ -82,17 +86,20 @@ type onProperty struct {
 func (c *onProperty) Matches(ctx Context) (bool, error) {
 	// 参考 /usr/local/go/src/go/types/eval_test.go 示例
 
-	p := ctx.Properties()
-	if !p.Has(c.name) {
+	if !ctx.HasProperty(c.name) {
 		return c.matchIfMissing, nil
 	}
 
-	val := p.Get(c.name)
-	if !strings.Contains(c.havingValue, "$") {
+	if c.havingValue == "" {
+		return true, nil
+	}
+
+	val := ctx.GetProperty(c.name)
+	if !strings.HasPrefix(c.havingValue, "go:") {
 		return val == c.havingValue, nil
 	}
 
-	expr := strings.Replace(c.havingValue, "$", cast.ToString(val), -1)
+	expr := strings.Replace(c.havingValue[3:], "$", cast.ToString(val), -1)
 	ret, err := types.Eval(token.NewFileSet(), nil, token.NoPos, expr)
 	if err != nil {
 		return false, err
@@ -107,7 +114,7 @@ type onMissingProperty struct {
 }
 
 func (c *onMissingProperty) Matches(ctx Context) (bool, error) {
-	return !ctx.Properties().Has(c.name), nil
+	return !ctx.HasProperty(c.name), nil
 }
 
 // onBean 基于符合条件的 bean 必须存在的 Condition 实现。
@@ -116,7 +123,7 @@ type onBean struct {
 }
 
 func (c *onBean) Matches(ctx Context) (bool, error) {
-	beans, err := ctx.BeanRegistry().Find(c.selector)
+	beans, err := ctx.FindBean(c.selector)
 	return len(beans) > 0, err
 }
 
@@ -126,7 +133,7 @@ type onMissingBean struct {
 }
 
 func (c *onMissingBean) Matches(ctx Context) (bool, error) {
-	beans, err := ctx.BeanRegistry().Find(c.selector)
+	beans, err := ctx.FindBean(c.selector)
 	return len(beans) == 0, err
 }
 
@@ -136,7 +143,7 @@ type onSingleCandidate struct {
 }
 
 func (c *onSingleCandidate) Matches(ctx Context) (bool, error) {
-	beans, err := ctx.BeanRegistry().Find(c.selector)
+	beans, err := ctx.FindBean(c.selector)
 	return len(beans) == 1, err
 }
 

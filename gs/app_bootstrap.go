@@ -20,8 +20,8 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/go-spring/spring-boost/conf"
-	"github.com/go-spring/spring-boost/util"
+	"github.com/go-spring/spring-base/conf"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/arg"
 )
 
@@ -79,6 +79,11 @@ func (b *bootstrap) Object(i interface{}) *BeanDefinition {
 // Provide 参考 Container.Provide 的解释。
 func (b *bootstrap) Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition {
 	return b.c.register(NewBean(ctor, args...))
+}
+
+// ResourceLocator 参考 Container.Object 的解释。
+func (b *bootstrap) ResourceLocator(i interface{}) *BeanDefinition {
+	return b.c.register(NewBean(reflect.ValueOf(i))).Export((*ResourceLocator)(nil))
 }
 
 func (b *bootstrap) start(e *configuration) error {

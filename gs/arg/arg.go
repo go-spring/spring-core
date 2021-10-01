@@ -23,8 +23,8 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/go-spring/spring-boost/log"
-	"github.com/go-spring/spring-boost/util"
+	"github.com/go-spring/spring-base/log"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/cond"
 	"github.com/go-spring/spring-core/gs/internal"
 )
@@ -258,6 +258,10 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 	return v, nil
 }
 
+func (r *argList) Len() int {
+	return len(r.args)
+}
+
 // optionArg Option 函数的参数绑定。
 type optionArg struct {
 	r *Callable
@@ -363,4 +367,11 @@ func (r *Callable) Call(ctx Context) ([]reflect.Value, error) {
 		return out[:n-1], nil
 	}
 	return out, nil
+}
+
+func (r *Callable) Arg(i int) (Arg, bool) {
+	if i >= r.argList.Len() {
+		return nil, false
+	}
+	return r.argList.args[i], true
 }
