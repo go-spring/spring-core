@@ -41,15 +41,17 @@ import (
 // SpringBannerVisible 是否显示 banner。
 const SpringBannerVisible = "spring.banner.visible"
 
+type AppContext Environment
+
 // AppRunner 命令行启动器接口
 type AppRunner interface {
-	Run(e Environment)
+	Run(ctx AppContext)
 }
 
 // AppEvent 应用运行过程中的事件
 type AppEvent interface {
-	OnStartApp(e Environment)      // 应用启动的事件
-	OnStopApp(ctx context.Context) // 应用停止的事件
+	OnAppStart(ctx AppContext)     // 应用启动的事件
+	OnAppStop(ctx context.Context) // 应用停止的事件
 }
 
 type tempApp struct {
@@ -58,6 +60,7 @@ type tempApp struct {
 	consumers       *Consumers
 	grpcServers     *GrpcServers
 	mapOfOnProperty map[string]interface{} // 属性列表解析完成后的回调
+	Runners         []AppRunner            `autowire:"${command-line-runner.collection:=*?}"`
 }
 
 // App 应用
@@ -69,7 +72,7 @@ type App struct {
 
 	exitChan chan struct{}
 
-	Events []AppEvent `autowire:""`
+	Events []AppEvent `autowire:"${application-event.collection:=*?}"`
 }
 
 type Consumers struct {
@@ -204,19 +207,14 @@ func (app *App) start() error {
 		return err
 	}
 
-	var runners []AppRunner
-	if err := app.c.GetBean(&runners, "?"); err != nil {
-		return err
-	}
-
 	// 执行命令行启动器
-	for _, r := range runners {
+	for _, r := range app.Runners {
 		r.Run(app.c)
 	}
 
 	// 通知应用启动事件
 	for _, event := range app.Events {
-		event.OnStartApp(app.c)
+		event.OnAppStart(app.c)
 	}
 
 	app.clear()
@@ -226,7 +224,7 @@ func (app *App) start() error {
 		<-c.Done()
 		ctx := context.TODO()
 		for _, event := range app.Events {
-			event.OnStopApp(ctx)
+			event.OnAppStop(ctx)
 		}
 	})
 

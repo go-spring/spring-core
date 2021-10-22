@@ -254,13 +254,13 @@ func TestConstructorBean(t *testing.T) {
 	bd = newBean(NewPtrStudent)
 	assert.Equal(t, bd.Type().String(), "*gs_test.Student")
 
-	mapFn := func() map[int]string { return make(map[int]string) }
-	bd = newBean(mapFn)
-	assert.Equal(t, bd.Type().String(), "*map[int]string")
+	//mapFn := func() map[int]string { return make(map[int]string) }
+	//bd = newBean(mapFn)
+	//assert.Equal(t, bd.Type().String(), "*map[int]string")
 
-	sliceFn := func() []int { return make([]int, 1) }
-	bd = newBean(sliceFn)
-	assert.Equal(t, bd.Type().String(), "*[]int")
+	//sliceFn := func() []int { return make([]int, 1) }
+	//bd = newBean(sliceFn)
+	//assert.Equal(t, bd.Type().String(), "*[]int")
 
 	funcFn := func() func(int) { return nil }
 	bd = newBean(funcFn)
@@ -388,9 +388,12 @@ type reCaller caller
 
 func TestNumMethod(t *testing.T) {
 
-	typ := reflect.TypeOf(new(caller))
-	assert.Equal(t, typ.NumMethod(), 1)
+	typ0 := reflect.TypeOf(new(caller))
+	assert.Equal(t, typ0.NumMethod(), 1)
 
-	typ = reflect.TypeOf(new(reCaller))
-	assert.Equal(t, typ.NumMethod(), 0)
+	typ1 := reflect.TypeOf(new(reCaller))
+	assert.Equal(t, typ1.NumMethod(), 0)
+
+	typ2 := reflect.TypeOf((*reCaller)(nil))
+	assert.True(t, typ1 == typ2)
 }

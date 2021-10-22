@@ -29,8 +29,8 @@ import (
 
 	"github.com/go-spring/spring-base/assert"
 	"github.com/go-spring/spring-base/cast"
+	"github.com/go-spring/spring-base/code"
 	"github.com/go-spring/spring-base/conf"
-	"github.com/go-spring/spring-base/json"
 	"github.com/go-spring/spring-base/log"
 	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs"
@@ -57,11 +57,9 @@ func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
 	assert.Panic(t, func() {
 		c := gs.New()
 		c.Object(new(int)).Init(func(i *int) {
-			// 不能在这里注册新的 Object
-			c.Object(new(bool))
+			c.Object(new(bool)) // 不能在这里注册新的 Object
 		})
-		err := c.Refresh()
-		assert.Nil(t, err)
+		_ = c.Refresh()
 	}, "should call before Refresh")
 }
 
@@ -667,27 +665,27 @@ func TestApplicationContext_Get(t *testing.T) {
 //	assert.Equal(t, len(b), 4)
 //
 //	b, _ = p.Find("BeanTwo")
-//	fmt.Println(json.ToString(b))
+//	fmt.Println(util.ToJsonString(b))
 //	assert.Equal(t, len(b), 0)
 //
 //	b, _ = p.Find("BeanTwo")
-//	fmt.Println(json.ToString(b))
+//	fmt.Println(util.ToJsonString(b))
 //	assert.Equal(t, len(b), 1)
 //
 //	b, _ = p.Find(":BeanTwo")
-//	fmt.Println(json.ToString(b))
+//	fmt.Println(util.ToJsonString(b))
 //	assert.Equal(t, len(b), 1)
 //
 //	b, _ = p.Find("github.com/go-spring/spring-core/gs_test/gs_test.BeanTwo:BeanTwo")
-//	fmt.Println(json.ToString(b))
+//	fmt.Println(util.ToJsonString(b))
 //	assert.Equal(t, len(b), 1)
 //
 //	b, _ = p.Find("xxx:BeanTwo")
-//	fmt.Println(json.ToString(b))
+//	fmt.Println(util.ToJsonString(b))
 //	assert.Equal(t, len(b), 0)
 //
 //	b, _ = p.Find((*BeanTwo)(nil))
-//	fmt.Println(json.ToString(b))
+//	fmt.Println(util.ToJsonString(b))
 //	assert.Equal(t, len(b), 1)
 //
 //	b, _ = p.Find((*fmt.Stringer)(nil))
@@ -755,14 +753,14 @@ func TestApplicationContext_RegisterBeanFn(t *testing.T) {
 		err := p.GetBean(&st1, "st1")
 
 		assert.Nil(t, err)
-		fmt.Println(json.ToString(st1))
+		fmt.Println("::", cast.ToString(st1))
 		assert.Equal(t, st1.Room, p.GetProperty("room"))
 
 		var st2 *Student
 		err = p.GetBean(&st2, "st2")
 
 		assert.Nil(t, err)
-		fmt.Println(json.ToString(st2))
+		fmt.Println("::", cast.ToString(st2))
 		assert.Equal(t, st2.Room, p.GetProperty("room"))
 
 		fmt.Printf("%x\n", reflect.ValueOf(st1).Pointer())
@@ -772,14 +770,14 @@ func TestApplicationContext_RegisterBeanFn(t *testing.T) {
 		err = p.GetBean(&st3, "st3")
 
 		assert.Nil(t, err)
-		fmt.Println(json.ToString(st3))
+		fmt.Println("::", cast.ToString(st3))
 		assert.Equal(t, st3.Room, p.GetProperty("room"))
 
 		var st4 *Student
 		err = p.GetBean(&st4, "st4")
 
 		assert.Nil(t, err)
-		fmt.Println(json.ToString(st4))
+		fmt.Println("::", cast.ToString(st4))
 		assert.Equal(t, st4.Room, p.GetProperty("room"))
 	})
 	assert.Nil(t, err)
@@ -917,7 +915,7 @@ func NewManager() Manager {
 }
 
 func NewManagerRetError() (Manager, error) {
-	return localManager{}, errors.New("error")
+	return localManager{}, util.Error(code.Line(), "error")
 }
 
 func NewManagerRetErrorNil() (Manager, error) {
@@ -994,7 +992,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.Property("manager.version", "1.0.0")
 		c.Provide(NewManagerRetError)
 		err := c.Refresh()
-		assert.Error(t, err, "return error")
+		assert.Error(t, err, "gs_test.go:\\d* error")
 	})
 
 	t.Run("manager return error nil", func(t *testing.T) {
@@ -1040,7 +1038,7 @@ func (d *callDestroy) InitWithError() error {
 		d.inited = true
 		return nil
 	}
-	return errors.New("error")
+	return util.Error(code.Line(), "error")
 }
 
 func (d *callDestroy) DestroyWithError() error {
@@ -1048,7 +1046,7 @@ func (d *callDestroy) DestroyWithError() error {
 		d.destroyed = true
 		return nil
 	}
-	return errors.New("error")
+	return util.Error(code.Line(), "error")
 }
 
 type nestedCallDestroy struct {
@@ -1209,6 +1207,44 @@ func TestApplicationContext_Collect(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
 		c := gs.New()
+		c.Object(&struct {
+			Events []ServerInterface `autowire:""`
+		}{})
+		err := runTest(c, func(e gs.Environment) {})
+		assert.Error(t, err, "no beans collected for \"\"")
+	})
+
+	t.Run("", func(t *testing.T) {
+		c := gs.New()
+		err := runTest(c, func(e gs.Environment) {
+			var Events []ServerInterface
+			err := e.GetBean(&Events)
+			assert.Error(t, err, "no beans collected for \"\"")
+		})
+		assert.Nil(t, err)
+	})
+
+	t.Run("", func(t *testing.T) {
+		c := gs.New()
+		c.Object(&struct {
+			Events []ServerInterface `autowire:"?"`
+		}{})
+		err := runTest(c, func(e gs.Environment) {})
+		assert.Nil(t, err)
+	})
+
+	t.Run("", func(t *testing.T) {
+		c := gs.New()
+		err := runTest(c, func(e gs.Environment) {
+			var Events []ServerInterface
+			err := e.GetBean(&Events, "?")
+			assert.Nil(t, err)
+		})
+		assert.Nil(t, err)
+	})
+
+	t.Run("", func(t *testing.T) {
+		c := gs.New()
 		c.Property("redis.endpoints", "redis://localhost:6379")
 		c.Object(new(RecoresCluster)).Name("one")
 		c.Object(new(RecoresCluster))
@@ -1232,7 +1268,6 @@ func TestApplicationContext_Collect(t *testing.T) {
 
 			var rcs []*RecoresCluster
 			err := p.GetBean(&rcs)
-			fmt.Println(json.ToString(rcs))
 
 			assert.Nil(t, err)
 			assert.Equal(t, len(rcs), 2)
@@ -1251,10 +1286,15 @@ var defaultClassOption = ClassOption{
 	className: "default",
 }
 
+type ClassBuilder struct {
+	param string
+}
+
 type ClassOption struct {
 	className string
 	students  []*Student
 	floor     int
+	builder   *ClassBuilder
 }
 
 type ClassOptionFunc func(opt *ClassOption)
@@ -1272,12 +1312,19 @@ func withStudents(students []*Student) ClassOptionFunc {
 	}
 }
 
+func withBuilder(builder *ClassBuilder) ClassOptionFunc {
+	return func(opt *ClassOption) {
+		opt.builder = builder
+	}
+}
+
 type ClassRoom struct {
 	President string `value:"${president}"`
 	className string
 	floor     int
 	students  []*Student
 	desktop   Desktop
+	builder   *ClassBuilder
 }
 
 type Desktop interface {
@@ -1300,6 +1347,7 @@ func NewClassRoom(options ...ClassOptionFunc) ClassRoom {
 		students:  opt.students,
 		floor:     opt.floor,
 		desktop:   &MetalDesktop{},
+		builder:   opt.builder,
 	}
 }
 
@@ -1392,6 +1440,9 @@ func TestOptionConstructorArg(t *testing.T) {
 		c.Provide(NewClassRoom,
 			arg.Option(withStudents),
 			arg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"),
+			arg.Option(withBuilder, arg.Provide(func(param string) *ClassBuilder {
+				return &ClassBuilder{param: param}
+			}, arg.Value("1"))),
 		)
 		c.Object(&Student{}).Name("Student1")
 		c.Object(&Student{}).Name("Student2")
@@ -1403,6 +1454,7 @@ func TestOptionConstructorArg(t *testing.T) {
 			assert.Equal(t, len(cls.students), 2)
 			assert.Equal(t, cls.className, "二年级06班")
 			assert.Equal(t, cls.President, "CaiYuanPei")
+			assert.Equal(t, cls.builder.param, "1")
 		})
 		assert.Nil(t, err)
 	})
@@ -1697,13 +1749,55 @@ type CircleC struct {
 }
 
 func TestApplicationContext_CircleAutowire(t *testing.T) {
+
 	// 直接创建的 Object 直接发生循环依赖是没有关系的。
-	c := gs.New()
-	c.Object(new(CircleA))
-	c.Object(new(CircleB))
-	c.Object(new(CircleC))
-	err := c.Refresh()
-	assert.Nil(t, err)
+	t.Run("", func(t *testing.T) {
+		c := gs.New()
+		c.Object(new(CircleA))
+		c.Object(new(CircleB))
+		c.Object(new(CircleC))
+		err := c.Refresh()
+		assert.Nil(t, err)
+	})
+
+	t.Run("", func(t *testing.T) {
+		c := gs.New()
+		c.Object(new(CircleA))
+		c.Object(new(CircleB))
+		c.Provide(func() *CircleC {
+			return new(CircleC)
+		})
+		err := c.Refresh()
+		assert.Nil(t, err)
+	})
+
+	t.Run("", func(t *testing.T) {
+		c := gs.New()
+		c.Object(new(CircleA))
+		c.Provide(func() *CircleB {
+			return new(CircleB)
+		})
+		c.Provide(func() *CircleC {
+			return new(CircleC)
+		})
+		err := c.Refresh()
+		assert.Nil(t, err)
+	})
+
+	t.Run("", func(t *testing.T) {
+		c := gs.New()
+		c.Provide(func(b *CircleB) *CircleA {
+			return new(CircleA)
+		})
+		c.Provide(func(c *CircleC) *CircleB {
+			return new(CircleB)
+		})
+		c.Provide(func(a *CircleA) *CircleC {
+			return new(CircleC)
+		})
+		err := c.Refresh()
+		assert.Error(t, err, "found circle autowire")
+	})
 }
 
 type VarInterfaceOptionFunc func(opt *VarInterfaceOption)
@@ -2795,4 +2889,38 @@ func TestLazy(t *testing.T) {
 		})
 		assert.Nil(t, err)
 	}
+}
+
+type memory struct {
+}
+
+func (m *memory) OnInit(e gs.Environment) error {
+	fmt.Println("memory.OnInit")
+	return nil
+}
+
+func (m *memory) OnDestroy() {
+	fmt.Println("memory.OnDestroy")
+}
+
+type table struct {
+	_ *memory `autowire:""`
+}
+
+func (t *table) OnInit(e gs.Environment) error {
+	fmt.Println("table.OnInit")
+	return nil
+}
+
+func (t *table) OnDestroy() {
+	fmt.Println("table.OnDestroy")
+}
+
+func TestDestroyDependence(t *testing.T) {
+	c := gs.New()
+	c.Object(new(memory))
+	c.Object(new(table)).Name("aaa")
+	c.Object(new(table)).Name("bbb")
+	err := c.Refresh()
+	assert.Nil(t, err)
 }

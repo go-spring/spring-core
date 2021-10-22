@@ -14,9 +14,25 @@
  * limitations under the License.
  */
 
-package gs
+package redis
+
+import (
+	"context"
+)
 
 const (
-	Version = "go-spring@v1.1.0-rc1"
-	Website = "https://go-spring.com/"
+	CommandFlushAll = "FLUSHALL"
 )
+
+type ServerCommand interface {
+
+	// FlushAll https://redis.io/commands/flushall
+	// Command: FLUSHALL [ASYNC|SYNC]
+	// Simple string reply
+	FlushAll(ctx context.Context, args ...interface{}) (string, error)
+}
+
+func (c *BaseClient) FlushAll(ctx context.Context, args ...interface{}) (string, error) {
+	args = append([]interface{}{CommandFlushAll}, args...)
+	return c.String(ctx, args...)
+}

@@ -28,6 +28,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-spring/spring-base/conf"
 	"github.com/go-spring/spring-base/log"
@@ -35,6 +36,8 @@ import (
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/cond"
 	"github.com/go-spring/spring-core/gs/internal"
+
+	_ "github.com/go-spring/spring-core/gs/conf/toml"
 )
 
 type refreshState int
@@ -246,11 +249,13 @@ func (c *container) clear() {
 }
 
 // Refresh 刷新容器的内容，对 bean 进行有效性判断以及完成属性绑定和依赖注入。
-func (c *container) Refresh(opts ...internal.RefreshOption) error {
+func (c *container) Refresh(opts ...internal.RefreshOption) (err error) {
 
 	if c.state != Unrefreshed {
 		return errors.New("container already refreshed")
 	}
+
+	start := time.Now()
 
 	optArg := &internal.RefreshArg{AutoClear: true}
 	for _, opt := range opts {
@@ -261,13 +266,13 @@ func (c *container) Refresh(opts ...internal.RefreshOption) error {
 	c.state = Refreshing
 
 	for _, b := range c.beans {
-		if err := c.registerBean(b); err != nil {
+		if err = c.registerBean(b); err != nil {
 			return err
 		}
 	}
 
 	for _, b := range c.beansById {
-		if err := c.resolveBean(b); err != nil {
+		if err = c.resolveBean(b); err != nil {
 			return err
 		}
 	}
@@ -275,19 +280,23 @@ func (c *container) Refresh(opts ...internal.RefreshOption) error {
 	stack := newWiringStack()
 
 	defer func() {
-		if len(stack.beans) > 0 {
-			log.Infof("wiring path %s", stack.path())
+		if err != nil || len(stack.beans) > 0 {
+			err = fmt.Errorf("%s ↩\n%s", err, stack.path())
+			log.Error(err)
 		}
 	}()
 
 	for _, b := range c.beansById {
-		if err := c.wireBean(b, stack); err != nil {
+		if err = c.wireBean(b, stack); err != nil {
 			return err
 		}
 	}
 
 	c.destroyers = stack.sortDestroyers()
 	c.state = Refreshed
+
+	cost := time.Now().Sub(start)
+	log.Infof("refresh %d beans cost %v", len(c.beansById), cost)
 
 	if optArg.AutoClear {
 		c.clear()
@@ -420,6 +429,17 @@ func toWireTag(selector BeanSelector) wireTag {
 	}
 }
 
+func toWireString(tags []wireTag) string {
+	var buf bytes.Buffer
+	for i, tag := range tags {
+		buf.WriteString(tag.String())
+		if i < len(tags)-1 {
+			buf.WriteByte(',')
+		}
+	}
+	return buf.String()
+}
+
 // findBean 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
 // 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
 func (c *container) findBean(selector BeanSelector) ([]*BeanDefinition, error) {
@@ -457,10 +477,7 @@ func (c *container) findBean(selector BeanSelector) ([]*BeanDefinition, error) {
 	}
 
 	return finder(func(b *BeanDefinition) bool {
-		if b.Type().AssignableTo(t) {
-			return true
-		}
-		if t.Kind() != reflect.Interface {
+		if b.Type() == t {
 			return true
 		}
 		for _, typ := range b.exports {
@@ -486,14 +503,17 @@ func (c *container) wireBean(b *BeanDefinition, stack *wiringStack) error {
 		return nil
 	}
 
+	haveDestroy := false
+
 	defer func() {
-		if b.destroy != nil {
+		if haveDestroy {
 			stack.destroyers.Remove(stack.destroyers.Back())
 		}
 	}()
 
 	// 记录注入路径上的销毁函数及其执行的先后顺序。
 	if _, ok := b.Interface().(BeanDestroy); ok || b.destroy != nil {
+		haveDestroy = true
 		d := stack.saveDestroyer(b)
 		if i := stack.destroyers.Back(); i != nil {
 			d.after(i.Value.(*BeanDefinition))
@@ -595,7 +615,7 @@ func (c *container) getBeanValue(b *BeanDefinition, stack *wiringStack) (reflect
 
 	out, err := b.f.Call(&argContext{c: c, stack: stack})
 	if err != nil {
-		return reflect.Value{}, fmt.Errorf("%s:%q return error: %v", b.getClass(), b.FileLine(), err)
+		return reflect.Value{}, err /* fmt.Errorf("%s:%s return error: %v", b.getClass(), b.ID(), err) */
 	}
 
 	// 构造函数的返回值为值类型时 b.Type() 返回其指针类型。
@@ -934,9 +954,12 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, stack *wiringS
 	}
 
 	if len(beans) == 0 {
+		if len(tags) == 0 {
+			return fmt.Errorf("no beans collected for %q", toWireString(tags))
+		}
 		for _, tag := range tags {
 			if !tag.nullable {
-				return fmt.Errorf("no beans collected for %q", tags)
+				return fmt.Errorf("no beans collected for %q", toWireString(tags))
 			}
 		}
 		return nil
