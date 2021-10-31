@@ -28,30 +28,30 @@ import (
 	"github.com/go-spring/spring-core/gs/cond"
 )
 
-// Environment 提供了一些在 IoC 容器启动后基于反射获取和使用 property 与 bean 的接
-// 口。因为很多人会担心在运行时大量使用反射会降低程序性能，所以命名为 Environment，取
+// Context 提供了一些在 IoC 容器启动后基于反射获取和使用 property 与 bean 的接
+// 口。因为很多人会担心在运行时大量使用反射会降低程序性能，所以命名为 Context，取
 // 其诱人但危险的含义。事实上，这些在 IoC 容器启动后使用属性绑定和依赖注入的方案，
 // 都可以转换为启动阶段的方案以提高程序的性能。
 // 另一方面，为了统一 Container 和 App 两种启动方式下这些方法的使用方式，需要提取
 // 出一个可共用的接口来，也就是说，无论程序是 Container 方式启动还是 App 方式启动，
-// 都可以在需要使用这些方法的地方注入一个 Environment 对象而不是 Container 对象或者
+// 都可以在需要使用这些方法的地方注入一个 Context 对象而不是 Container 对象或者
 // App 对象，从而实现使用方式的统一。
-type Environment interface {
+type Context interface {
 	Context() context.Context
-	HasProperty(key string) bool
-	GetProperty(key string, opts ...conf.GetOption) string
+	Has(key string) bool
+	Prop(key string, opts ...conf.GetOption) string
 	Bind(i interface{}, opts ...conf.BindOption) error
-	GetBean(i interface{}, selectors ...BeanSelector) error
+	Get(i interface{}, selectors ...BeanSelector) error
 	Wire(objOrCtor interface{}, ctorArgs ...arg.Arg) (interface{}, error)
 	Invoke(fn interface{}, args ...arg.Arg) ([]interface{}, error)
 	Go(fn func(ctx context.Context))
 }
 
-func (c *container) HasProperty(key string) bool {
+func (c *container) Has(key string) bool {
 	return c.p.Has(key)
 }
 
-func (c *container) GetProperty(key string, opts ...conf.GetOption) string {
+func (c *container) Prop(key string, opts ...conf.GetOption) string {
 	return c.p.Get(key, opts...)
 }
 
@@ -59,9 +59,9 @@ func (c *container) Bind(i interface{}, opts ...conf.BindOption) error {
 	return c.p.Bind(i, opts...)
 }
 
-// FindBean 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，即未被
+// Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，即未被
 // 标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *container) FindBean(selector BeanSelector) ([]cond.BeanDefinition, error) {
+func (c *container) Find(selector BeanSelector) ([]cond.BeanDefinition, error) {
 	beans, err := c.findBean(selector)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (c *container) FindBean(selector BeanSelector) ([]cond.BeanDefinition, erro
 	return ret, nil
 }
 
-// GetBean 根据类型和选择器获取符合条件的 bean 对象。当 i 是一个基础类型的 bean 接收
+// Get 根据类型和选择器获取符合条件的 bean 对象。当 i 是一个基础类型的 bean 接收
 // 者时，表示符合条件的 bean 对象只能有一个，没有找到或者多于一个时会返回 error。
 // 当 i 是一个 map 类型的 bean 接收者时，表示获取任意数量的 bean 对象，map 的
 // key 是 bean 的名称，map 的 value 是 bean 的地址。当 i 是一个 array 或者
@@ -82,7 +82,7 @@ func (c *container) FindBean(selector BeanSelector) ([]cond.BeanDefinition, erro
 // 工作模式称为自动模式，否则根据传入的选择器列表进行排序，这种工作模式成为指派模式。
 // 该方法和 Find 方法的区别是该方法保证返回的所有 bean 对象都已经完成属性绑定和依
 // 赖注入，而 Find 方法只能保证返回的 bean 对象是有效的，即未被标记为删除的。
-func (c *container) GetBean(i interface{}, selectors ...BeanSelector) error {
+func (c *container) Get(i interface{}, selectors ...BeanSelector) error {
 
 	if i == nil {
 		return errors.New("i can't be nil")
