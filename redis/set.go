@@ -76,7 +76,7 @@ type SetCommand interface {
 	// Command: SISMEMBER key member
 	// Integer reply: 1 if the element is a member of the set,
 	// 0 if the element is not a member of the set, or if key does not exist.
-	SIsMember(ctx context.Context, key string, member interface{}) (bool, error)
+	SIsMember(ctx context.Context, key string, member interface{}) (int, error)
 
 	// SMembers https://redis.io/commands/smembers
 	// Command: SMEMBERS key
@@ -87,13 +87,13 @@ type SetCommand interface {
 	// Command: SMISMEMBER key member [member ...]
 	// Array reply: list representing the membership of the given elements,
 	// in the same order as they are requested.
-	SMIsMember(ctx context.Context, key string, members ...interface{}) ([]bool, error)
+	SMIsMember(ctx context.Context, key string, members ...interface{}) ([]int64, error)
 
 	// SMove https://redis.io/commands/smove
 	// Command: SMOVE source destination member
 	// Integer reply: 1 if the element is moved, 0 if the element
 	// is not a member of source and no operation was performed.
-	SMove(ctx context.Context, source, destination string, member interface{}) (bool, error)
+	SMove(ctx context.Context, source, destination string, member interface{}) (int, error)
 
 	// SPop https://redis.io/commands/spop
 	// Command: SPOP key [count]
@@ -176,9 +176,9 @@ func (c *BaseClient) SInterStore(ctx context.Context, destination string, keys .
 	return c.Int64(ctx, args...)
 }
 
-func (c *BaseClient) SIsMember(ctx context.Context, key string, member interface{}) (bool, error) {
+func (c *BaseClient) SIsMember(ctx context.Context, key string, member interface{}) (int, error) {
 	args := []interface{}{CommandSIsMember, key, member}
-	return c.Bool(ctx, args...)
+	return c.Int(ctx, args...)
 }
 
 func (c *BaseClient) SMembers(ctx context.Context, key string) ([]string, error) {
@@ -186,17 +186,17 @@ func (c *BaseClient) SMembers(ctx context.Context, key string) ([]string, error)
 	return c.StringSlice(ctx, args...)
 }
 
-func (c *BaseClient) SMIsMember(ctx context.Context, key string, members ...interface{}) ([]bool, error) {
+func (c *BaseClient) SMIsMember(ctx context.Context, key string, members ...interface{}) ([]int64, error) {
 	args := []interface{}{CommandSMIsMember, key}
 	for _, member := range members {
 		args = append(args, member)
 	}
-	return c.BoolSlice(ctx, args...)
+	return c.Int64Slice(ctx, args...)
 }
 
-func (c *BaseClient) SMove(ctx context.Context, source, destination string, member interface{}) (bool, error) {
+func (c *BaseClient) SMove(ctx context.Context, source, destination string, member interface{}) (int, error) {
 	args := []interface{}{CommandSMove, source, destination, member}
-	return c.Bool(ctx, args...)
+	return c.Int(ctx, args...)
 }
 
 func (c *BaseClient) SPop(ctx context.Context, key string) (string, error) {

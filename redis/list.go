@@ -115,12 +115,12 @@ type ListCommand interface {
 	// LSet https://redis.io/commands/lset
 	// Command: LSET key index element
 	// Simple string reply
-	LSet(ctx context.Context, key string, index int64, value interface{}) (bool, error)
+	LSet(ctx context.Context, key string, index int64, value interface{}) (string, error)
 
 	// LTrim https://redis.io/commands/ltrim
 	// Command: LTRIM key start stop
 	// Simple string reply
-	LTrim(ctx context.Context, key string, start, stop int64) (bool, error)
+	LTrim(ctx context.Context, key string, start, stop int64) (string, error)
 
 	// RPop https://redis.io/commands/rpop
 	// Command: RPOP key [count]
@@ -219,14 +219,14 @@ func (c *BaseClient) LRem(ctx context.Context, key string, count int64, value in
 	return c.Int64(ctx, args...)
 }
 
-func (c *BaseClient) LSet(ctx context.Context, key string, index int64, value interface{}) (bool, error) {
+func (c *BaseClient) LSet(ctx context.Context, key string, index int64, value interface{}) (string, error) {
 	args := []interface{}{CommandLSet, key, index, value}
-	return c.Bool(ctx, args...)
+	return c.String(ctx, args...)
 }
 
-func (c *BaseClient) LTrim(ctx context.Context, key string, start, stop int64) (bool, error) {
+func (c *BaseClient) LTrim(ctx context.Context, key string, start, stop int64) (string, error) {
 	args := []interface{}{CommandLTrim, key, start, stop}
-	return c.Bool(ctx, args...)
+	return c.String(ctx, args...)
 }
 
 func (c *BaseClient) RPop(ctx context.Context, key string) (string, error) {

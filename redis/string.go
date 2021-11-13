@@ -109,34 +109,34 @@ type StringCommand interface {
 	// MSet https://redis.io/commands/mset
 	// Command: MSET key value [key value ...]
 	// Simple string reply: always OK since MSET can't fail.
-	MSet(ctx context.Context, args ...interface{}) (bool, error)
+	MSet(ctx context.Context, args ...interface{}) (string, error)
 
 	// MSetNX https://redis.io/commands/msetnx
 	// Command: MSETNX key value [key value ...]
 	// MSETNX is atomic, so all given keys are set at once
 	// Integer reply: 1 if the all the keys were set, 0 if no
 	// key was set (at least one key already existed).
-	MSetNX(ctx context.Context, args ...interface{}) (bool, error)
+	MSetNX(ctx context.Context, args ...interface{}) (int, error)
 
 	// PSetEX https://redis.io/commands/psetex
 	// Command: PSETEX key milliseconds value
 	// Simple string reply
-	PSetEX(ctx context.Context, key string, value interface{}, expire int64) (bool, error)
+	PSetEX(ctx context.Context, key string, value interface{}, expire int64) (string, error)
 
 	// Set https://redis.io/commands/set
 	// Command: SET key value [EX seconds|PX milliseconds|EXAT timestamp|PXAT milliseconds-timestamp|KEEPTTL] [NX|XX] [GET]
 	// Simple string reply: OK if SET was executed correctly.
-	Set(ctx context.Context, key string, value interface{}, args ...interface{}) (bool, error)
+	Set(ctx context.Context, key string, value interface{}, args ...interface{}) (string, error)
 
 	// SetEX https://redis.io/commands/setex
 	// Command: SETEX key seconds value
 	// Simple string reply
-	SetEX(ctx context.Context, key string, value interface{}, expire int64) (bool, error)
+	SetEX(ctx context.Context, key string, value interface{}, expire int64) (string, error)
 
 	// SetNX https://redis.io/commands/setnx
 	// Command: SETNX key value
 	// Integer reply: 1 if the key was set, 0 if the key was not set.
-	SetNX(ctx context.Context, key string, value interface{}) (bool, error)
+	SetNX(ctx context.Context, key string, value interface{}) (int, error)
 
 	// SetRange https://redis.io/commands/setrange
 	// Command: SETRANGE key offset value
@@ -212,34 +212,34 @@ func (c *BaseClient) MGet(ctx context.Context, keys ...string) ([]interface{}, e
 	return c.Slice(ctx, args...)
 }
 
-func (c *BaseClient) MSet(ctx context.Context, args ...interface{}) (bool, error) {
+func (c *BaseClient) MSet(ctx context.Context, args ...interface{}) (string, error) {
 	args = append([]interface{}{CommandMSet}, args...)
-	return c.Bool(ctx, args...)
+	return c.String(ctx, args...)
 }
 
-func (c *BaseClient) MSetNX(ctx context.Context, args ...interface{}) (bool, error) {
+func (c *BaseClient) MSetNX(ctx context.Context, args ...interface{}) (int, error) {
 	args = append([]interface{}{CommandMSetNX}, args...)
-	return c.Bool(ctx, args...)
+	return c.Int(ctx, args...)
 }
 
-func (c *BaseClient) PSetEX(ctx context.Context, key string, value interface{}, expire int64) (bool, error) {
+func (c *BaseClient) PSetEX(ctx context.Context, key string, value interface{}, expire int64) (string, error) {
 	args := []interface{}{CommandPSetEX, key, expire, value}
-	return c.Bool(ctx, args...)
+	return c.String(ctx, args...)
 }
 
-func (c *BaseClient) Set(ctx context.Context, key string, value interface{}, args ...interface{}) (bool, error) {
+func (c *BaseClient) Set(ctx context.Context, key string, value interface{}, args ...interface{}) (string, error) {
 	args = append([]interface{}{CommandSet, key, value}, args...)
-	return c.Bool(ctx, args...)
+	return c.String(ctx, args...)
 }
 
-func (c *BaseClient) SetEX(ctx context.Context, key string, value interface{}, expire int64) (bool, error) {
+func (c *BaseClient) SetEX(ctx context.Context, key string, value interface{}, expire int64) (string, error) {
 	args := []interface{}{CommandSetEX, key, expire, value}
-	return c.Bool(ctx, args...)
+	return c.String(ctx, args...)
 }
 
-func (c *BaseClient) SetNX(ctx context.Context, key string, value interface{}) (bool, error) {
+func (c *BaseClient) SetNX(ctx context.Context, key string, value interface{}) (int, error) {
 	args := []interface{}{CommandSetNX, key, value}
-	return c.Bool(ctx, args...)
+	return c.Int(ctx, args...)
 }
 
 func (c *BaseClient) SetRange(ctx context.Context, key string, offset int64, value string) (int64, error) {

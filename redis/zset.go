@@ -50,8 +50,8 @@ const (
 )
 
 type ZItem struct {
-	Score  float64
 	Member interface{}
+	Score  float64
 }
 
 type ZSetCommand interface {
