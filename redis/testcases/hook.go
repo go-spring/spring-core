@@ -14,4 +14,17 @@
  * limitations under the License.
  */
 
-package k8s
+package testcases
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/go-spring/spring-core/redis"
+)
+
+func init() {
+	redis.SetHook(redis.Hook{AfterDoFunc: func(ctx context.Context, args []interface{}, ret interface{}, err error) {
+		fmt.Printf("%v return (%v) %v\n", args, err, ret)
+	}})
+}

@@ -24,10 +24,10 @@ import (
 	"os/signal"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"syscall"
 
-	"github.com/go-spring/spring-base/cast"
 	"github.com/go-spring/spring-base/conf"
 	"github.com/go-spring/spring-base/log"
 	"github.com/go-spring/spring-base/util"
@@ -53,11 +53,11 @@ type AppEvent interface {
 }
 
 type tempApp struct {
-	banner          string
 	router          web.Router
 	consumers       *Consumers
 	grpcServers     *GrpcServers
-	mapOfOnProperty map[string]interface{} // 属性列表解析完成后的回调
+	mapOfOnProperty map[string]interface{}
+	banner          string
 }
 
 // App 应用
@@ -171,7 +171,7 @@ func (app *App) start() error {
 		return err
 	}
 
-	showBanner := cast.ToBool(e.p.Get(SpringBannerVisible))
+	showBanner, _ := strconv.ParseBool(e.p.Get(SpringBannerVisible))
 	if showBanner {
 		app.printBanner(app.getBanner(e))
 	}
