@@ -59,11 +59,12 @@ type Container interface {
 }
 
 type tempContainer struct {
-	p           *conf.Properties
-	beansById   map[string]*BeanDefinition
-	beansByName map[string][]*BeanDefinition
-	beansByType map[reflect.Type][]*BeanDefinition
-	beans       []*BeanDefinition
+	p               *conf.Properties
+	beans           []*BeanDefinition
+	beansById       map[string]*BeanDefinition
+	beansByName     map[string][]*BeanDefinition
+	beansByType     map[reflect.Type][]*BeanDefinition
+	mapOfOnProperty map[string]interface{}
 }
 
 // container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
@@ -89,10 +90,11 @@ func New() Container {
 		ctx:    ctx,
 		cancel: cancel,
 		tempContainer: &tempContainer{
-			p:           conf.New(),
-			beansById:   make(map[string]*BeanDefinition),
-			beansByName: make(map[string][]*BeanDefinition),
-			beansByType: make(map[reflect.Type][]*BeanDefinition),
+			p:               conf.New(),
+			beansById:       make(map[string]*BeanDefinition),
+			beansByName:     make(map[string][]*BeanDefinition),
+			beansByType:     make(map[reflect.Type][]*BeanDefinition),
+			mapOfOnProperty: make(map[string]interface{}),
 		},
 	}
 }
@@ -100,6 +102,24 @@ func New() Container {
 // Context 返回 IoC 容器的 ctx 对象。
 func (c *container) Context() context.Context {
 	return c.ctx
+}
+
+func validOnProperty(fn interface{}) error {
+	t := reflect.TypeOf(fn)
+	if t.Kind() != reflect.Func {
+		return errors.New("fn should be a func(value_type)")
+	}
+	if t.NumIn() != 1 || !util.IsValueType(t.In(0)) || t.NumOut() != 0 {
+		return errors.New("fn should be a func(value_type)")
+	}
+	return nil
+}
+
+// OnProperty 当 key 对应的属性值准备好后发送一个通知。
+func (c *container) OnProperty(key string, fn interface{}) {
+	err := validOnProperty(fn)
+	util.Panic(err).When(err != nil)
+	c.mapOfOnProperty[key] = fn
 }
 
 // Property 设置 key 对应的属性值，如果 key 对应的属性值已经存在则 Set 方法会
@@ -181,7 +201,7 @@ func newWiringStack() *wiringStack {
 
 // pushBack 添加一个即将注入的 bean 。
 func (s *wiringStack) pushBack(b *BeanDefinition) {
-	log.Tracef("wiring %s", b)
+	log.Tracef("push %s %s", b, getStatusString(b.status))
 	s.beans = append(s.beans, b)
 }
 
@@ -190,7 +210,7 @@ func (s *wiringStack) popBack() {
 	n := len(s.beans)
 	b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
-	log.Tracef("wired %s", b)
+	log.Tracef("pop %s %s", b, getStatusString(b.status))
 }
 
 // path 返回 bean 的注入路径。
@@ -249,6 +269,15 @@ func (c *container) clear() {
 // Refresh 刷新容器的内容，对 bean 进行有效性判断以及完成属性绑定和依赖注入。
 func (c *container) Refresh(opts ...internal.RefreshOption) (err error) {
 
+	for key, f := range c.mapOfOnProperty {
+		t := reflect.TypeOf(f)
+		in := reflect.New(t.In(0)).Elem()
+		if err = c.p.Bind(in, conf.Key(key)); err != nil {
+			return err
+		}
+		reflect.ValueOf(f).Call([]reflect.Value{in})
+	}
+
 	if c.state != Unrefreshed {
 		return errors.New("container already refreshed")
 	}
@@ -284,9 +313,18 @@ func (c *container) Refresh(opts ...internal.RefreshOption) (err error) {
 		}
 	}()
 
-	for _, b := range c.beansById {
-		if err = c.wireBean(b, stack); err != nil {
-			return err
+	// 按照 bean id 升序注入，保证注入过程始终一致。
+	{
+		var keys []string
+		for s := range c.beansById {
+			keys = append(keys, s)
+		}
+		sort.Strings(keys)
+		for _, s := range keys {
+			b := c.beansById[s]
+			if err = c.wireBean(b, stack); err != nil {
+				return err
+			}
 		}
 	}
 

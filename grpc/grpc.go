@@ -16,6 +16,14 @@
 
 package grpc
 
+import "github.com/go-spring/spring-core/internal"
+
+// ServerConfig gRPC 服务器配置。
+type ServerConfig = internal.GrpcServerConfig
+
+// EndpointConfig gRPC 客户端配置。
+type EndpointConfig = internal.GrpcEndpointConfig
+
 type Server struct {
 	Register interface{} // 服务注册函数
 	Service  interface{} // 服务提供者

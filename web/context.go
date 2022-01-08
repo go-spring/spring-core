@@ -31,17 +31,24 @@ import (
 // ContextKey Context 和 NativeContext 相互转换的 Key
 const ContextKey = "@WebCtx"
 
-// ErrorHandler 用户自定义错误处理函数
-var ErrorHandler = func(ctx Context, err *HttpError) {
+// FuncErrorHandler func 形式定义错误处理接口
+type FuncErrorHandler func(ctx Context, err *HttpError)
+
+func (f FuncErrorHandler) Invoke(ctx Context, err *HttpError) {
+	f(ctx, err)
+}
+
+// defaultErrorHandler 默认实现的错误处理接口
+var defaultErrorHandler = FuncErrorHandler(func(ctx Context, err *HttpError) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Ctx(ctx.Context()).Error(r)
+			log.Ctx(ctx.Context()).Error(log.UnknownError, r)
 		}
 	}()
 
 	if err.Internal == nil {
-		ctx.Status(err.Code)
+		ctx.SetStatus(err.Code)
 		ctx.String(err.Message)
 		return
 	}
@@ -52,7 +59,7 @@ var ErrorHandler = func(ctx Context, err *HttpError) {
 	default:
 		ctx.JSON(err.Internal)
 	}
-}
+})
 
 // HttpError represents an error that occurred while handling a request.
 type HttpError struct {
@@ -106,14 +113,17 @@ type Context interface {
 	// NativeContext 返回封装的底层上下文对象
 	NativeContext() interface{}
 
+	// Get retrieves data from the context.
+	Get(key string) (interface{}, bool)
+
+	// Set saves data in the context.
+	Set(key string, val interface{}) error
+
 	/////////////////////////////////////////
 	// Request Part
 
 	// Request returns `*http.Request`.
 	Request() *http.Request
-
-	// SetRequest sets `*http.Request`.
-	SetRequest(r *http.Request)
 
 	// Context 返回 Request 绑定的 context.Context 对象
 	Context() context.Context
@@ -142,14 +152,14 @@ type Context interface {
 	// ContentType returns the Content-Type header of the request.
 	ContentType() string
 
-	// GetHeader returns value from request headers.
-	GetHeader(key string) string
+	// Header returns value from request headers.
+	Header(key string) string
 
-	// GetRawData return stream data.
-	GetRawData() ([]byte, error)
+	// Cookies returns the HTTP cookies sent with the request.
+	Cookies() []*http.Cookie
 
-	// PathParam returns path parameter by name.
-	PathParam(name string) string
+	// Cookie returns the named cookie provided in the request.
+	Cookie(name string) (*http.Cookie, error)
 
 	// PathParamNames returns path parameter names.
 	PathParamNames() []string
@@ -157,20 +167,26 @@ type Context interface {
 	// PathParamValues returns path parameter values.
 	PathParamValues() []string
 
-	// QueryParam returns the query param for the provided name.
-	QueryParam(name string) string
-
-	// QueryParams returns the query parameters as `url.Values`.
-	QueryParams() url.Values
+	// PathParam returns path parameter by name.
+	PathParam(name string) string
 
 	// QueryString returns the URL query string.
 	QueryString() string
 
-	// FormValue returns the form field value for the provided name.
-	FormValue(name string) string
+	// QueryParams returns the query parameters as `url.Values`.
+	QueryParams() url.Values
+
+	// QueryParam returns the query param for the provided name.
+	QueryParam(name string) string
 
 	// FormParams returns the form parameters as `url.Values`.
 	FormParams() (url.Values, error)
+
+	// FormValue returns the form field value for the provided name.
+	FormValue(name string) string
+
+	// MultipartForm returns the multipart form.
+	MultipartForm() (*multipart.Form, error)
 
 	// FormFile returns the multipart form file for the provided name.
 	FormFile(name string) (*multipart.FileHeader, error)
@@ -178,14 +194,8 @@ type Context interface {
 	// SaveUploadedFile uploads the form file to specific dst.
 	SaveUploadedFile(file *multipart.FileHeader, dst string) error
 
-	// MultipartForm returns the multipart form.
-	MultipartForm() (*multipart.Form, error)
-
-	// Cookie returns the named cookie provided in the request.
-	Cookie(name string) (*http.Cookie, error)
-
-	// Cookies returns the HTTP cookies sent with the request.
-	Cookies() []*http.Cookie
+	// RequestBody return stream data.
+	RequestBody() ([]byte, error)
 
 	// Bind binds the request body into provided type `i`. The default binder
 	// does it based on Content-Type header.
@@ -194,16 +204,19 @@ type Context interface {
 	/////////////////////////////////////////
 	// Response Part
 
-	// ResponseWriter returns `http.ResponseWriter`.
+	// ResponseWriter returns ResponseWriter.
 	ResponseWriter() ResponseWriter
 
-	// Status sets the HTTP response code.
-	Status(code int)
+	// SetStatus sets the HTTP response code.
+	SetStatus(code int)
 
-	// Header is a intelligent shortcut for c.Writer.Header().Set(key, value).
+	// SetHeader is a intelligent shortcut for c.Writer.Header().Set(key, value).
 	// It writes a header in the response.
 	// If value == "", this method removes the header `c.Writer.Header().Del(key)`
-	Header(key, value string)
+	SetHeader(key, value string)
+
+	// SetContentType 设置 ResponseWriter 的 ContentType 。
+	SetContentType(typ string)
 
 	// SetCookie adds a `Set-Cookie` header in HTTP response.
 	SetCookie(cookie *http.Cookie)
@@ -269,7 +282,9 @@ type Context interface {
 // BufferedResponseWriter http.ResponseWriter 的一种增强型实现.
 type BufferedResponseWriter struct {
 	http.ResponseWriter
-	buffer bytes.Buffer
+	cache  bool
+	buf    bytes.Buffer
+	size   int
 	status int
 }
 
@@ -280,12 +295,12 @@ func (w *BufferedResponseWriter) Status() int {
 
 // Size Returns the number of bytes already written into the response http body.
 func (w *BufferedResponseWriter) Size() int {
-	return w.buffer.Len()
+	return w.size
 }
 
 // Body 返回发送给客户端的数据，当前仅支持 MIMEApplicationJSON 格式.
 func (w *BufferedResponseWriter) Body() string {
-	return w.buffer.String()
+	return w.buf.String()
 }
 
 func filterFlags(content string) string {
@@ -313,9 +328,10 @@ func (w *BufferedResponseWriter) WriteHeader(code int) {
 }
 
 func (w *BufferedResponseWriter) Write(data []byte) (n int, err error) {
-	if n, err = w.ResponseWriter.Write(data); err == nil {
-		if canPrintResponse(w.ResponseWriter) {
-			w.buffer.Write(data[:n])
+	if n, err = w.ResponseWriter.Write(data); err == nil && n > 0 {
+		if w.cache && canPrintResponse(w.ResponseWriter) {
+			w.buf.Write(data[:n])
+			w.size += n
 		}
 	}
 	return

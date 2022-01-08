@@ -32,6 +32,10 @@ import (
 
 type BeanSelector = internal.BeanSelector
 
+func BeanID(typ interface{}, name string) string {
+	return util.TypeName(reflect.TypeOf(typ)) + ":" + name
+}
+
 const (
 	HighestOrder = math.MinInt32
 	LowestOrder  = math.MaxInt32
@@ -48,6 +52,27 @@ const (
 	Created                      // 已创建
 	Wired                        // 注入完成
 )
+
+func getStatusString(status beanStatus) string {
+	switch status {
+	case Deleted:
+		return "Deleted"
+	case Default:
+		return "Default"
+	case Resolving:
+		return "Resolving"
+	case Resolved:
+		return "Resolved"
+	case Creating:
+		return "Creating"
+	case Created:
+		return "Created"
+	case Wired:
+		return "Wired"
+	default:
+		return ""
+	}
+}
 
 type BeanInit interface {
 	OnInit(ctx Context) error

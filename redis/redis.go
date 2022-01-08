@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// 在当前目录下执行下面的命令可以生成 mock 代码，
+// mockgen -build_flags="-mod=mod" -package=redis -destination=mock.go github.com/go-spring/spring-core/redis Client
+
 package redis
 
 import (
@@ -25,9 +28,10 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-base/cast"
+	"github.com/go-spring/spring-base/chrono"
 	"github.com/go-spring/spring-base/fastdev"
 	"github.com/go-spring/spring-base/fastdev/json"
-	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/spring-core/internal"
 )
 
 const OK = "OK"
@@ -70,6 +74,8 @@ var hook Hook
 func SetHook(h Hook) {
 	hook = h
 }
+
+type ClientConfig internal.RedisClientConfig
 
 type BaseClient struct {
 	DoFunc func(ctx context.Context, args ...interface{}) (interface{}, error)
@@ -115,7 +121,7 @@ func (c *BaseClient) do(ctx context.Context, args []interface{}, trans transform
 
 	var timeNow int64
 	if fastdev.RecordMode() {
-		timeNow = util.Now(ctx).UnixNano()
+		timeNow = chrono.Now(ctx).UnixNano()
 	}
 
 	defer func() {
@@ -138,7 +144,7 @@ func (c *BaseClient) do(ctx context.Context, args []interface{}, trans transform
 	}()
 
 	if hook.BeforeDoFunc != nil {
-		if err := hook.BeforeDoFunc(ctx, args); err != nil {
+		if err = hook.BeforeDoFunc(ctx, args); err != nil {
 			return nil, err
 		}
 	}

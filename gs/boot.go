@@ -41,7 +41,10 @@ func init() {
 	}
 }
 
-var gApp *App
+var (
+	gApp   *App
+	gInits []func(*startup)
+)
 
 func app() *App {
 	if gApp == nil {
@@ -61,9 +64,24 @@ func Go(fn func(ctx context.Context)) {
 	gApp.Go(fn)
 }
 
+type startup struct {
+	web bool
+}
+
+func Web(enable bool) *startup {
+	return &startup{web: enable}
+}
+
+func (s *startup) Run() error {
+	for _, f := range gInits {
+		f(s)
+	}
+	return gApp.Run()
+}
+
 // Run 启动程序。
 func Run() error {
-	return gApp.Run()
+	return Web(true).Run()
 }
 
 // ShutDown 停止程序。
@@ -174,6 +192,16 @@ func RequestMapping(method uint32, path string, fn web.HandlerFunc) *web.Mapper 
 // RequestBinding 参考 App.RequestBinding 的解释。
 func RequestBinding(method uint32, path string, fn interface{}) *web.Mapper {
 	return app().RequestBinding(method, path, fn)
+}
+
+// File 定义单个文件资源
+func File(path string, file string) *web.Mapper {
+	return app().File(path, file)
+}
+
+// Static 定义一组文件资源
+func Static(prefix string, root string) *web.Mapper {
+	return app().Static(prefix, root)
 }
 
 // Consume 参考 App.Consume 的解释。

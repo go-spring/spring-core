@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -30,7 +31,6 @@ import (
 
 	"github.com/go-spring/spring-base/conf"
 	"github.com/go-spring/spring-base/log"
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/internal"
@@ -53,11 +53,10 @@ type AppEvent interface {
 }
 
 type tempApp struct {
-	router          web.Router
-	consumers       *Consumers
-	grpcServers     *GrpcServers
-	mapOfOnProperty map[string]interface{}
-	banner          string
+	router      web.Router
+	consumers   *Consumers
+	grpcServers *GrpcServers
+	banner      string
 }
 
 // App 应用
@@ -111,7 +110,6 @@ func NewApp() *App {
 			grpcServers: &GrpcServers{
 				servers: map[string]*grpc.Server{},
 			},
-			mapOfOnProperty: make(map[string]interface{}),
 		},
 		exitChan: make(chan struct{}),
 	}
@@ -189,16 +187,6 @@ func (app *App) start() error {
 	// 保存从环境变量和命令行解析的属性
 	for _, k := range e.p.Keys() {
 		app.c.p.Set(k, e.p.Get(k))
-	}
-
-	for key, f := range app.mapOfOnProperty {
-		t := reflect.TypeOf(f)
-		in := reflect.New(t.In(0)).Elem()
-		err := app.c.p.Bind(in, conf.Key(key))
-		if err != nil {
-			return err
-		}
-		reflect.ValueOf(f).Call([]reflect.Value{in})
 	}
 
 	if err := app.c.Refresh(internal.AutoClear(false)); err != nil {
@@ -368,9 +356,7 @@ func (app *App) Bootstrap() *bootstrap {
 
 // OnProperty 当 key 对应的属性值准备好后发送一个通知。
 func (app *App) OnProperty(key string, fn interface{}) {
-	err := validOnProperty(fn)
-	util.Panic(err).When(err != nil)
-	app.mapOfOnProperty[key] = fn
+	app.c.OnProperty(key, fn)
 }
 
 // Property 参考 Container.Property 的解释。
@@ -461,6 +447,18 @@ func (app *App) RequestMapping(method uint32, path string, fn web.HandlerFunc) *
 // RequestBinding 注册任意 HTTP 方法处理函数。
 func (app *App) RequestBinding(method uint32, path string, fn interface{}) *web.Mapper {
 	return app.router.RequestBinding(method, path, fn)
+}
+
+// File 定义单个文件资源
+func (app *App) File(path string, file string) *web.Mapper {
+	return app.GetMapping(path, func(c web.Context) { c.File(file) })
+}
+
+// Static 定义一组文件资源
+func (app *App) Static(prefix string, root string) *web.Mapper {
+	fileServer := http.FileServer(http.Dir(root))
+	handler := web.WrapH(http.StripPrefix(prefix, fileServer))
+	return app.HandleGet(prefix+"/*", handler)
 }
 
 // Consume 注册 MQ 消费者。
