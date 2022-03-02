@@ -989,7 +989,8 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, stack *wiringS
 				beforeAny = append(beforeAny, beans[index])
 			}
 
-			beans = append(beans[:index], beans[index+1:]...)
+			tmpBeans := append([]*BeanDefinition{}, beans[:index]...)
+			beans = append(tmpBeans, beans[index+1:]...)
 		}
 
 		if foundAny {
