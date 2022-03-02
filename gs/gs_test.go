@@ -1864,7 +1864,31 @@ func NewVarObj(s string, options ...VarOptionFunc) *VarObj {
 	return &VarObj{opt.v, s}
 }
 
+func NewNilVarObj(i interface{}, options ...VarOptionFunc) *VarObj {
+	opt := new(VarOption)
+	for _, option := range options {
+		option(opt)
+	}
+	return &VarObj{opt.v, fmt.Sprint(i)}
+}
+
 func TestApplicationContext_RegisterOptionBean(t *testing.T) {
+
+	t.Run("nil param 0", func(t *testing.T) {
+		c := gs.New()
+		c.Property("var.obj", "description")
+		c.Object(&Var{"v1"}).Name("v1")
+		c.Object(&Var{"v2"}).Name("v2")
+		c.Provide(NewNilVarObj, arg.Nil())
+		err := runTest(c, func(p gs.Context) {
+			var obj *VarObj
+			err := p.Get(&obj)
+			assert.Nil(t, err)
+			assert.Equal(t, len(obj.v), 0)
+			assert.Equal(t, obj.s, "<nil>")
+		})
+		assert.Nil(t, err)
+	})
 
 	t.Run("variable option param 1", func(t *testing.T) {
 		c := gs.New()

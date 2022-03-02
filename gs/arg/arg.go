@@ -85,6 +85,11 @@ type ValueArg struct {
 	v interface{}
 }
 
+// Nil 返回 nil 的参数绑定。
+func Nil() ValueArg {
+	return ValueArg{v: nil}
+}
+
 // Value 返回包含具体值的参数绑定。
 func Value(v interface{}) ValueArg {
 	return ValueArg{v: v}
@@ -235,6 +240,9 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 			return results[0], nil
 		}
 	case ValueArg:
+		if g.v == nil {
+			return reflect.Zero(t), nil
+		}
 		return reflect.ValueOf(g.v), nil
 	case *optionArg:
 		return g.call(ctx)
