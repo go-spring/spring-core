@@ -405,7 +405,15 @@ func bindValue(p Properties, v reflect.Value, key string, def interface{}, opt b
 
 		// 如果是字符串的话，尝试按照逗号进行切割
 		if s, ok := propValue.(string); ok {
-			propValue = strings.Split(s, ",")
+			var values []interface{}
+			if len(s) > 0 {
+				splits := strings.Split(s, ",")
+				values = make([]interface{}, len(splits))
+				for i := 0; i < len(values); i++ {
+					values[i] = splits[i]
+				}
+			}
+			propValue = values
 		}
 
 		// 处理使用类型转换器的场景
