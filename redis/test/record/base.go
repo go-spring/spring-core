@@ -18,67 +18,53 @@ package record
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
-	"reflect"
-	"runtime"
 	"testing"
+	"time"
 
-	"github.com/go-spring/spring-base/fastdev"
+	"github.com/go-spring/spring-base/assert"
+	"github.com/go-spring/spring-base/clock"
 	"github.com/go-spring/spring-base/knife"
+	"github.com/go-spring/spring-base/net/recorder"
 	"github.com/go-spring/spring-core/redis"
 	"github.com/go-spring/spring-core/redis/test/cases"
 )
 
-func RunCase(t *testing.T, c redis.Client, cc cases.Case) {
-
-	fastdev.SetRecordMode(true)
-	defer func() {
-		fastdev.SetRecordMode(false)
-	}()
-
-	ctx, _ := knife.New(context.Background())
-	sessionID := "df3b64266ebe4e63a464e135000a07cd"
-	err := knife.Set(ctx, fastdev.RecordSessionIDKey, sessionID)
+func flushAll(conn redis.ConnPool) (string, error) {
+	c, err := redis.NewClient(conn)
 	if err != nil {
-		t.Fatal(err)
+		return "", err
 	}
-
-	defer func() {
-		fastdev.SetRecordMode(false)
-		c.FlushAll(ctx)
-	}()
-
-	cc.Func(t, ctx, c)
-
-	session := fastdev.RecordInbound(ctx, &fastdev.Action{})
-	if cc.Data != "skip" {
-		testResult := session.ToJson()
-
-		var (
-			s1 *fastdev.Session
-			s2 *fastdev.Session
-		)
-
-		s1, err = fastdev.ToSession([]byte(testResult), true)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		s2, err = fastdev.ToSession([]byte(cc.Data), true)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !reflect.DeepEqual(s1, s2) {
-			fail(t, 0, "got %v but expect %v", testResult, cc.Data)
-		}
-	}
+	return c.OpsForServer().FlushAll(context.Background())
 }
 
-func fail(t *testing.T, skip int, format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	_, file, line, _ := runtime.Caller(skip + 1)
-	fmt.Printf("\t%s:%d: %s\n", filepath.Base(file), line, msg)
-	t.Fail()
+func RunCase(t *testing.T, conn redis.ConnPool, c cases.Case) {
+
+	ok, err := flushAll(conn)
+	assert.Nil(t, err)
+	assert.True(t, redis.IsOK(ok))
+
+	recorder.SetRecordMode(true)
+	defer func() {
+		recorder.SetRecordMode(false)
+	}()
+
+	client, err := redis.NewClient(conn)
+	assert.Nil(t, err)
+
+	ctx, _ := knife.New(context.Background())
+	err = clock.SetFixedTime(ctx, time.Unix(0, 0))
+	assert.Nil(t, err)
+
+	sessionID := "df3b64266ebe4e63a464e135000a07cd"
+	recorder.StartRecord(ctx, sessionID)
+
+	c.Func(t, ctx, client)
+
+	session := recorder.StopRecord(ctx)
+	if c.Skip {
+		return
+	}
+
+	str := recorder.ToPrettyJson(session)
+	assert.JsonEqual(t, str, c.Data)
 }

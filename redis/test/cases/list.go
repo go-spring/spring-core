@@ -25,85 +25,84 @@ import (
 )
 
 var LIndex = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.LPush(ctx, "mylist", "World")
+		r1, err := c.OpsForList().LPush(ctx, "mylist", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.LPush(ctx, "mylist", "Hello")
+		r2, err := c.OpsForList().LPush(ctx, "mylist", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.LIndex(ctx, "mylist", 0)
+		r3, err := c.OpsForList().LIndex(ctx, "mylist", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, "Hello")
 
-		r4, err := c.LIndex(ctx, "mylist", -1)
+		r4, err := c.OpsForList().LIndex(ctx, "mylist", -1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, "World")
 
-		_, err = c.LIndex(ctx, "mylist", 3)
-		assert.Equal(t, err, redis.ErrNil)
+		_, err = c.OpsForList().LIndex(ctx, "mylist", 3)
+		assert.True(t, redis.IsErrNil(err))
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "LPUSH mylist World",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "LPUSH mylist World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "LPUSH mylist Hello",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "LPUSH mylist Hello",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "LINDEX mylist 0",
-			"response": "Hello"
+			"Protocol": "REDIS",
+			"Request": "LINDEX mylist 0",
+			"Response": "\"Hello\""
 		}, {
-			"protocol": "redis",
-			"request": "LINDEX mylist -1",
-			"response": "World"
+			"Protocol": "REDIS",
+			"Request": "LINDEX mylist -1",
+			"Response": "\"World\""
 		}, {
-			"protocol": "redis",
-			"request": "LINDEX mylist 3",
-			"response": "(nil)"
+			"Protocol": "REDIS",
+			"Request": "LINDEX mylist 3",
+			"Response": "NULL"
 		}]
 	}`,
 }
 
 var LInsert = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "Hello")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPush(ctx, "mylist", "World")
+		r2, err := c.OpsForList().RPush(ctx, "mylist", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.LInsertBefore(ctx, "mylist", "World", "There")
+		r3, err := c.OpsForList().LInsertBefore(ctx, "mylist", "World", "There")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(3))
 
-		r4, err := c.LRange(ctx, "mylist", 0, -1)
+		r4, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -111,44 +110,43 @@ var LInsert = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist World",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist World",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "LINSERT mylist BEFORE World There",
-			"response": 3
+			"Protocol": "REDIS",
+			"Request": "LINSERT mylist BEFORE World There",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["Hello", "There", "World"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"Hello\",\"There\",\"World\""
 		}]
 	}`,
 }
 
 var LLen = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.LPush(ctx, "mylist", "World")
+		r1, err := c.OpsForList().LPush(ctx, "mylist", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.LPush(ctx, "mylist", "Hello")
+		r2, err := c.OpsForList().LPush(ctx, "mylist", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.LLen(ctx, "mylist")
+		r3, err := c.OpsForList().LLen(ctx, "mylist")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -156,64 +154,63 @@ var LLen = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "LPUSH mylist World",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "LPUSH mylist World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "LPUSH mylist Hello",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "LPUSH mylist Hello",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "LLEN mylist",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "LLEN mylist",
+			"Response": "\"2\""
 		}]
 	}`,
 }
 
 var LMove = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "one")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPush(ctx, "mylist", "two")
+		r2, err := c.OpsForList().RPush(ctx, "mylist", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.RPush(ctx, "mylist", "three")
+		r3, err := c.OpsForList().RPush(ctx, "mylist", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(3))
 
-		r4, err := c.LMove(ctx, "mylist", "myotherlist", "RIGHT", "LEFT")
+		r4, err := c.OpsForList().LMove(ctx, "mylist", "myotherlist", "RIGHT", "LEFT")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, "three")
 
-		r5, err := c.LMove(ctx, "mylist", "myotherlist", "LEFT", "RIGHT")
+		r5, err := c.OpsForList().LMove(ctx, "mylist", "myotherlist", "LEFT", "RIGHT")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, "one")
 
-		r6, err := c.LRange(ctx, "mylist", 0, -1)
+		r6, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r6, []string{"two"})
 
-		r7, err := c.LRange(ctx, "myotherlist", 0, -1)
+		r7, err := c.OpsForList().LRange(ctx, "myotherlist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -221,62 +218,61 @@ var LMove = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist two",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist two",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist three",
-			"response": 3
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist three",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "LMOVE mylist myotherlist RIGHT LEFT",
-			"response": "three"
+			"Protocol": "REDIS",
+			"Request": "LMOVE mylist myotherlist RIGHT LEFT",
+			"Response": "\"three\""
 		}, {
-			"protocol": "redis",
-			"request": "LMOVE mylist myotherlist LEFT RIGHT",
-			"response": "one"
+			"Protocol": "REDIS",
+			"Request": "LMOVE mylist myotherlist LEFT RIGHT",
+			"Response": "\"one\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["two"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"two\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE myotherlist 0 -1",
-			"response": ["three", "one"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE myotherlist 0 -1",
+			"Response": "\"three\",\"one\""
 		}]
 	}`,
 }
 
 var LPop = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "one", "two", "three", "four", "five")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "one", "two", "three", "four", "five")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(5))
 
-		r2, err := c.LPop(ctx, "mylist")
+		r2, err := c.OpsForList().LPop(ctx, "mylist")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, "one")
 
-		r3, err := c.LPopN(ctx, "mylist", 2)
+		r3, err := c.OpsForList().LPopN(ctx, "mylist", 2)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, []string{"two", "three"})
 
-		r4, err := c.LRange(ctx, "mylist", 0, -1)
+		r4, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -284,44 +280,43 @@ var LPop = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist one two three four five",
-			"response": 5
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist one two three four five",
+			"Response": "\"5\""
 		}, {
-			"protocol": "redis",
-			"request": "LPOP mylist",
-			"response": "one"
+			"Protocol": "REDIS",
+			"Request": "LPOP mylist",
+			"Response": "\"one\""
 		}, {
-			"protocol": "redis",
-			"request": "LPOP mylist 2",
-			"response": ["two", "three"]
+			"Protocol": "REDIS",
+			"Request": "LPOP mylist 2",
+			"Response": "\"two\",\"three\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["four", "five"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"four\",\"five\""
 		}]
 	}`,
 }
 
 var LPos = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", 'a', 'b', 'c', 'd', 1, 2, 3, 4, 3, 3, 3)
+		r1, err := c.OpsForList().RPush(ctx, "mylist", 'a', 'b', 'c', 'd', 1, 2, 3, 4, 3, 3, 3)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(11))
 
-		r2, err := c.LPos(ctx, "mylist", 3)
+		r2, err := c.OpsForList().LPos(ctx, "mylist", 3)
 		if err != nil {
 			return
 		}
 		assert.Equal(t, r2, int64(6))
 
-		r3, err := c.LPosN(ctx, "mylist", "3", 0, "RANK", 2)
+		r3, err := c.OpsForList().LPosN(ctx, "mylist", "3", 0, "RANK", 2)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -329,40 +324,39 @@ var LPos = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist 97 98 99 100 1 2 3 4 3 3 3",
-			"response": 11
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist 97 98 99 100 1 2 3 4 3 3 3",
+			"Response": "\"11\""
 		}, {
-			"protocol": "redis",
-			"request": "LPOS mylist 3",
-			"response": 6
+			"Protocol": "REDIS",
+			"Request": "LPOS mylist 3",
+			"Response": "\"6\""
 		}, {
-			"protocol": "redis",
-			"request": "LPOS mylist 3 COUNT 0 RANK 2",
-			"response": [8, 9, 10]
+			"Protocol": "REDIS",
+			"Request": "LPOS mylist 3 COUNT 0 RANK 2",
+			"Response": "\"8\",\"9\",\"10\""
 		}]
 	}`,
 }
 
 var LPush = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.LPush(ctx, "mylist", "world")
+		r1, err := c.OpsForList().LPush(ctx, "mylist", "world")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.LPush(ctx, "mylist", "hello")
+		r2, err := c.OpsForList().LPush(ctx, "mylist", "hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.LRange(ctx, "mylist", 0, -1)
+		r3, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -370,52 +364,51 @@ var LPush = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "LPUSH mylist world",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "LPUSH mylist world",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "LPUSH mylist hello",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "LPUSH mylist hello",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["hello", "world"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"hello\",\"world\""
 		}]
 	}`,
 }
 
 var LPushX = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.LPush(ctx, "mylist", "World")
+		r1, err := c.OpsForList().LPush(ctx, "mylist", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.LPushX(ctx, "mylist", "Hello")
+		r2, err := c.OpsForList().LPushX(ctx, "mylist", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.LPushX(ctx, "myotherlist", "Hello")
+		r3, err := c.OpsForList().LPushX(ctx, "myotherlist", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(0))
 
-		r4, err := c.LRange(ctx, "mylist", 0, -1)
+		r4, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, []string{"Hello", "World"})
 
-		r5, err := c.LRange(ctx, "myotherlist", 0, -1)
+		r5, err := c.OpsForList().LRange(ctx, "myotherlist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -423,72 +416,71 @@ var LPushX = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "LPUSH mylist World",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "LPUSH mylist World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "LPUSHX mylist Hello",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "LPUSHX mylist Hello",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "LPUSHX myotherlist Hello",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "LPUSHX myotherlist Hello",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["Hello", "World"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"Hello\",\"World\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE myotherlist 0 -1",
-			"response": []
+			"Protocol": "REDIS",
+			"Request": "LRANGE myotherlist 0 -1",
+			"Response": ""
 		}]
 	}`,
 }
 
 var LRange = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "one")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPush(ctx, "mylist", "two")
+		r2, err := c.OpsForList().RPush(ctx, "mylist", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.RPush(ctx, "mylist", "three")
+		r3, err := c.OpsForList().RPush(ctx, "mylist", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(3))
 
-		r4, err := c.LRange(ctx, "mylist", 0, 0)
+		r4, err := c.OpsForList().LRange(ctx, "mylist", 0, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, []string{"one"})
 
-		r5, err := c.LRange(ctx, "mylist", -3, 2)
+		r5, err := c.OpsForList().LRange(ctx, "mylist", -3, 2)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, []string{"one", "two", "three"})
 
-		r6, err := c.LRange(ctx, "mylist", -100, 100)
+		r6, err := c.OpsForList().LRange(ctx, "mylist", -100, 100)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r6, []string{"one", "two", "three"})
 
-		r7, err := c.LRange(ctx, "mylist", 5, 10)
+		r7, err := c.OpsForList().LRange(ctx, "mylist", 5, 10)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -496,74 +488,73 @@ var LRange = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist two",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist two",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist three",
-			"response": 3
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist three",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 0",
-			"response": ["one"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 0",
+			"Response": "\"one\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist -3 2",
-			"response": ["one", "two", "three"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist -3 2",
+			"Response": "\"one\",\"two\",\"three\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist -100 100",
-			"response": ["one", "two", "three"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist -100 100",
+			"Response": "\"one\",\"two\",\"three\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 5 10",
-			"response": []
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 5 10",
+			"Response": ""
 		}]
 	}`,
 }
 
 var LRem = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "hello")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPush(ctx, "mylist", "hello")
+		r2, err := c.OpsForList().RPush(ctx, "mylist", "hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.RPush(ctx, "mylist", "foo")
+		r3, err := c.OpsForList().RPush(ctx, "mylist", "foo")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(3))
 
-		r4, err := c.RPush(ctx, "mylist", "hello")
+		r4, err := c.OpsForList().RPush(ctx, "mylist", "hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(4))
 
-		r5, err := c.LRem(ctx, "mylist", -2, "hello")
+		r5, err := c.OpsForList().LRem(ctx, "mylist", -2, "hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, int64(2))
 
-		r6, err := c.LRange(ctx, "mylist", 0, -1)
+		r6, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -571,70 +562,69 @@ var LRem = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist hello",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist hello",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist foo",
-			"response": 3
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist foo",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist hello",
-			"response": 4
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist hello",
+			"Response": "\"4\""
 		}, {
-			"protocol": "redis",
-			"request": "LREM mylist -2 hello",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "LREM mylist -2 hello",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["hello", "foo"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"hello\",\"foo\""
 		}]
 	}`,
 }
 
 var LSet = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "one")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPush(ctx, "mylist", "two")
+		r2, err := c.OpsForList().RPush(ctx, "mylist", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.RPush(ctx, "mylist", "three")
+		r3, err := c.OpsForList().RPush(ctx, "mylist", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(3))
 
-		r4, err := c.LSet(ctx, "mylist", 0, "four")
+		r4, err := c.OpsForList().LSet(ctx, "mylist", 0, "four")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r4, redis.OK)
+		assert.True(t, redis.IsOK(r4))
 
-		r5, err := c.LSet(ctx, "mylist", -2, "five")
+		r5, err := c.OpsForList().LSet(ctx, "mylist", -2, "five")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r5, redis.OK)
+		assert.True(t, redis.IsOK(r5))
 
-		r6, err := c.LRange(ctx, "mylist", 0, -1)
+		r6, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -642,64 +632,63 @@ var LSet = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist two",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist two",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist three",
-			"response": 3
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist three",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "LSET mylist 0 four",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "LSET mylist 0 four",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "LSET mylist -2 five",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "LSET mylist -2 five",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["four", "five", "three"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"four\",\"five\",\"three\""
 		}]
 	}`,
 }
 
 var LTrim = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "one")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPush(ctx, "mylist", "two")
+		r2, err := c.OpsForList().RPush(ctx, "mylist", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.RPush(ctx, "mylist", "three")
+		r3, err := c.OpsForList().RPush(ctx, "mylist", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(3))
 
-		r4, err := c.LTrim(ctx, "mylist", 1, -1)
+		r4, err := c.OpsForList().LTrim(ctx, "mylist", 1, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r4, redis.OK)
+		assert.True(t, redis.IsOK(r4))
 
-		r5, err := c.LRange(ctx, "mylist", 0, -1)
+		r5, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -707,54 +696,53 @@ var LTrim = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist two",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist two",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist three",
-			"response": 3
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist three",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "LTRIM mylist 1 -1",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "LTRIM mylist 1 -1",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["two", "three"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"two\",\"three\""
 		}]
 	}`,
 }
 
 var RPop = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "one", "two", "three", "four", "five")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "one", "two", "three", "four", "five")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(5))
 
-		r2, err := c.RPop(ctx, "mylist")
+		r2, err := c.OpsForList().RPop(ctx, "mylist")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, "five")
 
-		r3, err := c.RPopN(ctx, "mylist", 2)
+		r3, err := c.OpsForList().RPopN(ctx, "mylist", 2)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, []string{"four", "three"})
 
-		r4, err := c.LRange(ctx, "mylist", 0, -1)
+		r4, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -762,62 +750,61 @@ var RPop = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist one two three four five",
-			"response": 5
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist one two three four five",
+			"Response": "\"5\""
 		}, {
-			"protocol": "redis",
-			"request": "RPOP mylist",
-			"response": "five"
+			"Protocol": "REDIS",
+			"Request": "RPOP mylist",
+			"Response": "\"five\""
 		}, {
-			"protocol": "redis",
-			"request": "RPOP mylist 2",
-			"response": ["four", "three"]
+			"Protocol": "REDIS",
+			"Request": "RPOP mylist 2",
+			"Response": "\"four\",\"three\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["one", "two"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"one\",\"two\""
 		}]
 	}`,
 }
 
 var RPopLPush = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "one")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPush(ctx, "mylist", "two")
+		r2, err := c.OpsForList().RPush(ctx, "mylist", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.RPush(ctx, "mylist", "three")
+		r3, err := c.OpsForList().RPush(ctx, "mylist", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(3))
 
-		r4, err := c.RPopLPush(ctx, "mylist", "myotherlist")
+		r4, err := c.OpsForList().RPopLPush(ctx, "mylist", "myotherlist")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, "three")
 
-		r5, err := c.LRange(ctx, "mylist", 0, -1)
+		r5, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, []string{"one", "two"})
 
-		r6, err := c.LRange(ctx, "myotherlist", 0, -1)
+		r6, err := c.OpsForList().LRange(ctx, "myotherlist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -825,52 +812,51 @@ var RPopLPush = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist two",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist two",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist three",
-			"response": 3
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist three",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "RPOPLPUSH mylist myotherlist",
-			"response": "three"
+			"Protocol": "REDIS",
+			"Request": "RPOPLPUSH mylist myotherlist",
+			"Response": "\"three\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["one", "two"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"one\",\"two\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE myotherlist 0 -1",
-			"response": ["three"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE myotherlist 0 -1",
+			"Response": "\"three\""
 		}]
 	}`,
 }
 
 var RPush = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "hello")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPush(ctx, "mylist", "world")
+		r2, err := c.OpsForList().RPush(ctx, "mylist", "world")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.LRange(ctx, "mylist", 0, -1)
+		r3, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -878,52 +864,51 @@ var RPush = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSH mylist world",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist world",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["hello", "world"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"hello\",\"world\""
 		}]
 	}`,
 }
 
 var RPushX = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.RPush(ctx, "mylist", "Hello")
+		r1, err := c.OpsForList().RPush(ctx, "mylist", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.RPushX(ctx, "mylist", "World")
+		r2, err := c.OpsForList().RPushX(ctx, "mylist", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(2))
 
-		r3, err := c.RPushX(ctx, "myotherlist", "World")
+		r3, err := c.OpsForList().RPushX(ctx, "myotherlist", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(0))
 
-		r4, err := c.LRange(ctx, "mylist", 0, -1)
+		r4, err := c.OpsForList().LRange(ctx, "mylist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, []string{"Hello", "World"})
 
-		r5, err := c.LRange(ctx, "myotherlist", 0, -1)
+		r5, err := c.OpsForList().LRange(ctx, "myotherlist", 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -931,28 +916,27 @@ var RPushX = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "RPUSH mylist Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "RPUSH mylist Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSHX mylist World",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "RPUSHX mylist World",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "RPUSHX myotherlist World",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "RPUSHX myotherlist World",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE mylist 0 -1",
-			"response": ["Hello", "World"]
+			"Protocol": "REDIS",
+			"Request": "LRANGE mylist 0 -1",
+			"Response": "\"Hello\",\"World\""
 		}, {
-			"protocol": "redis",
-			"request": "LRANGE myotherlist 0 -1",
-			"response": []
+			"Protocol": "REDIS",
+			"Request": "LRANGE myotherlist 0 -1",
+			"Response": ""
 		}]
 	}`,
 }

@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package cases
+package yaml
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/go-spring/spring-core/redis"
+	"gopkg.in/yaml.v2"
 )
 
-func init() {
-	redis.SetHook(redis.Hook{AfterDoFunc: func(ctx context.Context, args []interface{}, ret interface{}, err error) {
-		fmt.Printf("%v return (%v) %v\n", args, err, ret)
-	}})
+// Read 将 yaml 格式的字节数组解析成 map 数据。
+func Read(b []byte) (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+	err := yaml.Unmarshal(b, &m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }

@@ -23,54 +23,54 @@ import (
 	"github.com/go-spring/spring-core/redis/test/cases"
 )
 
-func HDel(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HDel)
+func HDel(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HDel)
 }
 
-func HExists(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HExists)
+func HExists(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HExists)
 }
 
-func HGet(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HGet)
+func HGet(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HGet)
 }
 
-func HGetAll(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HGetAll)
+func HGetAll(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HGetAll)
 }
 
-func HIncrBy(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HIncrBy)
+func HIncrBy(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HIncrBy)
 }
 
-func HIncrByFloat(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HIncrByFloat)
+func HIncrByFloat(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HIncrByFloat)
 }
 
-func HKeys(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HKeys)
+func HKeys(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HKeys)
 }
 
-func HLen(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HLen)
+func HLen(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HLen)
 }
 
-func HMGet(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HMGet)
+func HMGet(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HMGet)
 }
 
-func HSet(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HSet)
+func HSet(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HSet)
 }
 
-func HSetNX(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HSetNX)
+func HSetNX(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HSetNX)
 }
 
-func HStrLen(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HStrLen)
+func HStrLen(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HStrLen)
 }
 
-func HVals(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.HVals)
+func HVals(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.HVals)
 }

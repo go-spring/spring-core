@@ -25,21 +25,21 @@ import (
 )
 
 var HDel = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "field1", "foo")
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "foo")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HDel(ctx, "myhash", "field1")
+		r2, err := c.OpsForHash().HDel(ctx, "myhash", "field1")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.HDel(ctx, "myhash", "field2")
+		r3, err := c.OpsForHash().HDel(ctx, "myhash", "field2")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -47,119 +47,116 @@ var HDel = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 foo",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 foo",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HDEL myhash field1",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "HDEL myhash field1",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HDEL myhash field2",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "HDEL myhash field2",
+			"Response": "\"0\""
 		}]
 	}`,
 }
 
 var HExists = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "field1", "foo")
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "foo")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HExists(ctx, "myhash", "field1")
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, r2, 1)
-
-		r3, err := c.HExists(ctx, "myhash", "field2")
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, r3, 0)
-	},
-	Data: `
-	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 foo",
-			"response": 1
-		}, {
-			"protocol": "redis",
-			"request": "HEXISTS myhash field1",
-			"response": 1
-		}, {
-			"protocol": "redis",
-			"request": "HEXISTS myhash field2",
-			"response": 0
-		}]
-	}`,
-}
-
-var HGet = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
-
-		r1, err := c.HSet(ctx, "myhash", "field1", "foo")
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, r1, int64(1))
-
-		r2, err := c.HGet(ctx, "myhash", "field1")
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, r2, "foo")
-
-		_, err = c.HGet(ctx, "myhash", "field2")
-		assert.Equal(t, err, redis.ErrNil)
-	},
-	Data: `
-	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 foo",
-			"response": 1
-		}, {
-			"protocol": "redis",
-			"request": "HGET myhash field1",
-			"response": "foo"
-		}, {
-			"protocol": "redis",
-			"request": "HGET myhash field2",
-			"response": "(nil)"
-		}]
-	}`,
-}
-
-var HGetAll = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
-
-		r1, err := c.HSet(ctx, "myhash", "field1", "Hello")
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, r1, int64(1))
-
-		r2, err := c.HSet(ctx, "myhash", "field2", "World")
+		r2, err := c.OpsForHash().HExists(ctx, "myhash", "field1")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.HGetAll(ctx, "myhash")
+		r3, err := c.OpsForHash().HExists(ctx, "myhash", "field2")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, r3, int64(0))
+	},
+	Data: `
+	{
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 foo",
+			"Response": "\"1\""
+		}, {
+			"Protocol": "REDIS",
+			"Request": "HEXISTS myhash field1",
+			"Response": "\"1\""
+		}, {
+			"Protocol": "REDIS",
+			"Request": "HEXISTS myhash field2",
+			"Response": "\"0\""
+		}]
+	}`,
+}
+
+var HGet = Case{
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
+
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "foo")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, r1, int64(1))
+
+		r2, err := c.OpsForHash().HGet(ctx, "myhash", "field1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, r2, "foo")
+
+		_, err = c.OpsForHash().HGet(ctx, "myhash", "field2")
+		assert.True(t, redis.IsErrNil(err))
+	},
+	Data: `
+	{
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 foo",
+			"Response": "\"1\""
+		}, {
+			"Protocol": "REDIS",
+			"Request": "HGET myhash field1",
+			"Response": "\"foo\""
+		}, {
+			"Protocol": "REDIS",
+			"Request": "HGET myhash field2",
+			"Response": "NULL"
+		}]
+	}`,
+}
+
+var HGetAll = Case{
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
+
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "Hello")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, r1, int64(1))
+
+		r2, err := c.OpsForHash().HSet(ctx, "myhash", "field2", "World")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, r2, int64(1))
+
+		r3, err := c.OpsForHash().HGetAll(ctx, "myhash")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -170,49 +167,45 @@ var HGetAll = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HSET myhash field2 World",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field2 World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HGETALL myhash",
-			"response": {
-				"field1": "Hello",
-				"field2": "World"
-			}
+			"Protocol": "REDIS",
+			"Request": "HGETALL myhash",
+			"Response": "\"field1\",\"Hello\",\"field2\",\"World\""
 		}]
 	}`,
 }
 
 var HIncrBy = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "field", 5)
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field", 5)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HIncrBy(ctx, "myhash", "field", 1)
+		r2, err := c.OpsForHash().HIncrBy(ctx, "myhash", "field", 1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(6))
 
-		r3, err := c.HIncrBy(ctx, "myhash", "field", -1)
+		r3, err := c.OpsForHash().HIncrBy(ctx, "myhash", "field", -1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(5))
 
-		r4, err := c.HIncrBy(ctx, "myhash", "field", -10)
+		r4, err := c.OpsForHash().HIncrBy(ctx, "myhash", "field", -10)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -220,56 +213,55 @@ var HIncrBy = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field 5",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field 5",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HINCRBY myhash field 1",
-			"response": 6
+			"Protocol": "REDIS",
+			"Request": "HINCRBY myhash field 1",
+			"Response": "\"6\""
 		}, {
-			"protocol": "redis",
-			"request": "HINCRBY myhash field -1",
-			"response": 5
+			"Protocol": "REDIS",
+			"Request": "HINCRBY myhash field -1",
+			"Response": "\"5\""
 		}, {
-			"protocol": "redis",
-			"request": "HINCRBY myhash field -10",
-			"response": -5
+			"Protocol": "REDIS",
+			"Request": "HINCRBY myhash field -10",
+			"Response": "\"-5\""
 		}]
 	}`,
 }
 
 var HIncrByFloat = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "mykey", "field", 10.50)
+		r1, err := c.OpsForHash().HSet(ctx, "mykey", "field", 10.50)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HIncrByFloat(ctx, "mykey", "field", 0.1)
+		r2, err := c.OpsForHash().HIncrByFloat(ctx, "mykey", "field", 0.1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, 10.6)
 
-		r3, err := c.HIncrByFloat(ctx, "mykey", "field", -5)
+		r3, err := c.OpsForHash().HIncrByFloat(ctx, "mykey", "field", -5)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, 5.6)
 
-		r4, err := c.HSet(ctx, "mykey", "field", 5.0e3)
+		r4, err := c.OpsForHash().HSet(ctx, "mykey", "field", 5.0e3)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(0))
 
-		r5, err := c.HIncrByFloat(ctx, "mykey", "field", 2.0e2)
+		r5, err := c.OpsForHash().HIncrByFloat(ctx, "mykey", "field", 2.0e2)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -277,48 +269,47 @@ var HIncrByFloat = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET mykey field 10.5",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET mykey field 10.5",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HINCRBYFLOAT mykey field 0.1",
-			"response": "10.6"
+			"Protocol": "REDIS",
+			"Request": "HINCRBYFLOAT mykey field 0.1",
+			"Response": "\"10.6\""
 		}, {
-			"protocol": "redis",
-			"request": "HINCRBYFLOAT mykey field -5",
-			"response": "5.6"
+			"Protocol": "REDIS",
+			"Request": "HINCRBYFLOAT mykey field -5",
+			"Response": "\"5.6\""
 		}, {
-			"protocol": "redis",
-			"request": "HSET mykey field 5000",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "HSET mykey field 5000",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "HINCRBYFLOAT mykey field 200",
-			"response": "5200"
+			"Protocol": "REDIS",
+			"Request": "HINCRBYFLOAT mykey field 200",
+			"Response": "\"5200\""
 		}]
 	}`,
 }
 
 var HKeys = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "field1", "Hello")
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HSet(ctx, "myhash", "field2", "World")
+		r2, err := c.OpsForHash().HSet(ctx, "myhash", "field2", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.HKeys(ctx, "myhash")
+		r3, err := c.OpsForHash().HKeys(ctx, "myhash")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -326,40 +317,39 @@ var HKeys = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HSET myhash field2 World",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field2 World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HKEYS myhash",
-			"response": ["field1", "field2"]
+			"Protocol": "REDIS",
+			"Request": "HKEYS myhash",
+			"Response": "\"field1\",\"field2\""
 		}]
 	}`,
 }
 
 var HLen = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "field1", "Hello")
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HSet(ctx, "myhash", "field2", "World")
+		r2, err := c.OpsForHash().HSet(ctx, "myhash", "field2", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.HLen(ctx, "myhash")
+		r3, err := c.OpsForHash().HLen(ctx, "myhash")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -367,40 +357,39 @@ var HLen = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HSET myhash field2 World",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field2 World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HLEN myhash",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "HLEN myhash",
+			"Response": "\"2\""
 		}]
 	}`,
 }
 
 var HMGet = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "field1", "Hello")
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HSet(ctx, "myhash", "field2", "World")
+		r2, err := c.OpsForHash().HSet(ctx, "myhash", "field2", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.HMGet(ctx, "myhash", "field1", "field2", "nofield")
+		r3, err := c.OpsForHash().HMGet(ctx, "myhash", "field1", "field2", "nofield")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -408,34 +397,33 @@ var HMGet = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HSET myhash field2 World",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field2 World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HMGET myhash field1 field2 nofield",
-			"response": ["Hello", "World", null]
+			"Protocol": "REDIS",
+			"Request": "HMGET myhash field1 field2 nofield",
+			"Response": "\"Hello\",\"World\",NULL"
 		}]
 	}`,
 }
 
 var HSet = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "field1", "Hello")
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HGet(ctx, "myhash", "field1")
+		r2, err := c.OpsForHash().HGet(ctx, "myhash", "field1")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -443,36 +431,35 @@ var HSet = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HGET myhash field1",
-			"response": "Hello"
+			"Protocol": "REDIS",
+			"Request": "HGET myhash field1",
+			"Response": "\"Hello\""
 		}]
 	}`,
 }
 
 var HSetNX = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSetNX(ctx, "myhash", "field", "Hello")
+		r1, err := c.OpsForHash().HSetNX(ctx, "myhash", "field", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, 1)
+		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HSetNX(ctx, "myhash", "field", "World")
+		r2, err := c.OpsForHash().HSetNX(ctx, "myhash", "field", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, 0)
+		assert.Equal(t, r2, int64(0))
 
-		r3, err := c.HGet(ctx, "myhash", "field")
+		r3, err := c.OpsForHash().HGet(ctx, "myhash", "field")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -480,46 +467,45 @@ var HSetNX = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSETNX myhash field Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSETNX myhash field Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HSETNX myhash field World",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "HSETNX myhash field World",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "HGET myhash field",
-			"response": "Hello"
+			"Protocol": "REDIS",
+			"Request": "HGET myhash field",
+			"Response": "\"Hello\""
 		}]
 	}`,
 }
 
 var HStrLen = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "f1", "HelloWorld", "f2", 99, "f3", -256)
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "f1", "HelloWorld", "f2", 99, "f3", -256)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(3))
 
-		r2, err := c.HStrLen(ctx, "myhash", "f1")
+		r2, err := c.OpsForHash().HStrLen(ctx, "myhash", "f1")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(10))
 
-		r3, err := c.HStrLen(ctx, "myhash", "f2")
+		r3, err := c.OpsForHash().HStrLen(ctx, "myhash", "f2")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(2))
 
-		r4, err := c.HStrLen(ctx, "myhash", "f3")
+		r4, err := c.OpsForHash().HStrLen(ctx, "myhash", "f3")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -527,44 +513,43 @@ var HStrLen = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash f1 HelloWorld f2 99 f3 -256",
-			"response": 3
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash f1 HelloWorld f2 99 f3 -256",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "HSTRLEN myhash f1",
-			"response": 10
+			"Protocol": "REDIS",
+			"Request": "HSTRLEN myhash f1",
+			"Response": "\"10\""
 		}, {
-			"protocol": "redis",
-			"request": "HSTRLEN myhash f2",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "HSTRLEN myhash f2",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "HSTRLEN myhash f3",
-			"response": 4
+			"Protocol": "REDIS",
+			"Request": "HSTRLEN myhash f3",
+			"Response": "\"4\""
 		}]
 	}`,
 }
 
 var HVals = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.HSet(ctx, "myhash", "field1", "Hello")
+		r1, err := c.OpsForHash().HSet(ctx, "myhash", "field1", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.HSet(ctx, "myhash", "field2", "World")
+		r2, err := c.OpsForHash().HSet(ctx, "myhash", "field2", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.HVals(ctx, "myhash")
+		r3, err := c.OpsForHash().HVals(ctx, "myhash")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -572,20 +557,19 @@ var HVals = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "HSET myhash field1 Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field1 Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HSET myhash field2 World",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "HSET myhash field2 World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "HVALS myhash",
-			"response": ["Hello", "World"]
+			"Protocol": "REDIS",
+			"Request": "HVALS myhash",
+			"Response": "\"Hello\",\"World\""
 		}]
 	}`,
 }

@@ -23,22 +23,22 @@ import (
 	"github.com/go-spring/spring-core/redis/test/cases"
 )
 
-func BitCount(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.BitCount)
+func BitCount(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.BitCount)
 }
 
-func BitOpAnd(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.BitOpAnd)
+func BitOpAnd(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.BitOpAnd)
 }
 
-func BitPos(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.BitPos)
+func BitPos(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.BitPos)
 }
 
-func GetBit(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.GetBit)
+func GetBit(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.GetBit)
 }
 
-func SetBit(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SetBit)
+func SetBit(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SetBit)
 }

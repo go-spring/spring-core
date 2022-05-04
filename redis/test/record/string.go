@@ -23,78 +23,78 @@ import (
 	"github.com/go-spring/spring-core/redis/test/cases"
 )
 
-func Append(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.Append)
+func Append(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.Append)
 }
 
-func Decr(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.Decr)
+func Decr(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.Decr)
 }
 
-func DecrBy(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.DecrBy)
+func DecrBy(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.DecrBy)
 }
 
-func Get(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.Get)
+func Get(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.Get)
 }
 
-func GetDel(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.GetDel)
+func GetDel(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.GetDel)
 }
 
-func GetRange(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.GetRange)
+func GetRange(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.GetRange)
 }
 
-func GetSet(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.GetSet)
+func GetSet(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.GetSet)
 }
 
-func Incr(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.Incr)
+func Incr(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.Incr)
 }
 
-func IncrBy(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.IncrBy)
+func IncrBy(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.IncrBy)
 }
 
-func IncrByFloat(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.IncrByFloat)
+func IncrByFloat(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.IncrByFloat)
 }
 
-func MGet(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.MGet)
+func MGet(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.MGet)
 }
 
-func MSet(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.MSet)
+func MSet(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.MSet)
 }
 
-func MSetNX(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.MSetNX)
+func MSetNX(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.MSetNX)
 }
 
-func PSetEX(t *testing.T, c redis.Client) {
-	// RunCase(t, c, cases.PSetEX)
+func PSetEX(t *testing.T, conn redis.ConnPool) {
+	// RunCase(t, conn, cases.PSetEX)
 }
 
-func Set(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.Set)
+func Set(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.Set)
 }
 
-func SetEX(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SetEX)
+func SetEX(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SetEX)
 }
 
-func SetNX(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SetNX)
+func SetNX(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SetNX)
 }
 
-func SetRange(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SetRange)
+func SetRange(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SetRange)
 }
 
-func StrLen(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.StrLen)
+func StrLen(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.StrLen)
 }

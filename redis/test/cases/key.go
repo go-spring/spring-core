@@ -26,21 +26,21 @@ import (
 )
 
 var Del = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "key1", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "key1", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Set(ctx, "key2", "World")
+		r2, err := c.OpsForString().Set(ctx, "key2", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, redis.OK)
+		assert.True(t, redis.IsOK(r2))
 
-		r3, err := c.Del(ctx, "key1", "key2", "key3")
+		r3, err := c.OpsForKey().Del(ctx, "key1", "key2", "key3")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -48,34 +48,33 @@ var Del = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET key1 Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET key1 Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "SET key2 World",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "SET key2 World",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "DEL key1 key2 key3",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "DEL key1 key2 key3",
+			"Response": "\"2\""
 		}]
 	}`,
 }
 
 var Dump = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", 10)
+		r1, err := c.OpsForString().Set(ctx, "mykey", 10)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Dump(ctx, "mykey")
+		r2, err := c.OpsForKey().Dump(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -83,49 +82,47 @@ var Dump = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey 10",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey 10",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "DUMP mykey",
-			"response": "@\"\\x00\\xc0\\n\\t\\x00\\xbem\\x06\\x89Z(\\x00\\n\"@"
+			"Protocol": "REDIS",
+			"Request": "DUMP mykey",
+			"Response": "\"\\x00\\xc0\\n\\t\\x00\\xbem\\x06\\x89Z(\\x00\\n\""
 		}]
 	}`,
 }
 
 var Exists = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "key1", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "key1", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Exists(ctx, "key1")
+		r2, err := c.OpsForKey().Exists(ctx, "key1")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.Exists(ctx, "nosuchkey")
+		r3, err := c.OpsForKey().Exists(ctx, "nosuchkey")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(0))
 
-		r4, err := c.Set(ctx, "key2", "World")
+		r4, err := c.OpsForString().Set(ctx, "key2", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
+		assert.True(t, redis.IsOK(r4))
 
-		assert.Equal(t, r4, redis.OK)
-
-		r5, err := c.Exists(ctx, "key1", "key2", "nosuchkey")
+		r5, err := c.OpsForKey().Exists(ctx, "key1", "key2", "nosuchkey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,60 +130,59 @@ var Exists = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET key1 Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET key1 Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "EXISTS key1",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "EXISTS key1",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "EXISTS nosuchkey",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "EXISTS nosuchkey",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "SET key2 World",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "SET key2 World",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "EXISTS key1 key2 nosuchkey",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "EXISTS key1 key2 nosuchkey",
+			"Response": "\"2\""
 		}]
 	}`,
 }
 
 var Expire = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Expire(ctx, "mykey", 10)
+		r2, err := c.OpsForKey().Expire(ctx, "mykey", 10)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, 1)
+		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.TTL(ctx, "mykey")
+		r3, err := c.OpsForKey().TTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(10))
 
-		r4, err := c.Set(ctx, "mykey", "Hello World")
+		r4, err := c.OpsForString().Set(ctx, "mykey", "Hello World")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r4, redis.OK)
+		assert.True(t, redis.IsOK(r4))
 
-		r5, err := c.TTL(ctx, "mykey")
+		r5, err := c.OpsForKey().TTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -194,54 +190,53 @@ var Expire = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "EXPIRE mykey 10",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "EXPIRE mykey 10",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "TTL mykey",
-			"response": 10
+			"Protocol": "REDIS",
+			"Request": "TTL mykey",
+			"Response": "\"10\""
 		}, {
-			"protocol": "redis",
-			"request": "SET mykey @\"Hello World\"@",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "SET mykey \"Hello World\"",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "TTL mykey",
-			"response": -1
+			"Protocol": "REDIS",
+			"Request": "TTL mykey",
+			"Response": "\"-1\""
 		}]
 	}`,
 }
 
 var ExpireAt = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Exists(ctx, "mykey")
+		r2, err := c.OpsForKey().Exists(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.ExpireAt(ctx, "mykey", 1293840000)
+		r3, err := c.OpsForKey().ExpireAt(ctx, "mykey", 1293840000)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r3, 1)
+		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.Exists(ctx, "mykey")
+		r4, err := c.OpsForKey().Exists(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -249,109 +244,108 @@ var ExpireAt = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "EXISTS mykey",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "EXISTS mykey",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "EXPIREAT mykey 1293840000",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "EXPIREAT mykey 1293840000",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "EXISTS mykey",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "EXISTS mykey",
+			"Response": "\"0\""
 		}]
 	}`,
 }
 
 var Keys = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.MSet(ctx, "firstname", "Jack", "lastname", "Stuntman", "age", 35)
+		r1, err := c.OpsForString().MSet(ctx, "firstname", "Jack", "lastname", "Stuntman", "age", 35)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Keys(ctx, "*name*")
+		r2, err := c.OpsForKey().Keys(ctx, "*name*")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r2)
 		assert.Equal(t, r2, []string{"firstname", "lastname"})
 
-		r3, err := c.Keys(ctx, "a??")
+		r3, err := c.OpsForKey().Keys(ctx, "a??")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, []string{"age"})
 
-		r4, err := c.Keys(ctx, "*")
+		r4, err := c.OpsForKey().Keys(ctx, "*")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r4)
 		assert.Equal(t, r4, []string{"age", "firstname", "lastname"})
 	},
+	Skip: true,
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "MSET firstname Jack lastname Stuntman age 35",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "MSET firstname Jack lastname Stuntman age 35",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "KEYS *name*",
-			"response": ["lastname", "firstname"]
+			"Protocol": "REDIS",
+			"Request": "KEYS *name*",
+			"Response": "\"lastname\",\"firstname\""
 		}, {
-			"protocol": "redis",
-			"request": "KEYS a??",
-			"response": ["age"]
+			"Protocol": "REDIS",
+			"Request": "KEYS a??",
+			"Response": "\"age\""
 		}, {
-			"protocol": "redis",
-			"request": "KEYS *",
-			"response": ["age", "lastname", "firstname"]
+			"Protocol": "REDIS",
+			"Request": "KEYS *",
+			"Response": "\"age\",\"lastname\",\"firstname\""
 		}]
 	}`,
 }
 
 var Persist = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Expire(ctx, "mykey", 10)
+		r2, err := c.OpsForKey().Expire(ctx, "mykey", 10)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, 1)
+		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.TTL(ctx, "mykey")
+		r3, err := c.OpsForKey().TTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(10))
 
-		r4, err := c.Persist(ctx, "mykey")
+		r4, err := c.OpsForKey().Persist(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r4, 1)
+		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.TTL(ctx, "mykey")
+		r5, err := c.OpsForKey().TTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -359,54 +353,53 @@ var Persist = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "EXPIRE mykey 10",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "EXPIRE mykey 10",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "TTL mykey",
-			"response": 10
+			"Protocol": "REDIS",
+			"Request": "TTL mykey",
+			"Response": "\"10\""
 		}, {
-			"protocol": "redis",
-			"request": "PERSIST mykey",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "PERSIST mykey",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "TTL mykey",
-			"response": -1
+			"Protocol": "REDIS",
+			"Request": "TTL mykey",
+			"Response": "\"-1\""
 		}]
 	}`,
 }
 
 var PExpire = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.PExpire(ctx, "mykey", 1500)
+		r2, err := c.OpsForKey().PExpire(ctx, "mykey", 1500)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, 1)
+		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.TTL(ctx, "mykey")
+		r3, err := c.OpsForKey().TTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.True(t, r3 >= 1 && r3 <= 2)
 
-		r4, err := c.PTTL(ctx, "mykey")
+		r4, err := c.OpsForKey().PTTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -414,50 +407,49 @@ var PExpire = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "PEXPIRE mykey 1500",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "PEXPIRE mykey 1500",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "TTL mykey",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "TTL mykey",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "PTTL mykey",
-			"response": 1499
+			"Protocol": "REDIS",
+			"Request": "PTTL mykey",
+			"Response": "\"1499\""
 		}]
 	}`,
 }
 
 var PExpireAt = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.PExpireAt(ctx, "mykey", 1555555555005)
+		r2, err := c.OpsForKey().PExpireAt(ctx, "mykey", 1555555555005)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, 1)
+		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.TTL(ctx, "mykey")
+		r3, err := c.OpsForKey().TTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(-2))
 
-		r4, err := c.PTTL(ctx, "mykey")
+		r4, err := c.OpsForKey().PTTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -465,44 +457,43 @@ var PExpireAt = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "PEXPIREAT mykey 1555555555005",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "PEXPIREAT mykey 1555555555005",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "TTL mykey",
-			"response": -2
+			"Protocol": "REDIS",
+			"Request": "TTL mykey",
+			"Response": "\"-2\""
 		}, {
-			"protocol": "redis",
-			"request": "PTTL mykey",
-			"response": -2
+			"Protocol": "REDIS",
+			"Request": "PTTL mykey",
+			"Response": "\"-2\""
 		}]
 	}`,
 }
 
 var PTTL = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Expire(ctx, "mykey", 1)
+		r2, err := c.OpsForKey().Expire(ctx, "mykey", 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, 1)
+		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.PTTL(ctx, "mykey")
+		r3, err := c.OpsForKey().PTTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -510,40 +501,39 @@ var PTTL = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "EXPIRE mykey 1",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "EXPIRE mykey 1",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "PTTL mykey",
-			"response": 1000
+			"Protocol": "REDIS",
+			"Request": "PTTL mykey",
+			"Response": "\"1000\""
 		}]
 	}`,
 }
 
 var Rename = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Rename(ctx, "mykey", "myotherkey")
+		r2, err := c.OpsForKey().Rename(ctx, "mykey", "myotherkey")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, redis.OK)
+		assert.True(t, redis.IsOK(r2))
 
-		r3, err := c.Get(ctx, "myotherkey")
+		r3, err := c.OpsForString().Get(ctx, "myotherkey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -551,46 +541,45 @@ var Rename = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "RENAME mykey myotherkey",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "RENAME mykey myotherkey",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "GET myotherkey",
-			"response": "Hello"
+			"Protocol": "REDIS",
+			"Request": "GET myotherkey",
+			"Response": "\"Hello\""
 		}]
 	}`,
 }
 
 var RenameNX = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Set(ctx, "myotherkey", "World")
+		r2, err := c.OpsForString().Set(ctx, "myotherkey", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, redis.OK)
+		assert.True(t, redis.IsOK(r2))
 
-		r3, err := c.RenameNX(ctx, "mykey", "myotherkey")
+		r3, err := c.OpsForKey().RenameNX(ctx, "mykey", "myotherkey")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r3, 0)
+		assert.Equal(t, r3, int64(0))
 
-		r4, err := c.Get(ctx, "myotherkey")
+		r4, err := c.OpsForString().Get(ctx, "myotherkey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -598,44 +587,43 @@ var RenameNX = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "SET myotherkey World",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "SET myotherkey World",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "RENAMENX mykey myotherkey",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "RENAMENX mykey myotherkey",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "GET myotherkey",
-			"response": "World"
+			"Protocol": "REDIS",
+			"Request": "GET myotherkey",
+			"Response": "\"World\""
 		}]
 	}`,
 }
 
 var Touch = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "key1", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "key1", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Set(ctx, "key2", "World")
+		r2, err := c.OpsForString().Set(ctx, "key2", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, redis.OK)
+		assert.True(t, redis.IsOK(r2))
 
-		r3, err := c.Touch(ctx, "key1", "key2")
+		r3, err := c.OpsForKey().Touch(ctx, "key1", "key2")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -643,40 +631,39 @@ var Touch = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET key1 Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET key1 Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "SET key2 World",
-			"response": "OK"
+			"Protocol": "REDIS",
+			"Request": "SET key2 World",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "TOUCH key1 key2",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "TOUCH key1 key2",
+			"Response": "\"2\""
 		}]
 	}`,
 }
 
 var TTL = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "mykey", "Hello")
+		r1, err := c.OpsForString().Set(ctx, "mykey", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.Expire(ctx, "mykey", 10)
+		r2, err := c.OpsForKey().Expire(ctx, "mykey", 10)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r2, 1)
+		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.TTL(ctx, "mykey")
+		r3, err := c.OpsForKey().TTL(ctx, "mykey")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -684,58 +671,57 @@ var TTL = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET mykey Hello",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET mykey Hello",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "EXPIRE mykey 10",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "EXPIRE mykey 10",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "TTL mykey",
-			"response": 10
+			"Protocol": "REDIS",
+			"Request": "TTL mykey",
+			"Response": "\"10\""
 		}]
 	}`,
 }
 
 var Type = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.Set(ctx, "key1", "value")
+		r1, err := c.OpsForString().Set(ctx, "key1", "value")
 		if err != nil {
 			return
 		}
-		assert.Equal(t, r1, redis.OK)
+		assert.True(t, redis.IsOK(r1))
 
-		r2, err := c.LPush(ctx, "key2", "value")
+		r2, err := c.OpsForList().LPush(ctx, "key2", "value")
 		if err != nil {
 			return
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "key3", "value")
+		r3, err := c.OpsForSet().SAdd(ctx, "key3", "value")
 		if err != nil {
 			return
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.Type(ctx, "key1")
+		r4, err := c.OpsForKey().Type(ctx, "key1")
 		if err != nil {
 			return
 		}
 		assert.Equal(t, r4, "string")
 
-		r5, err := c.Type(ctx, "key2")
+		r5, err := c.OpsForKey().Type(ctx, "key2")
 		if err != nil {
 			return
 		}
 		assert.Equal(t, r5, "list")
 
-		r6, err := c.Type(ctx, "key3")
+		r6, err := c.OpsForKey().Type(ctx, "key3")
 		if err != nil {
 			return
 		}
@@ -743,32 +729,31 @@ var Type = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SET key1 value",
-			"response": "OK"
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SET key1 value",
+			"Response": "\"OK\""
 		}, {
-			"protocol": "redis",
-			"request": "LPUSH key2 value",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "LPUSH key2 value",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key3 value",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key3 value",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "TYPE key1",
-			"response": "string"
+			"Protocol": "REDIS",
+			"Request": "TYPE key1",
+			"Response": "\"string\""
 		}, {
-			"protocol": "redis",
-			"request": "TYPE key2",
-			"response": "list"
+			"Protocol": "REDIS",
+			"Request": "TYPE key2",
+			"Response": "\"list\""
 		}, {
-			"protocol": "redis",
-			"request": "TYPE key3",
-			"response": "set"
+			"Protocol": "REDIS",
+			"Request": "TYPE key3",
+			"Response": "\"set\""
 		}]
 	}`,
 }

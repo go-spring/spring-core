@@ -30,14 +30,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-spring/spring-base/conf"
 	"github.com/go-spring/spring-base/log"
 	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/cond"
 	"github.com/go-spring/spring-core/gs/internal"
-
-	_ "github.com/go-spring/spring-core/gs/conf/toml"
 )
 
 type refreshState int
@@ -56,6 +54,26 @@ type Container interface {
 	Refresh(opts ...internal.RefreshOption) error
 	Go(fn func(ctx context.Context))
 	Close()
+}
+
+// Context 提供了一些在 IoC 容器启动后基于反射获取和使用 property 与 bean 的接
+// 口。因为很多人会担心在运行时大量使用反射会降低程序性能，所以命名为 Context，取
+// 其诱人但危险的含义。事实上，这些在 IoC 容器启动后使用属性绑定和依赖注入的方案，
+// 都可以转换为启动阶段的方案以提高程序的性能。
+// 另一方面，为了统一 Container 和 App 两种启动方式下这些方法的使用方式，需要提取
+// 出一个可共用的接口来，也就是说，无论程序是 Container 方式启动还是 App 方式启动，
+// 都可以在需要使用这些方法的地方注入一个 Context 对象而不是 Container 对象或者
+// App 对象，从而实现使用方式的统一。
+type Context interface {
+	Context() context.Context
+	Keys() []string
+	Has(key string) bool
+	Prop(key string, opts ...conf.GetOption) string
+	Bind(i interface{}, opts ...conf.BindOption) error
+	Get(i interface{}, selectors ...BeanSelector) error
+	Wire(objOrCtor interface{}, ctorArgs ...arg.Arg) (interface{}, error)
+	Invoke(fn interface{}, args ...arg.Arg) ([]interface{}, error)
+	Go(fn func(ctx context.Context))
 }
 
 type tempContainer struct {
@@ -107,7 +125,7 @@ func validOnProperty(fn interface{}) error {
 	if t.Kind() != reflect.Func {
 		return errors.New("fn should be a func(value_type)")
 	}
-	if t.NumIn() != 1 || !util.IsValueType(t.In(0)) || t.NumOut() != 0 {
+	if t.NumIn() != 1 || !conf.IsValueType(t.In(0)) || t.NumOut() != 0 {
 		return errors.New("fn should be a func(value_type)")
 	}
 	return nil
@@ -183,11 +201,18 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
 	return result
 }
 
+type lazyField struct {
+	v    reflect.Value
+	path string
+	tag  string
+}
+
 // wiringStack 记录 bean 的注入路径。
 type wiringStack struct {
 	destroyers   *list.List
 	destroyerMap map[string]*destroyer
 	beans        []*BeanDefinition
+	lazyFields   []lazyField
 }
 
 func newWiringStack() *wiringStack {
@@ -341,6 +366,14 @@ func (c *container) Refresh(opts ...internal.RefreshOption) (err error) {
 		}
 	}
 
+	// 处理被标记为延迟注入的那些 bean 字段
+	for _, f := range stack.lazyFields {
+		tag := strings.TrimSuffix(f.tag, ",lazy")
+		if err := c.wireByTag(f.v, tag, stack); err != nil {
+			return fmt.Errorf("%q wired error: %s", f.path, err.Error())
+		}
+	}
+
 	c.destroyers = stack.sortDestroyers()
 	c.state = Refreshed
 
@@ -464,7 +497,7 @@ func toWireTag(selector BeanSelector) wireTag {
 	case *BeanDefinition:
 		return parseWireTag(s.ID())
 	default:
-		return parseWireTag(util.TypeName(s) + ":")
+		return parseWireTag(internal.TypeName(s) + ":")
 	}
 }
 
@@ -658,9 +691,9 @@ func (c *container) getBeanValue(b *BeanDefinition, stack *wiringStack) (reflect
 	}
 
 	// 构造函数的返回值为值类型时 b.Type() 返回其指针类型。
-	if val := out[0]; util.IsBeanType(val.Type()) {
+	if val := out[0]; internal.IsBeanType(val.Type()) {
 		// 如果实现接口的是值类型，那么需要转换成指针类型然后再赋值给接口。
-		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsValueType(val.Elem().Type()) {
+		if !val.IsNil() && val.Kind() == reflect.Interface && conf.IsValueType(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())
 			v.Elem().Set(val.Elem())
 			b.Value().Set(v)
@@ -727,8 +760,13 @@ func (c *container) wireStruct(v reflect.Value, opt conf.BindParam, stack *wirin
 			tag, ok = ft.Tag.Lookup("inject")
 		}
 		if ok {
-			if err := c.wireByTag(fv, tag, stack); err != nil {
-				return fmt.Errorf("%q wired error: %w", fieldPath, err)
+			if strings.HasSuffix(tag, ",lazy") {
+				f := lazyField{v: fv, path: fieldPath, tag: tag}
+				stack.lazyFields = append(stack.lazyFields, f)
+			} else {
+				if err := c.wireByTag(fv, tag, stack); err != nil {
+					return fmt.Errorf("%q wired error: %w", fieldPath, err)
+				}
 			}
 			continue
 		}
@@ -807,7 +845,7 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	}
 
 	t := v.Type()
-	if !util.IsBeanReceiver(t) {
+	if !internal.IsBeanReceiver(t) {
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
@@ -950,7 +988,7 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, stack *wiringS
 	}
 
 	et := t.Elem()
-	if !util.IsBeanReceiver(et) {
+	if !internal.IsBeanReceiver(et) {
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
@@ -989,7 +1027,8 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, stack *wiringS
 				beforeAny = append(beforeAny, beans[index])
 			}
 
-			beans = append(beans[:index], beans[index+1:]...)
+			tmpBeans := append([]*BeanDefinition{}, beans[:index]...)
+			beans = append(tmpBeans, beans[index+1:]...)
 		}
 
 		if foundAny {

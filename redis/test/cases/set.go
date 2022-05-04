@@ -26,73 +26,73 @@ import (
 )
 
 var SAdd = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "Hello")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "myset", "World")
+		r2, err := c.OpsForSet().SAdd(ctx, "myset", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "myset", "World")
+		r3, err := c.OpsForSet().SAdd(ctx, "myset", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(0))
 
-		r4, err := c.SMembers(ctx, "myset")
+		r4, err := c.OpsForSet().SMembers(ctx, "myset")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r4)
 		assert.Equal(t, r4, []string{"Hello", "World"})
 	},
+	Skip: true,
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD myset Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD myset Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset World",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myset World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset World",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "SADD myset World",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS myset",
-			"response": ["Hello", "World"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS myset",
+			"Response": "\"Hello\",\"World\""
 		}]
 	}`,
 }
 
 var SCard = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "Hello")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "myset", "World")
+		r2, err := c.OpsForSet().SAdd(ctx, "myset", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SCard(ctx, "myset")
+		r3, err := c.OpsForSet().SCard(ctx, "myset")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -100,238 +100,237 @@ var SCard = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD myset Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD myset Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset World",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myset World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SCARD myset",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "SCARD myset",
+			"Response": "\"2\""
 		}]
 	}`,
 }
 
 var SDiff = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "key1", "a")
+		r1, err := c.OpsForSet().SAdd(ctx, "key1", "a")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "key1", "b")
+		r2, err := c.OpsForSet().SAdd(ctx, "key1", "b")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "key1", "c")
+		r3, err := c.OpsForSet().SAdd(ctx, "key1", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SAdd(ctx, "key2", "c")
+		r4, err := c.OpsForSet().SAdd(ctx, "key2", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.SAdd(ctx, "key2", "d")
+		r5, err := c.OpsForSet().SAdd(ctx, "key2", "d")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, int64(1))
 
-		r6, err := c.SAdd(ctx, "key2", "e")
+		r6, err := c.OpsForSet().SAdd(ctx, "key2", "e")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r6, int64(1))
 
-		r7, err := c.SDiff(ctx, "key1", "key2")
+		r7, err := c.OpsForSet().SDiff(ctx, "key1", "key2")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r7)
 		assert.Equal(t, r7, []string{"a", "b"})
 	},
+	Skip: true,
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD key1 a",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD key1 a",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 b",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 b",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 d",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 d",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 e",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 e",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SDIFF key1 key2",
-			"response": ["a", "b"]
+			"Protocol": "REDIS",
+			"Request": "SDIFF key1 key2",
+			"Response": "\"a\",\"b\""
 		}]
 	}`,
 }
 
 var SDiffStore = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "key1", "a")
+		r1, err := c.OpsForSet().SAdd(ctx, "key1", "a")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "key1", "b")
+		r2, err := c.OpsForSet().SAdd(ctx, "key1", "b")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "key1", "c")
+		r3, err := c.OpsForSet().SAdd(ctx, "key1", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SAdd(ctx, "key2", "c")
+		r4, err := c.OpsForSet().SAdd(ctx, "key2", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.SAdd(ctx, "key2", "d")
+		r5, err := c.OpsForSet().SAdd(ctx, "key2", "d")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, int64(1))
 
-		r6, err := c.SAdd(ctx, "key2", "e")
+		r6, err := c.OpsForSet().SAdd(ctx, "key2", "e")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r6, int64(1))
 
-		r7, err := c.SDiffStore(ctx, "key", "key1", "key2")
+		r7, err := c.OpsForSet().SDiffStore(ctx, "key", "key1", "key2")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r7, int64(2))
 
-		r8, err := c.SMembers(ctx, "key")
+		r8, err := c.OpsForSet().SMembers(ctx, "key")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r8)
 		assert.Equal(t, r8, []string{"a", "b"})
 	},
+	Skip: true,
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD key1 a",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD key1 a",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 b",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 b",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 d",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 d",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 e",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 e",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SDIFFSTORE key key1 key2",
-			"response": 2
+			"Protocol": "REDIS",
+			"Request": "SDIFFSTORE key key1 key2",
+			"Response": "\"2\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS key",
-			"response": ["a", "b"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS key",
+			"Response": "\"a\",\"b\""
 		}]
 	}`,
 }
 
 var SInter = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "key1", "a")
+		r1, err := c.OpsForSet().SAdd(ctx, "key1", "a")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "key1", "b")
+		r2, err := c.OpsForSet().SAdd(ctx, "key1", "b")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "key1", "c")
+		r3, err := c.OpsForSet().SAdd(ctx, "key1", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SAdd(ctx, "key2", "c")
+		r4, err := c.OpsForSet().SAdd(ctx, "key2", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.SAdd(ctx, "key2", "d")
+		r5, err := c.OpsForSet().SAdd(ctx, "key2", "d")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, int64(1))
 
-		r6, err := c.SAdd(ctx, "key2", "e")
+		r6, err := c.OpsForSet().SAdd(ctx, "key2", "e")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r6, int64(1))
 
-		r7, err := c.SInter(ctx, "key1", "key2")
+		r7, err := c.OpsForSet().SInter(ctx, "key1", "key2")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -339,86 +338,85 @@ var SInter = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD key1 a",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD key1 a",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 b",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 b",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 d",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 d",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 e",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 e",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SINTER key1 key2",
-			"response": ["c"]
+			"Protocol": "REDIS",
+			"Request": "SINTER key1 key2",
+			"Response": "\"c\""
 		}]
 	}`,
 }
 
 var SInterStore = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "key1", "a")
+		r1, err := c.OpsForSet().SAdd(ctx, "key1", "a")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "key1", "b")
+		r2, err := c.OpsForSet().SAdd(ctx, "key1", "b")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "key1", "c")
+		r3, err := c.OpsForSet().SAdd(ctx, "key1", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SAdd(ctx, "key2", "c")
+		r4, err := c.OpsForSet().SAdd(ctx, "key2", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.SAdd(ctx, "key2", "d")
+		r5, err := c.OpsForSet().SAdd(ctx, "key2", "d")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, int64(1))
 
-		r6, err := c.SAdd(ctx, "key2", "e")
+		r6, err := c.OpsForSet().SAdd(ctx, "key2", "e")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r6, int64(1))
 
-		r7, err := c.SInterStore(ctx, "key", "key1", "key2")
+		r7, err := c.OpsForSet().SInterStore(ctx, "key", "key1", "key2")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r7, int64(1))
 
-		r8, err := c.SMembers(ctx, "key")
+		r8, err := c.OpsForSet().SMembers(ctx, "key")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -426,60 +424,59 @@ var SInterStore = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD key1 a",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD key1 a",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 b",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 b",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 d",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 d",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 e",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 e",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SINTERSTORE key key1 key2",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SINTERSTORE key key1 key2",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS key",
-			"response": ["c"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS key",
+			"Response": "\"c\""
 		}]
 	}`,
 }
 
 var SIsMember = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "one")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SIsMember(ctx, "myset", "one")
+		r2, err := c.OpsForSet().SIsMember(ctx, "myset", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SIsMember(ctx, "myset", "two")
+		r3, err := c.OpsForSet().SIsMember(ctx, "myset", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -489,63 +486,63 @@ var SIsMember = Case{
 }
 
 var SMembers = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "Hello")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "Hello")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "myset", "World")
+		r2, err := c.OpsForSet().SAdd(ctx, "myset", "World")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SMembers(ctx, "myset")
+		r3, err := c.OpsForSet().SMembers(ctx, "myset")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r3)
 		assert.Equal(t, r3, []string{"Hello", "World"})
 	},
+	Skip: true,
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD myset Hello",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD myset Hello",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset World",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myset World",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS myset",
-			"response": ["Hello", "World"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS myset",
+			"Response": "\"Hello\",\"World\""
 		}]
 	}`,
 }
 
 var SMIsMember = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "one")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "myset", "one")
+		r2, err := c.OpsForSet().SAdd(ctx, "myset", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(0))
 
-		r3, err := c.SMIsMember(ctx, "myset", "one", "notamember")
+		r3, err := c.OpsForSet().SMIsMember(ctx, "myset", "one", "notamember")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -553,123 +550,122 @@ var SMIsMember = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD myset one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD myset one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset one",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "SADD myset one",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "SMISMEMBER myset one notamember",
-			"response": [1, 0]
+			"Protocol": "REDIS",
+			"Request": "SMISMEMBER myset one notamember",
+			"Response": "\"1\",\"0\""
 		}]
 	}`,
 }
 
 var SMove = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "one")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "myset", "two")
+		r2, err := c.OpsForSet().SAdd(ctx, "myset", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "myotherset", "three")
+		r3, err := c.OpsForSet().SAdd(ctx, "myotherset", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SMove(ctx, "myset", "myotherset", "two")
+		r4, err := c.OpsForSet().SMove(ctx, "myset", "myotherset", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, r4, 1)
+		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.SMembers(ctx, "myset")
+		r5, err := c.OpsForSet().SMembers(ctx, "myset")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, []string{"one"})
 
-		r6, err := c.SMembers(ctx, "myotherset")
+		r6, err := c.OpsForSet().SMembers(ctx, "myotherset")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r6)
 		assert.Equal(t, r6, []string{"three", "two"})
 	},
+	Skip: true,
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD myset one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD myset one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset two",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myset two",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myotherset three",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myotherset three",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SMOVE myset myotherset two",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SMOVE myset myotherset two",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS myset",
-			"response": ["one"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS myset",
+			"Response": "\"one\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS myotherset",
-			"response": ["three", "two"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS myotherset",
+			"Response": "\"two\",\"three\""
 		}]
 	}`,
 }
 
 var SPop = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "one")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "myset", "two")
+		r2, err := c.OpsForSet().SAdd(ctx, "myset", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "myset", "three")
+		r3, err := c.OpsForSet().SAdd(ctx, "myset", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SPop(ctx, "myset")
+		r4, err := c.OpsForSet().SPop(ctx, "myset")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		r5, err := c.SMembers(ctx, "myset")
+		r5, err := c.OpsForSet().SMembers(ctx, "myset")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -680,53 +676,52 @@ var SPop = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD myset one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD myset one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset two",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myset two",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset three",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myset three",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SPOP myset",
-			"response": "two"
+			"Protocol": "REDIS",
+			"Request": "SPOP myset",
+			"Response": "\"two\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS myset",
-			"response": ["three", "one"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS myset",
+			"Response": "\"three\",\"one\""
 		}]
 	}`,
 }
 
 var SRandMember = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "one", "two", "three")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "one", "two", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(3))
 
-		_, err = c.SRandMember(ctx, "myset")
+		_, err = c.OpsForSet().SRandMember(ctx, "myset")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		r3, err := c.SRandMemberN(ctx, "myset", 2)
+		r3, err := c.OpsForSet().SRandMemberN(ctx, "myset", 2)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, len(r3), 2)
 
-		r4, err := c.SRandMemberN(ctx, "myset", -5)
+		r4, err := c.OpsForSet().SRandMemberN(ctx, "myset", -5)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -734,62 +729,61 @@ var SRandMember = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD myset one two three",
-			"response": 3
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD myset one two three",
+			"Response": "\"3\""
 		}, {
-			"protocol": "redis",
-			"request": "SRANDMEMBER myset",
-			"response": "one"
+			"Protocol": "REDIS",
+			"Request": "SRANDMEMBER myset",
+			"Response": "\"one\""
 		}, {
-			"protocol": "redis",
-			"request": "SRANDMEMBER myset 2",
-			"response": ["one", "three"]
+			"Protocol": "REDIS",
+			"Request": "SRANDMEMBER myset 2",
+			"Response": "\"one\",\"three\""
 		}, {
-			"protocol": "redis",
-			"request": "SRANDMEMBER myset -5",
-			"response": ["one", "one", "one", "two", "one"]
+			"Protocol": "REDIS",
+			"Request": "SRANDMEMBER myset -5",
+			"Response": "\"one\",\"one\",\"one\",\"two\",\"one\""
 		}]
 	}`,
 }
 
 var SRem = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "myset", "one")
+		r1, err := c.OpsForSet().SAdd(ctx, "myset", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "myset", "two")
+		r2, err := c.OpsForSet().SAdd(ctx, "myset", "two")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "myset", "three")
+		r3, err := c.OpsForSet().SAdd(ctx, "myset", "three")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SRem(ctx, "myset", "one")
+		r4, err := c.OpsForSet().SRem(ctx, "myset", "one")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.SRem(ctx, "myset", "four")
+		r5, err := c.OpsForSet().SRem(ctx, "myset", "four")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, int64(0))
 
-		r6, err := c.SMembers(ctx, "myset")
+		r6, err := c.OpsForSet().SMembers(ctx, "myset")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -798,206 +792,205 @@ var SRem = Case{
 	},
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD myset one",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD myset one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset two",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myset two",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD myset three",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD myset three",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SREM myset one",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SREM myset one",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SREM myset four",
-			"response": 0
+			"Protocol": "REDIS",
+			"Request": "SREM myset four",
+			"Response": "\"0\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS myset",
-			"response": ["three", "two"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS myset",
+			"Response": "\"three\",\"two\""
 		}]
 	}`,
 }
 
 var SUnion = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "key1", "a")
+		r1, err := c.OpsForSet().SAdd(ctx, "key1", "a")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "key1", "b")
+		r2, err := c.OpsForSet().SAdd(ctx, "key1", "b")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "key1", "c")
+		r3, err := c.OpsForSet().SAdd(ctx, "key1", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SAdd(ctx, "key2", "c")
+		r4, err := c.OpsForSet().SAdd(ctx, "key2", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.SAdd(ctx, "key2", "d")
+		r5, err := c.OpsForSet().SAdd(ctx, "key2", "d")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, int64(1))
 
-		r6, err := c.SAdd(ctx, "key2", "e")
+		r6, err := c.OpsForSet().SAdd(ctx, "key2", "e")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r6, int64(1))
 
-		r7, err := c.SUnion(ctx, "key1", "key2")
+		r7, err := c.OpsForSet().SUnion(ctx, "key1", "key2")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r7)
 		assert.Equal(t, r7, []string{"a", "b", "c", "d", "e"})
 	},
+	Skip: true,
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD key1 a",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD key1 a",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 b",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 b",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 d",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 d",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 e",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 e",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SUNION key1 key2",
-			"response": ["a", "b", "c", "e", "d"]
+			"Protocol": "REDIS",
+			"Request": "SUNION key1 key2",
+			"Response": "\"a\",\"b\",\"c\",\"d\",\"e\""
 		}]
 	}`,
 }
 
 var SUnionStore = Case{
-	Func: func(t *testing.T, ctx context.Context, c redis.Client) {
+	Func: func(t *testing.T, ctx context.Context, c *redis.Client) {
 
-		r1, err := c.SAdd(ctx, "key1", "a")
+		r1, err := c.OpsForSet().SAdd(ctx, "key1", "a")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r1, int64(1))
 
-		r2, err := c.SAdd(ctx, "key1", "b")
+		r2, err := c.OpsForSet().SAdd(ctx, "key1", "b")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r2, int64(1))
 
-		r3, err := c.SAdd(ctx, "key1", "c")
+		r3, err := c.OpsForSet().SAdd(ctx, "key1", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r3, int64(1))
 
-		r4, err := c.SAdd(ctx, "key2", "c")
+		r4, err := c.OpsForSet().SAdd(ctx, "key2", "c")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r4, int64(1))
 
-		r5, err := c.SAdd(ctx, "key2", "d")
+		r5, err := c.OpsForSet().SAdd(ctx, "key2", "d")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r5, int64(1))
 
-		r6, err := c.SAdd(ctx, "key2", "e")
+		r6, err := c.OpsForSet().SAdd(ctx, "key2", "e")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r6, int64(1))
 
-		r7, err := c.SUnionStore(ctx, "key", "key1", "key2")
+		r7, err := c.OpsForSet().SUnionStore(ctx, "key", "key1", "key2")
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r7, int64(5))
 
-		r8, err := c.SMembers(ctx, "key")
+		r8, err := c.OpsForSet().SMembers(ctx, "key")
 		if err != nil {
 			t.Fatal(err)
 		}
 		sort.Strings(r8)
 		assert.Equal(t, r8, []string{"a", "b", "c", "d", "e"})
 	},
+	Skip: true,
 	Data: `
 	{
-		"session": "df3b64266ebe4e63a464e135000a07cd",
-		"inbound": {},
-		"actions": [{
-			"protocol": "redis",
-			"request": "SADD key1 a",
-			"response": 1
+		"Session": "df3b64266ebe4e63a464e135000a07cd",
+		"Actions": [{
+			"Protocol": "REDIS",
+			"Request": "SADD key1 a",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 b",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 b",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key1 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key1 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 c",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 c",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 d",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 d",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SADD key2 e",
-			"response": 1
+			"Protocol": "REDIS",
+			"Request": "SADD key2 e",
+			"Response": "\"1\""
 		}, {
-			"protocol": "redis",
-			"request": "SUNIONSTORE key key1 key2",
-			"response": 5
+			"Protocol": "REDIS",
+			"Request": "SUNIONSTORE key key1 key2",
+			"Response": "\"5\""
 		}, {
-			"protocol": "redis",
-			"request": "SMEMBERS key",
-			"response": ["a", "b", "c", "e", "d"]
+			"Protocol": "REDIS",
+			"Request": "SMEMBERS key",
+			"Response": "\"a\",\"b\",\"c\",\"d\",\"e\""
 		}]
 	}`,
 }

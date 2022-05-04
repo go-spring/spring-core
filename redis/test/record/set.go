@@ -23,58 +23,58 @@ import (
 	"github.com/go-spring/spring-core/redis/test/cases"
 )
 
-func SAdd(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SAdd)
+func SAdd(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SAdd)
 }
 
-func SCard(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SCard)
+func SCard(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SCard)
 }
 
-func SDiff(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SDiff)
+func SDiff(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SDiff)
 }
 
-func SDiffStore(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SDiffStore)
+func SDiffStore(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SDiffStore)
 }
 
-func SInter(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SInter)
+func SInter(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SInter)
 }
 
-func SInterStore(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SInterStore)
+func SInterStore(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SInterStore)
 }
 
-func SMembers(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SMembers)
+func SMembers(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SMembers)
 }
 
-func SMIsMember(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SMIsMember)
+func SMIsMember(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SMIsMember)
 }
 
-func SMove(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SMove)
+func SMove(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SMove)
 }
 
-func SPop(t *testing.T, c redis.Client) {
-	// RunCase(t, c, cases.SPop)
+func SPop(t *testing.T, conn redis.ConnPool) {
+	// RunCase(t, conn, cases.SPop)
 }
 
-func SRandMember(t *testing.T, c redis.Client) {
-	//RunCase(t, c, cases.SRandMember)
+func SRandMember(t *testing.T, conn redis.ConnPool) {
+	//RunCase(t, conn, cases.SRandMember)
 }
 
-func SRem(t *testing.T, c redis.Client) {
-	// RunCase(t, c, cases.SRem)
+func SRem(t *testing.T, conn redis.ConnPool) {
+	// RunCase(t, conn, cases.SRem)
 }
 
-func SUnion(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SUnion)
+func SUnion(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SUnion)
 }
 
-func SUnionStore(t *testing.T, c redis.Client) {
-	RunCase(t, c, cases.SUnionStore)
+func SUnionStore(t *testing.T, conn redis.ConnPool) {
+	RunCase(t, conn, cases.SUnionStore)
 }
