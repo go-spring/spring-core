@@ -147,7 +147,7 @@ func (c *container) Property(key string, value interface{}) {
 	c.p.Set(key, value)
 }
 
-func (c *container) register(b *BeanDefinition) *BeanDefinition {
+func (c *container) Accept(b *BeanDefinition) *BeanDefinition {
 	if c.state != Unrefreshed {
 		panic(errors.New("should call before Refresh"))
 	}
@@ -157,12 +157,12 @@ func (c *container) register(b *BeanDefinition) *BeanDefinition {
 
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
 func (c *container) Object(i interface{}) *BeanDefinition {
-	return c.register(NewBean(reflect.ValueOf(i)))
+	return c.Accept(NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
 func (c *container) Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition {
-	return c.register(NewBean(ctor, args...))
+	return c.Accept(NewBean(ctor, args...))
 }
 
 // destroyer 保存具有销毁函数的 bean 以及销毁函数的调用顺序。
