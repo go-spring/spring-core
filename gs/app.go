@@ -29,11 +29,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/go-spring/spring-base/log"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs/arg"
-	"github.com/go-spring/spring-core/gs/internal"
 	"github.com/go-spring/spring-core/mq"
 	"github.com/go-spring/spring-core/web"
 )
@@ -141,7 +139,7 @@ func (app *App) Run() error {
 	}
 
 	app.c.Close()
-	log.Info("application exited")
+	logger.Info("application exited")
 	return nil
 }
 
@@ -189,7 +187,7 @@ func (app *App) start() error {
 		app.c.p.Set(k, e.p.Get(k))
 	}
 
-	if err := app.c.Refresh(internal.AutoClear(false)); err != nil {
+	if err := app.c.refresh(false); err != nil {
 		return err
 	}
 
@@ -213,7 +211,7 @@ func (app *App) start() error {
 		}
 	})
 
-	log.Info("application started successfully")
+	logger.Info("application started successfully")
 	return nil
 }
 
@@ -332,7 +330,7 @@ func (app *App) loadResource(e *configuration, filename string) ([]Resource, err
 
 // ShutDown 关闭执行器
 func (app *App) ShutDown(msg ...string) {
-	log.Infof("program will exit %s", strings.Join(msg, " "))
+	logger.Infof("program will exit %s", strings.Join(msg, " "))
 	select {
 	case <-app.exitChan:
 		// chan 已关闭，无需再次关闭。
@@ -364,14 +362,19 @@ func (app *App) Property(key string, value interface{}) {
 	app.c.Property(key, value)
 }
 
+// Accept 参考 Container.Accept 的解释。
+func (app *App) Accept(b *BeanDefinition) *BeanDefinition {
+	return app.c.Accept(b)
+}
+
 // Object 参考 Container.Object 的解释。
 func (app *App) Object(i interface{}) *BeanDefinition {
-	return app.c.register(NewBean(reflect.ValueOf(i)))
+	return app.c.Accept(NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
 func (app *App) Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition {
-	return app.c.register(NewBean(ctor, args...))
+	return app.c.Accept(NewBean(ctor, args...))
 }
 
 // HandleGet 注册 GET 方法处理函数。
@@ -431,7 +434,7 @@ func (app *App) DeleteMapping(path string, fn web.HandlerFunc) *web.Mapper {
 
 // DeleteBinding 注册 DELETE 方法处理函数。
 func (app *App) DeleteBinding(path string, fn interface{}) *web.Mapper {
-	return app.router.DeleteBinding(path, web.BIND(fn))
+	return app.router.DeleteBinding(path, fn)
 }
 
 // HandleRequest 注册任意 HTTP 方法处理函数。
@@ -478,5 +481,5 @@ func (app *App) GrpcServer(serviceName string, server *grpc.Server) {
 
 // GrpcClient 注册 gRPC 服务客户端，fn 是 gRPC 自动生成的客户端构造函数。
 func (app *App) GrpcClient(fn interface{}, endpoint string) *BeanDefinition {
-	return app.c.register(NewBean(fn, endpoint))
+	return app.c.Accept(NewBean(fn, endpoint))
 }

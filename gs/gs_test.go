@@ -36,12 +36,14 @@ import (
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/cond"
+	"github.com/go-spring/spring-core/gs/gsutil"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 )
 
 func init() {
-	log.SetLevel(log.TraceLevel)
+	err := log.Refresh("testdata/config/logger.xml")
+	util.Panic(err).When(err != nil)
 }
 
 func runTest(c gs.Container, fn func(gs.Context)) error {
@@ -835,7 +837,7 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 
 	t.Run("dependsOn", func(t *testing.T) {
 
-		dependsOn := []gs.BeanSelector{
+		dependsOn := []gsutil.BeanSelector{
 			(*BeanOne)(nil), // 通过类型定义查找
 			"github.com/go-spring/spring-core/gs_test/gs_test.BeanZero:BeanZero",
 		}
@@ -2880,6 +2882,8 @@ func TestMapCollection(t *testing.T) {
 		c := gs.New()
 		c.Object(&mapValue{"a"}).Name("a").Order(1)
 		c.Object(&mapValue{"b"}).Name("b").Order(2)
+		c.Object(&mapValue{"c"}).Name("c").On(cond.Not(cond.OK()))
+		c.Provide(func(vSlice []*mapValue) int { return 3 }, "*")
 		err := runTest(c, func(p gs.Context) {
 
 			var vSlice []*mapValue
