@@ -14,20 +14,30 @@
  * limitations under the License.
  */
 
-package web
+package gs_test
 
 import (
-	"time"
+	"testing"
+
+	"github.com/go-spring/spring-base/assert"
+	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/gs"
 )
 
-func AccessLog() Filter {
-	return FuncFilter(func(ctx Context, chain FilterChain) {
-		start := time.Now()
-		chain.Next(ctx)
-		r := ctx.Request()
-		w := ctx.ResponseWriter()
-		cost := time.Since(start)
-		logger.WithContext(ctx.Context()).Infof("%s %s %s %d %d %s",
-			r.Method, r.RequestURI, cost, w.Size(), w.Status(), r.UserAgent())
+func TestLoadCmdArgs(t *testing.T) {
+	t.Run("", func(t *testing.T) {
+		err := gs.LoadCmdArgs([]string{"-D"}, nil)
+		assert.Error(t, err, "cmd option -D needs arg")
+	})
+	t.Run("", func(t *testing.T) {
+		p := conf.New()
+		err := gs.LoadCmdArgs([]string{
+			"-D", "language=go",
+			"-D", "server",
+		}, p)
+		assert.Nil(t, err)
+		assert.Equal(t, p.Keys(), []string{"language", "server"})
+		assert.Equal(t, p.Get("language"), "go")
+		assert.Equal(t, p.Get("server"), "true")
 	})
 }

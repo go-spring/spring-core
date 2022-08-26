@@ -95,7 +95,7 @@ func validConverter(t reflect.Type) bool {
 		t.NumIn() == 1 &&
 		t.In(0).Kind() == reflect.String &&
 		t.NumOut() == 2 &&
-		IsValueType(t.Out(0)) &&
+		util.IsValueType(t.Out(0)) &&
 		util.IsErrorType(t.Out(1))
 }
 
@@ -272,6 +272,9 @@ func (p *Properties) Get(key string, opts ...GetOption) string {
 // when it doesn't exist in the slice or map even they share a same
 // prefix path.
 func (p *Properties) Set(key string, val interface{}) error {
+	if val == nil { // ignore the key and value
+		return nil
+	}
 	switch v := reflect.ValueOf(val); v.Kind() {
 	case reflect.Map:
 		exist, err := p.checkKey(key, true)

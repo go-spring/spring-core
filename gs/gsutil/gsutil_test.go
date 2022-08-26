@@ -23,10 +23,17 @@ import (
 	"unsafe"
 
 	"github.com/go-spring/spring-base/assert"
-	"github.com/go-spring/spring-core/gs/gsutil"
+	"github.com/go-spring/spring-base/util"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 )
+
+// golang 允许不同的路径下存在相同的包，而且允许存在相同的包。
+type SamePkg struct{}
+
+func (p *SamePkg) Package() {
+	fmt.Println("github.com/go-spring/spring-core/gs/gsutil/gsutil_test.SamePkg")
+}
 
 func TestTypeName(t *testing.T) {
 
@@ -150,10 +157,16 @@ func TestTypeName(t *testing.T) {
 		reflect.TypeOf(make([]pkg2.SamePkg, 0)):    {"github.com/go-spring/spring-core/gs/testdata/pkg/foo/pkg.SamePkg", "[]pkg.SamePkg"},
 		reflect.TypeOf(&[]pkg2.SamePkg{}):          {"github.com/go-spring/spring-core/gs/testdata/pkg/foo/pkg.SamePkg", "*[]pkg.SamePkg"},
 		reflect.TypeOf(make(map[int]pkg2.SamePkg)): {"map[int]pkg.SamePkg", "map[int]pkg.SamePkg"},
+
+		reflect.TypeOf(SamePkg{}):             {"github.com/go-spring/spring-core/gs/gsutil/gsutil_test.SamePkg", "gsutil_test.SamePkg"},
+		reflect.TypeOf(new(SamePkg)):          {"github.com/go-spring/spring-core/gs/gsutil/gsutil_test.SamePkg", "*gsutil_test.SamePkg"},
+		reflect.TypeOf(make([]SamePkg, 0)):    {"github.com/go-spring/spring-core/gs/gsutil/gsutil_test.SamePkg", "[]gsutil_test.SamePkg"},
+		reflect.TypeOf(&[]SamePkg{}):          {"github.com/go-spring/spring-core/gs/gsutil/gsutil_test.SamePkg", "*[]gsutil_test.SamePkg"},
+		reflect.TypeOf(make(map[int]SamePkg)): {"map[int]gsutil_test.SamePkg", "map[int]gsutil_test.SamePkg"},
 	}
 
 	for typ, v := range data {
-		typeName := gsutil.TypeName(typ)
+		typeName := util.TypeName(typ)
 		assert.Equal(t, typeName, v.typeName)
 		assert.Equal(t, typ.String(), v.baseName)
 	}
@@ -163,7 +176,7 @@ func TestTypeName(t *testing.T) {
 	iPtrPtr := &iPtr
 	iPtrPtrPtr := &iPtrPtr
 	typ := reflect.TypeOf(iPtrPtrPtr)
-	typeName := gsutil.TypeName(typ)
+	typeName := util.TypeName(typ)
 	assert.Equal(t, typeName, "int")
 	assert.Equal(t, typ.String(), "***int")
 }
@@ -213,7 +226,7 @@ func TestIsBeanType(t *testing.T) {
 		default:
 			typ = reflect.TypeOf(i)
 		}
-		if r := gsutil.IsBeanType(typ); d.v != r {
+		if r := util.IsBeanType(typ); d.v != r {
 			t.Errorf("%v expect %v but %v", typ, d.v, r)
 		}
 	}

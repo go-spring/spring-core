@@ -17,19 +17,24 @@
 package web_test
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"testing"
-
-	"github.com/go-spring/spring-base/assert"
-	"github.com/go-spring/spring-core/web"
+	"github.com/go-spring/spring-base/log"
+	"github.com/go-spring/spring-base/util"
 )
 
-func TestMethodOverride(t *testing.T) {
-	r, _ := http.NewRequest(http.MethodPost, "http://127.0.0.1:8080/?_method=GET", nil)
-	w := httptest.NewRecorder()
-	ctx := web.NewBaseContext("", nil, r, &web.SimpleResponse{ResponseWriter: w})
-	f := web.NewMethodOverrideFilter(web.NewMethodOverrideConfig().ByQueryParam("_method"))
-	web.NewFilterChain([]web.Filter{f}).Next(ctx)
-	assert.Equal(t, ctx.Request().Method, http.MethodGet)
+func init() {
+	config := `
+		<?xml version="1.0" encoding="UTF-8"?>
+		<Configuration>
+			<Appenders>
+				<Console name="Console"/>
+			</Appenders>
+			<Loggers>
+				<Root level="info">
+					<AppenderRef ref="Console"/>
+				</Root>
+			</Loggers>
+		</Configuration>
+	`
+	err := log.RefreshBuffer(config, ".xml")
+	util.Panic(err).When(err != nil)
 }

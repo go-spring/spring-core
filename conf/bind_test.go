@@ -68,6 +68,7 @@ type NestedDbConfig struct {
 	DB      []NestedDB     `value:"${db}"`
 	Ints    []int          `value:"${:=}"`
 	Map     map[string]int `value:"${:=}"`
+	MapDef  map[string]int `value:"${x:=}"`
 	Structs []struct {
 		V string `value:"${v:=#v}"`
 	} `value:"${:=}"`
@@ -198,5 +199,20 @@ func TestProperties_Bind(t *testing.T) {
 		p := conf.New()
 		err := p.Bind(list.New())
 		assert.Error(t, err, ".*bind.go:.* bind List error; .*bind.go:.* bind List.len error; .*bind.go:.* resolve property \"len\" error; property \"len\" not exist")
+	})
+
+	t.Run("", func(t *testing.T) {
+		p := conf.New()
+		err := p.Bytes([]byte(`m:`), ".yaml")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var s struct {
+			M map[string]string `value:"${m}"`
+		}
+		if err = p.Bind(&s); err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, s.M, map[string]string{})
 	})
 }

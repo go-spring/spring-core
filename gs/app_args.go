@@ -14,22 +14,32 @@
  * limitations under the License.
  */
 
-package web_test
+package gs
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"testing"
+	"errors"
+	"strings"
 
-	"github.com/go-spring/spring-base/assert"
-	"github.com/go-spring/spring-core/web"
+	"github.com/go-spring/spring-core/conf"
 )
 
-func TestMethodOverride(t *testing.T) {
-	r, _ := http.NewRequest(http.MethodPost, "http://127.0.0.1:8080/?_method=GET", nil)
-	w := httptest.NewRecorder()
-	ctx := web.NewBaseContext("", nil, r, &web.SimpleResponse{ResponseWriter: w})
-	f := web.NewMethodOverrideFilter(web.NewMethodOverrideConfig().ByQueryParam("_method"))
-	web.NewFilterChain([]web.Filter{f}).Next(ctx)
-	assert.Equal(t, ctx.Request().Method, http.MethodGet)
+// LoadCmdArgs 加载以 -D key=value 或者 -D key[=true] 形式传入的命令行参数。
+func LoadCmdArgs(args []string, p *conf.Properties) error {
+	for i := 0; i < len(args); i++ {
+		s := args[i]
+		if s == "-D" {
+			if i >= len(args)-1 {
+				return errors.New("cmd option -D needs arg")
+			}
+			next := args[i+1]
+			ss := strings.SplitN(next, "=", 2)
+			if len(ss) == 1 {
+				ss = append(ss, "true")
+			}
+			if err := p.Set(ss[0], ss[1]); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

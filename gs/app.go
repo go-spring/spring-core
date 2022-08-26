@@ -29,6 +29,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/go-spring/spring-base/log"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs/arg"
@@ -60,6 +62,8 @@ type tempApp struct {
 // App 应用
 type App struct {
 	*tempApp
+
+	logger *log.Logger
 
 	c *container
 	b *bootstrap
@@ -120,6 +124,29 @@ func (app *App) Banner(banner string) {
 
 func (app *App) Run() error {
 
+	config := `
+		<?xml version="1.0" encoding="UTF-8"?>
+		<Configuration>
+			<Appenders>
+				<Console name="Console"/>
+			</Appenders>
+			<Loggers>
+				<Root level="info">
+					<AppenderRef ref="Console"/>
+				</Root>
+			</Loggers>
+		</Configuration>
+	`
+	if err := log.RefreshBuffer(config, ".xml"); err != nil {
+		return err
+	}
+
+	app.Object(app)
+	app.Object(app.consumers)
+	app.Object(app.grpcServers)
+	app.Object(app.router).Export((*web.Router)(nil))
+	app.logger = log.GetLogger(util.TypeName(app))
+
 	// 响应控制台的 Ctrl+C 及 kill 命令。
 	go func() {
 		ch := make(chan os.Signal, 1)
@@ -139,7 +166,7 @@ func (app *App) Run() error {
 	}
 
 	app.c.Close()
-	logger.Info("application exited")
+	app.logger.Info("application exited")
 	return nil
 }
 
@@ -152,11 +179,6 @@ func (app *App) clear() {
 }
 
 func (app *App) start() error {
-
-	app.Object(app)
-	app.Object(app.consumers)
-	app.Object(app.grpcServers)
-	app.Object(app.router).Export((*web.Router)(nil))
 
 	e := &configuration{
 		p:               conf.New(),
@@ -211,7 +233,7 @@ func (app *App) start() error {
 		}
 	})
 
-	logger.Info("application started successfully")
+	app.logger.Info("application started successfully")
 	return nil
 }
 
@@ -330,18 +352,13 @@ func (app *App) loadResource(e *configuration, filename string) ([]Resource, err
 
 // ShutDown 关闭执行器
 func (app *App) ShutDown(msg ...string) {
-	logger.Infof("program will exit %s", strings.Join(msg, " "))
+	app.logger.Infof("program will exit %s", strings.Join(msg, " "))
 	select {
 	case <-app.exitChan:
 		// chan 已关闭，无需再次关闭。
 	default:
 		close(app.exitChan)
 	}
-}
-
-// Go 参考 Container.Go 的解释。
-func (app *App) Go(fn func(ctx context.Context)) {
-	app.c.Go(fn)
 }
 
 // Bootstrap 返回 *bootstrap 对象。
