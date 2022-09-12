@@ -37,6 +37,10 @@ func (c *container) Prop(key string, opts ...conf.GetOption) string {
 	return c.p.Get(key, opts...)
 }
 
+func (c *container) Resolve(s string) (string, error) {
+	return c.p.Resolve(s)
+}
+
 func (c *container) Bind(i interface{}, opts ...conf.BindOption) error {
 	return c.p.Bind(i, opts...)
 }

@@ -33,6 +33,7 @@ import (
 	"github.com/go-spring/spring-base/log"
 	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/cond"
 )
@@ -53,6 +54,7 @@ var (
 
 type Container interface {
 	Context() context.Context
+	Properties() *dync.Properties
 	Property(key string, value interface{})
 	Object(i interface{}) *BeanDefinition
 	Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition
@@ -73,6 +75,7 @@ type Context interface {
 	Keys() []string
 	Has(key string) bool
 	Prop(key string, opts ...conf.GetOption) string
+	Resolve(s string) (string, error)
 	Bind(i interface{}, opts ...conf.BindOption) error
 	Get(i interface{}, selectors ...util.BeanSelector) error
 	Wire(objOrCtor interface{}, ctorArgs ...arg.Arg) (interface{}, error)
@@ -86,7 +89,7 @@ type ContextAware struct {
 }
 
 type tempContainer struct {
-	p               *conf.Properties
+	initProperties  *conf.Properties
 	beans           []*BeanDefinition
 	beansByName     map[string][]*BeanDefinition
 	beansByType     map[reflect.Type][]*BeanDefinition
@@ -108,6 +111,7 @@ type container struct {
 	destroyers              []func()
 	state                   refreshState
 	wg                      sync.WaitGroup
+	p                       *dync.Properties
 	ContextAware            bool
 	AllowCircularReferences bool `value:"${spring.main.allow-circular-references:=false}"`
 }
@@ -118,8 +122,9 @@ func New() Container {
 	return &container{
 		ctx:    ctx,
 		cancel: cancel,
+		p:      dync.New(),
 		tempContainer: &tempContainer{
-			p:               conf.New(),
+			initProperties:  conf.New(),
 			beansByName:     make(map[string][]*BeanDefinition),
 			beansByType:     make(map[reflect.Type][]*BeanDefinition),
 			mapOfOnProperty: make(map[string]interface{}),
@@ -130,6 +135,10 @@ func New() Container {
 // Context 返回 IoC 容器的 ctx 对象。
 func (c *container) Context() context.Context {
 	return c.ctx
+}
+
+func (c *container) Properties() *dync.Properties {
+	return c.p
 }
 
 func validOnProperty(fn interface{}) error {
@@ -156,7 +165,7 @@ func (c *container) OnProperty(key string, fn interface{}) {
 // 类型组合构成的属性值，其处理方式是将组合结构层层展开，可以将组合结构看成一棵树，
 // 那么叶子结点的路径就是属性的 key，叶子结点的值就是属性的值。
 func (c *container) Property(key string, value interface{}) {
-	c.p.Set(key, value)
+	c.initProperties.Set(key, value)
 }
 
 func (c *container) Accept(b *BeanDefinition) *BeanDefinition {
@@ -314,6 +323,8 @@ func (c *container) refresh(autoClear bool) (err error) {
 		return errors.New("container already refreshed")
 	}
 	c.state = RefreshInit
+
+	c.p.Refresh(c.initProperties)
 
 	start := time.Now()
 	c.Object(c).Export((*Context)(nil))
@@ -757,15 +768,15 @@ func (c *container) wireBeanValue(v reflect.Value, t reflect.Type, stack *wiring
 		typeName = t.String()
 	}
 
-	param := conf.BindParam{Type: t, Path: typeName}
-	return c.wireStruct(v, param, stack)
+	param := conf.BindParam{Path: typeName}
+	return c.wireStruct(v, t, param, stack)
 }
 
 // wireStruct 对结构体进行依赖注入，需要注意的是这里不需要进行属性绑定。
-func (c *container) wireStruct(v reflect.Value, opt conf.BindParam, stack *wiringStack) error {
+func (c *container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *wiringStack) error {
 
-	for i := 0; i < opt.Type.NumField(); i++ {
-		ft := opt.Type.Field(i)
+	for i := 0; i < t.NumField(); i++ {
+		ft := t.Field(i)
 		fv := v.Field(i)
 
 		if !fv.CanInterface() {
@@ -808,21 +819,23 @@ func (c *container) wireStruct(v reflect.Value, opt conf.BindParam, stack *wirin
 		}
 
 		subParam := conf.BindParam{
-			Type: ft.Type,
 			Key:  opt.Key,
 			Path: fieldPath,
 		}
 
 		if tag, ok = ft.Tag.Lookup("value"); ok {
-			if err := subParam.BindTag(tag); err != nil {
+			validate, _ := ft.Tag.Lookup("validate")
+			if err := subParam.BindTag(tag, validate); err != nil {
 				return err
 			}
 			if ft.Anonymous {
-				if err := c.wireStruct(fv, subParam, stack); err != nil {
+				err := c.wireStruct(fv, ft.Type, subParam, stack)
+				if err != nil {
 					return err
 				}
 			} else {
-				if err := conf.BindValue(c.p, fv, subParam); err != nil {
+				err := c.p.BindValue(fv.Addr(), subParam)
+				if err != nil {
 					return err
 				}
 			}
@@ -830,7 +843,7 @@ func (c *container) wireStruct(v reflect.Value, opt conf.BindParam, stack *wirin
 		}
 
 		if ft.Anonymous && ft.Type.Kind() == reflect.Struct {
-			if err := c.wireStruct(fv, subParam, stack); err != nil {
+			if err := c.wireStruct(fv, ft.Type, subParam, stack); err != nil {
 				return err
 			}
 		}
@@ -889,41 +902,61 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
-	var foundBeans []*BeanDefinition
+	var (
+		converter  BeanConverter
+		foundBeans []*BeanDefinition
+	)
 
-	for _, b := range c.beansByType[t] {
-		if b.status == Deleted {
-			continue
+	converter, ok := beanConverters[t]
+	if ok {
+		if tag.beanName == "" {
+			return fmt.Errorf("conversion bean must have a name")
 		}
-		if !b.Match(tag.typeName, tag.beanName) {
-			continue
-		}
-		foundBeans = append(foundBeans, b)
-	}
-
-	// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
-	if t.Kind() == reflect.Interface && tag.beanName != "" {
 		for _, b := range c.beansByName[tag.beanName] {
 			if b.status == Deleted {
-				continue
-			}
-			if !b.Type().AssignableTo(t) {
 				continue
 			}
 			if !b.Match(tag.typeName, tag.beanName) {
 				continue
 			}
+			foundBeans = append(foundBeans, b)
+		}
 
-			found := false // 对结果排重
-			for _, r := range foundBeans {
-				if r == b {
-					found = true
-					break
-				}
+	} else {
+		for _, b := range c.beansByType[t] {
+			if b.status == Deleted {
+				continue
 			}
-			if !found {
-				foundBeans = append(foundBeans, b)
-				c.logger.Warnf("you should call Export() on %s", b)
+			if !b.Match(tag.typeName, tag.beanName) {
+				continue
+			}
+			foundBeans = append(foundBeans, b)
+		}
+
+		// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
+		if t.Kind() == reflect.Interface && tag.beanName != "" {
+			for _, b := range c.beansByName[tag.beanName] {
+				if b.status == Deleted {
+					continue
+				}
+				if !b.Type().AssignableTo(t) {
+					continue
+				}
+				if !b.Match(tag.typeName, tag.beanName) {
+					continue
+				}
+
+				found := false // 对结果排重
+				for _, r := range foundBeans {
+					if r == b {
+						found = true
+						break
+					}
+				}
+				if !found {
+					foundBeans = append(foundBeans, b)
+					c.logger.Warnf("you should call Export() on %s", b)
+				}
 			}
 		}
 	}
@@ -975,7 +1008,16 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return err
 	}
 
-	v.Set(result.Value())
+	if converter == nil {
+		v.Set(result.Value())
+		return nil
+	}
+
+	i, err := converter(result.Interface())
+	if err != nil {
+		return err
+	}
+	v.Set(reflect.ValueOf(i))
 	return nil
 }
 

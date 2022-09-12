@@ -269,6 +269,8 @@ func NewBean(objOrCtor interface{}, ctorArgs ...arg.Arg) *BeanDefinition {
 
 	var v reflect.Value
 	var fromValue bool
+	var method bool
+	var name string
 
 	switch i := objOrCtor.(type) {
 	case reflect.Value:
@@ -278,17 +280,21 @@ func NewBean(objOrCtor interface{}, ctorArgs ...arg.Arg) *BeanDefinition {
 		v = reflect.ValueOf(i)
 	}
 
-	if !v.IsValid() || util.IsNil(v) {
+	t := v.Type()
+	if !util.IsBeanType(t) {
+		panic(errors.New("bean must be ref type"))
+	}
+
+	if !v.IsValid() || v.IsNil() {
 		panic(errors.New("bean can't be nil"))
 	}
 
 	const skip = 2
-	var method bool
 	var f *arg.Callable
 	_, file, line, _ := runtime.Caller(skip)
 
 	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
-	if t := v.Type(); !fromValue && t.Kind() == reflect.Func {
+	if !fromValue && t.Kind() == reflect.Func {
 
 		if !util.IsConstructor(t) {
 			t1 := "func(...)bean"
@@ -302,21 +308,25 @@ func NewBean(objOrCtor interface{}, ctorArgs ...arg.Arg) *BeanDefinition {
 
 		out0 := t.Out(0)
 		v = reflect.New(out0)
-
-		// 引用类型去掉指针，值类型则刚刚好。
 		if util.IsBeanType(out0) {
 			v = v.Elem()
+		}
+
+		t = v.Type()
+		if !util.IsBeanType(t) {
+			panic(errors.New("bean must be ref type"))
 		}
 
 		// 成员方法一般是 xxx/gs_test.(*Server).Consumer 形式命名
 		fnPtr := reflect.ValueOf(objOrCtor).Pointer()
 		fnInfo := runtime.FuncForPC(fnPtr)
+		funcName := fnInfo.Name()
+		name = funcName[strings.LastIndex(funcName, "/")+1:]
+		name = name[strings.Index(name, ".")+1:]
+		if name[0] == '(' {
+			name = name[strings.Index(name, ".")+1:]
+		}
 		method = strings.LastIndexByte(fnInfo.Name(), ')') > 0
-	}
-
-	t := v.Type()
-	if !util.IsBeanType(t) {
-		panic(errors.New("bean must be ref type"))
 	}
 
 	if t.Kind() == reflect.Ptr && !util.IsValueType(t.Elem()) {
@@ -325,8 +335,10 @@ func NewBean(objOrCtor interface{}, ctorArgs ...arg.Arg) *BeanDefinition {
 
 	// Type.String() 一般返回 *pkg.Type 形式的字符串，
 	// 我们只取最后的类型名，如有需要请自定义 bean 名称。
-	s := strings.Split(t.String(), ".")
-	name := strings.TrimPrefix(s[len(s)-1], "*")
+	if name == "" {
+		s := strings.Split(t.String(), ".")
+		name = strings.TrimPrefix(s[len(s)-1], "*")
+	}
 
 	return &BeanDefinition{
 		t:        t,

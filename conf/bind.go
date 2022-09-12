@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-spring/spring-base/code"
 	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/spring-core/expr"
 )
 
 var (
@@ -74,17 +75,13 @@ func ParseTag(tag string) (ret ParsedTag, err error) {
 }
 
 type BindParam struct {
-	Type reflect.Type // reflection type of binding value
-	Key  string       // full property key
-	Path string       // binding path
-	tag  ParsedTag    // parsed tag
+	Key      string    // full property key
+	Path     string    // binding path
+	Tag      ParsedTag // parsed tag
+	Validate string
 }
 
-func (param *BindParam) Tag() ParsedTag {
-	return param.tag
-}
-
-func (param *BindParam) BindTag(tag string) error {
+func (param *BindParam) BindTag(tag string, validate string) error {
 	parsedTag, err := ParseTag(tag)
 	if err != nil {
 		return err
@@ -94,36 +91,39 @@ func (param *BindParam) BindTag(tag string) error {
 	} else if parsedTag.Key == "" {
 		parsedTag.Key = "ANONYMOUS"
 	}
-	param.tag = parsedTag
+	param.Tag = parsedTag
 	if param.Key == "" {
 		param.Key = parsedTag.Key
 	} else if parsedTag.Key != "" {
 		param.Key = param.Key + "." + parsedTag.Key
 	}
+	param.Validate = validate
 	return nil
 }
 
-// BindValue binds properties to a value.
-func BindValue(p *Properties, v reflect.Value, param BindParam) error {
+type Filter func(i interface{}, param BindParam) (bool, error)
 
-	if !util.IsValueType(param.Type) {
+// BindValue binds properties to a value.
+func BindValue(p *Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+
+	if !util.IsValueType(t) {
 		err := errors.New("target should be value type")
 		return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 	}
 
 	switch v.Kind() {
 	case reflect.Map:
-		return bindMap(p, v, param)
+		return bindMap(p, v, t, param, filter)
 	case reflect.Array:
 		err := errors.New("use slice instead of array")
 		return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 	case reflect.Slice:
-		return bindSlice(p, v, param)
+		return bindSlice(p, v, t, param, filter)
 	}
 
-	fn := converters[param.Type]
+	fn := converters[t]
 	if fn == nil && v.Kind() == reflect.Struct {
-		if err := bindStruct(p, v, param); err != nil {
+		if err := bindStruct(p, v, t, param, filter); err != nil {
 			return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 		}
 		return nil
@@ -145,10 +145,25 @@ func BindValue(p *Properties, v reflect.Value, param BindParam) error {
 		return nil
 	}
 
+	validate := func(input string, val interface{}) error {
+		if input == "" {
+			return nil
+		}
+		if b, err := expr.Eval(input, val); err != nil {
+			return err
+		} else if !b {
+			return fmt.Errorf("validate failed on %q for value %v", input, val)
+		}
+		return nil
+	}
+
 	switch v.Kind() {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		var u uint64
 		if u, err = strconv.ParseUint(val, 0, 0); err == nil {
+			if err = validate(param.Validate, u); err != nil {
+				return err
+			}
 			v.SetUint(u)
 			return nil
 		}
@@ -156,6 +171,9 @@ func BindValue(p *Properties, v reflect.Value, param BindParam) error {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var i int64
 		if i, err = strconv.ParseInt(val, 0, 0); err == nil {
+			if err = validate(param.Validate, i); err != nil {
+				return err
+			}
 			v.SetInt(i)
 			return nil
 		}
@@ -163,6 +181,9 @@ func BindValue(p *Properties, v reflect.Value, param BindParam) error {
 	case reflect.Float32, reflect.Float64:
 		var f float64
 		if f, err = strconv.ParseFloat(val, 64); err == nil {
+			if err = validate(param.Validate, f); err != nil {
+				return err
+			}
 			v.SetFloat(f)
 			return nil
 		}
@@ -170,40 +191,48 @@ func BindValue(p *Properties, v reflect.Value, param BindParam) error {
 	case reflect.Bool:
 		var b bool
 		if b, err = strconv.ParseBool(val); err == nil {
+			if err = validate(param.Validate, b); err != nil {
+				return err
+			}
 			v.SetBool(b)
 			return nil
 		}
 		return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 	case reflect.String:
+		if err = validate(param.Validate, val); err != nil {
+			return err
+		}
 		v.SetString(val)
 		return nil
 	}
 
-	err = fmt.Errorf("unsupported bind type %q", param.Type.String())
+	err = fmt.Errorf("unsupported bind type %q", t.String())
 	return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 }
 
 // bindSlice binds properties to a slice value.
-func bindSlice(p *Properties, v reflect.Value, param BindParam) error {
+func bindSlice(p *Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
-	et := param.Type.Elem()
+	et := t.Elem()
 	p, err := getSlice(p, et, param)
 	if err != nil {
 		return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 	}
+
+	slice := reflect.MakeSlice(t, 0, 0)
+	defer func() { v.Set(slice) }()
+
 	if p == nil {
 		return nil
 	}
 
-	slice := reflect.MakeSlice(param.Type, 0, 0)
 	for i := 0; ; i++ {
 		e := reflect.New(et).Elem()
 		subParam := BindParam{
-			Type: et,
 			Key:  fmt.Sprintf("%s[%d]", param.Key, i),
 			Path: fmt.Sprintf("%s[%d]", param.Path, i),
 		}
-		err = BindValue(p, e, subParam)
+		err = BindValue(p, e, et, subParam, filter)
 		if errors.Is(err, errNotExist) {
 			break
 		}
@@ -212,7 +241,6 @@ func bindSlice(p *Properties, v reflect.Value, param BindParam) error {
 		}
 		slice = reflect.Append(slice, e)
 	}
-	v.Set(slice)
 	return nil
 }
 
@@ -229,16 +257,16 @@ func getSlice(p *Properties, et reflect.Type, param BindParam) (*Properties, err
 		if p.Has(param.Key) {
 			strVal = p.Get(param.Key)
 		} else {
-			if !param.tag.HasDef {
+			if !param.Tag.HasDef {
 				return nil, util.Errorf(code.FileLine(), "property %q %w", param.Key, errNotExist)
 			}
-			if param.tag.Def == "" {
+			if param.Tag.Def == "" {
 				return nil, nil
 			}
 			if !util.IsPrimitiveValueType(et) && converters[et] == nil {
 				return nil, util.Error(code.FileLine(), "slice can't have a non empty default value")
 			}
-			strVal = param.tag.Def
+			strVal = param.Tag.Def
 		}
 	}
 	if strVal == "" {
@@ -250,7 +278,7 @@ func getSlice(p *Properties, et reflect.Type, param BindParam) (*Properties, err
 		arrVal []string
 	)
 
-	if s := param.tag.Splitter; s == "" {
+	if s := param.Tag.Splitter; s == "" {
 		arrVal = strings.Split(strVal, ",")
 	} else if fn := splitters[s]; fn != nil {
 		if arrVal, err = fn(strVal); err != nil {
@@ -269,44 +297,20 @@ func getSlice(p *Properties, et reflect.Type, param BindParam) (*Properties, err
 }
 
 // bindMap binds properties to a map value.
-func bindMap(p *Properties, v reflect.Value, param BindParam) error {
+func bindMap(p *Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (err error) {
 
-	if param.tag.HasDef && param.tag.Def != "" {
+	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("map can't have a non empty default value")
 		return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 	}
 
-	et := param.Type.Elem()
-	ret := reflect.MakeMap(param.Type)
-	defer v.Set(ret)
+	et := t.Elem()
+	ret := reflect.MakeMap(t)
+	defer func() { v.Set(ret) }()
 
-	var keys []string
-	{
-		var keyPath []string
-		if param.Key != "" {
-			keyPath = strings.Split(param.Key, ".")
-		}
-		t := p.tree
-		for i, s := range keyPath {
-			vt, ok := t[s]
-			if !ok {
-				if param.tag.Def == "" {
-					return nil
-				}
-				err := fmt.Errorf("property %q %w", param.Key, errNotExist)
-				return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
-			}
-			_, ok = vt.(struct{})
-			if ok {
-				oldKey := strings.Join(keyPath[:i+1], ".")
-				err := fmt.Errorf("property %q isn't map", oldKey)
-				return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
-			}
-			t = vt.(map[string]interface{})
-		}
-		for k := range t {
-			keys = append(keys, k)
-		}
+	keys, err := p.storage.SubKeys(param.Key)
+	if err != nil {
+		return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 	}
 
 	for _, key := range keys {
@@ -316,11 +320,10 @@ func bindMap(p *Properties, v reflect.Value, param BindParam) error {
 			subKey = param.Key + "." + key
 		}
 		subParam := BindParam{
-			Type: et,
 			Key:  subKey,
 			Path: param.Path,
 		}
-		err := BindValue(p, e, subParam)
+		err = BindValue(p, e, et, subParam, filter)
 		if err != nil {
 			return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 		}
@@ -330,15 +333,15 @@ func bindMap(p *Properties, v reflect.Value, param BindParam) error {
 }
 
 // bindStruct binds properties to a struct value.
-func bindStruct(p *Properties, v reflect.Value, param BindParam) error {
+func bindStruct(p *Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
-	if param.tag.HasDef && param.tag.Def != "" {
+	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("struct can't have a non empty default value")
 		return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 	}
 
-	for i := 0; i < param.Type.NumField(); i++ {
-		ft := param.Type.Field(i)
+	for i := 0; i < t.NumField(); i++ {
+		ft := t.Field(i)
 		fv := v.Field(i)
 
 		if !fv.CanInterface() {
@@ -349,16 +352,25 @@ func bindStruct(p *Properties, v reflect.Value, param BindParam) error {
 		}
 
 		subParam := BindParam{
-			Type: ft.Type,
 			Key:  param.Key,
 			Path: param.Path + "." + ft.Name,
 		}
 
 		if tag, ok := ft.Tag.Lookup("value"); ok {
-			if err := subParam.BindTag(tag); err != nil {
+			validate, _ := ft.Tag.Lookup("validate")
+			if err := subParam.BindTag(tag, validate); err != nil {
 				return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 			}
-			if err := BindValue(p, fv, subParam); err != nil {
+			if filter != nil {
+				ret, err := filter(fv.Addr().Interface(), subParam)
+				if err != nil {
+					return err
+				}
+				if ret {
+					continue
+				}
+			}
+			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
 				return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 			}
 			continue
@@ -369,7 +381,7 @@ func bindStruct(p *Properties, v reflect.Value, param BindParam) error {
 			if ft.Type.Kind() != reflect.Struct {
 				continue
 			}
-			if err := bindStruct(p, fv, subParam); err != nil {
+			if err := bindStruct(p, fv, ft.Type, subParam, filter); err != nil {
 				return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 			}
 			continue
@@ -381,7 +393,7 @@ func bindStruct(p *Properties, v reflect.Value, param BindParam) error {
 			} else {
 				subParam.Key = subParam.Key + "." + ft.Name
 			}
-			if err := BindValue(p, fv, subParam); err != nil {
+			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
 				return util.Wrapf(err, code.FileLine(), "bind %s error", param.Path)
 			}
 		}
@@ -391,11 +403,12 @@ func bindStruct(p *Properties, v reflect.Value, param BindParam) error {
 
 // resolve returns property references processed property value.
 func resolve(p *Properties, param BindParam) (string, error) {
-	if val, ok := p.data[param.Key]; ok {
+	val := p.storage.Get(param.Key)
+	if val != "" {
 		return resolveString(p, val)
 	}
-	if param.tag.HasDef {
-		return resolveString(p, param.tag.Def)
+	if param.Tag.HasDef {
+		return resolveString(p, param.Tag.Def)
 	}
 	err := fmt.Errorf("property %q %w", param.Key, errNotExist)
 	return "", util.Wrapf(err, code.FileLine(), "resolve property %q error", param.Key)
@@ -440,7 +453,7 @@ func resolveString(p *Properties, s string) (string, error) {
 	}
 
 	var param BindParam
-	err := param.BindTag(s[start : end+1])
+	err := param.BindTag(s[start:end+1], "")
 	if err != nil {
 		return "", util.Wrapf(err, code.FileLine(), "resolve string %q error", s)
 	}

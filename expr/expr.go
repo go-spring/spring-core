@@ -14,4 +14,23 @@
  * limitations under the License.
  */
 
-package gsutil
+package expr
+
+import (
+	"github.com/antonmedv/expr"
+	"github.com/go-spring/spring-base/code"
+	"github.com/go-spring/spring-base/util"
+)
+
+// Eval returns the value for the expression expr.
+func Eval(input string, val interface{}) (bool, error) {
+	r, err := expr.Eval(input, map[string]interface{}{"$": val})
+	if err != nil {
+		return false, util.Wrapf(err, code.FileLine(), "eval %q returns error", input)
+	}
+	b, ok := r.(bool)
+	if !ok {
+		return false, util.Wrapf(err, code.FileLine(), "eval %q doesn't return bool", input)
+	}
+	return b, nil
+}
