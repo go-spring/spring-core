@@ -16,6 +16,7 @@
 
 package database
 
-type ClientConfig struct {
+// Config is the configuration of database client.
+type Config struct {
 	URL string `value:"${url}"`
 }

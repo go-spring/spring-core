@@ -16,8 +16,8 @@
 
 package mongo
 
-// ClientConfig 客户端配置。
-type ClientConfig struct {
+// Config is the configuration of mongodb client.
+type Config struct {
 	URL  string `value:"${url:=mongodb://localhost}"`
-	Ping bool   `value:"${ping:=true}"` // 是否 PING 探测
+	Ping bool   `value:"${ping:=true}"`
 }

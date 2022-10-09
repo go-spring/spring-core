@@ -14,109 +14,63 @@
  * limitations under the License.
  */
 
+//go:generate mockgen -build_flags="-mod=mod" -package=redis -source=redis.go -destination=redis_mock.go
+
+// Package redis provides operations for redis commands.
 package redis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
-
-	"github.com/go-spring/spring-base/net/recorder"
-	"github.com/go-spring/spring-base/net/replayer"
 )
 
-var (
-	errNil = errors.New("redis: nil")
-)
-
+// IsOK returns whether s equals "OK".
 func IsOK(s string) bool {
 	return "OK" == s
 }
 
-func ErrNil() error {
-	return errNil
-}
-
-func IsErrNil(err error) bool {
-	return errors.Is(err, errNil)
-}
-
+// Config Is the configuration of redis client.
 type Config struct {
-	Host           string `value:"${host:=127.0.0.1}"`    // IP
-	Port           int    `value:"${port:=6379}"`         // 端口号
-	Username       string `value:"${username:=}"`         // 用户名
-	Password       string `value:"${password:=}"`         // 密码
-	Database       int    `value:"${database:=0}"`        // DB 序号
-	Ping           bool   `value:"${ping:=true}"`         // 是否 PING 探测
-	ConnectTimeout int    `value:"${connect-timeout:=0}"` // 连接超时，毫秒
-	ReadTimeout    int    `value:"${read-timeout:=0}"`    // 读取超时，毫秒
-	WriteTimeout   int    `value:"${write-timeout:=0}"`   // 写入超时，毫秒
-	IdleTimeout    int    `value:"${idle-timeout:=0}"`    // 空闲连接超时，毫秒
+	Host           string `value:"${host:=127.0.0.1}"`
+	Port           int    `value:"${port:=6379}"`
+	Username       string `value:"${username:=}"`
+	Password       string `value:"${password:=}"`
+	Database       int    `value:"${database:=0}"`
+	Ping           bool   `value:"${ping:=true}"`
+	IdleTimeout    int    `value:"${idle-timeout:=0}"`
+	ConnectTimeout int    `value:"${connect-timeout:=0}"`
+	ReadTimeout    int    `value:"${read-timeout:=0}"`
+	WriteTimeout   int    `value:"${write-timeout:=0}"`
 }
 
+type Result struct {
+	Data []string
+}
+
+type Driver interface {
+	Exec(ctx context.Context, args []interface{}) (interface{}, error)
+}
+
+var (
+	Recorder func(Driver) Driver
+	Replayer func(Driver) Driver
+)
+
+// Client provides operations for redis commands.
 type Client struct {
-	conn ConnPool
-
-	opsForKey    *KeyOperations
-	opsForBitmap *BitmapOperations
-	opsForString *StringOperations
-	opsForHash   *HashOperations
-	opsForList   *ListOperations
-	opsForSet    *SetOperations
-	opsForZSet   *ZSetOperations
-	opsForServer *ServerOperations
+	driver Driver
 }
 
-func NewClient(conn ConnPool) (*Client, error) {
-	if recorder.RecordMode() {
-		conn = &recordConn{conn: conn}
+// NewClient returns a new *Client.
+func NewClient(driver Driver) *Client {
+	if Recorder != nil {
+		driver = Recorder(driver)
 	}
-	if replayer.ReplayMode() {
-		conn = &replayConn{conn: conn}
+	if Replayer != nil {
+		driver = Replayer(driver)
 	}
-	c := &Client{conn: conn}
-	c.opsForKey = NewKeyOperations(c)
-	c.opsForBitmap = NewBitmapOperations(c)
-	c.opsForString = NewStringOperations(c)
-	c.opsForHash = NewHashOperations(c)
-	c.opsForList = NewListOperations(c)
-	c.opsForSet = NewSetOperations(c)
-	c.opsForZSet = NewZSetOperations(c)
-	c.opsForServer = NewServerOperations(c)
-	return c, nil
-}
-
-func (c *Client) OpsForKey() *KeyOperations {
-	return c.opsForKey
-}
-
-func (c *Client) OpsForBitmap() *BitmapOperations {
-	return c.opsForBitmap
-}
-
-func (c *Client) OpsForString() *StringOperations {
-	return c.opsForString
-}
-
-func (c *Client) OpsForHash() *HashOperations {
-	return c.opsForHash
-}
-
-func (c *Client) OpsForList() *ListOperations {
-	return c.opsForList
-}
-
-func (c *Client) OpsForSet() *SetOperations {
-	return c.opsForSet
-}
-
-func (c *Client) OpsForZSet() *ZSetOperations {
-	return c.opsForZSet
-}
-
-func (c *Client) OpsForServer() *ServerOperations {
-	return c.opsForServer
+	return &Client{driver: driver}
 }
 
 func toInt64(v interface{}, err error) (int64, error) {
@@ -130,18 +84,19 @@ func toInt64(v interface{}, err error) (int64, error) {
 		return int64(r), nil
 	case string:
 		return strconv.ParseInt(r, 10, 64)
-	case *replayResult:
-		if len(r.data) == 0 {
+	case *Result:
+		if len(r.Data) == 0 {
 			return 0, fmt.Errorf("redis: no data")
 		}
-		return toInt64(r.data[0], nil)
+		return toInt64(r.Data[0], nil)
 	default:
 		return 0, fmt.Errorf("redis: unexpected type %T for int64", v)
 	}
 }
 
-func (c *Client) Int(ctx context.Context, cmd string, args ...interface{}) (int64, error) {
-	return toInt64(c.conn.Exec(ctx, cmd, args))
+// Int executes a command whose reply is a `int64`.
+func (c *Client) Int(ctx context.Context, args ...interface{}) (int64, error) {
+	return toInt64(c.driver.Exec(ctx, args))
 }
 
 func toFloat64(v interface{}, err error) (float64, error) {
@@ -155,18 +110,19 @@ func toFloat64(v interface{}, err error) (float64, error) {
 		return float64(r), nil
 	case string:
 		return strconv.ParseFloat(r, 64)
-	case *replayResult:
-		if len(r.data) == 0 {
+	case *Result:
+		if len(r.Data) == 0 {
 			return 0, fmt.Errorf("redis: no data")
 		}
-		return toFloat64(r.data[0], nil)
+		return toFloat64(r.Data[0], nil)
 	default:
 		return 0, fmt.Errorf("redis: unexpected type=%T for float64", r)
 	}
 }
 
-func (c *Client) Float(ctx context.Context, cmd string, args ...interface{}) (float64, error) {
-	return toFloat64(c.conn.Exec(ctx, cmd, args))
+// Float executes a command whose reply is a `float64`.
+func (c *Client) Float(ctx context.Context, args ...interface{}) (float64, error) {
+	return toFloat64(c.driver.Exec(ctx, args))
 }
 
 func toString(v interface{}, err error) (string, error) {
@@ -176,18 +132,19 @@ func toString(v interface{}, err error) (string, error) {
 	switch r := v.(type) {
 	case string:
 		return r, nil
-	case *replayResult:
-		if len(r.data) == 0 {
+	case *Result:
+		if len(r.Data) == 0 {
 			return "", fmt.Errorf("redis: no data")
 		}
-		return r.data[0], nil
+		return r.Data[0], nil
 	default:
 		return "", fmt.Errorf("redis: unexpected type %T for string", v)
 	}
 }
 
-func (c *Client) String(ctx context.Context, cmd string, args ...interface{}) (string, error) {
-	return toString(c.conn.Exec(ctx, cmd, args))
+// String executes a command whose reply is a `string`.
+func (c *Client) String(ctx context.Context, args ...interface{}) (string, error) {
+	return toString(c.driver.Exec(ctx, args))
 }
 
 func toSlice(v interface{}, err error) ([]interface{}, error) {
@@ -207,15 +164,16 @@ func toSlice(v interface{}, err error) ([]interface{}, error) {
 			}
 		}
 		return slice, nil
-	case *replayResult:
-		return toSlice(r.data, nil)
+	case *Result:
+		return toSlice(r.Data, nil)
 	default:
 		return nil, fmt.Errorf("redis: unexpected type %T for []interface{}", v)
 	}
 }
 
-func (c *Client) Slice(ctx context.Context, cmd string, args ...interface{}) ([]interface{}, error) {
-	return toSlice(c.conn.Exec(ctx, cmd, args))
+// Slice executes a command whose reply is a `[]interface{}`.
+func (c *Client) Slice(ctx context.Context, args ...interface{}) ([]interface{}, error) {
+	return toSlice(c.driver.Exec(ctx, args))
 }
 
 func toInt64Slice(v interface{}, err error) ([]int64, error) {
@@ -235,8 +193,9 @@ func toInt64Slice(v interface{}, err error) ([]int64, error) {
 	return val, nil
 }
 
-func (c *Client) IntSlice(ctx context.Context, cmd string, args ...interface{}) ([]int64, error) {
-	return toInt64Slice(c.conn.Exec(ctx, cmd, args))
+// IntSlice executes a command whose reply is a `[]int64`.
+func (c *Client) IntSlice(ctx context.Context, args ...interface{}) ([]int64, error) {
+	return toInt64Slice(c.driver.Exec(ctx, args))
 }
 
 func toFloat64Slice(v interface{}, err error) ([]float64, error) {
@@ -256,8 +215,9 @@ func toFloat64Slice(v interface{}, err error) ([]float64, error) {
 	return val, nil
 }
 
-func (c *Client) FloatSlice(ctx context.Context, cmd string, args ...interface{}) ([]float64, error) {
-	return toFloat64Slice(c.conn.Exec(ctx, cmd, args))
+// FloatSlice executes a command whose reply is a `[]float64`.
+func (c *Client) FloatSlice(ctx context.Context, args ...interface{}) ([]float64, error) {
+	return toFloat64Slice(c.driver.Exec(ctx, args))
 }
 
 func toStringSlice(v interface{}, err error) ([]string, error) {
@@ -277,8 +237,9 @@ func toStringSlice(v interface{}, err error) ([]string, error) {
 	return val, nil
 }
 
-func (c *Client) StringSlice(ctx context.Context, cmd string, args ...interface{}) ([]string, error) {
-	return toStringSlice(c.conn.Exec(ctx, cmd, args))
+// StringSlice executes a command whose reply is a `[]string`.
+func (c *Client) StringSlice(ctx context.Context, args ...interface{}) ([]string, error) {
+	return toStringSlice(c.driver.Exec(ctx, args))
 }
 
 func toStringMap(v interface{}, err error) (map[string]string, error) {
@@ -296,8 +257,9 @@ func toStringMap(v interface{}, err error) (map[string]string, error) {
 	return val, nil
 }
 
-func (c *Client) StringMap(ctx context.Context, cmd string, args ...interface{}) (map[string]string, error) {
-	return toStringMap(c.conn.Exec(ctx, cmd, args))
+// StringMap executes a command whose reply is a `map[string]string`.
+func (c *Client) StringMap(ctx context.Context, args ...interface{}) (map[string]string, error) {
+	return toStringMap(c.driver.Exec(ctx, args))
 }
 
 func toZItemSlice(v interface{}, err error) ([]ZItem, error) {
@@ -322,6 +284,7 @@ func toZItemSlice(v interface{}, err error) ([]ZItem, error) {
 	return val, nil
 }
 
-func (c *Client) ZItemSlice(ctx context.Context, cmd string, args ...interface{}) ([]ZItem, error) {
-	return toZItemSlice(c.conn.Exec(ctx, cmd, args))
+// ZItemSlice executes a command whose reply is a `[]ZItem`.
+func (c *Client) ZItemSlice(ctx context.Context, args ...interface{}) ([]ZItem, error) {
+	return toZItemSlice(c.driver.Exec(ctx, args))
 }

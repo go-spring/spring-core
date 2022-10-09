@@ -36,6 +36,8 @@ import (
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/cond"
+	"github.com/go-spring/spring-core/gs/internal"
+	"github.com/go-spring/spring-core/validate"
 )
 
 type refreshState int
@@ -298,7 +300,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 	for _, d := range s.destroyerMap {
 		destroyers.PushBack(d)
 	}
-	destroyers = util.TripleSort(destroyers, getBeforeDestroyers)
+	destroyers = internal.TripleSort(destroyers, getBeforeDestroyers)
 
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
@@ -824,8 +826,8 @@ func (c *container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 		}
 
 		if tag, ok = ft.Tag.Lookup("value"); ok {
-			validate, _ := ft.Tag.Lookup("validate")
-			if err := subParam.BindTag(tag, validate); err != nil {
+			validateTag, _ := ft.Tag.Lookup(validate.TagName())
+			if err := subParam.BindTag(tag, validateTag); err != nil {
 				return err
 			}
 			if ft.Anonymous {
@@ -902,61 +904,40 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
-	var (
-		converter  BeanConverter
-		foundBeans []*BeanDefinition
-	)
-
-	converter, ok := beanConverters[t]
-	if ok {
-		if tag.beanName == "" {
-			return fmt.Errorf("conversion bean must have a name")
+	var foundBeans []*BeanDefinition
+	for _, b := range c.beansByType[t] {
+		if b.status == Deleted {
+			continue
 		}
+		if !b.Match(tag.typeName, tag.beanName) {
+			continue
+		}
+		foundBeans = append(foundBeans, b)
+	}
+
+	// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
+	if t.Kind() == reflect.Interface && tag.beanName != "" {
 		for _, b := range c.beansByName[tag.beanName] {
 			if b.status == Deleted {
 				continue
 			}
-			if !b.Match(tag.typeName, tag.beanName) {
-				continue
-			}
-			foundBeans = append(foundBeans, b)
-		}
-
-	} else {
-		for _, b := range c.beansByType[t] {
-			if b.status == Deleted {
+			if !b.Type().AssignableTo(t) {
 				continue
 			}
 			if !b.Match(tag.typeName, tag.beanName) {
 				continue
 			}
-			foundBeans = append(foundBeans, b)
-		}
 
-		// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
-		if t.Kind() == reflect.Interface && tag.beanName != "" {
-			for _, b := range c.beansByName[tag.beanName] {
-				if b.status == Deleted {
-					continue
+			found := false // 对结果排重
+			for _, r := range foundBeans {
+				if r == b {
+					found = true
+					break
 				}
-				if !b.Type().AssignableTo(t) {
-					continue
-				}
-				if !b.Match(tag.typeName, tag.beanName) {
-					continue
-				}
-
-				found := false // 对结果排重
-				for _, r := range foundBeans {
-					if r == b {
-						found = true
-						break
-					}
-				}
-				if !found {
-					foundBeans = append(foundBeans, b)
-					c.logger.Warnf("you should call Export() on %s", b)
-				}
+			}
+			if !found {
+				foundBeans = append(foundBeans, b)
+				c.logger.Warnf("you should call Export() on %s", b)
 			}
 		}
 	}
@@ -1008,16 +989,7 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return err
 	}
 
-	if converter == nil {
-		v.Set(result.Value())
-		return nil
-	}
-
-	i, err := converter(result.Interface())
-	if err != nil {
-		return err
-	}
-	v.Set(reflect.ValueOf(i))
+	v.Set(result.Value())
 	return nil
 }
 

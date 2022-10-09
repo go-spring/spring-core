@@ -65,7 +65,7 @@ func (c *BaseContext) NativeContext() interface{} {
 func (c *BaseContext) Get(key string) interface{} {
 	v, err := knife.Load(c.Context(), key)
 	if err != nil {
-		c.Logger.WithContext(c.Context()).Error(log.ERROR, err)
+		c.Logger.WithContext(c.Context()).Error(err)
 		return nil
 	}
 	return v
@@ -265,7 +265,7 @@ func (c *BaseContext) RequestBody() ([]byte, error) {
 
 // Bind binds the request body into provided type `i`.
 func (c *BaseContext) Bind(i interface{}) error {
-	panic(util.UnimplementedMethod)
+	return Bind(i, c)
 }
 
 // Response returns Response.
