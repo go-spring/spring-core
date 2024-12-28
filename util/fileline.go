@@ -14,33 +14,32 @@
  * limitations under the License.
  */
 
-package expr
+package util
 
 import (
 	"fmt"
-
-	"github.com/expr-lang/expr"
+	"runtime"
+	"sync"
 )
 
-type Validator struct{}
+var frameMap sync.Map
 
-// Name returns the name of the validator.
-func (d *Validator) Name() string {
-	return "expr"
+func fileLine() (string, int) {
+	rpc := make([]uintptr, 1)
+	runtime.Callers(3, rpc[:])
+	pc := rpc[0]
+	if v, ok := frameMap.Load(pc); ok {
+		e := v.(*runtime.Frame)
+		return e.File, e.Line
+	}
+	frame, _ := runtime.CallersFrames(rpc).Next()
+	frameMap.Store(pc, &frame)
+	return frame.File, frame.Line
 }
 
-// Field validates the field with the given tag and value.
-func (d *Validator) Field(tag string, i interface{}) error {
-	r, err := expr.Eval(tag, map[string]interface{}{"$": i})
-	if err != nil {
-		return fmt.Errorf("eval %q returns error, %w", tag, err)
-	}
-	ret, ok := r.(bool)
-	if !ok {
-		return fmt.Errorf("eval %q doesn't return bool value", tag)
-	}
-	if !ret {
-		return fmt.Errorf("validate failed on %q for value %v", tag, i)
-	}
-	return nil
+// FileLine returns the file name and line of the call point.
+// In reality FileLine here costs less time than debug.Stack.
+func FileLine() string {
+	file, line := fileLine()
+	return fmt.Sprintf("%s:%d", file, line)
 }

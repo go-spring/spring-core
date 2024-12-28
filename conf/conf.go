@@ -21,59 +21,48 @@ package conf
 import (
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
-	"github.com/go-spring/spring-base/cast"
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf/internal"
+	"github.com/go-spring/spring-core/conf/reader/json"
 	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
+	"github.com/go-spring/spring-core/expr"
+	"github.com/spf13/cast"
 )
-
-// Splitter splits string into []string by some characters.
-type Splitter func(string) ([]string, error)
-
-// Reader parses []byte into nested map[string]interface{}.
-type Reader func(b []byte) (map[string]interface{}, error)
 
 var (
 	readers    = map[string]Reader{}
 	splitters  = map[string]Splitter{}
-	converters = map[reflect.Type]util.Converter{}
+	converters = map[reflect.Type]Converter{}
 )
 
 func init() {
+	SetValidator(&expr.Validator{})
 
+	RegisterReader(json.Read, ".json")
 	RegisterReader(prop.Read, ".properties")
 	RegisterReader(yaml.Read, ".yaml", ".yml")
 	RegisterReader(toml.Read, ".toml", ".tml")
 
-	// converts string into time.Time. The string value may have its own
-	// time format defined after >> splitter, otherwise it uses a default
-	// time format `2006-01-02 15:04:05 -0700`.
 	RegisterConverter(func(s string) (time.Time, error) {
-		s = strings.TrimSpace(s)
-		format := "2006-01-02 15:04:05 -0700"
-		if ss := strings.Split(s, ">>"); len(ss) == 2 {
-			format = strings.TrimSpace(ss[1])
-			s = strings.TrimSpace(ss[0])
-		}
-		return cast.ToTimeE(s, format)
+		return cast.ToTimeE(strings.TrimSpace(s))
 	})
 
-	// converts string into time.Duration. The string should have its own
-	// time unit such as "ns", "ms", "s", "m", etc.
 	RegisterConverter(func(s string) (time.Duration, error) {
-		return cast.ToDurationE(s)
+		return time.ParseDuration(strings.TrimSpace(s))
 	})
 }
+
+// Reader parses []byte into nested map[string]interface{}.
+type Reader func(b []byte) (map[string]interface{}, error)
 
 // RegisterReader registers its Reader for some kind of file extension.
 func RegisterReader(r Reader, ext ...string) {
@@ -82,20 +71,29 @@ func RegisterReader(r Reader, ext ...string) {
 	}
 }
 
+// Splitter splits string into []string by some characters.
+type Splitter func(string) ([]string, error)
+
 // RegisterSplitter registers a Splitter and named it.
 func RegisterSplitter(name string, fn Splitter) {
 	splitters[name] = fn
 }
 
+// Converter converts string value into user-defined value. It should be function
+// type, and its prototype is func(string)(type,error).
+type Converter interface{}
+
 // RegisterConverter registers its converter for non-primitive type such as
 // time.Time, time.Duration, or other user-defined value type.
-func RegisterConverter(fn util.Converter) {
+func RegisterConverter(fn Converter) {
 	t := reflect.TypeOf(fn)
-	if !util.IsConverter(t) {
-		panic(errors.New("converter should be func(string)(type,error)"))
+	if !IsConverter(t) {
+		panic(errors.New("converter is func(string)(type,error)"))
 	}
 	converters[t.Out(0)] = fn
 }
+
+var _ ReadOnlyProperties = (*Properties)(nil)
 
 // Properties stores the data with map[string]string and the keys are case-sensitive,
 // you can get one of them by its key, or bind some of them to a value.
@@ -147,58 +145,47 @@ func Load(file string) (*Properties, error) {
 
 // Load loads properties from file.
 func (p *Properties) Load(file string) error {
-	b, err := ioutil.ReadFile(file)
+	b, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
 	return p.Bytes(b, filepath.Ext(file))
 }
 
-// Read creates *Properties from io.Reader, ext is the file name extension.
-func Read(r io.Reader, ext string) (*Properties, error) {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-	return Bytes(b, ext)
-}
-
-// Bytes creates *Properties from []byte, ext is the file name extension.
-func Bytes(b []byte, ext string) (*Properties, error) {
-	p := NewProperties()
-	if err := p.Bytes(b, ext); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
-
 // Bytes loads properties from []byte, ext is the file name extension.
 func (p *Properties) Bytes(b []byte, ext string) error {
 	r, ok := readers[ext]
 	if !ok {
-		return fmt.Errorf("unsupported file type %s", ext)
+		return fmt.Errorf("unsupported file type %q", ext)
 	}
 	m, err := r(b)
 	if err != nil {
 		return err
 	}
-	var keys []string
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		if err = p.Set(k, m[k]); err != nil {
+	return p.Merge(m)
+}
+
+// Merge flattens the map and sets all keys and values.
+func (p *Properties) Merge(m map[string]interface{}) error {
+	s := FlattenMap(m)
+	return p.merge(s)
+}
+
+func (p *Properties) merge(m map[string]string) error {
+	for key, val := range m {
+		if err := p.store(key, val); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (p *Properties) Copy() *Properties {
-	return &Properties{
-		storage: p.storage.Copy(),
-	}
+func (p *Properties) store(key, val string) error {
+	return p.storage.Set(key, val)
+}
+
+func (p *Properties) Data() map[string]string {
+	return p.storage.Data()
 }
 
 // Keys returns all sorted keys.
@@ -226,8 +213,8 @@ func Def(v string) GetOption {
 
 // Get returns key's value, using Def to return a default value.
 func (p *Properties) Get(key string, opts ...GetOption) string {
-	val := p.storage.Get(key)
-	if val != "" {
+	val, ok := p.storage.Get(key)
+	if ok {
 		return val
 	}
 	arg := getArg{}
@@ -235,40 +222,6 @@ func (p *Properties) Get(key string, opts ...GetOption) string {
 		opt(&arg)
 	}
 	return arg.def
-}
-
-func Flatten(key string, val interface{}, result map[string]string) error {
-	switch v := reflect.ValueOf(val); v.Kind() {
-	case reflect.Map:
-		if v.Len() == 0 {
-			result[key] = ""
-			return nil
-		}
-		for _, k := range v.MapKeys() {
-			mapKey := cast.ToString(k.Interface())
-			mapValue := v.MapIndex(k).Interface()
-			err := Flatten(key+"."+mapKey, mapValue, result)
-			if err != nil {
-				return err
-			}
-		}
-	case reflect.Array, reflect.Slice:
-		if v.Len() == 0 {
-			result[key] = ""
-			return nil
-		}
-		for i := 0; i < v.Len(); i++ {
-			subKey := fmt.Sprintf("%s[%d]", key, i)
-			subValue := v.Index(i).Interface()
-			err := Flatten(subKey, subValue, result)
-			if err != nil {
-				return err
-			}
-		}
-	default:
-		result[key] = cast.ToString(val)
-	}
-	return nil
 }
 
 // Set sets key's value to be a primitive type as int or string,
@@ -279,25 +232,11 @@ func Flatten(key string, val interface{}, result map[string]string) error {
 // prefix path.
 func (p *Properties) Set(key string, val interface{}) error {
 	if key == "" {
-		return nil
+		return errors.New("key is empty")
 	}
 	m := make(map[string]string)
-	err := Flatten(key, val, m)
-	if err != nil {
-		return err
-	}
-	var keys []string
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		err = p.storage.Set(k, m[k])
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	FlattenValue(key, val, m)
+	return p.merge(m)
 }
 
 // Resolve resolves string value that contains references to other
@@ -306,33 +245,53 @@ func (p *Properties) Resolve(s string) (string, error) {
 	return resolveString(p, s)
 }
 
-type bindArg struct {
+type BindArg interface {
+	getParam() (BindParam, error)
+}
+
+type paramArg struct {
+	param BindParam
+}
+
+func (tag paramArg) getParam() (BindParam, error) {
+	return tag.param, nil
+}
+
+type tagArg struct {
 	tag string
 }
 
-type BindOption func(arg *bindArg)
+func (tag tagArg) getParam() (BindParam, error) {
+	var param BindParam
+	err := param.BindTag(tag.tag, "")
+	if err != nil {
+		return BindParam{}, err
+	}
+	return param, nil
+}
 
 // Key binds properties using one key.
-func Key(key string) BindOption {
-	return func(arg *bindArg) {
-		arg.tag = "${" + key + "}"
-	}
+func Key(key string) BindArg {
+	return tagArg{tag: "${" + key + "}"}
 }
 
 // Tag binds properties using one tag.
-func Tag(tag string) BindOption {
-	return func(arg *bindArg) {
-		arg.tag = tag
-	}
+func Tag(tag string) BindArg {
+	return tagArg{tag: tag}
+}
+
+// Param binds properties using BindParam.
+func Param(param BindParam) BindArg {
+	return paramArg{param: param}
 }
 
 // Bind binds properties to a value, the bind value can be primitive type,
 // map, slice, struct. When binding to struct, the tag 'value' indicates
 // which properties should be bind. The 'value' tags are defined by
-// value:"${a:=b|splitter}", 'a' is the key, 'b' is the default value,
+// value:"${a:=b}>>splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *Properties) Bind(i interface{}, opts ...BindOption) error {
+func (p *Properties) Bind(i interface{}, args ...BindArg) error {
 
 	var v reflect.Value
 	{
@@ -342,15 +301,14 @@ func (p *Properties) Bind(i interface{}, opts ...BindOption) error {
 		default:
 			v = reflect.ValueOf(i)
 			if v.Kind() != reflect.Ptr {
-				return errors.New("i should be a ptr")
+				return errors.New("should be a ptr")
 			}
 			v = v.Elem()
 		}
 	}
 
-	arg := bindArg{tag: "${ROOT}"}
-	for _, opt := range opts {
-		opt(&arg)
+	if len(args) == 0 {
+		args = []BindArg{tagArg{tag: "${ROOT}"}}
 	}
 
 	t := v.Type()
@@ -359,12 +317,63 @@ func (p *Properties) Bind(i interface{}, opts ...BindOption) error {
 		typeName = t.String()
 	}
 
-	param := BindParam{
-		Path: typeName,
-	}
-	err := param.BindTag(arg.tag, "")
+	param, err := args[0].getParam()
 	if err != nil {
 		return err
 	}
+	param.Path = typeName
 	return BindValue(p, v, t, param, nil)
+}
+
+// CopyTo copies properties into another by override.
+func (p *Properties) CopyTo(out *Properties) error {
+	return out.merge(p.storage.RawData())
+}
+
+// ReadOnlyProperties is the interface for read-only properties.
+type ReadOnlyProperties interface {
+
+	// Data returns key-value pairs of the properties.
+	Data() map[string]string
+
+	// Keys returns keys of the properties.
+	Keys() []string
+
+	// Has returns whether the key exists.
+	Has(key string) bool
+
+	// Get returns key's value, using Def to return a default value.
+	Get(key string, opts ...GetOption) string
+
+	// Resolve resolves string that contains references.
+	Resolve(s string) (string, error)
+
+	// Bind binds properties into a value.
+	Bind(i interface{}, args ...BindArg) error
+
+	// CopyTo copies properties into another by override.
+	CopyTo(out *Properties) error
+}
+
+// AtomicProperties is a thread-safe version of Properties.
+type AtomicProperties struct {
+	v atomic.Pointer[Properties]
+}
+
+// NewAtomicProperties creates a new atomic properties.
+func NewAtomicProperties() *AtomicProperties {
+	return new(AtomicProperties)
+}
+
+// Load loads as read-only properties.
+func (p *AtomicProperties) Load() ReadOnlyProperties {
+	if s := p.v.Load(); s != nil {
+		return s
+	}
+	return nil
+}
+
+// Store stores a new properties.
+func (p *AtomicProperties) Store(v *Properties) {
+	p.v.Store(v)
 }

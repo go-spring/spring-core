@@ -79,6 +79,11 @@ func (s *Storage) Copy() *Storage {
 	}
 }
 
+// RawData returns the raw data of the storage.
+func (s *Storage) RawData() map[string]string {
+	return s.data
+}
+
 // Data returns key-value pairs of the properties.
 func (s *Storage) Data() map[string]string {
 	if len(s.data) == 0 {
@@ -154,9 +159,9 @@ func (s *Storage) Has(key string) bool {
 }
 
 // Get returns the key's value.
-func (s *Storage) Get(key string) string {
-	val, _ := s.data[key]
-	return val
+func (s *Storage) Get(key string) (string, bool) {
+	val, ok := s.data[key]
+	return val, ok
 }
 
 // Set stores the key and its value.

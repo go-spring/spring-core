@@ -17,7 +17,6 @@
 package conf_test
 
 import (
-	"container/list"
 	"fmt"
 	"testing"
 
@@ -193,12 +192,6 @@ func TestProperties_Bind(t *testing.T) {
 		p := conf.NewProperties()
 		err := p.Bind(&struct{ fmt.Stringer }{})
 		assert.Nil(t, err)
-	})
-
-	t.Run("ignore pointer", func(t *testing.T) {
-		p := conf.NewProperties()
-		err := p.Bind(list.New())
-		assert.Error(t, err, ".*bind.go:.* bind List error; .*bind.go:.* bind List.len error; .*bind.go:.* resolve property \"len\" error; property \"len\" not exist")
 	})
 
 	t.Run("", func(t *testing.T) {
