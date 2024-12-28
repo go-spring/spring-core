@@ -34,7 +34,7 @@ type Path struct {
 	Elem string
 }
 
-// JoinPath joins path elements into a single path.
+// JoinPath joins all path elements into a single path.
 func JoinPath(path []Path) string {
 	var s strings.Builder
 	for i, p := range path {
