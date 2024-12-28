@@ -81,7 +81,7 @@ type NestedDbMapConfig struct {
 func TestProperties_Bind(t *testing.T) {
 
 	t.Run("default", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		v := &struct {
 			S struct {
 				V int `value:"${:=3}"`
@@ -140,7 +140,7 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("simple map bind", func(t *testing.T) {
 
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Set("a.b1", "b1")
 		assert.Nil(t, err)
 		err = p.Set("a.b2", "b2")
@@ -190,19 +190,19 @@ func TestProperties_Bind(t *testing.T) {
 	})
 
 	t.Run("ignore interface", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Bind(&struct{ fmt.Stringer }{})
 		assert.Nil(t, err)
 	})
 
 	t.Run("ignore pointer", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Bind(list.New())
 		assert.Error(t, err, ".*bind.go:.* bind List error; .*bind.go:.* bind List.len error; .*bind.go:.* resolve property \"len\" error; property \"len\" not exist")
 	})
 
 	t.Run("", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Bytes([]byte(`m:`), ".yaml")
 		if err != nil {
 			t.Fatal(err)

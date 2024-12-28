@@ -31,7 +31,7 @@ import (
 
 func TestProperties_Load(t *testing.T) {
 
-	p := conf.New()
+	p := conf.NewProperties()
 	err := p.Load("testdata/config/application.yaml")
 	assert.Nil(t, err)
 	err = p.Load("testdata/config/application.properties")
@@ -49,7 +49,7 @@ func TestProperties_Get(t *testing.T) {
 
 	t.Run("base", func(t *testing.T) {
 
-		p := conf.New()
+		p := conf.NewProperties()
 
 		err := p.Set("a.b.c", "3")
 		assert.Nil(t, err)
@@ -202,13 +202,13 @@ func TestProperties_Ref(t *testing.T) {
 	var httpLog struct{ fileLog }
 
 	t.Run("not config", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Bind(&httpLog)
 		assert.Error(t, err, "property \\\"app.dir\\\" not exist")
 	})
 
 	t.Run("config", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 
 		appDir := "/home/log"
 		err := p.Set("app.dir", appDir)
@@ -230,7 +230,7 @@ func TestProperties_Ref(t *testing.T) {
 	})
 
 	t.Run("empty key", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		var s struct {
 			KeyIsEmpty string `value:"${:=kie}"`
 		}
@@ -241,7 +241,7 @@ func TestProperties_Ref(t *testing.T) {
 }
 
 func TestBindSlice(t *testing.T) {
-	p := conf.New()
+	p := conf.NewProperties()
 	p.Set("a", []string{"1", "2"})
 	var ss []string
 	err := p.Bind(&ss, conf.Key("a"))
@@ -255,19 +255,19 @@ func TestBindMap(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
 		var r [3]map[string]string
-		err := conf.New().Bind(&r)
+		err := conf.NewProperties().Bind(&r)
 		assert.Error(t, err, ".*bind.go:.* bind \\[3]map\\[string]string error; target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
 		var r []map[string]string
-		err := conf.New().Bind(&r)
+		err := conf.NewProperties().Bind(&r)
 		assert.Error(t, err, ".*bind.go:.* bind \\[]map\\[string]string error; target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
 		var r map[string]map[string]string
-		err := conf.New().Bind(&r)
+		err := conf.NewProperties().Bind(&r)
 		assert.Error(t, err, ".*bind.go:.* bind map\\[string]map\\[string]string error; target should be value type")
 	})
 
@@ -362,7 +362,7 @@ func TestBindMap(t *testing.T) {
 }
 
 func TestResolve(t *testing.T) {
-	p := conf.New()
+	p := conf.NewProperties()
 	err := p.Set("name", "Jim")
 	assert.Nil(t, err)
 	_, err = p.Resolve("my name is ${name")
@@ -399,7 +399,7 @@ func TestProperties_Set(t *testing.T) {
 
 	t.Run("map nil", func(t *testing.T) {
 
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Set("m", nil)
 		assert.Nil(t, err)
 		assert.True(t, p.Has("m"))
@@ -417,7 +417,7 @@ func TestProperties_Set(t *testing.T) {
 	})
 
 	t.Run("map empty", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Set("m", map[string]string{})
 		assert.Nil(t, err)
 		assert.True(t, p.Has("m"))
@@ -428,7 +428,7 @@ func TestProperties_Set(t *testing.T) {
 	})
 
 	t.Run("list nil", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Set("a", nil)
 		assert.Nil(t, err)
 		assert.True(t, p.Has("a"))
@@ -439,7 +439,7 @@ func TestProperties_Set(t *testing.T) {
 	})
 
 	t.Run("list empty", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Set("a", []string{})
 		assert.Nil(t, err)
 		assert.True(t, p.Has("a"))
@@ -450,7 +450,7 @@ func TestProperties_Set(t *testing.T) {
 	})
 
 	t.Run("list", func(t *testing.T) {
-		p := conf.New()
+		p := conf.NewProperties()
 		err := p.Set("a", []string{"a", "aa", "aaa"})
 		assert.Nil(t, err)
 		err = p.Set("b", []int{1, 11, 111})
@@ -495,7 +495,7 @@ func TestSplitter(t *testing.T) {
 	conf.RegisterConverter(PointConverter)
 	conf.RegisterSplitter("PointSplitter", PointSplitter)
 	var points []image.Point
-	err := conf.New().Bind(&points, conf.Tag("${:=(1,2)(3,4)}||PointSplitter"))
+	err := conf.NewProperties().Bind(&points, conf.Tag("${:=(1,2)(3,4)}||PointSplitter"))
 	assert.Nil(t, err)
 	assert.Equal(t, points, []image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
 }

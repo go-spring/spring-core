@@ -32,9 +32,9 @@ import (
 	"github.com/go-spring/spring-base/cast"
 	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf/internal"
-	"github.com/go-spring/spring-core/conf/prop"
-	"github.com/go-spring/spring-core/conf/toml"
-	"github.com/go-spring/spring-core/conf/yaml"
+	"github.com/go-spring/spring-core/conf/reader/prop"
+	"github.com/go-spring/spring-core/conf/reader/toml"
+	"github.com/go-spring/spring-core/conf/reader/yaml"
 )
 
 // Splitter splits string into []string by some characters.
@@ -113,8 +113,8 @@ type Properties struct {
 	storage *internal.Storage
 }
 
-// New creates empty *Properties.
-func New() *Properties {
+// NewProperties creates empty *Properties.
+func NewProperties() *Properties {
 	return &Properties{
 		storage: internal.NewStorage(),
 	}
@@ -122,7 +122,7 @@ func New() *Properties {
 
 // Map creates *Properties from map.
 func Map(m map[string]interface{}) (*Properties, error) {
-	p := New()
+	p := NewProperties()
 	var keys []string
 	for k := range m {
 		keys = append(keys, k)
@@ -138,7 +138,7 @@ func Map(m map[string]interface{}) (*Properties, error) {
 
 // Load creates *Properties from file.
 func Load(file string) (*Properties, error) {
-	p := New()
+	p := NewProperties()
 	if err := p.Load(file); err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func Read(r io.Reader, ext string) (*Properties, error) {
 
 // Bytes creates *Properties from []byte, ext is the file name extension.
 func Bytes(b []byte, ext string) (*Properties, error) {
-	p := New()
+	p := NewProperties()
 	if err := p.Bytes(b, ext); err != nil {
 		return nil, err
 	}

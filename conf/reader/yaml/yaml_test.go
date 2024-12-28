@@ -14,33 +14,36 @@
  * limitations under the License.
  */
 
-package toml_test
+package yaml_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/go-spring/spring-base/assert"
-	"github.com/go-spring/spring-core/conf/toml"
+	"github.com/go-spring/spring-core/conf/reader/yaml"
 )
 
 func TestRead(t *testing.T) {
 
 	t.Run("basic type", func(t *testing.T) {
-		r, err := toml.Read([]byte(`
-			bool=false
-			int=3
-			float=3.0
-			string1="3"
-			string2="hello"
-			date="2018-02-17"
-			time="2018-02-17T15:02:31+08:00"
-		`))
+		str := `
+			bool: false
+			int: 3
+			float: 3.0
+			string1: "3"
+			string2: hello
+			date: 2018-02-17
+			time: 2018-02-17T15:02:31+08:00
+		`
+		str = strings.ReplaceAll(str, "\t", "  ")
+		r, err := yaml.Read([]byte(str))
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r, map[string]interface{}{
 			"bool":    false,
-			"int":     int64(3),
+			"int":     3,
 			"float":   3.0,
 			"string1": "3",
 			"string2": "hello",
@@ -50,54 +53,58 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("map", func(t *testing.T) {
-		r, err := toml.Read([]byte(`
-			[map]
-			bool=false
-			int=3
-			float=3.0
-			string="hello"
-		`))
+		str := `
+			map:
+				bool: false
+				int: 3
+				float: 3.0
+				string: hello
+		`
+		str = strings.ReplaceAll(str, "\t", "  ")
+		r, err := yaml.Read([]byte(str))
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r, map[string]interface{}{
-			"map": map[string]interface{}{
+			"map": map[interface{}]interface{}{
 				"bool":   false,
 				"float":  3.0,
-				"int":    int64(3),
+				"int":    3,
 				"string": "hello",
 			},
 		})
 	})
 
 	t.Run("array struct", func(t *testing.T) {
-		r, err := toml.Read([]byte(`
-			[[array]]
-			bool=false
-			int=3
-			float=3.0
-			string="hello"
-			
-			[[array]]
-			bool=true
-			int=20
-			float=0.2
-			string="hello"
-		`))
+		str := `
+			array:
+				-
+					bool: false
+					int: 3
+					float: 3.0
+					string: hello
+				-
+					bool: true
+					int: 20
+					float: 0.2
+					string: hello
+		`
+		str = strings.ReplaceAll(str, "\t", "  ")
+		r, err := yaml.Read([]byte(str))
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r, map[string]interface{}{
 			"array": []interface{}{
-				map[string]interface{}{
+				map[interface{}]interface{}{
 					"bool":   false,
-					"int":    int64(3),
+					"int":    3,
 					"float":  3.0,
 					"string": "hello",
 				},
-				map[string]interface{}{
+				map[interface{}]interface{}{
 					"bool":   true,
-					"int":    int64(20),
+					"int":    20,
 					"float":  0.2,
 					"string": "hello",
 				},
@@ -106,37 +113,55 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("map struct", func(t *testing.T) {
-		r, err := toml.Read([]byte(`
-			[map.k1]
-			bool=false
-			int=3
-			float=3.0
-			string="hello"
-			
-			[map.k2]
-			bool=true
-			int=20
-			float=0.2
-			string="hello"
-		`))
+		str := `
+			map:
+				k1:
+					bool: false
+					int: 3
+					float: 3.0
+					string: hello
+				k2:
+					bool: true
+					int: 20
+					float: 0.2
+					string: hello
+		`
+		str = strings.ReplaceAll(str, "\t", "  ")
+		r, err := yaml.Read([]byte(str))
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, r, map[string]interface{}{
-			"map": map[string]interface{}{
-				"k1": map[string]interface{}{
+			"map": map[interface{}]interface{}{
+				"k1": map[interface{}]interface{}{
 					"bool":   false,
-					"int":    int64(3),
+					"int":    3,
 					"float":  3.0,
 					"string": "hello",
 				},
-				"k2": map[string]interface{}{
+				"k2": map[interface{}]interface{}{
 					"bool":   true,
-					"int":    int64(20),
+					"int":    20,
 					"float":  0.2,
 					"string": "hello",
 				},
 			},
+		})
+	})
+
+	t.Run("empty array & map", func(t *testing.T) {
+		str := `
+			array: []
+			map: {}
+		`
+		str = strings.ReplaceAll(str, "\t", "  ")
+		r, err := yaml.Read([]byte(str))
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, r, map[string]interface{}{
+			"array": []interface{}{},
+			"map":   map[interface{}]interface{}{},
 		})
 	})
 }
