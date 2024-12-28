@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
 
 func TestApplicationContext(t *testing.T) {
 
-	/////////////////////////////////////////
+	// ///////////////////////////////////////
 	// 自定义数据类型
 
 	t.Run("pkg1.SamePkg", func(t *testing.T) {
@@ -531,7 +531,7 @@ func TestApplicationContext_Get(t *testing.T) {
 	})
 }
 
-//func TestApplicationContext_FindByName(t *testing.T) {
+// func TestApplicationContext_FindByName(t *testing.T) {
 //
 //	c := runTest(c,func(p gs.Context) {})
 //	c.Object(&BeanZero{5})
@@ -573,7 +573,7 @@ func TestApplicationContext_Get(t *testing.T) {
 //
 //	b, _ = p.Find((*Grouper)(nil))
 //	assert.Equal(t, len(b), 0)
-//}
+// }
 
 type Teacher interface {
 	Course() string
@@ -2317,7 +2317,7 @@ func TestDefaultSpringContext(t *testing.T) {
 }
 
 // TODO 现在的方式父 Bean 不存在子 Bean 创建的时候会报错
-//func TestDefaultSpringContext_ParentNotRegister(t *testing.T) {
+// func TestDefaultSpringContext_ParentNotRegister(t *testing.T) {
 //
 //	c := gs.New()
 //	parent := c.Provide(NewServerInterface).On(cond.OnProperty("server.is.nil"))
@@ -2332,7 +2332,7 @@ func TestDefaultSpringContext(t *testing.T) {
 //	var c *Consumer
 //	ok = p.Get(&c)
 //	util.Equal(t, ok, false)
-//}
+// }
 
 func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	c := gs.New()
@@ -2377,7 +2377,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 	}
 }
 
-//func TestFunctionCondition(t *testing.T) {
+// func TestFunctionCondition(t *testing.T) {
 //	c := gs.New()
 //
 //	fn := func(c cond.Context) bool { return true }
@@ -2387,9 +2387,9 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //	fn = func(c cond.Context) bool { return false }
 //	c2 := cond.OnMatches(fn)
 //	assert.False(t, c2.Matches(c))
-//}
+// }
 //
-//func TestPropertyCondition(t *testing.T) {
+// func TestPropertyCondition(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Property("int", 3)
@@ -2406,9 +2406,9 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //
 //	c4 := cond.OnProperty("parent123")
 //	assert.False(t, c4.Matches(c))
-//}
+// }
 //
-//func TestMissingPropertyCondition(t *testing.T) {
+// func TestMissingPropertyCondition(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Property("int", 3)
@@ -2425,9 +2425,9 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //
 //	c4 := cond.OnMissingProperty("parent123")
 //	assert.True(t, c4.Matches(c))
-//}
+// }
 //
-//func TestPropertyValueCondition(t *testing.T) {
+// func TestPropertyValueCondition(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Property("str", "this is a str")
@@ -2447,9 +2447,9 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //
 //	c5 := cond.OnPropertyValue("str", "\"$\"==\"this is a str\"")
 //	assert.True(t, c5.Matches(c))
-//}
+// }
 //
-//func TestBeanCondition(t *testing.T) {
+// func TestBeanCondition(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Object(&BeanZero{5})
@@ -2461,9 +2461,9 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //
 //	c2 := cond.OnBean("Null")
 //	assert.False(t, c2.Matches(c))
-//}
+// }
 //
-//func TestMissingBeanCondition(t *testing.T) {
+// func TestMissingBeanCondition(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Object(&BeanZero{5})
@@ -2475,13 +2475,13 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //
 //	c2 := cond.OnMissingBean("Null")
 //	assert.True(t, c2.Matches(c))
-//}
+// }
 //
-//func TestExpressionCondition(t *testing.T) {
+// func TestExpressionCondition(t *testing.T) {
 //
-//}
+// }
 //
-//func TestConditional(t *testing.T) {
+// func TestConditional(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Property("bool", false)
@@ -2532,9 +2532,9 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //		OnPropertyValue("bool", false).
 //		OnPropertyValue("bool", false)
 //	assert.True(t, c9.Matches(c))
-//}
+// }
 //
-//func TestNotCondition(t *testing.T) {
+// func TestNotCondition(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Property(environ.SpringProfilesActive, "test")
@@ -2555,7 +2555,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //		And().
 //		On(cond.Not(profileCond))
 //	assert.False(t, c2.Matches(c))
-//}
+// }
 
 func TestApplicationContext_Invoke(t *testing.T) {
 

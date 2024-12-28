@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,11 +72,11 @@ func TestConfig(t *testing.T) {
 		gs.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev")
 		app := startApplication("testdata/config/", func(ctx gs.Context) {
 			assert.Equal(t, ctx.Prop("spring.profiles.active"), "dev")
-			//keys := ctx.Properties().Keys()
-			//sort.Strings(keys)
-			//for _, k := range keys {
+			// keys := ctx.Properties().Keys()
+			// sort.Strings(keys)
+			// for _, k := range keys {
 			//	fmt.Println(k, "=", ctx.Prop(k))
-			//}
+			// }
 		})
 		defer app.ShutDown("run test end")
 	})

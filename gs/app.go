@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -32,10 +31,7 @@ import (
 	"github.com/go-spring/spring-base/log"
 	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs/arg"
-	"github.com/go-spring/spring-core/mq"
-	"github.com/go-spring/spring-core/web"
 )
 
 // SpringBannerVisible 是否显示 banner。
@@ -53,10 +49,7 @@ type AppEvent interface {
 }
 
 type tempApp struct {
-	router      web.Router
-	consumers   *Consumers
-	grpcServers *GrpcServers
-	banner      string
+	banner string
 }
 
 // App 应用
@@ -74,45 +67,11 @@ type App struct {
 	Runners []AppRunner `autowire:"${command-line-runner.collection:=*?}"`
 }
 
-type Consumers struct {
-	consumers []mq.Consumer
-}
-
-func (c *Consumers) Add(consumer mq.Consumer) {
-	c.consumers = append(c.consumers, consumer)
-}
-
-func (c *Consumers) ForEach(fn func(mq.Consumer)) {
-	for _, consumer := range c.consumers {
-		fn(consumer)
-	}
-}
-
-type GrpcServers struct {
-	servers map[string]*grpc.Server
-}
-
-func (s *GrpcServers) Add(serviceName string, server *grpc.Server) {
-	s.servers[serviceName] = server
-}
-
-func (s *GrpcServers) ForEach(fn func(string, *grpc.Server)) {
-	for serviceName, server := range s.servers {
-		fn(serviceName, server)
-	}
-}
-
 // NewApp application 的构造函数
 func NewApp() *App {
 	return &App{
-		c: New().(*container),
-		tempApp: &tempApp{
-			router:    web.NewRouter(),
-			consumers: new(Consumers),
-			grpcServers: &GrpcServers{
-				servers: map[string]*grpc.Server{},
-			},
-		},
+		c:        New().(*container),
+		tempApp:  &tempApp{},
 		exitChan: make(chan struct{}),
 	}
 }
@@ -142,9 +101,6 @@ func (app *App) Run() error {
 	}
 
 	app.Object(app)
-	app.Object(app.consumers)
-	app.Object(app.grpcServers)
-	app.Object(app.router).Export((*web.Router)(nil))
 	app.logger = log.GetLogger(util.TypeName(app))
 
 	// 响应控制台的 Ctrl+C 及 kill 命令。
@@ -392,131 +348,4 @@ func (app *App) Object(i interface{}) *BeanDefinition {
 // Provide 参考 Container.Provide 的解释。
 func (app *App) Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition {
 	return app.c.Accept(NewBean(ctor, args...))
-}
-
-// HttpGet 注册 GET 方法处理函数。
-func (app *App) HttpGet(path string, h http.HandlerFunc) *web.Mapper {
-	return app.router.HttpGet(path, h)
-}
-
-// HandleGet 注册 GET 方法处理函数。
-func (app *App) HandleGet(path string, h web.Handler) *web.Mapper {
-	return app.router.HandleGet(path, h)
-}
-
-// GetMapping 注册 GET 方法处理函数。
-func (app *App) GetMapping(path string, fn web.HandlerFunc) *web.Mapper {
-	return app.router.GetMapping(path, fn)
-}
-
-// GetBinding 注册 GET 方法处理函数。
-func (app *App) GetBinding(path string, fn interface{}) *web.Mapper {
-	return app.router.GetBinding(path, fn)
-}
-
-// HttpPost 注册 POST 方法处理函数。
-func (app *App) HttpPost(path string, h http.HandlerFunc) *web.Mapper {
-	return app.router.HttpPost(path, h)
-}
-
-// HandlePost 注册 POST 方法处理函数。
-func (app *App) HandlePost(path string, h web.Handler) *web.Mapper {
-	return app.router.HandlePost(path, h)
-}
-
-// PostMapping 注册 POST 方法处理函数。
-func (app *App) PostMapping(path string, fn web.HandlerFunc) *web.Mapper {
-	return app.router.PostMapping(path, fn)
-}
-
-// PostBinding 注册 POST 方法处理函数。
-func (app *App) PostBinding(path string, fn interface{}) *web.Mapper {
-	return app.router.PostBinding(path, fn)
-}
-
-// HttpPut 注册 PUT 方法处理函数。
-func (app *App) HttpPut(path string, h http.HandlerFunc) *web.Mapper {
-	return app.router.HttpPut(path, h)
-}
-
-// HandlePut 注册 PUT 方法处理函数。
-func (app *App) HandlePut(path string, h web.Handler) *web.Mapper {
-	return app.router.HandlePut(path, h)
-}
-
-// PutMapping 注册 PUT 方法处理函数。
-func (app *App) PutMapping(path string, fn web.HandlerFunc) *web.Mapper {
-	return app.router.PutMapping(path, fn)
-}
-
-// PutBinding 注册 PUT 方法处理函数。
-func (app *App) PutBinding(path string, fn interface{}) *web.Mapper {
-	return app.router.PutBinding(path, fn)
-}
-
-// HttpDelete 注册 DELETE 方法处理函数。
-func (app *App) HttpDelete(path string, h http.HandlerFunc) *web.Mapper {
-	return app.router.HttpDelete(path, h)
-}
-
-// HandleDelete 注册 DELETE 方法处理函数。
-func (app *App) HandleDelete(path string, h web.Handler) *web.Mapper {
-	return app.router.HandleDelete(path, h)
-}
-
-// DeleteMapping 注册 DELETE 方法处理函数。
-func (app *App) DeleteMapping(path string, fn web.HandlerFunc) *web.Mapper {
-	return app.router.DeleteMapping(path, fn)
-}
-
-// DeleteBinding 注册 DELETE 方法处理函数。
-func (app *App) DeleteBinding(path string, fn interface{}) *web.Mapper {
-	return app.router.DeleteBinding(path, fn)
-}
-
-// HandleRequest 注册任意 HTTP 方法处理函数。
-func (app *App) HandleRequest(method uint32, path string, h web.Handler) *web.Mapper {
-	return app.router.HandleRequest(method, path, h)
-}
-
-// RequestMapping 注册任意 HTTP 方法处理函数。
-func (app *App) RequestMapping(method uint32, path string, fn web.HandlerFunc) *web.Mapper {
-	return app.router.RequestMapping(method, path, fn)
-}
-
-// RequestBinding 注册任意 HTTP 方法处理函数。
-func (app *App) RequestBinding(method uint32, path string, fn interface{}) *web.Mapper {
-	return app.router.RequestBinding(method, path, fn)
-}
-
-// File 定义单个文件资源
-func (app *App) File(path string, file string) *web.Mapper {
-	return app.router.File(path, file)
-}
-
-// Static 定义一组文件资源
-func (app *App) Static(prefix string, dir string) *web.Mapper {
-	return app.router.Static(prefix, dir)
-}
-
-// StaticFS 定义一组文件资源
-func (app *App) StaticFS(prefix string, fs http.FileSystem) *web.Mapper {
-	return app.router.StaticFS(prefix, fs)
-}
-
-// Consume 注册 MQ 消费者。
-func (app *App) Consume(fn interface{}, topics ...string) {
-	app.consumers.Add(mq.Bind(fn, topics...))
-}
-
-// GrpcServer 注册 gRPC 服务提供者，fn 是 gRPC 自动生成的服务注册函数，
-// serviceName 是服务名称，必须对应 *_grpc.pg.go 文件里面 grpc.ServerDesc
-// 的 ServiceName 字段，server 是服务提供者对象。
-func (app *App) GrpcServer(serviceName string, server *grpc.Server) {
-	app.grpcServers.Add(serviceName, server)
-}
-
-// GrpcClient 注册 gRPC 服务客户端，fn 是 gRPC 自动生成的客户端构造函数。
-func (app *App) GrpcClient(fn interface{}, endpoint string) *BeanDefinition {
-	return app.c.Accept(NewBean(fn, endpoint))
 }

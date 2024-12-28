@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,6 @@ import (
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/cond"
 	"github.com/go-spring/spring-core/gs/internal"
-	"github.com/go-spring/spring-core/validate"
 )
 
 type refreshState int
@@ -826,8 +825,8 @@ func (c *container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 		}
 
 		if tag, ok = ft.Tag.Lookup("value"); ok {
-			validateTag, _ := ft.Tag.Lookup(validate.TagName())
-			if err := subParam.BindTag(tag, validateTag); err != nil {
+			// validateTag, _ := ft.Tag.Lookup(validate.TagName())
+			if err := subParam.BindTag(tag, ""); err != nil {
 				return err
 			}
 			if ft.Anonymous {

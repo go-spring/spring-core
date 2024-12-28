@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ func newBean(objOrCtor interface{}, ctorArgs ...arg.Arg) *gs.BeanDefinition {
 	return gs.NewBean(objOrCtor, ctorArgs...)
 }
 
-//func TestParseSingletonTag(t *testing.T) {
+// func TestParseSingletonTag(t *testing.T) {
 //
 //	data := map[string]SingletonTag{
 //		"?":      {"", "", true},
@@ -54,9 +54,9 @@ func newBean(objOrCtor interface{}, ctorArgs ...arg.Arg) *gs.BeanDefinition {
 //		tag := parseSingletonTag(k)
 //		util.Equal(t, tag, v)
 //	}
-//}
+// }
 //
-//func TestParseBeanTag(t *testing.T) {
+// func TestParseBeanTag(t *testing.T) {
 //
 //	data := map[string]collectionTag{
 //		"?":   {[]SingletonTag{}, true},
@@ -66,7 +66,7 @@ func newBean(objOrCtor interface{}, ctorArgs ...arg.Arg) *gs.BeanDefinition {
 //		tag := ParseCollectionTag(k)
 //		util.Equal(t, tag, v)
 //	}
-//}
+// }
 
 func TestIsFuncBeanType(t *testing.T) {
 
@@ -222,13 +222,13 @@ func TestConstructorBean(t *testing.T) {
 	bd = newBean(NewPtrStudent)
 	assert.Equal(t, bd.Type().String(), "*gs_test.Student")
 
-	//mapFn := func() map[int]string { return make(map[int]string) }
-	//bd = newBean(mapFn)
-	//assert.Equal(t, bd.Type().String(), "*map[int]string")
+	// mapFn := func() map[int]string { return make(map[int]string) }
+	// bd = newBean(mapFn)
+	// assert.Equal(t, bd.Type().String(), "*map[int]string")
 
-	//sliceFn := func() []int { return make([]int, 1) }
-	//bd = newBean(sliceFn)
-	//assert.Equal(t, bd.Type().String(), "*[]int")
+	// sliceFn := func() []int { return make([]int, 1) }
+	// bd = newBean(sliceFn)
+	// assert.Equal(t, bd.Type().String(), "*[]int")
 
 	funcFn := func() func(int) { return nil }
 	bd = newBean(funcFn)
