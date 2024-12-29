@@ -31,16 +31,23 @@ func (d *Validator) Name() string {
 
 // Field validates the field with the given tag and value.
 func (d *Validator) Field(tag string, i interface{}) error {
-	r, err := expr.Eval(tag, map[string]interface{}{"$": i})
-	if err != nil {
-		return fmt.Errorf("eval %q returns error, %w", tag, err)
-	}
-	ret, ok := r.(bool)
-	if !ok {
-		return fmt.Errorf("eval %q doesn't return bool value", tag)
-	}
-	if !ret {
+	if ret, err := Eval(tag, i); err != nil {
+		return err
+	} else if !ret {
 		return fmt.Errorf("validate failed on %q for value %v", tag, i)
 	}
 	return nil
+}
+
+// Eval returns the value for the expression expr.
+func Eval(input string, val interface{}) (bool, error) {
+	r, err := expr.Eval(input, map[string]interface{}{"$": val})
+	if err != nil {
+		return false, fmt.Errorf("eval %q returns error, %w", input, err)
+	}
+	ret, ok := r.(bool)
+	if !ok {
+		return false, fmt.Errorf("eval %q doesn't return bool value", input)
+	}
+	return ret, nil
 }

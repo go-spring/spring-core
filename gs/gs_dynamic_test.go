@@ -83,7 +83,7 @@ func TestDynamic(t *testing.T) {
 	}
 
 	{
-		p := conf.New()
+		p := conf.NewProperties()
 		p.Set("int", 4)
 		p.Set("float", 2.3)
 		p.Set("map.a", 1)
@@ -107,7 +107,7 @@ func TestDynamic(t *testing.T) {
 	}
 
 	{
-		p := conf.New()
+		p := conf.NewProperties()
 		p.Set("int", 6)
 		p.Set("float", 5.1)
 		p.Set("map.a", 9)
@@ -121,7 +121,7 @@ func TestDynamic(t *testing.T) {
 		p.Set("wrapper.slice[0]", 2)
 		p.Set("wrapper.slice[1]", 1)
 		err = c.Properties().Refresh(p)
-		assert.Error(t, err, "validate failed on \"\\$<6\" for value 6")
+		assert.Error(t, err, "validate failed on \"value:\\\"${int:=3}\\\" expr:\\\"$<6\\\"\" for value 9")
 	}
 
 	{
@@ -132,7 +132,7 @@ func TestDynamic(t *testing.T) {
 	}
 
 	{
-		p := conf.New()
+		p := conf.NewProperties()
 		p.Set("int", 1)
 		p.Set("float", 5.1)
 		p.Set("map.a", 9)

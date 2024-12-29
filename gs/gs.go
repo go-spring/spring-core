@@ -77,7 +77,7 @@ type Context interface {
 	Has(key string) bool
 	Prop(key string, opts ...conf.GetOption) string
 	Resolve(s string) (string, error)
-	Bind(i interface{}, opts ...conf.BindOption) error
+	Bind(i interface{}, opts ...conf.BindArg) error
 	Get(i interface{}, selectors ...util.BeanSelector) error
 	Wire(objOrCtor interface{}, ctorArgs ...arg.Arg) (interface{}, error)
 	Invoke(fn interface{}, args ...arg.Arg) ([]interface{}, error)
@@ -125,7 +125,7 @@ func New() Container {
 		cancel: cancel,
 		p:      dync.New(),
 		tempContainer: &tempContainer{
-			initProperties:  conf.New(),
+			initProperties:  conf.NewProperties(),
 			beansByName:     make(map[string][]*BeanDefinition),
 			beansByType:     make(map[reflect.Type][]*BeanDefinition),
 			mapOfOnProperty: make(map[string]interface{}),

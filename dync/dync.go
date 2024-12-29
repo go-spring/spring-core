@@ -46,7 +46,7 @@ type Properties struct {
 
 func New() *Properties {
 	p := &Properties{}
-	p.value.Store(conf.New())
+	p.value.Store(conf.NewProperties())
 	return p
 }
 
@@ -70,7 +70,7 @@ func (p *Properties) Resolve(s string) (string, error) {
 	return p.load().Resolve(s)
 }
 
-func (p *Properties) Bind(i interface{}, opts ...conf.BindOption) error {
+func (p *Properties) Bind(i interface{}, opts ...conf.BindArg) error {
 	return p.load().Bind(i, opts...)
 }
 
@@ -78,10 +78,7 @@ func (p *Properties) Update(m map[string]interface{}) error {
 
 	flat := make(map[string]string)
 	for key, val := range m {
-		err := conf.Flatten(key, val, flat)
-		if err != nil {
-			return err
-		}
+		conf.FlattenValue(key, val, flat)
 	}
 
 	keys := make([]string, 0, len(flat))
@@ -90,9 +87,13 @@ func (p *Properties) Update(m map[string]interface{}) error {
 	}
 	sort.Strings(keys)
 
-	prop := p.load().Copy()
+	prop := conf.NewProperties()
+	err := p.load().CopyTo(prop)
+	if err != nil {
+		return err
+	}
 	for _, k := range keys {
-		err := prop.Set(k, flat[k])
+		err = prop.Set(k, flat[k])
 		if err != nil {
 			return err
 		}
@@ -252,7 +253,11 @@ func Validate(val interface{}, param conf.BindParam) error {
 	if param.Validate == "" {
 		return nil
 	}
-	if b, err := expr.Eval(param.Validate, val); err != nil {
+	tag, ok := param.Validate.Lookup("expr")
+	if !ok {
+		return nil
+	}
+	if b, err := expr.Eval(tag, val); err != nil {
 		return err
 	} else if !b {
 		return fmt.Errorf("validate failed on %q for value %v", param.Validate, val)

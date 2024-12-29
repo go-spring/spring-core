@@ -19,18 +19,12 @@ package gs
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"syscall"
 
-	"github.com/go-spring/spring-base/log"
-	"github.com/go-spring/spring-base/util"
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/arg"
 )
 
@@ -56,10 +50,8 @@ type tempApp struct {
 type App struct {
 	*tempApp
 
-	logger *log.Logger
-
 	c *container
-	b *bootstrap
+	b *Bootstrapper
 
 	exitChan chan struct{}
 
@@ -81,29 +73,31 @@ func (app *App) Banner(banner string) {
 	app.banner = banner
 }
 
-func (app *App) Run() error {
+func (app *App) Start() (Context, error) {
 
-	config := `
-		<?xml version="1.0" encoding="UTF-8"?>
-		<Configuration>
-			<Appenders>
-				<Console name="Console"/>
-			</Appenders>
-			<Loggers>
-				<Root level="info">
-					<AppenderRef ref="Console"/>
-				</Root>
-			</Loggers>
-		</Configuration>
-	`
-	if err := log.RefreshBuffer(config, ".xml"); err != nil {
+	app.Object(app)
+
+	if err := app.start(); err != nil {
+		return nil, err
+	}
+	return app.c, nil
+}
+
+func (app *App) Stop() {
+
+	// if app.b != nil {
+	// 	app.b.c.Close()
+	// }
+
+	app.c.Close()
+}
+
+func (app *App) Run() error {
+	_, err := app.Start()
+	if err != nil {
 		return err
 	}
 
-	app.Object(app)
-	app.logger = log.GetLogger(util.TypeName(app))
-
-	// 响应控制台的 Ctrl+C 及 kill 命令。
 	go func() {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
@@ -111,59 +105,31 @@ func (app *App) Run() error {
 		app.ShutDown(fmt.Sprintf("signal %v", sig))
 	}()
 
-	if err := app.start(); err != nil {
-		return err
-	}
-
 	<-app.exitChan
-
-	if app.b != nil {
-		app.b.c.Close()
-	}
-
-	app.c.Close()
-	app.logger.Info("application exited")
 	return nil
-}
-
-func (app *App) clear() {
-	app.c.clear()
-	if app.b != nil {
-		app.b.clear()
-	}
-	app.tempApp = nil
 }
 
 func (app *App) start() error {
 
-	e := &configuration{
-		p:               conf.New(),
-		resourceLocator: new(defaultResourceLocator),
-	}
+	// showBanner, _ := strconv.ParseBool(e.p.Get(SpringBannerVisible))
+	// if showBanner {
+	// 	app.printBanner(app.getBanner(e))
+	// }
 
-	if err := e.prepare(); err != nil {
-		return err
-	}
+	// if app.b != nil {
+	// 	if err := app.b.start(e); err != nil {
+	// 		return err
+	// 	}
+	// }
+	//
+	// if err := app.loadProperties(e); err != nil {
+	// 	return err
+	// }
 
-	showBanner, _ := strconv.ParseBool(e.p.Get(SpringBannerVisible))
-	if showBanner {
-		app.printBanner(app.getBanner(e))
-	}
-
-	if app.b != nil {
-		if err := app.b.start(e); err != nil {
-			return err
-		}
-	}
-
-	if err := app.loadProperties(e); err != nil {
-		return err
-	}
-
-	// 保存从环境变量和命令行解析的属性
-	for _, k := range e.p.Keys() {
-		app.c.initProperties.Set(k, e.p.Get(k))
-	}
+	// // 保存从环境变量和命令行解析的属性
+	// for _, k := range e.p.Keys() {
+	// 	app.c.initProperties.Set(k, e.p.Get(k))
+	// }
 
 	if err := app.c.refresh(false); err != nil {
 		return err
@@ -179,8 +145,6 @@ func (app *App) start() error {
 		event.OnAppStart(app.c)
 	}
 
-	app.clear()
-
 	// 通知应用停止事件
 	app.c.Go(func(ctx context.Context) {
 		<-ctx.Done()
@@ -189,7 +153,6 @@ func (app *App) start() error {
 		}
 	})
 
-	app.logger.Info("application started successfully")
 	return nil
 }
 
@@ -203,20 +166,16 @@ const DefaultBanner = `
  |___/                         |_|                         |___/ 
 `
 
-func (app *App) getBanner(e *configuration) string {
+func (app *App) getBanner() string {
 	if app.banner != "" {
 		return app.banner
 	}
-	resources, err := e.resourceLocator.Locate("banner.txt")
-	if err != nil {
-		return ""
-	}
 	banner := DefaultBanner
-	for _, resource := range resources {
-		if b, _ := ioutil.ReadAll(resource); b != nil {
-			banner = string(b)
-		}
-	}
+	// for _, resource := range resources {
+	// 	if b, _ := ioutil.ReadAll(resource); b != nil {
+	// 		banner = string(b)
+	// 	}
+	// }
 	return banner
 }
 
@@ -249,66 +208,8 @@ func (app *App) printBanner(banner string) {
 	fmt.Println(string(padding) + Version + "\n")
 }
 
-func (app *App) loadProperties(e *configuration) error {
-	var resources []Resource
-
-	for _, ext := range e.ConfigExtensions {
-		sources, err := app.loadResource(e, "application"+ext)
-		if err != nil {
-			return err
-		}
-		resources = append(resources, sources...)
-	}
-
-	for _, profile := range e.ActiveProfiles {
-		for _, ext := range e.ConfigExtensions {
-			sources, err := app.loadResource(e, "application-"+profile+ext)
-			if err != nil {
-				return err
-			}
-			resources = append(resources, sources...)
-		}
-	}
-
-	for _, resource := range resources {
-		b, err := ioutil.ReadAll(resource)
-		if err != nil {
-			return err
-		}
-		p, err := conf.Bytes(b, filepath.Ext(resource.Name()))
-		if err != nil {
-			return err
-		}
-		for _, key := range p.Keys() {
-			app.c.initProperties.Set(key, p.Get(key))
-		}
-	}
-
-	return nil
-}
-
-func (app *App) loadResource(e *configuration, filename string) ([]Resource, error) {
-
-	var locators []ResourceLocator
-	locators = append(locators, e.resourceLocator)
-	if app.b != nil {
-		locators = append(locators, app.b.resourceLocators...)
-	}
-
-	var resources []Resource
-	for _, locator := range locators {
-		sources, err := locator.Locate(filename)
-		if err != nil {
-			return nil, err
-		}
-		resources = append(resources, sources...)
-	}
-	return resources, nil
-}
-
 // ShutDown 关闭执行器
 func (app *App) ShutDown(msg ...string) {
-	app.logger.Infof("program will exit %s", strings.Join(msg, " "))
 	select {
 	case <-app.exitChan:
 		// chan 已关闭，无需再次关闭。
@@ -318,7 +219,7 @@ func (app *App) ShutDown(msg ...string) {
 }
 
 // Bootstrap 返回 *bootstrap 对象。
-func (app *App) Bootstrap() *bootstrap {
+func (app *App) Bootstrap() *Bootstrapper {
 	if app.b == nil {
 		app.b = newBootstrap()
 	}

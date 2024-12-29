@@ -41,7 +41,7 @@ func (c *container) Resolve(s string) (string, error) {
 	return c.p.Resolve(s)
 }
 
-func (c *container) Bind(i interface{}, opts ...conf.BindOption) error {
+func (c *container) Bind(i interface{}, opts ...conf.BindArg) error {
 	return c.p.Bind(i, opts...)
 }
 

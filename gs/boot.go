@@ -17,19 +17,21 @@
 package gs
 
 import (
-	"os"
 	"reflect"
 
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/arg"
 )
 
 var app = NewApp()
 
-// Setenv 封装 os.Setenv 函数，如果发生 error 会 panic 。
-func Setenv(key string, value string) {
-	err := os.Setenv(key, value)
-	util.Panic(err).When(err != nil)
+// Start 启动程序。
+func Start() (Context, error) {
+	return app.Start()
+}
+
+// Stop 停止程序。
+func Stop() {
+	app.Stop()
 }
 
 // Run 启动程序。
@@ -42,13 +44,8 @@ func ShutDown(msg ...string) {
 	app.ShutDown(msg...)
 }
 
-// Banner 参考 App.Banner 的解释。
-func Banner(banner string) {
-	app.Banner(banner)
-}
-
 // Bootstrap 参考 App.Bootstrap 的解释。
-func Bootstrap() *bootstrap {
+func Bootstrap() *Bootstrapper {
 	return app.Bootstrap()
 }
 
