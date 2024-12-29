@@ -7,12 +7,12 @@
 //
 
 // Package arg is a generated GoMock package.
-package arg
+package gsarg
 
 import (
 	reflect "reflect"
 
-	cond "github.com/go-spring/spring-core/gs/cond"
+	cond "github.com/go-spring/spring-core/gs/gscond"
 	gomock "go.uber.org/mock/gomock"
 )
 

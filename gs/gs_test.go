@@ -29,8 +29,8 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/arg"
-	"github.com/go-spring/spring-core/gs/cond"
+	"github.com/go-spring/spring-core/gs/gsarg"
+	"github.com/go-spring/spring-core/gs/gscond"
 	"github.com/go-spring/spring-core/gs/gsutil"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
@@ -1246,7 +1246,7 @@ func TestOptionConstructorArg(t *testing.T) {
 	t.Run("option withClassName", func(t *testing.T) {
 		c := gs.New()
 		c.Property("president", "CaiYuanPei")
-		c.Provide(NewClassRoom, arg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"))
+		c.Provide(NewClassRoom, gsarg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"))
 		err := runTest(c, func(p gs.Context) {
 			var cls *ClassRoom
 			err := p.Get(&cls)
@@ -1263,7 +1263,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c := gs.New()
 		c.Property("class_name", "二年级03班")
 		c.Property("president", "CaiYuanPei")
-		c.Provide(NewClassRoom, arg.Option(withStudents))
+		c.Provide(NewClassRoom, gsarg.Option(withStudents))
 		c.Object(new(Student)).Name("Student1")
 		c.Object(new(Student)).Name("Student2")
 		err := runTest(c, func(p gs.Context) {
@@ -1283,11 +1283,11 @@ func TestOptionConstructorArg(t *testing.T) {
 		c.Property("class_name", "二年级06班")
 		c.Property("president", "CaiYuanPei")
 		c.Provide(NewClassRoom,
-			arg.Option(withStudents),
-			arg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"),
-			arg.Option(withBuilder, arg.Provide(func(param string) *ClassBuilder {
+			gsarg.Option(withStudents),
+			gsarg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"),
+			gsarg.Option(withBuilder, gsarg.Provide(func(param string) *ClassBuilder {
 				return &ClassBuilder{param: param}
-			}, arg.Value("1"))),
+			}, gsarg.Value("1"))),
 		)
 		c.Object(&Student{}).Name("Student1")
 		c.Object(&Student{}).Name("Student2")
@@ -1373,7 +1373,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	t.Run("method bean condition", func(t *testing.T) {
 		c := gs.New()
 		c.Property("server.version", "1.0.0")
-		parent := c.Object(new(Server)).On(cond.Not(cond.OK()))
+		parent := c.Object(new(Server)).On(gscond.Not(gscond.OK()))
 		bd := c.Provide((*Server).Consumer, parent)
 		err := runTest(c, func(p gs.Context) {
 
@@ -1715,7 +1715,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c.Property("var.obj", "description")
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewNilVarObj, arg.Nil())
+		c.Provide(NewNilVarObj, gsarg.Nil())
 		err := runTest(c, func(p gs.Context) {
 			var obj *VarObj
 			err := p.Get(&obj)
@@ -1731,7 +1731,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c.Property("var.obj", "description")
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewVarObj, "${var.obj}", arg.Option(withVar, "v1"))
+		c.Provide(NewVarObj, "${var.obj}", gsarg.Option(withVar, "v1"))
 		err := runTest(c, func(p gs.Context) {
 			var obj *VarObj
 			err := p.Get(&obj)
@@ -1748,7 +1748,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c.Property("var.obj", "description")
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewVarObj, arg.Value("description"), arg.Option(withVar, "v1", "v2"))
+		c.Provide(NewVarObj, gsarg.Value("description"), gsarg.Option(withVar, "v1", "v2"))
 		err := runTest(c, func(p gs.Context) {
 			var obj *VarObj
 			err := p.Get(&obj)
@@ -1765,7 +1765,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c := gs.New()
 		c.Object(&Var{"v1"}).Name("v1").Export((*interface{})(nil))
 		c.Object(&Var{"v2"}).Name("v2").Export((*interface{})(nil))
-		c.Provide(NewVarInterfaceObj, arg.Option(withVarInterface, "v1"))
+		c.Provide(NewVarInterfaceObj, gsarg.Option(withVarInterface, "v1"))
 		err := runTest(c, func(p gs.Context) {
 			var obj *VarInterfaceObj
 			err := p.Get(&obj)
@@ -1779,7 +1779,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c := gs.New()
 		c.Object(&Var{"v1"}).Name("v1").Export((*interface{})(nil))
 		c.Object(&Var{"v2"}).Name("v2").Export((*interface{})(nil))
-		c.Provide(NewVarInterfaceObj, arg.Option(withVarInterface, "v1", "v2"))
+		c.Provide(NewVarInterfaceObj, gsarg.Option(withVarInterface, "v1", "v2"))
 		err := runTest(c, func(p gs.Context) {
 			var obj *VarInterfaceObj
 			err := p.Get(&obj)
@@ -2198,7 +2198,7 @@ func TestApplicationContext_CreateBean(t *testing.T) {
 	c := gs.New()
 	c.Object(&ObjFactory{})
 	err := runTest(c, func(p gs.Context) {
-		b, err := p.Wire((*ObjFactory).NewObj, arg.R1("${i:=5}"))
+		b, err := p.Wire((*ObjFactory).NewObj, gsarg.R1("${i:=5}"))
 		fmt.Println(b, err)
 	})
 	assert.Nil(t, err)
@@ -2210,12 +2210,12 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		c := gs.New()
 
-		c.Object(&BeanZero{5}).On(cond.
+		c.Object(&BeanZero{5}).On(gscond.
 			OnProfile("test").
 			And().
 			OnMissingBean("null").
 			And().
-			On(cond.OK()),
+			On(gscond.OK()),
 		)
 
 		err := runTest(c, func(p gs.Context) {
@@ -2229,7 +2229,7 @@ func TestDefaultSpringContext(t *testing.T) {
 	t.Run("bean:test_ctx:test", func(t *testing.T) {
 		c := gs.New()
 		c.Property("spring.profiles.active", "test")
-		c.Object(&BeanZero{5}).On(cond.OnProfile("test"))
+		c.Object(&BeanZero{5}).On(gscond.OnProfile("test"))
 		err := runTest(c, func(p gs.Context) {
 			var b *BeanZero
 			err := p.Get(&b)
@@ -2241,7 +2241,7 @@ func TestDefaultSpringContext(t *testing.T) {
 	t.Run("bean:test_ctx:stable", func(t *testing.T) {
 		c := gs.New()
 		c.Property("spring.profiles.active", "stable")
-		c.Object(&BeanZero{5}).On(cond.OnProfile("test"))
+		c.Object(&BeanZero{5}).On(gscond.OnProfile("test"))
 		err := runTest(c, func(p gs.Context) {
 			var b *BeanZero
 			err := p.Get(&b)
@@ -2255,10 +2255,10 @@ func TestDefaultSpringContext(t *testing.T) {
 		c := gs.New()
 		c.Property("president", "CaiYuanPei")
 		c.Property("class_floor", 2)
-		c.Provide(NewClassRoom, arg.Option(withClassName,
+		c.Provide(NewClassRoom, gsarg.Option(withClassName,
 			"${class_name:=二年级03班}",
 			"${class_floor:=3}",
-		).On(cond.OnProperty("class_name_enable")))
+		).On(gscond.OnProperty("class_name_enable")))
 		err := runTest(c, func(p gs.Context) {
 			var cls *ClassRoom
 			err := p.Get(&cls)
@@ -2272,11 +2272,11 @@ func TestDefaultSpringContext(t *testing.T) {
 	})
 
 	t.Run("option withClassName Apply", func(t *testing.T) {
-		onProperty := cond.OnProperty("class_name_enable")
+		onProperty := gscond.OnProperty("class_name_enable")
 		c := gs.New()
 		c.Property("president", "CaiYuanPei")
 		c.Provide(NewClassRoom,
-			arg.Option(withClassName,
+			gsarg.Option(withClassName,
 				"${class_name:=二年级03班}",
 				"${class_floor:=3}",
 			).On(onProperty),
@@ -2297,7 +2297,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		c := gs.New()
 		c.Property("server.version", "1.0.0")
 		parent := c.Object(new(Server))
-		c.Provide((*Server).Consumer, parent.ID()).On(cond.OnProperty("consumer.enable"))
+		c.Provide((*Server).Consumer, parent.ID()).On(gscond.OnProperty("consumer.enable"))
 		err := runTest(c, func(p gs.Context) {
 
 			var s *Server
@@ -2334,13 +2334,13 @@ func TestDefaultSpringContext(t *testing.T) {
 func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	c := gs.New()
 
-	c1 := cond.OnProperty("null", cond.MatchIfMissing()).Or().OnProfile("test")
+	c1 := gscond.OnProperty("null", gscond.MatchIfMissing()).Or().OnProfile("test")
 
-	c.Object(&BeanZero{5}).On(cond.On(c1).And().OnMissingBean("null"))
-	c.Object(new(BeanOne)).On(cond.On(c1).And().OnMissingBean("null"))
+	c.Object(&BeanZero{5}).On(gscond.On(c1).And().OnMissingBean("null"))
+	c.Object(new(BeanOne)).On(gscond.On(c1).And().OnMissingBean("null"))
 
-	c.Object(new(BeanTwo)).On(cond.OnBean("BeanOne"))
-	c.Object(new(BeanTwo)).Name("another_two").On(cond.OnBean("Null"))
+	c.Object(new(BeanTwo)).On(gscond.OnBean("BeanOne"))
+	c.Object(new(BeanTwo)).Name("another_two").On(gscond.OnBean("Null"))
 
 	err := runTest(c, func(p gs.Context) {
 
@@ -2359,8 +2359,8 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 		c := gs.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
-		c.Object(new(BeanTwo)).On(cond.OnMissingBean("BeanOne"))
-		c.Object(new(BeanTwo)).Name("another_two").On(cond.OnMissingBean("Null"))
+		c.Object(new(BeanTwo)).On(gscond.OnMissingBean("BeanOne"))
+		c.Object(new(BeanTwo)).Name("another_two").On(gscond.OnMissingBean("Null"))
 		err := runTest(c, func(p gs.Context) {
 
 			var two *BeanTwo
@@ -2612,7 +2612,7 @@ func TestMapCollection(t *testing.T) {
 		c := gs.New()
 		c.Object(&mapValue{"a"}).Name("a").Order(1)
 		c.Object(&mapValue{"b"}).Name("b").Order(2)
-		c.Object(&mapValue{"c"}).Name("c").On(cond.Not(cond.OK()))
+		c.Object(&mapValue{"c"}).Name("c").On(gscond.Not(gscond.OK()))
 		err := runTest(c, func(p gs.Context) {
 
 			var vSlice []*mapValue

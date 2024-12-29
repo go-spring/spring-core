@@ -17,7 +17,7 @@
 //go:generate mockgen -build_flags="-mod=mod" -package=arg -source=arg.go -destination=arg_mock.go
 
 // Package arg 用于实现函数参数绑定。
-package arg
+package gsarg
 
 import (
 	"errors"
@@ -25,7 +25,7 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/go-spring/spring-core/gs/cond"
+	"github.com/go-spring/spring-core/gs/gscond"
 	"github.com/go-spring/spring-core/gs/gsutil"
 	"github.com/go-spring/spring-core/util"
 )
@@ -34,7 +34,7 @@ import (
 type Context interface {
 	// Matches returns true when the Condition returns true,
 	// and returns false when the Condition returns false.
-	Matches(c cond.Condition) (bool, error)
+	Matches(c gscond.Condition) (bool, error)
 	// Bind binds properties value by the "value" tag.
 	Bind(v reflect.Value, tag string) error
 	// Wire wires dependent beans by the "autowire" tag.
@@ -275,7 +275,7 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 // optionArg Option 函数的参数绑定。
 type optionArg struct {
 	r *Callable
-	c cond.Condition
+	c gscond.Condition
 }
 
 // Provide 为 Option 方法绑定运行时参数。
@@ -302,8 +302,8 @@ func Option(fn interface{}, args ...Arg) *optionArg {
 	return &optionArg{r: r}
 }
 
-// On 设置一个 cond.Condition 对象。
-func (arg *optionArg) On(c cond.Condition) *optionArg {
+// On 设置一个 gscond.Condition 对象。
+func (arg *optionArg) On(c gscond.Condition) *optionArg {
 	arg.c = c
 	return arg
 }

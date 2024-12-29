@@ -21,7 +21,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/arg"
+	"github.com/go-spring/spring-core/gs/gsarg"
 	"github.com/go-spring/spring-core/gs/gsutil"
 )
 
@@ -69,11 +69,11 @@ func Get(i interface{}, selectors ...gsutil.BeanSelector) error {
 }
 
 // Wire 注入对象
-func Wire(objOrCtor interface{}, ctorArgs ...arg.Arg) (interface{}, error) {
+func Wire(objOrCtor interface{}, ctorArgs ...gsarg.Arg) (interface{}, error) {
 	return ctx.Wire(objOrCtor, ctorArgs...)
 }
 
 // Invoke 调用函数
-func Invoke(fn interface{}, args ...arg.Arg) ([]interface{}, error) {
+func Invoke(fn interface{}, args ...gsarg.Arg) ([]interface{}, error) {
 	return ctx.Invoke(fn, args...)
 }

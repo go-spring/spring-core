@@ -19,7 +19,8 @@ package gs
 import (
 	"reflect"
 
-	"github.com/go-spring/spring-core/gs/arg"
+	"github.com/go-spring/spring-core/gs/gsarg"
+	"github.com/go-spring/spring-core/gs/gsbean"
 )
 
 type Bootstrapper struct {
@@ -43,12 +44,12 @@ func (b *Bootstrapper) Property(key string, value interface{}) {
 }
 
 // Object 参考 Container.Object 的解释。
-func (b *Bootstrapper) Object(i interface{}) *BeanDefinition {
+func (b *Bootstrapper) Object(i interface{}) *gsbean.BeanDefinition {
 	return b.c.Accept(NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (b *Bootstrapper) Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition {
+func (b *Bootstrapper) Provide(ctor interface{}, args ...gsarg.Arg) *gsbean.BeanDefinition {
 	return b.c.Accept(NewBean(ctor, args...))
 }
 

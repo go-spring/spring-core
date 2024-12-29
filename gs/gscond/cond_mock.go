@@ -7,7 +7,7 @@
 //
 
 // Package cond is a generated GoMock package.
-package cond
+package gscond
 
 import (
 	reflect "reflect"

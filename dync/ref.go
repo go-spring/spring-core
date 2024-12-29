@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/go-spring/spring-core/atomic"
 	"github.com/go-spring/spring-core/conf"
+	"go.uber.org/atomic"
 )
 
 type RefValidateFunc func(v interface{}) error

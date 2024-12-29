@@ -17,7 +17,7 @@
 //go:generate mockgen -build_flags="-mod=mod" -package=cond -source=cond.go -destination=cond_mock.go
 
 // Package cond provides many conditions used when registering bean.
-package cond
+package gscond
 
 import (
 	"errors"

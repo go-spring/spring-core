@@ -19,8 +19,8 @@ package dync
 import (
 	"encoding/json"
 
-	"github.com/go-spring/spring-core/atomic"
 	"github.com/go-spring/spring-core/conf"
+	"go.uber.org/atomic"
 )
 
 type StringValidateFunc func(v string) error

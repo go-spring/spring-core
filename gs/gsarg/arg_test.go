@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package arg_test
+package gsarg_test
 
 import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs/arg"
+	"github.com/go-spring/spring-core/gs/gsarg"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -30,9 +30,9 @@ func TestBind(t *testing.T) {
 	t.Run("zero argument", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := arg.NewMockContext(ctrl)
+		ctx := gsarg.NewMockContext(ctrl)
 		fn := func() {}
-		c, err := arg.Bind(fn, []arg.Arg{}, 1)
+		c, err := gsarg.Bind(fn, []gsarg.Arg{}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -46,13 +46,13 @@ func TestBind(t *testing.T) {
 	t.Run("one value argument", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := arg.NewMockContext(ctrl)
+		ctx := gsarg.NewMockContext(ctrl)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
 		}
-		c, err := arg.Bind(fn, []arg.Arg{
-			arg.Value(3),
+		c, err := gsarg.Bind(fn, []gsarg.Arg{
+			gsarg.Value(3),
 		}, 1)
 		if err != nil {
 			t.Fatal(err)
@@ -68,7 +68,7 @@ func TestBind(t *testing.T) {
 	t.Run("one ctx value argument", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := arg.NewMockContext(ctrl)
+		ctx := gsarg.NewMockContext(ctrl)
 		ctx.EXPECT().Bind(gomock.Any(), "${a.b.c}").DoAndReturn(func(v, tag interface{}) error {
 			v.(reflect.Value).SetInt(3)
 			return nil
@@ -77,7 +77,7 @@ func TestBind(t *testing.T) {
 		fn := func(i int) {
 			expectInt = i
 		}
-		c, err := arg.Bind(fn, []arg.Arg{
+		c, err := gsarg.Bind(fn, []gsarg.Arg{
 			"${a.b.c}",
 		}, 1)
 		if err != nil {
@@ -97,7 +97,7 @@ func TestBind(t *testing.T) {
 		}
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := arg.NewMockContext(ctrl)
+		ctx := gsarg.NewMockContext(ctrl)
 		ctx.EXPECT().Wire(gomock.Any(), "a").DoAndReturn(func(v, tag interface{}) error {
 			v.(reflect.Value).Set(reflect.ValueOf(&st{3}))
 			return nil
@@ -106,7 +106,7 @@ func TestBind(t *testing.T) {
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		c, err := arg.Bind(fn, []arg.Arg{
+		c, err := gsarg.Bind(fn, []gsarg.Arg{
 			"a",
 		}, 1)
 		if err != nil {
@@ -126,7 +126,7 @@ func TestBind(t *testing.T) {
 		}
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := arg.NewMockContext(ctrl)
+		ctx := gsarg.NewMockContext(ctrl)
 		ctx.EXPECT().Wire(gomock.Any(), "").DoAndReturn(func(v, tag interface{}) error {
 			v.(reflect.Value).Set(reflect.ValueOf(&st{3}))
 			return nil
@@ -135,7 +135,7 @@ func TestBind(t *testing.T) {
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		c, err := arg.Bind(fn, []arg.Arg{}, 1)
+		c, err := gsarg.Bind(fn, []gsarg.Arg{}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -22,9 +22,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-spring/spring-core/atomic"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/expr"
+	"go.uber.org/atomic"
 )
 
 // Value 可动态刷新的对象

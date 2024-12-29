@@ -25,7 +25,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/go-spring/spring-core/gs/arg"
+	"github.com/go-spring/spring-core/gs/gsarg"
+	"github.com/go-spring/spring-core/gs/gsbean"
 )
 
 // SpringBannerVisible 是否显示 banner。
@@ -232,16 +233,16 @@ func (app *App) Property(key string, value interface{}) {
 }
 
 // Accept 参考 Container.Accept 的解释。
-func (app *App) Accept(b *BeanDefinition) *BeanDefinition {
+func (app *App) Accept(b *gsbean.BeanDefinition) *gsbean.BeanDefinition {
 	return app.c.Accept(b)
 }
 
 // Object 参考 Container.Object 的解释。
-func (app *App) Object(i interface{}) *BeanDefinition {
+func (app *App) Object(i interface{}) *gsbean.BeanDefinition {
 	return app.c.Accept(NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (app *App) Provide(ctor interface{}, args ...arg.Arg) *BeanDefinition {
+func (app *App) Provide(ctor interface{}, args ...gsarg.Arg) *gsbean.BeanDefinition {
 	return app.c.Accept(NewBean(ctor, args...))
 }

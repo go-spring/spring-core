@@ -20,9 +20,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/go-spring/spring-core/atomic"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/spf13/cast"
+	"go.uber.org/atomic"
 )
 
 type DurationValidateFunc func(v time.Duration) error

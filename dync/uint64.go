@@ -19,9 +19,9 @@ package dync
 import (
 	"encoding/json"
 
-	"github.com/go-spring/spring-core/atomic"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/spf13/cast"
+	"go.uber.org/atomic"
 )
 
 type Uint64ValidateFunc func(v uint64) error

@@ -18,10 +18,10 @@ package dync
 
 import (
 	"encoding/json"
-	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/spf13/cast"
+	"go.uber.org/atomic"
 )
 
 type Bool struct {
