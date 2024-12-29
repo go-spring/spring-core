@@ -19,8 +19,8 @@ package toml_test
 import (
 	"testing"
 
-	"github.com/go-spring/spring-base/assert"
 	"github.com/go-spring/spring-core/conf/reader/toml"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRead(t *testing.T) {

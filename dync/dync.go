@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-spring/spring-base/atomic"
+	"github.com/go-spring/spring-core/atomic"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/expr"
 )

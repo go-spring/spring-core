@@ -19,11 +19,10 @@ package gstest
 import (
 	"testing"
 
-	"github.com/go-spring/spring-base/util"
-
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/arg"
+	"github.com/go-spring/spring-core/gs/gsutil"
 )
 
 var ctx gs.Context
@@ -65,7 +64,7 @@ func Bind(i interface{}, opts ...conf.BindArg) error {
 }
 
 // Get 获取对象
-func Get(i interface{}, selectors ...util.BeanSelector) error {
+func Get(i interface{}, selectors ...gsutil.BeanSelector) error {
 	return ctx.Get(i, selectors...)
 }
 

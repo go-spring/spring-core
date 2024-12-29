@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-spring/spring-base/assert"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs"
+	"github.com/stretchr/testify/assert"
 )
 
 type DynamicConfig struct {

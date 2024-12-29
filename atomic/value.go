@@ -14,27 +14,28 @@
  * limitations under the License.
  */
 
-package gs_test
+package atomic
 
 import (
-	"os"
-	"testing"
-
-	"github.com/go-spring/spring-base/assert"
-
-	"github.com/go-spring/spring-core/gs/gstest"
+	"sync/atomic"
 )
 
-func TestMain(m *testing.M) {
-	err := gstest.Init()
-	if err != nil {
-		panic(err)
-	}
-	os.Exit(gstest.Run(m))
+type MarshalValue func(interface{}) ([]byte, error)
+
+// A Value provides an atomic load and store of a consistently typed value.
+type Value struct {
+	_ nocopy
+	atomic.Value
+
+	marshalJSON MarshalValue
 }
 
-func TestConfig(t *testing.T) {
-	os.Clearenv()
-	os.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev")
-	assert.Equal(t, gstest.GetProperty("spring.profiles.active"), "dev")
+// SetMarshalJSON sets the JSON encoding handler for x.
+func (x *Value) SetMarshalJSON(fn MarshalValue) {
+	x.marshalJSON = fn
+}
+
+// MarshalJSON returns the JSON encoding of x.
+func (x *Value) MarshalJSON() ([]byte, error) {
+	return x.marshalJSON(x.Load())
 }

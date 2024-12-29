@@ -20,9 +20,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/go-spring/spring-base/atomic"
-	"github.com/go-spring/spring-base/cast"
+	"github.com/go-spring/spring-core/atomic"
 	"github.com/go-spring/spring-core/conf"
+	"github.com/spf13/cast"
 )
 
 type TimeValidateFunc func(v time.Time) error

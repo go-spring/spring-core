@@ -25,10 +25,9 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/go-spring/spring-base/code"
-	"github.com/go-spring/spring-base/log"
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/cond"
+	"github.com/go-spring/spring-core/gs/gsutil"
+	"github.com/go-spring/spring-core/util"
 )
 
 // Context defines some methods of IoC container that Callable use.
@@ -97,7 +96,6 @@ func Value(v interface{}) ValueArg {
 
 // argList stores the arguments of a function.
 type argList struct {
-	logger *log.Logger
 	fnType reflect.Type
 	args   []Arg
 }
@@ -126,7 +124,7 @@ func newArgList(fnType reflect.Type, args []Arg) (*argList, error) {
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
 			if arg.n < 0 || arg.n >= fixedArgCount {
-				return nil, util.Errorf(code.FileLine(), "arg index %d exceeds max index %d", arg.n, fixedArgCount)
+				return nil, util.Errorf(util.FileLine(), "arg index %d exceeds max index %d", arg.n, fixedArgCount)
 			} else {
 				fnArgs[arg.n] = arg.arg
 			}
@@ -136,7 +134,7 @@ func newArgList(fnType reflect.Type, args []Arg) (*argList, error) {
 			} else if fnType.IsVariadic() {
 				fnArgs = append(fnArgs, arg)
 			} else {
-				return nil, util.Errorf(code.FileLine(), "function has no args but given %d", len(args))
+				return nil, util.Errorf(util.FileLine(), "function has no args but given %d", len(args))
 			}
 		}
 	}
@@ -147,25 +145,25 @@ func newArgList(fnType reflect.Type, args []Arg) (*argList, error) {
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
 			if !shouldIndex {
-				return nil, util.Errorf(code.FileLine(), "the Args must have or have no index")
+				return nil, util.Errorf(util.FileLine(), "the Args must have or have no index")
 			}
 			if arg.n < 0 || arg.n >= fixedArgCount {
-				return nil, util.Errorf(code.FileLine(), "arg index %d exceeds max index %d", arg.n, fixedArgCount)
+				return nil, util.Errorf(util.FileLine(), "arg index %d exceeds max index %d", arg.n, fixedArgCount)
 			} else if fnArgs[arg.n] != nil {
-				return nil, util.Errorf(code.FileLine(), "found same index %d", arg.n)
+				return nil, util.Errorf(util.FileLine(), "found same index %d", arg.n)
 			} else {
 				fnArgs[arg.n] = arg.arg
 			}
 		default:
 			if shouldIndex {
-				return nil, util.Errorf(code.FileLine(), "the Args must have or have no index")
+				return nil, util.Errorf(util.FileLine(), "the Args must have or have no index")
 			}
 			if i < fixedArgCount {
 				fnArgs[i] = arg
 			} else if fnType.IsVariadic() {
 				fnArgs = append(fnArgs, arg)
 			} else {
-				return nil, util.Errorf(code.FileLine(), "the count %d of Args exceeds max index %d", len(args), fixedArgCount)
+				return nil, util.Errorf(util.FileLine(), "the count %d of Args exceeds max index %d", len(args), fixedArgCount)
 			}
 		}
 	}
@@ -181,11 +179,6 @@ func newArgList(fnType reflect.Type, args []Arg) (*argList, error) {
 
 // get returns all processed Args value. fileLine is the binding position of Callable.
 func (r *argList) get(ctx Context, fileLine string) ([]reflect.Value, error) {
-
-	// TODO 也许可以通过参数传递 *log.Logger 对象
-	if r.logger == nil {
-		r.logger = log.GetLogger(util.TypeName(r))
-	}
 
 	fnType := r.fnType
 	numIn := fnType.NumIn()
@@ -204,7 +197,7 @@ func (r *argList) get(ctx Context, fileLine string) ([]reflect.Value, error) {
 		// option arg may not return a value when the condition is not met.
 		v, err := r.getArg(ctx, arg, t, fileLine)
 		if err != nil {
-			return nil, util.Wrapf(err, code.FileLine(), "returns error when getting %d arg", idx)
+			return nil, util.Wrapf(err, util.FileLine(), "returns error when getting %d arg", idx)
 		}
 		if v.IsValid() {
 			result = append(result, v)
@@ -221,20 +214,20 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 		tag string
 	)
 
-	description := fmt.Sprintf("arg:\"%v\" %s", arg, fileLine)
-	r.logger.Tracef("get value %s", description)
-	defer func() {
-		if err == nil {
-			r.logger.Tracef("get value success %s", description)
-		} else {
-			r.logger.Tracef("get value error %s %s", err.Error(), description)
-		}
-	}()
+	// description := fmt.Sprintf("arg:\"%v\" %s", arg, fileLine)
+	// r.logger.Tracef("get value %s", description)
+	// defer func() {
+	// 	if err == nil {
+	// 		r.logger.Tracef("get value success %s", description)
+	// 	} else {
+	// 		r.logger.Tracef("get value error %s %s", err.Error(), description)
+	// 	}
+	// }()
 
 	switch g := arg.(type) {
 	case *Callable:
 		if results, err := g.Call(ctx); err != nil {
-			return reflect.Value{}, util.Wrapf(err, code.FileLine(), "")
+			return reflect.Value{}, util.Wrapf(err, util.FileLine(), "")
 		} else if len(results) < 1 {
 			return reflect.Value{}, errors.New("")
 		} else {
@@ -247,16 +240,16 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 		return reflect.ValueOf(g.v), nil
 	case *optionArg:
 		return g.call(ctx)
-	case util.BeanDefinition:
+	case gsutil.BeanDefinition:
 		tag = g.ID()
 	case string:
 		tag = g
 	default:
-		tag = util.TypeName(g) + ":"
+		tag = gsutil.TypeName(g) + ":"
 	}
 
 	// binds properties value by the "value" tag.
-	if util.IsValueType(t) {
+	if gsutil.IsValueType(t) {
 		if tag == "" {
 			tag = "${}"
 		}
@@ -268,7 +261,7 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 	}
 
 	// wires dependent beans by the "autowire" tag.
-	if util.IsBeanReceiver(t) {
+	if gsutil.IsBeanReceiver(t) {
 		v := reflect.New(t).Elem()
 		if err = ctx.Wire(v, tag); err != nil {
 			return reflect.Value{}, err
@@ -276,20 +269,21 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 		return v, nil
 	}
 
-	return reflect.Value{}, util.Errorf(code.FileLine(), "error type %s", t.String())
+	return reflect.Value{}, util.Errorf(util.FileLine(), "error type %s", t.String())
 }
 
 // optionArg Option 函数的参数绑定。
 type optionArg struct {
-	logger *log.Logger
-	r      *Callable
-	c      cond.Condition
+	r *Callable
+	c cond.Condition
 }
 
 // Provide 为 Option 方法绑定运行时参数。
 func Provide(fn interface{}, args ...Arg) *Callable {
 	r, err := Bind(fn, args, 1)
-	util.Panic(err).When(err != nil)
+	if err != nil {
+		panic(err)
+	}
 	return r
 }
 
@@ -302,7 +296,9 @@ func Option(fn interface{}, args ...Arg) *optionArg {
 	}
 
 	r, err := Bind(fn, args, 1)
-	util.Panic(err).When(err != nil)
+	if err != nil {
+		panic(err)
+	}
 	return &optionArg{r: r}
 }
 
@@ -314,24 +310,19 @@ func (arg *optionArg) On(c cond.Condition) *optionArg {
 
 func (arg *optionArg) call(ctx Context) (reflect.Value, error) {
 
-	// TODO 也许可以通过参数传递 *log.Logger 对象
-	if arg.logger == nil {
-		arg.logger = log.GetLogger(util.TypeName(arg))
-	}
-
 	var (
 		ok  bool
 		err error
 	)
 
-	arg.logger.Tracef("call option func %s", arg.r.fileLine)
-	defer func() {
-		if err == nil {
-			arg.logger.Tracef("call option func success %s", arg.r.fileLine)
-		} else {
-			arg.logger.Tracef("call option func error %s %s", err.Error(), arg.r.fileLine)
-		}
-	}()
+	// arg.logger.Tracef("call option func %s", arg.r.fileLine)
+	// defer func() {
+	// 	if err == nil {
+	// 		arg.logger.Tracef("call option func success %s", arg.r.fileLine)
+	// 	} else {
+	// 		arg.logger.Tracef("call option func error %s %s", err.Error(), arg.r.fileLine)
+	// 	}
+	// }()
 
 	if arg.c != nil {
 		ok, err = ctx.Matches(arg.c)
@@ -409,7 +400,7 @@ func (r *Callable) Call(ctx Context) ([]reflect.Value, error) {
 	}
 
 	o := out[n-1]
-	if util.IsErrorType(o.Type()) {
+	if gsutil.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
 			return out[:n-1], i.(error)
 		}

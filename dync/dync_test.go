@@ -23,10 +23,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-base/assert"
-	"github.com/go-spring/spring-base/cast"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
+	"github.com/spf13/cast"
+	"github.com/stretchr/testify/assert"
 )
 
 type Integer struct {

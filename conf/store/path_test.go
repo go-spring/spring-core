@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-spring/spring-base/assert"
 	"github.com/go-spring/spring-core/conf/store"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSplitPath(t *testing.T) {

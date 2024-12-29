@@ -26,12 +26,12 @@ var app = NewApp()
 
 // Start 启动程序。
 func Start() (Context, error) {
-	return app.Start()
+	return app.start()
 }
 
 // Stop 停止程序。
 func Stop() {
-	app.Stop()
+	app.stop()
 }
 
 // Run 启动程序。

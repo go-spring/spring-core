@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-spring/spring-base/assert"
 	"github.com/go-spring/spring-core/conf"
+	"github.com/stretchr/testify/assert"
 )
 
 type DB struct {

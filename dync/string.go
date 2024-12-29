@@ -19,7 +19,7 @@ package dync
 import (
 	"encoding/json"
 
-	"github.com/go-spring/spring-base/atomic"
+	"github.com/go-spring/spring-core/atomic"
 	"github.com/go-spring/spring-core/conf"
 )
 

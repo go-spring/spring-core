@@ -20,8 +20,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-spring/spring-base/assert"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRead(t *testing.T) {

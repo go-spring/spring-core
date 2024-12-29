@@ -28,15 +28,13 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/go-spring/spring-base/log"
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/arg"
 	"github.com/go-spring/spring-core/gs/cond"
-	"github.com/go-spring/spring-core/gs/internal"
+	"github.com/go-spring/spring-core/gs/gsutil"
+	"github.com/go-spring/spring-core/util"
 )
 
 type refreshState int
@@ -49,7 +47,6 @@ const (
 )
 
 var (
-	loggerType  = reflect.TypeOf((*log.Logger)(nil))
 	contextType = reflect.TypeOf((*Context)(nil)).Elem()
 )
 
@@ -78,7 +75,7 @@ type Context interface {
 	Prop(key string, opts ...conf.GetOption) string
 	Resolve(s string) (string, error)
 	Bind(i interface{}, opts ...conf.BindArg) error
-	Get(i interface{}, selectors ...util.BeanSelector) error
+	Get(i interface{}, selectors ...gsutil.BeanSelector) error
 	Wire(objOrCtor interface{}, ctorArgs ...arg.Arg) (interface{}, error)
 	Invoke(fn interface{}, args ...arg.Arg) ([]interface{}, error)
 	Go(fn func(ctx context.Context))
@@ -106,7 +103,6 @@ type tempContainer struct {
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type container struct {
 	*tempContainer
-	logger                  *log.Logger
 	ctx                     context.Context
 	cancel                  context.CancelFunc
 	destroyers              []func()
@@ -147,7 +143,7 @@ func validOnProperty(fn interface{}) error {
 	if t.Kind() != reflect.Func {
 		return errors.New("fn should be a func(value_type)")
 	}
-	if t.NumIn() != 1 || !util.IsValueType(t.In(0)) || t.NumOut() != 0 {
+	if t.NumIn() != 1 || !gsutil.IsValueType(t.In(0)) || t.NumOut() != 0 {
 		return errors.New("fn should be a func(value_type)")
 	}
 	return nil
@@ -156,7 +152,9 @@ func validOnProperty(fn interface{}) error {
 // OnProperty 当 key 对应的属性值准备好后发送一个通知。
 func (c *container) OnProperty(key string, fn interface{}) {
 	err := validOnProperty(fn)
-	util.Panic(err).When(err != nil)
+	if err != nil {
+		panic(err)
+	}
 	c.mapOfOnProperty[key] = fn
 }
 
@@ -231,16 +229,14 @@ type lazyField struct {
 
 // wiringStack 记录 bean 的注入路径。
 type wiringStack struct {
-	logger       *log.Logger
 	destroyers   *list.List
 	destroyerMap map[string]*destroyer
 	beans        []*BeanDefinition
 	lazyFields   []lazyField
 }
 
-func newWiringStack(logger *log.Logger) *wiringStack {
+func newWiringStack() *wiringStack {
 	return &wiringStack{
-		logger:       logger,
 		destroyers:   list.New(),
 		destroyerMap: make(map[string]*destroyer),
 	}
@@ -248,16 +244,16 @@ func newWiringStack(logger *log.Logger) *wiringStack {
 
 // pushBack 添加一个即将注入的 bean 。
 func (s *wiringStack) pushBack(b *BeanDefinition) {
-	s.logger.Tracef("push %s %s", b, getStatusString(b.status))
+	// s.logger.Tracef("push %s %s", b, getStatusString(b.status))
 	s.beans = append(s.beans, b)
 }
 
 // popBack 删除一个已经注入的 bean 。
 func (s *wiringStack) popBack() {
 	n := len(s.beans)
-	b := s.beans[n-1]
+	// b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
-	s.logger.Tracef("pop %s %s", b, getStatusString(b.status))
+	// s.logger.Tracef("pop %s %s", b, getStatusString(b.status))
 }
 
 // path 返回 bean 的注入路径。
@@ -289,7 +285,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 				fnValue := reflect.ValueOf(fn)
 				out := fnValue.Call([]reflect.Value{v})
 				if len(out) > 0 && !out[0].IsNil() {
-					s.logger.Error(out[0].Interface().(error))
+					// s.logger.Error(out[0].Interface().(error))
 				}
 			}
 		}
@@ -299,7 +295,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 	for _, d := range s.destroyerMap {
 		destroyers.PushBack(d)
 	}
-	destroyers = internal.TripleSort(destroyers, getBeforeDestroyers)
+	destroyers = util.TripleSort(destroyers, getBeforeDestroyers)
 
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
@@ -327,9 +323,8 @@ func (c *container) refresh(autoClear bool) (err error) {
 
 	c.p.Refresh(c.initProperties)
 
-	start := time.Now()
+	// start := time.Now()
 	c.Object(c).Export((*Context)(nil))
-	c.logger = log.GetLogger(util.TypeName(c))
 
 	for key, f := range c.mapOfOnProperty {
 		t := reflect.TypeOf(f)
@@ -369,14 +364,14 @@ func (c *container) refresh(autoClear bool) (err error) {
 		}
 	}
 
-	stack := newWiringStack(c.logger)
+	stack := newWiringStack()
 
-	defer func() {
-		if err != nil || len(stack.beans) > 0 {
-			err = fmt.Errorf("%s ↩\n%s", err, stack.path())
-			c.logger.Error(err)
-		}
-	}()
+	// defer func() {
+	// 	if err != nil || len(stack.beans) > 0 {
+	// 		err = fmt.Errorf("%s ↩\n%s", err, stack.path())
+	// 		c.logger.Error(err)
+	// 	}
+	// }()
 
 	// 按照 bean id 升序注入，保证注入过程始终一致。
 	{
@@ -408,23 +403,23 @@ func (c *container) refresh(autoClear bool) (err error) {
 	c.destroyers = stack.sortDestroyers()
 	c.state = Refreshed
 
-	cost := time.Now().Sub(start)
-	c.logger.Infof("refresh %d beans cost %v", len(beansById), cost)
+	// cost := time.Now().Sub(start)
+	// c.logger.Infof("refresh %d beans cost %v", len(beansById), cost)
 
 	if autoClear && !c.ContextAware {
 		c.clear()
 	}
 
-	c.logger.Info("container refreshed successfully")
+	// c.logger.Info("container refreshed successfully")
 	return nil
 }
 
 func (c *container) registerBean(b *BeanDefinition) {
-	c.logger.Debugf("register %s name:%q type:%q %s", b.getClass(), b.BeanName(), b.Type(), b.FileLine())
+	// c.logger.Debugf("register %s name:%q type:%q %s", b.getClass(), b.BeanName(), b.Type(), b.FileLine())
 	c.beansByName[b.name] = append(c.beansByName[b.name], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 	for _, t := range b.exports {
-		c.logger.Debugf("register %s name:%q type:%q %s", b.getClass(), b.BeanName(), t, b.FileLine())
+		// c.logger.Debugf("register %s name:%q type:%q %s", b.getClass(), b.BeanName(), t, b.FileLine())
 		c.beansByType[t] = append(c.beansByType[t], b)
 	}
 }
@@ -519,7 +514,7 @@ func (tag wireTag) String() string {
 	return b.String()
 }
 
-func toWireTag(selector util.BeanSelector) wireTag {
+func toWireTag(selector gsutil.BeanSelector) wireTag {
 	switch s := selector.(type) {
 	case string:
 		return parseWireTag(s)
@@ -528,7 +523,7 @@ func toWireTag(selector util.BeanSelector) wireTag {
 	case *BeanDefinition:
 		return parseWireTag(s.ID())
 	default:
-		return parseWireTag(util.TypeName(s) + ":")
+		return parseWireTag(gsutil.TypeName(s) + ":")
 	}
 }
 
@@ -545,7 +540,7 @@ func toWireString(tags []wireTag) string {
 
 // findBean 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
 // 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *container) findBean(selector util.BeanSelector) ([]*BeanDefinition, error) {
+func (c *container) findBean(selector gsutil.BeanSelector) ([]*BeanDefinition, error) {
 
 	finder := func(fn func(*BeanDefinition) bool) ([]*BeanDefinition, error) {
 		var result []*BeanDefinition
@@ -726,9 +721,9 @@ func (c *container) getBeanValue(b *BeanDefinition, stack *wiringStack) (reflect
 	}
 
 	// 构造函数的返回值为值类型时 b.Type() 返回其指针类型。
-	if val := out[0]; util.IsBeanType(val.Type()) {
+	if val := out[0]; gsutil.IsBeanType(val.Type()) {
 		// 如果实现接口的是值类型，那么需要转换成指针类型然后再赋值给接口。
-		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsValueType(val.Elem().Type()) {
+		if !val.IsNil() && val.Kind() == reflect.Interface && gsutil.IsValueType(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())
 			v.Elem().Set(val.Elem())
 			b.Value().Set(v)
@@ -781,7 +776,7 @@ func (c *container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 		fv := v.Field(i)
 
 		if !fv.CanInterface() {
-			fv = util.PatchValue(fv)
+			fv = gsutil.PatchValue(fv)
 			if !fv.CanInterface() {
 				continue
 			}
@@ -789,18 +784,8 @@ func (c *container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 
 		fieldPath := opt.Path + "." + ft.Name
 
-		tag, ok := ft.Tag.Lookup("logger")
-		if ok {
-			if ft.Type != loggerType {
-				return fmt.Errorf("field expects type *log.Logger")
-			}
-			l := log.GetLogger(util.TypeName(v))
-			fv.Set(reflect.ValueOf(l))
-			continue
-		}
-
 		// 支持 autowire 和 inject 两个标签。
-		tag, ok = ft.Tag.Lookup("autowire")
+		tag, ok := ft.Tag.Lookup("autowire")
 		if !ok {
 			tag, ok = ft.Tag.Lookup("inject")
 		}
@@ -899,7 +884,7 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	}
 
 	t := v.Type()
-	if !util.IsBeanReceiver(t) {
+	if !gsutil.IsBeanReceiver(t) {
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
@@ -936,7 +921,7 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 			}
 			if !found {
 				foundBeans = append(foundBeans, b)
-				c.logger.Warnf("you should call Export() on %s", b)
+				// c.logger.Warnf("you should call Export() on %s", b)
 			}
 		}
 	}
@@ -1037,7 +1022,7 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	}
 
 	et := t.Elem()
-	if !util.IsBeanReceiver(et) {
+	if !gsutil.IsBeanReceiver(et) {
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
@@ -1152,13 +1137,13 @@ func (c *container) Close() {
 	c.cancel()
 	c.wg.Wait()
 
-	c.logger.Info("goroutines exited")
+	// c.logger.Info("goroutines exited")
 
 	for _, f := range c.destroyers {
 		f()
 	}
 
-	c.logger.Info("container closed")
+	// c.logger.Info("container closed")
 }
 
 // Go 创建安全可等待的 goroutine，fn 要求的 ctx 对象由 IoC 容器提供，当 IoC 容
@@ -1169,7 +1154,7 @@ func (c *container) Go(fn func(ctx context.Context)) {
 		defer c.wg.Done()
 		defer func() {
 			if r := recover(); r != nil {
-				c.logger.Panic(r)
+				// c.logger.Panic(r)
 			}
 		}()
 		fn(c.ctx)

@@ -73,43 +73,9 @@ func (app *App) Banner(banner string) {
 	app.banner = banner
 }
 
-func (app *App) Start() (Context, error) {
+func (app *App) start() (Context, error) {
 
 	app.Object(app)
-
-	if err := app.start(); err != nil {
-		return nil, err
-	}
-	return app.c, nil
-}
-
-func (app *App) Stop() {
-
-	// if app.b != nil {
-	// 	app.b.c.Close()
-	// }
-
-	app.c.Close()
-}
-
-func (app *App) Run() error {
-	_, err := app.Start()
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-		sig := <-ch
-		app.ShutDown(fmt.Sprintf("signal %v", sig))
-	}()
-
-	<-app.exitChan
-	return nil
-}
-
-func (app *App) start() error {
 
 	// showBanner, _ := strconv.ParseBool(e.p.Get(SpringBannerVisible))
 	// if showBanner {
@@ -132,7 +98,7 @@ func (app *App) start() error {
 	// }
 
 	if err := app.c.refresh(false); err != nil {
-		return err
+		return nil, err
 	}
 
 	// 执行命令行启动器
@@ -153,6 +119,35 @@ func (app *App) start() error {
 		}
 	})
 
+	return app.c, nil
+}
+
+func (app *App) wait() {
+	go func() {
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+		sig := <-ch
+		app.ShutDown(fmt.Sprintf("signal %v", sig))
+	}()
+	<-app.exitChan
+}
+
+func (app *App) stop() {
+
+	// if app.b != nil {
+	// 	app.b.c.Close()
+	// }
+
+	app.c.Close()
+}
+
+func (app *App) Run() error {
+	_, err := app.start()
+	if err != nil {
+		return err
+	}
+	app.wait()
+	app.stop()
 	return nil
 }
 

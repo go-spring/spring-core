@@ -19,8 +19,8 @@ package store_test
 import (
 	"testing"
 
-	"github.com/go-spring/spring-base/assert"
 	"github.com/go-spring/spring-core/conf/store"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStorage(t *testing.T) {
