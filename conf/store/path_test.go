@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package internal_test
+package store_test
 
 import (
 	"errors"
@@ -22,14 +22,14 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-base/assert"
-	"github.com/go-spring/spring-core/conf/internal"
+	"github.com/go-spring/spring-core/conf/store"
 )
 
 func TestSplitPath(t *testing.T) {
 	var testcases = []struct {
 		Key  string
 		Err  error
-		Path []internal.Path
+		Path []store.Path
 	}{
 		{
 			Key: "",
@@ -56,8 +56,8 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "[0]",
-			Path: []internal.Path{
-				{internal.PathTypeIndex, "0"},
+			Path: []store.Path{
+				{store.PathTypeIndex, "0"},
 			},
 		},
 		{
@@ -82,8 +82,8 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a",
-			Path: []internal.Path{
-				{internal.PathTypeKey, "a"},
+			Path: []store.Path{
+				{store.PathTypeKey, "a"},
 			},
 		},
 		{
@@ -92,9 +92,9 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a.b",
-			Path: []internal.Path{
-				{internal.PathTypeKey, "a"},
-				{internal.PathTypeKey, "b"},
+			Path: []store.Path{
+				{store.PathTypeKey, "a"},
+				{store.PathTypeKey, "b"},
 			},
 		},
 		{
@@ -107,9 +107,9 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a[0]",
-			Path: []internal.Path{
-				{internal.PathTypeKey, "a"},
-				{internal.PathTypeIndex, "0"},
+			Path: []store.Path{
+				{store.PathTypeKey, "a"},
+				{store.PathTypeIndex, "0"},
 			},
 		},
 		{
@@ -118,10 +118,10 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a[0].b",
-			Path: []internal.Path{
-				{internal.PathTypeKey, "a"},
-				{internal.PathTypeIndex, "0"},
-				{internal.PathTypeKey, "b"},
+			Path: []store.Path{
+				{store.PathTypeKey, "a"},
+				{store.PathTypeIndex, "0"},
+				{store.PathTypeKey, "b"},
 			},
 		},
 		{
@@ -130,10 +130,10 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a[0][0]",
-			Path: []internal.Path{
-				{internal.PathTypeKey, "a"},
-				{internal.PathTypeIndex, "0"},
-				{internal.PathTypeIndex, "0"},
+			Path: []store.Path{
+				{store.PathTypeKey, "a"},
+				{store.PathTypeIndex, "0"},
+				{store.PathTypeIndex, "0"},
 			},
 		},
 		{
@@ -142,11 +142,11 @@ func TestSplitPath(t *testing.T) {
 		},
 	}
 	for i, c := range testcases {
-		p, err := internal.SplitPath(c.Key)
+		p, err := store.SplitPath(c.Key)
 		assert.Equal(t, err, c.Err, fmt.Sprintf("index: %d key: %q", i, c.Key))
 		assert.Equal(t, p, c.Path, fmt.Sprintf("index:%d key: %q", i, c.Key))
 		if err == nil {
-			s := internal.JoinPath(p)
+			s := store.JoinPath(p)
 			assert.Equal(t, s, c.Key, fmt.Sprintf("index:%d key: %q", i, c.Key))
 		}
 	}

@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-// Package conf reads configuration from many format file, such as Java
-// properties, yaml, toml, etc.
 package conf
 
 import (
@@ -29,11 +27,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-spring/spring-core/conf/internal"
 	"github.com/go-spring/spring-core/conf/reader/json"
 	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
+	"github.com/go-spring/spring-core/conf/store"
 	"github.com/go-spring/spring-core/expr"
 	"github.com/spf13/cast"
 )
@@ -108,13 +106,13 @@ var _ ReadOnlyProperties = (*Properties)(nil)
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
 type Properties struct {
-	storage *internal.Storage
+	storage *store.Storage
 }
 
 // NewProperties creates empty *Properties.
 func NewProperties() *Properties {
 	return &Properties{
-		storage: internal.NewStorage(),
+		storage: store.NewStorage(),
 	}
 }
 
