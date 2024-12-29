@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-package gs
+package gsapp
 
 import (
 	"reflect"
 
 	"github.com/go-spring/spring-core/gs/gsarg"
 	"github.com/go-spring/spring-core/gs/gsbean"
+	"github.com/go-spring/spring-core/gs/gsioc"
 )
 
 type Bootstrapper struct {
-	c *container
+	c gsioc.Container
 }
 
 func newBootstrap() *Bootstrapper {
 	return &Bootstrapper{
-		c: New().(*container),
+		c: gsioc.New(),
 	}
 }
 
@@ -45,12 +46,12 @@ func (b *Bootstrapper) Property(key string, value interface{}) {
 
 // Object 参考 Container.Object 的解释。
 func (b *Bootstrapper) Object(i interface{}) *gsbean.BeanDefinition {
-	return b.c.Accept(NewBean(reflect.ValueOf(i)))
+	return b.c.Accept(gsioc.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
 func (b *Bootstrapper) Provide(ctor interface{}, args ...gsarg.Arg) *gsbean.BeanDefinition {
-	return b.c.Accept(NewBean(ctor, args...))
+	return b.c.Accept(gsioc.NewBean(ctor, args...))
 }
 
 func (b *Bootstrapper) start() error {
@@ -66,5 +67,5 @@ func (b *Bootstrapper) start() error {
 	// 	b.c.initProperties.Set(k, e.p.Get(k))
 	// }
 
-	return b.c.Refresh()
+	return b.c.Refresh(false)
 }

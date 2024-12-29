@@ -22,10 +22,11 @@ import (
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/gsarg"
+	"github.com/go-spring/spring-core/gs/gsioc"
 	"github.com/go-spring/spring-core/gs/gsutil"
 )
 
-var ctx gs.Context
+var ctx gsioc.Context
 
 // Init 初始化测试环境
 func Init() error {

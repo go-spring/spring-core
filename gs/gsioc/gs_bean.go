@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs
+package gsioc
 
 import (
 	"github.com/go-spring/spring-core/gs/gsarg"

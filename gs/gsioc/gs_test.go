@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_test
+package gsioc_test
 
 import (
 	"errors"
@@ -28,9 +28,9 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/gsarg"
 	"github.com/go-spring/spring-core/gs/gscond"
+	"github.com/go-spring/spring-core/gs/gsioc"
 	"github.com/go-spring/spring-core/gs/gsutil"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
@@ -40,13 +40,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runTest(c gs.Container, fn func(gs.Context)) error {
+func runTest(c gsioc.Container, fn func(gsioc.Context)) error {
 	type PandoraAware struct{}
-	c.Provide(func(p gs.Context) PandoraAware {
+	c.Provide(func(p gsioc.Context) PandoraAware {
 		fn(p)
 		return PandoraAware{}
 	})
-	return c.Refresh()
+	return c.Refresh(false)
 }
 
 func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
@@ -55,7 +55,7 @@ func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
 	// 	c.Object(func() {}).Init(func(f func()) {
 	// 		c.Object(func() {}) // 不能在这里注册新的 Object
 	// 	})
-	// 	_ = c.Refresh()
+	// 	_ = c.Refresh(false)
 	// }, "should call before Refresh")
 }
 
@@ -65,7 +65,7 @@ func TestApplicationContext(t *testing.T) {
 	// 自定义数据类型
 
 	t.Run("pkg1.SamePkg", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		e := pkg1.SamePkg{}
 
 		// assert.Panic(t, func() {
@@ -76,12 +76,12 @@ func TestApplicationContext(t *testing.T) {
 		c.Object(&e).Name("i3")
 		c.Object(&e).Name("i4")
 
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 
 	t.Run("pkg2.SamePkg", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		e := pkg2.SamePkg{}
 
 		// assert.Panic(t, func() {
@@ -93,7 +93,7 @@ func TestApplicationContext(t *testing.T) {
 		c.Object(&e).Name("i4")
 		c.Object(&e).Name("i5")
 
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 }
@@ -141,7 +141,7 @@ type TestObject struct {
 
 func TestApplicationContext_AutoWireBeans(t *testing.T) {
 
-	c := gs.New()
+	c := gsioc.New()
 
 	obj := &TestObject{}
 	c.Object(obj)
@@ -149,7 +149,7 @@ func TestApplicationContext_AutoWireBeans(t *testing.T) {
 	b := TestBincoreng{1}
 	c.Object(&b).Name("struct_ptr").Export((*fmt.Stringer)(nil))
 
-	err := runTest(c, func(p gs.Context) {})
+	err := runTest(c, func(p gsioc.Context) {})
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(obj.MapTyType), 4)
@@ -200,7 +200,7 @@ type Setting struct {
 }
 
 func TestApplicationContext_ValueTag(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 
 	c.Property("int", int(3))
 	c.Property("uint", uint(3))
@@ -220,7 +220,7 @@ func TestApplicationContext_ValueTag(t *testing.T) {
 	c.Property("string_slice", []string{"1", "2"})
 	// c.Property("float_slice", []float64{1, 2})
 
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 
 	fmt.Printf("%+v\n", setting)
@@ -264,7 +264,7 @@ func (s *PrototypeBeanService) Service(name string) {
 }
 
 func TestApplicationContext_PrototypeBean(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 
 	greetingService := &GreetingService{}
 	c.Object(greetingService)
@@ -275,7 +275,7 @@ func TestApplicationContext_PrototypeBean(t *testing.T) {
 	f := &PrototypeBeanFactory{}
 	c.Object(f)
 
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 
 	s.Service("Li Lei")
@@ -324,7 +324,7 @@ type DbConfig struct {
 }
 
 func TestApplicationContext_TypeConverter(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	{
 		p, _ := conf.Load("testdata/config/application.yaml")
 		for _, key := range p.Keys() {
@@ -346,7 +346,7 @@ func TestApplicationContext_TypeConverter(t *testing.T) {
 	dbConfig := &DbConfig{}
 	c.Object(dbConfig)
 
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 
 	assert.Equal(t, b.EnvType, ENV_TEST)
@@ -373,10 +373,10 @@ type ProxyGrouper struct {
 }
 
 func TestApplicationContext_NestedBean(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Object(new(MyGrouper)).Export((*Grouper)(nil))
 	c.Object(new(ProxyGrouper))
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 }
 
@@ -390,11 +390,11 @@ type SamePkgHolder struct {
 }
 
 func TestApplicationContext_SameNameBean(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Object(new(SamePkgHolder))
 	c.Object(&pkg1.SamePkg{}).Export((*Pkg)(nil))
 	c.Object(&pkg2.SamePkg{}).Export((*Pkg)(nil))
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 }
 
@@ -418,17 +418,17 @@ type DiffPkgHolder struct {
 }
 
 func TestApplicationContext_DiffNameBean(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Object(&DiffPkgOne{}).Name("same").Export((*Pkg)(nil))
 	c.Object(&DiffPkgTwo{}).Name("same").Export((*Pkg)(nil))
 	c.Object(new(DiffPkgHolder))
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 }
 
 func TestApplicationContext_LoadProperties(t *testing.T) {
 
-	c := gs.New()
+	c := gsioc.New()
 
 	p, _ := conf.Load("testdata/config/application.yaml")
 	for _, key := range p.Keys() {
@@ -440,7 +440,7 @@ func TestApplicationContext_LoadProperties(t *testing.T) {
 		c.Property(key, p.Get(key))
 	}
 
-	err := runTest(c, func(ctx gs.Context) {
+	err := runTest(c, func(ctx gsioc.Context) {
 		assert.Equal(t, ctx.Prop("yaml.list[0]"), "1")
 		assert.Equal(t, ctx.Prop("yaml.list[1]"), "2")
 		assert.Equal(t, ctx.Prop("spring.application.name"), "test")
@@ -451,8 +451,8 @@ func TestApplicationContext_LoadProperties(t *testing.T) {
 func TestApplicationContext_Get(t *testing.T) {
 
 	t.Run("panic", func(t *testing.T) {
-		c := gs.New()
-		err := runTest(c, func(p gs.Context) {
+		c := gsioc.New()
+		err := runTest(c, func(p gsioc.Context) {
 			{
 				var s fmt.Stringer
 				err := p.Get(s)
@@ -468,11 +468,11 @@ func TestApplicationContext_Get(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo)).Export((*Grouper)(nil))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var two *BeanTwo
 			err := p.Get(&two)
@@ -532,7 +532,7 @@ func TestApplicationContext_Get(t *testing.T) {
 //	c.Object(&BeanZero{5})
 //	c.Object(new(BeanOne))
 //	c.Object(new(BeanTwo))
-//	c.Refresh()
+//	c.Refresh(false)
 //
 //	p := <-ch
 //
@@ -617,7 +617,7 @@ func NewPtrStudent(teacher Teacher, room string) *Student {
 }
 
 func TestApplicationContext_RegisterBeanFn(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 
 	c.Property("room", "Class 3 Grade 1")
 
@@ -633,7 +633,7 @@ func TestApplicationContext_RegisterBeanFn(t *testing.T) {
 		fmt.Println(teacher.Course())
 	}).Name("newTeacher")
 
-	err := runTest(c, func(p gs.Context) {
+	err := runTest(c, func(p gsioc.Context) {
 
 		var st1 *Student
 		err := p.Get(&st1, "st1")
@@ -672,9 +672,9 @@ func TestApplicationContext_RegisterBeanFn(t *testing.T) {
 func TestApplicationContext_Profile(t *testing.T) {
 
 	t.Run("bean:_c:", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var b *BeanZero
 			err := p.Get(&b)
 			assert.Nil(t, err)
@@ -683,10 +683,10 @@ func TestApplicationContext_Profile(t *testing.T) {
 	})
 
 	t.Run("bean:_c:test", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("spring.profiles.active", "test")
 		c.Object(&BeanZero{5})
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var b *BeanZero
 			err := p.Get(&b)
 			assert.Nil(t, err)
@@ -700,11 +700,11 @@ type BeanFour struct{}
 func TestApplicationContext_DependsOn(t *testing.T) {
 
 	t.Run("random", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanFour))
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 
@@ -715,11 +715,11 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 			"github.com/go-spring/spring-core/gs/gs_test.BeanZero:BeanZero",
 		}
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanFour)).DependsOn(dependsOn...)
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 }
@@ -727,32 +727,32 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 func TestApplicationContext_Primary(t *testing.T) {
 
 	t.Run("duplicate", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
 		c.Object(&BeanZero{6})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo))
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Error(t, err, "duplicate beans ")
 	})
 
 	t.Run("duplicate", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
 		// primary 是在多个候选 bean 里面选择，而不是允许同名同类型的两个 bean
 		c.Object(&BeanZero{6}).Primary()
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo))
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Error(t, err, "duplicate beans ")
 	})
 
 	t.Run("not primary", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var b *BeanTwo
 			err := p.Get(&b)
 			assert.Nil(t, err)
@@ -762,12 +762,12 @@ func TestApplicationContext_Primary(t *testing.T) {
 	})
 
 	t.Run("primary", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
 		c.Object(&BeanZero{6}).Name("zero_6").Primary()
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var b *BeanTwo
 			err := p.Get(&b)
 			assert.Nil(t, err)
@@ -782,11 +782,11 @@ type FuncObj struct {
 }
 
 func TestDefaultProperties_WireFunc(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Object(func(int) int { return 6 })
 	obj := new(FuncObj)
 	c.Object(obj)
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 	i := obj.Fn(3)
 	assert.Equal(t, i, 6)
@@ -827,10 +827,10 @@ func (m localManager) Cluster() string {
 func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 
 	t.Run("ptr manager", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("manager.version", "1.0.0")
 		c.Provide(NewPtrManager)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var m Manager
 			err := p.Get(&m)
@@ -846,13 +846,13 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 	})
 
 	t.Run("manager", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("manager.version", "1.0.0")
 
 		bd := c.Provide(NewManager)
 		assert.Equal(t, bd.BeanName(), "NewManager")
 
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var m Manager
 			err := p.Get(&m)
@@ -866,26 +866,26 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 	})
 
 	t.Run("manager return error", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("manager.version", "1.0.0")
 		c.Provide(NewManagerRetError)
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Error(t, err, "gs_test.go:\\d* error")
 	})
 
 	t.Run("manager return error nil", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("manager.version", "1.0.0")
 		c.Provide(NewManagerRetErrorNil)
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 
 	t.Run("manager return nil", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("manager.version", "1.0.0")
 		c.Provide(NewNullPtrManager)
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Error(t, err, "return nil")
 	})
 }
@@ -939,9 +939,9 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 
 	t.Run("call init", func(t *testing.T) {
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(new(callDestroy)).Init((*callDestroy).Init)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var d *callDestroy
 			err := p.Get(&d)
 			assert.Nil(t, err)
@@ -953,16 +953,16 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 	t.Run("call init with error", func(t *testing.T) {
 
 		{
-			c := gs.New()
+			c := gsioc.New()
 			c.Object(&callDestroy{i: 1}).Init((*callDestroy).InitWithError)
-			err := c.Refresh()
+			err := c.Refresh(false)
 			assert.Error(t, err, "error")
 		}
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("int", 0)
 		c.Object(&callDestroy{}).Init((*callDestroy).InitWithError)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var d *callDestroy
 			err := p.Get(&d)
 			assert.Nil(t, err)
@@ -972,9 +972,9 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 	})
 
 	t.Run("call interface init", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Provide(func() destroyable { return new(callDestroy) }).Init(destroyable.Init)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var d destroyable
 			err := p.Get(&d)
 			assert.Nil(t, err)
@@ -986,16 +986,16 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 	t.Run("call interface init with error", func(t *testing.T) {
 
 		{
-			c := gs.New()
+			c := gsioc.New()
 			c.Provide(func() destroyable { return &callDestroy{i: 1} }).Init(destroyable.InitWithError)
-			err := c.Refresh()
+			err := c.Refresh(false)
 			assert.Error(t, err, "error")
 		}
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("int", 0)
 		c.Provide(func() destroyable { return &callDestroy{} }).Init(destroyable.InitWithError)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var d destroyable
 			err := p.Get(&d)
 			assert.Nil(t, err)
@@ -1005,9 +1005,9 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 	})
 
 	t.Run("call nested init", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(new(nestedCallDestroy)).Init((*nestedCallDestroy).Init)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var d *nestedCallDestroy
 			err := p.Get(&d)
 			assert.Nil(t, err)
@@ -1017,11 +1017,11 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 	})
 
 	t.Run("call nested interface init", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&nestedDestroyable{
 			destroyable: new(callDestroy),
 		}).Init((*nestedDestroyable).Init)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var d *nestedDestroyable
 			err := p.Get(&d)
 			assert.Nil(t, err)
@@ -1036,10 +1036,10 @@ type RecoresCluster struct {
 }
 
 func TestApplicationContext_ValueBincoreng(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Property("redis.endpoints", "redis://localhost:6379")
 	c.Object(new(RecoresCluster))
-	err := runTest(c, func(p gs.Context) {
+	err := runTest(c, func(p gsioc.Context) {
 		var cluster *RecoresCluster
 		err := p.Get(&cluster)
 		fmt.Println(cluster)
@@ -1051,17 +1051,17 @@ func TestApplicationContext_ValueBincoreng(t *testing.T) {
 func TestApplicationContext_Collect(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&struct {
 			Events []ServerInterface `autowire:""`
 		}{})
-		err := runTest(c, func(ctx gs.Context) {})
+		err := runTest(c, func(ctx gsioc.Context) {})
 		assert.Error(t, err, "no beans collected for \"\"")
 	})
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
-		err := runTest(c, func(ctx gs.Context) {
+		c := gsioc.New()
+		err := runTest(c, func(ctx gsioc.Context) {
 			var Events []ServerInterface
 			err := ctx.Get(&Events)
 			assert.Error(t, err, "no beans collected for \"\"")
@@ -1070,17 +1070,17 @@ func TestApplicationContext_Collect(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&struct {
 			Events []ServerInterface `autowire:"?"`
 		}{})
-		err := runTest(c, func(ctx gs.Context) {})
+		err := runTest(c, func(ctx gsioc.Context) {})
 		assert.Nil(t, err)
 	})
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
-		err := runTest(c, func(ctx gs.Context) {
+		c := gsioc.New()
+		err := runTest(c, func(ctx gsioc.Context) {
 			var Events []ServerInterface
 			err := ctx.Get(&Events, "?")
 			assert.Nil(t, err)
@@ -1089,11 +1089,11 @@ func TestApplicationContext_Collect(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("redis.endpoints", "redis://localhost:6379")
 		c.Object(new(RecoresCluster)).Name("one")
 		c.Object(new(RecoresCluster))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var rcs []*RecoresCluster
 			err := p.Get(&rcs)
 			assert.Nil(t, err)
@@ -1104,12 +1104,12 @@ func TestApplicationContext_Collect(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("redis.endpoints", "redis://localhost:6379")
 		c.Object(new(RecoresCluster)).Name("a").Order(1)
 		c.Object(new(RecoresCluster)).Name("b").Order(2)
 
-		intBean := c.Provide(func(p gs.Context) func() {
+		intBean := c.Provide(func(p gsioc.Context) func() {
 
 			var rcs []*RecoresCluster
 			err := p.Get(&rcs)
@@ -1122,7 +1122,7 @@ func TestApplicationContext_Collect(t *testing.T) {
 		})
 		assert.Equal(t, intBean.BeanName(), "TestApplicationContext_Collect.func6.1")
 
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 }
@@ -1229,10 +1229,10 @@ func TestOptionPattern(t *testing.T) {
 func TestOptionConstructorArg(t *testing.T) {
 
 	t.Run("option default", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("president", "CaiYuanPei")
 		c.Provide(NewClassRoom)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var cls *ClassRoom
 			err := p.Get(&cls)
 			assert.Nil(t, err)
@@ -1244,10 +1244,10 @@ func TestOptionConstructorArg(t *testing.T) {
 	})
 
 	t.Run("option withClassName", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("president", "CaiYuanPei")
 		c.Provide(NewClassRoom, gsarg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var cls *ClassRoom
 			err := p.Get(&cls)
 			assert.Nil(t, err)
@@ -1260,13 +1260,13 @@ func TestOptionConstructorArg(t *testing.T) {
 	})
 
 	t.Run("option withStudents", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("class_name", "二年级03班")
 		c.Property("president", "CaiYuanPei")
 		c.Provide(NewClassRoom, gsarg.Option(withStudents))
 		c.Object(new(Student)).Name("Student1")
 		c.Object(new(Student)).Name("Student2")
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var cls *ClassRoom
 			err := p.Get(&cls)
 			assert.Nil(t, err)
@@ -1279,7 +1279,7 @@ func TestOptionConstructorArg(t *testing.T) {
 	})
 
 	t.Run("option withStudents withClassName", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("class_name", "二年级06班")
 		c.Property("president", "CaiYuanPei")
 		c.Provide(NewClassRoom,
@@ -1291,7 +1291,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		)
 		c.Object(&Student{}).Name("Student1")
 		c.Object(&Student{}).Name("Student2")
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var cls *ClassRoom
 			err := p.Get(&cls)
 			assert.Nil(t, err)
@@ -1348,11 +1348,11 @@ type Service struct {
 func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 	t.Run("method bean", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		parent := c.Object(new(Server))
 		bd := c.Provide((*Server).Consumer, parent)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var s *Server
 			err := p.Get(&s)
@@ -1371,11 +1371,11 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean condition", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		parent := c.Object(new(Server)).On(gscond.Not(gscond.OK()))
 		bd := c.Provide((*Server).Consumer, parent)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var s *Server
 			err := p.Get(&s)
@@ -1390,11 +1390,11 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean arg", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		parent := c.Object(new(Server))
 		c.Provide((*Server).ConsumerArg, parent, "${i:=9}")
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var s *Server
 			err := p.Get(&s)
@@ -1412,12 +1412,12 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean wire to other bean", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		parent := c.Provide(NewServerInterface)
 		c.Provide(ServerInterface.Consumer, parent.ID()).DependsOn("ServerInterface")
 		c.Object(new(Service))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var si ServerInterface
 			err := p.Get(&si)
@@ -1462,12 +1462,12 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 					}
 				}()
 
-				c := gs.New()
+				c := gsioc.New()
 				c.Property("server.version", "1.0.0")
 				parent := c.Object(new(Server)).DependsOn("Service")
 				c.Provide((*Server).Consumer, parent.ID()).DependsOn("Server")
 				c.Object(new(Service))
-				err := c.Refresh()
+				err := c.Refresh(false)
 				if err != nil {
 					panic(err)
 				}
@@ -1477,10 +1477,10 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean autowire", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		c.Object(new(Server))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var s *Server
 			err := p.Get(&s)
 			assert.Nil(t, err)
@@ -1490,11 +1490,11 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean selector type", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		c.Object(new(Server))
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, (*Server)(nil))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var s *Server
 			err := p.Get(&s)
@@ -1512,20 +1512,20 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean selector type error", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		c.Object(new(Server))
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, (*int)(nil))
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Error(t, err, "can't find bean, bean:\"int:\" type:\"\\*gs_test.Server\"")
 	})
 
 	t.Run("method bean selector beanId", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		c.Object(new(Server))
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, "Server")
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var s *Server
 			err := p.Get(&s)
@@ -1543,11 +1543,11 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean selector beanId error", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		c.Object(new(Server))
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, "NULL")
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Error(t, err, "can't find bean, bean:\"NULL\" type:\"\\*gs_test.Server\"")
 	})
 }
@@ -1563,7 +1563,7 @@ func TestApplicationContext_UserDefinedTypeProperty(t *testing.T) {
 		Complex  complex64     // `value:"${complex}"`
 	}
 
-	c := gs.New()
+	c := gsioc.New()
 
 	conf.RegisterConverter(func(v string) (level, error) {
 		if v == "debug" {
@@ -1577,7 +1577,7 @@ func TestApplicationContext_UserDefinedTypeProperty(t *testing.T) {
 	c.Property("level", "debug")
 	c.Property("complex", "1+i")
 	c.Object(&config)
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 
 	fmt.Printf("%+v\n", config)
@@ -1599,27 +1599,27 @@ func TestApplicationContext_CircleAutowire(t *testing.T) {
 
 	// 直接创建的 Object 直接发生循环依赖是没有关系的。
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(new(CircleA))
 		c.Object(new(CircleB))
 		c.Object(new(CircleC))
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(new(CircleA))
 		c.Object(new(CircleB))
 		c.Provide(func() *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(new(CircleA))
 		c.Provide(func() *CircleB {
 			return new(CircleB)
@@ -1627,12 +1627,12 @@ func TestApplicationContext_CircleAutowire(t *testing.T) {
 		c.Provide(func() *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Provide(func(b *CircleB) *CircleA {
 			return new(CircleA)
 		})
@@ -1642,7 +1642,7 @@ func TestApplicationContext_CircleAutowire(t *testing.T) {
 		c.Provide(func(a *CircleA) *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Error(t, err, "found circle autowire")
 	})
 }
@@ -1711,12 +1711,12 @@ func NewNilVarObj(i interface{}, options ...VarOptionFunc) *VarObj {
 func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 
 	t.Run("nil param 0", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("var.obj", "description")
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
 		c.Provide(NewNilVarObj, gsarg.Nil())
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var obj *VarObj
 			err := p.Get(&obj)
 			assert.Nil(t, err)
@@ -1727,12 +1727,12 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	})
 
 	t.Run("variable option param 1", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("var.obj", "description")
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
 		c.Provide(NewVarObj, "${var.obj}", gsarg.Option(withVar, "v1"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var obj *VarObj
 			err := p.Get(&obj)
 			assert.Nil(t, err)
@@ -1744,12 +1744,12 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	})
 
 	t.Run("variable option param 2", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("var.obj", "description")
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
 		c.Provide(NewVarObj, gsarg.Value("description"), gsarg.Option(withVar, "v1", "v2"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var obj *VarObj
 			err := p.Get(&obj)
 			assert.Nil(t, err)
@@ -1762,11 +1762,11 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	})
 
 	t.Run("variable option interface param 1", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&Var{"v1"}).Name("v1").Export((*interface{})(nil))
 		c.Object(&Var{"v2"}).Name("v2").Export((*interface{})(nil))
 		c.Provide(NewVarInterfaceObj, gsarg.Option(withVarInterface, "v1"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var obj *VarInterfaceObj
 			err := p.Get(&obj)
 			assert.Nil(t, err)
@@ -1776,11 +1776,11 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	})
 
 	t.Run("variable option interface param 1", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&Var{"v1"}).Name("v1").Export((*interface{})(nil))
 		c.Object(&Var{"v2"}).Name("v2").Export((*interface{})(nil))
 		c.Provide(NewVarInterfaceObj, gsarg.Option(withVarInterface, "v1", "v2"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var obj *VarInterfaceObj
 			err := p.Get(&obj)
 			assert.Nil(t, err)
@@ -1818,9 +1818,9 @@ func TestApplicationContext_Close(t *testing.T) {
 	t.Run("call destroy fn", func(t *testing.T) {
 		called := false
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(func() {}).Destroy(func(f func()) { called = true })
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 		c.Close()
 
@@ -1828,10 +1828,10 @@ func TestApplicationContext_Close(t *testing.T) {
 	})
 
 	t.Run("call destroy", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		d := new(callDestroy)
 		c.Object(d).Destroy((*callDestroy).Destroy)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var d *callDestroy
 			err := p.Get(&d)
 			assert.Nil(t, err)
@@ -1845,10 +1845,10 @@ func TestApplicationContext_Close(t *testing.T) {
 
 		// error
 		{
-			c := gs.New()
+			c := gsioc.New()
 			d := &callDestroy{i: 1}
 			c.Object(d).Destroy((*callDestroy).DestroyWithError)
-			err := runTest(c, func(p gs.Context) {
+			err := runTest(c, func(p gsioc.Context) {
 				var d *callDestroy
 				err := p.Get(&d)
 				assert.Nil(t, err)
@@ -1860,10 +1860,10 @@ func TestApplicationContext_Close(t *testing.T) {
 
 		// nil
 		{
-			c := gs.New()
+			c := gsioc.New()
 			d := &callDestroy{}
 			c.Object(d).Destroy((*callDestroy).DestroyWithError)
-			err := runTest(c, func(p gs.Context) {
+			err := runTest(c, func(p gsioc.Context) {
 				var d *callDestroy
 				err := p.Get(&d)
 				assert.Nil(t, err)
@@ -1875,9 +1875,9 @@ func TestApplicationContext_Close(t *testing.T) {
 	})
 
 	t.Run("call interface destroy", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		bd := c.Provide(func() destroyable { return new(callDestroy) }).Destroy(destroyable.Destroy)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var d destroyable
 			err := p.Get(&d)
 			assert.Nil(t, err)
@@ -1892,9 +1892,9 @@ func TestApplicationContext_Close(t *testing.T) {
 
 		// error
 		{
-			c := gs.New()
+			c := gsioc.New()
 			bd := c.Provide(func() destroyable { return &callDestroy{i: 1} }).Destroy(destroyable.DestroyWithError)
-			err := runTest(c, func(p gs.Context) {
+			err := runTest(c, func(p gsioc.Context) {
 				var d destroyable
 				err := p.Get(&d)
 				assert.Nil(t, err)
@@ -1907,10 +1907,10 @@ func TestApplicationContext_Close(t *testing.T) {
 
 		// nil
 		{
-			c := gs.New()
+			c := gsioc.New()
 			c.Property("int", 0)
 			bd := c.Provide(func() destroyable { return &callDestroy{} }).Destroy(destroyable.DestroyWithError)
-			err := runTest(c, func(p gs.Context) {
+			err := runTest(c, func(p gsioc.Context) {
 				var d destroyable
 				err := p.Get(&d)
 				assert.Nil(t, err)
@@ -1935,12 +1935,12 @@ type PtrNestedAutowireBean struct {
 }
 
 func TestApplicationContext_NestedAutowireBean(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Object(new(NestedAutowireBean))
 	c.Object(&PtrNestedAutowireBean{
 		SubNestedAutowireBean: new(SubNestedAutowireBean),
 	})
-	err := runTest(c, func(p gs.Context) {
+	err := runTest(c, func(p gsioc.Context) {
 
 		var b *NestedAutowireBean
 		err := p.Get(&b)
@@ -1977,13 +1977,13 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 
 	t.Run("private", func(t *testing.T) {
 
-		c := gs.New()
+		c := gsioc.New()
 
 		c.Property("sdk.wx.auto-create", true)
 		c.Property("sdk.wx.enable", true)
 
 		c.Object(new(wxChannel))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var channel *wxChannel
 			err := p.Get(&channel)
 			assert.Nil(t, err)
@@ -1994,11 +1994,11 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 	})
 
 	t.Run("public", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("sdk.wx.auto-create", true)
 		c.Property("sdk.wx.enable", true)
 		c.Object(new(WXChannel))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var channel *WXChannel
 			err := p.Get(&channel)
 			assert.Nil(t, err)
@@ -2012,7 +2012,7 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 func TestApplicationContext_FnArgCollectBean(t *testing.T) {
 
 	t.Run("interface type", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Provide(newHistoryTeacher("t1")).Name("t1").Export((*Teacher)(nil))
 		c.Provide(newHistoryTeacher("t2")).Name("t2").Export((*Teacher)(nil))
 		c.Provide(func(teachers []Teacher) func() {
@@ -2024,7 +2024,7 @@ func TestApplicationContext_FnArgCollectBean(t *testing.T) {
 			assert.Equal(t, names, []string{"t1", "t2"})
 			return func() {}
 		})
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 }
@@ -2043,9 +2043,9 @@ func (_ *filterImpl) Filter(input string) string {
 func TestApplicationContext_BeanCache(t *testing.T) {
 
 	t.Run("not implement interface", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(func() {}).Export((*filter)(nil))
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Error(t, err, "doesn't implement interface gs_test.filter")
 	})
 
@@ -2056,12 +2056,12 @@ func TestApplicationContext_BeanCache(t *testing.T) {
 			F2 filter `autowire:"f2"`
 		}
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Provide(func() filter { return new(filterImpl) }).Name("f1")
 		c.Object(new(filterImpl)).Export((*filter)(nil)).Name("f2")
 		c.Object(&server)
 
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 }
@@ -2077,9 +2077,9 @@ func (i Integer) Value() int {
 }
 
 func TestApplicationContext_IntInterface(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Provide(func() IntInterface { return Integer(5) })
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 }
 
@@ -2104,9 +2104,9 @@ func TestApplicationContext_Properties(t *testing.T) {
 
 	t.Run("array properties", func(t *testing.T) {
 		b := new(ArrayProperties)
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(b)
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 	})
 
@@ -2119,13 +2119,13 @@ func TestApplicationContext_Properties(t *testing.T) {
 			MapA map[string]string `value:"${map_a:=}"`
 		}{}
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("map_a.nba", "nba")
 		c.Property("map_a.cba", "cba")
 		c.Property("int_a", "3")
 		c.Property("int_b", "4")
 		c.Object(&obj)
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 
 		assert.Equal(t, obj.Int, 5)
@@ -2154,7 +2154,7 @@ func TestApplicationContext_Destroy(t *testing.T) {
 	destroyIndex := 0
 	destroyArray := []int{0, 0, 0, 0}
 
-	c := gs.New()
+	c := gsioc.New()
 	c.Object(new(FirstDestroy)).Destroy(
 		func(_ *FirstDestroy) {
 			fmt.Println("::FirstDestroy")
@@ -2179,7 +2179,7 @@ func TestApplicationContext_Destroy(t *testing.T) {
 			destroyArray[destroyIndex] = 4
 			destroyIndex++
 		})
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 	c.Close()
 
@@ -2195,9 +2195,9 @@ type ObjFactory struct{}
 func (factory *ObjFactory) NewObj(i int) *Obj { return &Obj{i: i} }
 
 func TestApplicationContext_CreateBean(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Object(&ObjFactory{})
-	err := runTest(c, func(p gs.Context) {
+	err := runTest(c, func(p gsioc.Context) {
 		b, err := p.Wire((*ObjFactory).NewObj, gsarg.R1("${i:=5}"))
 		fmt.Println(b, err)
 	})
@@ -2208,7 +2208,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 	t.Run("bean:test_ctx:", func(t *testing.T) {
 
-		c := gs.New()
+		c := gsioc.New()
 
 		c.Object(&BeanZero{5}).On(gscond.
 			OnProfile("test").
@@ -2218,7 +2218,7 @@ func TestDefaultSpringContext(t *testing.T) {
 			On(gscond.OK()),
 		)
 
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var b *BeanZero
 			err := p.Get(&b)
 			assert.Error(t, err, "can't find bean, bean:\"\"")
@@ -2227,10 +2227,10 @@ func TestDefaultSpringContext(t *testing.T) {
 	})
 
 	t.Run("bean:test_ctx:test", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("spring.profiles.active", "test")
 		c.Object(&BeanZero{5}).On(gscond.OnProfile("test"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var b *BeanZero
 			err := p.Get(&b)
 			assert.Nil(t, err)
@@ -2239,10 +2239,10 @@ func TestDefaultSpringContext(t *testing.T) {
 	})
 
 	t.Run("bean:test_ctx:stable", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("spring.profiles.active", "stable")
 		c.Object(&BeanZero{5}).On(gscond.OnProfile("test"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var b *BeanZero
 			err := p.Get(&b)
 			assert.Error(t, err, "can't find bean, bean:\"\"")
@@ -2252,14 +2252,14 @@ func TestDefaultSpringContext(t *testing.T) {
 
 	t.Run("option withClassName Condition", func(t *testing.T) {
 
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("president", "CaiYuanPei")
 		c.Property("class_floor", 2)
 		c.Provide(NewClassRoom, gsarg.Option(withClassName,
 			"${class_name:=二年级03班}",
 			"${class_floor:=3}",
 		).On(gscond.OnProperty("class_name_enable")))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var cls *ClassRoom
 			err := p.Get(&cls)
 			assert.Nil(t, err)
@@ -2273,7 +2273,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 	t.Run("option withClassName Apply", func(t *testing.T) {
 		onProperty := gscond.OnProperty("class_name_enable")
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("president", "CaiYuanPei")
 		c.Provide(NewClassRoom,
 			gsarg.Option(withClassName,
@@ -2281,7 +2281,7 @@ func TestDefaultSpringContext(t *testing.T) {
 				"${class_floor:=3}",
 			).On(onProperty),
 		)
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			var cls *ClassRoom
 			err := p.Get(&cls)
 			assert.Nil(t, err)
@@ -2294,11 +2294,11 @@ func TestDefaultSpringContext(t *testing.T) {
 	})
 
 	t.Run("method bean cond", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("server.version", "1.0.0")
 		parent := c.Object(new(Server))
 		c.Provide((*Server).Consumer, parent.ID()).On(gscond.OnProperty("consumer.enable"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var s *Server
 			err := p.Get(&s)
@@ -2320,7 +2320,7 @@ func TestDefaultSpringContext(t *testing.T) {
 //	parent := c.Provide(NewServerInterface).On(cond.OnProperty("server.is.nil"))
 //	c.Provide(ServerInterface.Consumer, parent.ID())
 //
-//	c.Refresh()
+//	c.Refresh(false)
 //
 //	var s *Server
 //	ok := p.Get(&s)
@@ -2332,7 +2332,7 @@ func TestDefaultSpringContext(t *testing.T) {
 // }
 
 func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 
 	c1 := gscond.OnProperty("null", gscond.MatchIfMissing()).Or().OnProfile("test")
 
@@ -2342,7 +2342,7 @@ func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	c.Object(new(BeanTwo)).On(gscond.OnBean("BeanOne"))
 	c.Object(new(BeanTwo)).Name("another_two").On(gscond.OnBean("Null"))
 
-	err := runTest(c, func(p gs.Context) {
+	err := runTest(c, func(p gsioc.Context) {
 
 		var two *BeanTwo
 		err := p.Get(&two)
@@ -2356,12 +2356,12 @@ func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 
 func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 	for i := 0; i < 20; i++ { // 测试 Find 无需绑定，不要排序
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo)).On(gscond.OnMissingBean("BeanOne"))
 		c.Object(new(BeanTwo)).Name("another_two").On(gscond.OnMissingBean("Null"))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var two *BeanTwo
 			err := p.Get(&two)
@@ -2451,7 +2451,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //	c := gs.New()
 //	c.Object(&BeanZero{5})
 //	c.Object(new(BeanOne))
-//	c.Refresh()
+//	c.Refresh(false)
 //
 //	c1 := cond.OnBean("BeanOne")
 //	assert.True(t, c1.Matches(c))
@@ -2465,7 +2465,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //	c := gs.New()
 //	c.Object(&BeanZero{5})
 //	c.Object(new(BeanOne))
-//	c.Refresh()
+//	c.Refresh(false)
 //
 //	c1 := cond.OnMissingBean("BeanOne")
 //	assert.False(t, c1.Matches(c))
@@ -2483,7 +2483,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //	c := gs.New()
 //	c.Property("bool", false)
 //	c.Property("int", 3)
-//	c.Refresh()
+//	c.Refresh(false)
 //
 //	c1 := cond.OnProperty("int")
 //	assert.True(t, c1.Matches(c))
@@ -2535,7 +2535,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Property(environ.SpringProfilesActive, "test")
-//	c.Refresh()
+//	c.Refresh(false)
 //
 //	profileCond := cond.OnProfile("test")
 //	assert.True(t, profileCond.Matches(c))
@@ -2557,10 +2557,10 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 func TestApplicationContext_Invoke(t *testing.T) {
 
 	t.Run("not run", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(func() {})
 		c.Property("version", "v0.0.1")
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			_, _ = p.Invoke(func(f func(), version string) {
 				fmt.Println("version:", version)
 			}, "", "${version}")
@@ -2569,11 +2569,11 @@ func TestApplicationContext_Invoke(t *testing.T) {
 	})
 
 	t.Run("run", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(func() {})
 		c.Property("version", "v0.0.1")
 		c.Property("spring.profiles.active", "dev")
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 			fn := func(f func(), version string) {
 				fmt.Println("version:", version)
 			}
@@ -2589,12 +2589,12 @@ type emptyStructB struct{}
 
 func TestEmptyStruct(t *testing.T) {
 
-	c := gs.New()
+	c := gsioc.New()
 	objA := &emptyStructA{}
 	c.Object(objA)
 	objB := &emptyStructB{}
 	c.Object(objB)
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 
 	// objA 和 objB 的地址相同但是类型确实不一样。
@@ -2609,11 +2609,11 @@ func TestMapCollection(t *testing.T) {
 	}
 
 	t.Run("", func(t *testing.T) {
-		c := gs.New()
+		c := gsioc.New()
 		c.Object(&mapValue{"a"}).Name("a").Order(1)
 		c.Object(&mapValue{"b"}).Name("b").Order(2)
 		c.Object(&mapValue{"c"}).Name("c").On(gscond.Not(gscond.OK()))
-		err := runTest(c, func(p gs.Context) {
+		err := runTest(c, func(p gsioc.Context) {
 
 			var vSlice []*mapValue
 			err := p.Get(&vSlice)
@@ -2647,7 +2647,7 @@ func newCircularB() *circularB {
 
 func TestLazy(t *testing.T) {
 	for i := 0; i < 1; i++ {
-		c := gs.New()
+		c := gsioc.New()
 		c.Property("spring.main.allow-circular-references", "true")
 		c.Provide(newCircularA)
 		c.Provide(newCircularB)
@@ -2655,7 +2655,7 @@ func TestLazy(t *testing.T) {
 			b *circularB `autowire:""`
 		}{}
 		c.Object(&d)
-		err := c.Refresh()
+		err := c.Refresh(false)
 		assert.Nil(t, err)
 		assert.NotNil(t, d.b)
 		assert.NotNil(t, d.b.A)
@@ -2665,7 +2665,7 @@ func TestLazy(t *testing.T) {
 type memory struct {
 }
 
-func (m *memory) OnInit(ctx gs.Context) error {
+func (m *memory) OnInit(ctx gsioc.Context) error {
 	fmt.Println("memory.OnInit")
 	return nil
 }
@@ -2678,7 +2678,7 @@ type table struct {
 	_ *memory `autowire:""`
 }
 
-func (t *table) OnInit(ctx gs.Context) error {
+func (t *table) OnInit(ctx gsioc.Context) error {
 	fmt.Println("table.OnInit")
 	return nil
 }
@@ -2688,16 +2688,16 @@ func (t *table) OnDestroy() {
 }
 
 func TestDestroyDependence(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Object(new(memory))
 	c.Object(new(table)).Name("aaa")
 	c.Object(new(table)).Name("bbb")
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 }
 
 type ContextAware struct {
-	gs.ContextAware
+	gsioc.ContextAware
 }
 
 func (c *ContextAware) Echo(str string) string {
@@ -2705,10 +2705,10 @@ func (c *ContextAware) Echo(str string) string {
 }
 
 func TestContextAware(t *testing.T) {
-	c := gs.New()
+	c := gsioc.New()
 	c.Property("prefix", "hello")
 	b := c.Object(new(ContextAware))
-	err := c.Refresh()
+	err := c.Refresh(false)
 	assert.Nil(t, err)
 	a := b.Interface().(*ContextAware)
 	assert.Equal(t, a.Echo("gopher"), "hello gopher!")

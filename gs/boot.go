@@ -19,20 +19,22 @@ package gs
 import (
 	"reflect"
 
+	"github.com/go-spring/spring-core/gs/gsapp"
 	"github.com/go-spring/spring-core/gs/gsarg"
 	"github.com/go-spring/spring-core/gs/gsbean"
+	"github.com/go-spring/spring-core/gs/gsioc"
 )
 
-var app = NewApp()
+var app = gsapp.NewApp()
 
 // Start 启动程序。
-func Start() (Context, error) {
-	return app.start()
+func Start() (gsioc.Context, error) {
+	return app.Start()
 }
 
 // Stop 停止程序。
 func Stop() {
-	app.stop()
+	app.Stop()
 }
 
 // Run 启动程序。
@@ -46,7 +48,7 @@ func ShutDown(msg ...string) {
 }
 
 // Bootstrap 参考 App.Bootstrap 的解释。
-func Bootstrap() *Bootstrapper {
+func Bootstrap() *gsapp.Bootstrapper {
 	return app.Bootstrap()
 }
 
@@ -62,15 +64,15 @@ func Property(key string, value interface{}) {
 
 // Accept 参考 Container.Accept 的解释。
 func Accept(b *gsbean.BeanDefinition) *gsbean.BeanDefinition {
-	return app.c.Accept(b)
+	return app.Accept(b)
 }
 
 // Object 参考 Container.Object 的解释。
 func Object(i interface{}) *gsbean.BeanDefinition {
-	return app.c.Accept(NewBean(reflect.ValueOf(i)))
+	return app.Accept(gsioc.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
 func Provide(ctor interface{}, args ...gsarg.Arg) *gsbean.BeanDefinition {
-	return app.c.Accept(NewBean(ctor, args...))
+	return app.Accept(gsioc.NewBean(ctor, args...))
 }

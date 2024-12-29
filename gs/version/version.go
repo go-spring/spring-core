@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs
+package version
 
 const (
 	Version = "go-spring@v1.1.3"

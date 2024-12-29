@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_test
+package gsioc_test
 
 import (
 	"fmt"
@@ -23,9 +23,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/gsarg"
 	"github.com/go-spring/spring-core/gs/gsbean"
+	"github.com/go-spring/spring-core/gs/gsioc"
 	"github.com/go-spring/spring-core/gs/gsutil"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
@@ -34,7 +34,7 @@ import (
 
 // newBean 该方法是为了平衡调用栈的深度，一般情况下 gs.NewBean 不应该被直接使用。
 func newBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *gsbean.BeanDefinition {
-	return gs.NewBean(objOrCtor, ctorArgs...)
+	return gsioc.NewBean(objOrCtor, ctorArgs...)
 }
 
 // func TestParseSingletonTag(t *testing.T) {

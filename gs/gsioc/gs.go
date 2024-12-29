@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-// Package gs 实现了 go-spring 的核心骨架，包含 IoC 容器、基于 IoC 容器的 App
+// Package gsioc 实现了 go-spring 的核心骨架，包含 IoC 容器、基于 IoC 容器的 App
 // 以及全局 App 对象封装三个部分，可以应用于多种使用场景。
-package gs
+package gsioc
 
 import (
 	"bytes"
@@ -57,7 +57,9 @@ type Container interface {
 	Property(key string, value interface{})
 	Object(i interface{}) *gsbean.BeanDefinition
 	Provide(ctor interface{}, args ...gsarg.Arg) *gsbean.BeanDefinition
-	Refresh() error
+	Accept(b *gsbean.BeanDefinition) *gsbean.BeanDefinition
+	OnProperty(key string, fn interface{})
+	Refresh(autoClear bool) error
 	Close()
 }
 
@@ -310,12 +312,7 @@ func (c *container) clear() {
 	c.tempContainer = nil
 }
 
-// Refresh 刷新容器的内容，对 bean 进行有效性判断以及完成属性绑定和依赖注入。
-func (c *container) Refresh() error {
-	return c.refresh(true)
-}
-
-func (c *container) refresh(autoClear bool) (err error) {
+func (c *container) Refresh(autoClear bool) (err error) {
 
 	if c.state != Unrefreshed {
 		return errors.New("container already refreshed")
@@ -1126,6 +1123,7 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		for _, b := range beans {
 			ret.SetMapIndex(reflect.ValueOf(b.GetName()), b.Value())
 		}
+	default:
 	}
 	v.Set(ret)
 	return nil
