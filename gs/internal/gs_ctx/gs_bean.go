@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package gsioc
+package gs_ctx
 
 import (
-	"github.com/go-spring/spring-core/gs/gsarg"
-	"github.com/go-spring/spring-core/gs/gsbean"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 )
 
 // type beanStatus int8
@@ -351,6 +351,6 @@ type BeanDestroy interface {
 // }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *gsbean.BeanDefinition {
-	return gsbean.NewBean(objOrCtor, ctorArgs...)
+func NewBean(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) *gs_bean.BeanDefinition {
+	return gs_bean.NewBean(objOrCtor, ctorArgs...)
 }

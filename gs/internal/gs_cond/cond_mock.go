@@ -7,13 +7,13 @@
 //
 
 // Package cond is a generated GoMock package.
-package gscond
+package gs_cond
 
 import (
 	reflect "reflect"
 
 	conf "github.com/go-spring/spring-core/conf"
-	gsutil "github.com/go-spring/spring-core/gs/gsutil"
+	gsutil "github.com/go-spring/spring-core/gs/internal/gs_util"
 	gomock "go.uber.org/mock/gomock"
 )
 

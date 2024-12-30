@@ -1,4 +1,4 @@
-package gsbean
+package gs_bean
 
 import (
 	"errors"
@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/go-spring/spring-core/gs/gsarg"
-	"github.com/go-spring/spring-core/gs/gscond"
-	"github.com/go-spring/spring-core/gs/gsutil"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/internal/gs_util"
 )
 
 type BeanStatus int8
@@ -47,38 +47,38 @@ func GetStatusString(status BeanStatus) string {
 
 // BeanDefinition bean 元数据。
 type BeanDefinition struct {
-	V reflect.Value   // 值
-	T reflect.Type    // 类型
-	F *gsarg.Callable // 构造函数
+	V reflect.Value    // 值
+	T reflect.Type     // 类型
+	F *gs_arg.Callable // 构造函数
 
 	file string // 注册点所在文件
 	line int    // 注册点所在行数
 
-	name     string                // 名称
-	typeName string                // 原始类型的全限定名
-	status   BeanStatus            // 状态
-	primary  bool                  // 是否为主版本
-	method   bool                  // 是否为成员方法
-	cond     gscond.Condition      // 判断条件
-	order    float32               // 收集时的顺序
-	init     interface{}           // 初始化函数
-	destroy  interface{}           // 销毁函数
-	depends  []gsutil.BeanSelector // 间接依赖项
-	exports  []reflect.Type        // 导出的接口
+	name     string                 // 名称
+	typeName string                 // 原始类型的全限定名
+	status   BeanStatus             // 状态
+	primary  bool                   // 是否为主版本
+	method   bool                   // 是否为成员方法
+	cond     gs_cond.Condition      // 判断条件
+	order    float32                // 收集时的顺序
+	init     interface{}            // 初始化函数
+	destroy  interface{}            // 销毁函数
+	depends  []gs_util.BeanSelector // 间接依赖项
+	exports  []reflect.Type         // 导出的接口
 }
 
-func (d *BeanDefinition) GetName() string                   { return d.name }
-func (d *BeanDefinition) GetTypeName() string               { return d.typeName }
-func (d *BeanDefinition) GetStatus() BeanStatus             { return d.status }
-func (d *BeanDefinition) SetStatus(status BeanStatus)       { d.status = status }
-func (d *BeanDefinition) IsPrimary() bool                   { return d.primary }
-func (d *BeanDefinition) IsMethod() bool                    { return d.method }
-func (d *BeanDefinition) GetCond() gscond.Condition         { return d.cond }
-func (d *BeanDefinition) GetOrder() float32                 { return d.order }
-func (d *BeanDefinition) GetInit() interface{}              { return d.init }
-func (d *BeanDefinition) GetDestroy() interface{}           { return d.destroy }
-func (d *BeanDefinition) GetDepends() []gsutil.BeanSelector { return d.depends }
-func (d *BeanDefinition) GetExports() []reflect.Type        { return d.exports }
+func (d *BeanDefinition) GetName() string                    { return d.name }
+func (d *BeanDefinition) GetTypeName() string                { return d.typeName }
+func (d *BeanDefinition) GetStatus() BeanStatus              { return d.status }
+func (d *BeanDefinition) SetStatus(status BeanStatus)        { d.status = status }
+func (d *BeanDefinition) IsPrimary() bool                    { return d.primary }
+func (d *BeanDefinition) IsMethod() bool                     { return d.method }
+func (d *BeanDefinition) GetCond() gs_cond.Condition         { return d.cond }
+func (d *BeanDefinition) GetOrder() float32                  { return d.order }
+func (d *BeanDefinition) GetInit() interface{}               { return d.init }
+func (d *BeanDefinition) GetDestroy() interface{}            { return d.destroy }
+func (d *BeanDefinition) GetDepends() []gs_util.BeanSelector { return d.depends }
+func (d *BeanDefinition) GetExports() []reflect.Type         { return d.exports }
 
 // Type 返回 bean 的类型。
 func (d *BeanDefinition) Type() reflect.Type {
@@ -160,7 +160,7 @@ func (d *BeanDefinition) Name(name string) *BeanDefinition {
 }
 
 // On 设置 bean 的 Condition。
-func (d *BeanDefinition) On(cond gscond.Condition) *BeanDefinition {
+func (d *BeanDefinition) On(cond gs_cond.Condition) *BeanDefinition {
 	d.cond = cond
 	return d
 }
@@ -172,7 +172,7 @@ func (d *BeanDefinition) Order(order float32) *BeanDefinition {
 }
 
 // DependsOn 设置 bean 的间接依赖项。
-func (d *BeanDefinition) DependsOn(selectors ...gsutil.BeanSelector) *BeanDefinition {
+func (d *BeanDefinition) DependsOn(selectors ...gs_util.BeanSelector) *BeanDefinition {
 	d.depends = append(d.depends, selectors...)
 	return d
 }
@@ -186,13 +186,13 @@ func (d *BeanDefinition) Primary() *BeanDefinition {
 // validLifeCycleFunc 判断是否是合法的用于 bean 生命周期控制的函数，生命周期函数
 // 的要求：只能有一个入参并且必须是 bean 的类型，没有返回值或者只返回 error 类型值。
 func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
-	if !gsutil.IsFuncType(fnType) {
+	if !gs_util.IsFuncType(fnType) {
 		return false
 	}
-	if fnType.NumIn() != 1 || !gsutil.HasReceiver(fnType, beanValue) {
+	if fnType.NumIn() != 1 || !gs_util.HasReceiver(fnType, beanValue) {
 		return false
 	}
-	return gsutil.ReturnNothing(fnType) || gsutil.ReturnOnlyError(fnType)
+	return gs_util.ReturnNothing(fnType) || gs_util.ReturnOnlyError(fnType)
 }
 
 // Init 设置 bean 的初始化函数。
@@ -228,7 +228,7 @@ func (d *BeanDefinition) export(exports ...interface{}) error {
 		if t, ok := o.(reflect.Type); ok {
 			typ = t
 		} else { // 处理 (*error)(nil) 这种导出形式
-			typ = gsutil.Indirect(reflect.TypeOf(o))
+			typ = gs_util.Indirect(reflect.TypeOf(o))
 		}
 		if typ.Kind() != reflect.Interface {
 			return errors.New("only interface type can be exported")
@@ -249,7 +249,7 @@ func (d *BeanDefinition) export(exports ...interface{}) error {
 }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *BeanDefinition {
+func NewBean(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) *BeanDefinition {
 
 	var v reflect.Value
 	var fromValue bool
@@ -265,7 +265,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *BeanDefinition {
 	}
 
 	t := v.Type()
-	if !gsutil.IsBeanType(t) {
+	if !gs_util.IsBeanType(t) {
 		panic(errors.New("bean must be ref type"))
 	}
 
@@ -274,32 +274,32 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *BeanDefinition {
 	}
 
 	const skip = 2
-	var f *gsarg.Callable
+	var f *gs_arg.Callable
 	_, file, line, _ := runtime.Caller(skip)
 
 	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
 	if !fromValue && t.Kind() == reflect.Func {
 
-		if !gsutil.IsConstructor(t) {
+		if !gs_util.IsConstructor(t) {
 			t1 := "func(...)bean"
 			t2 := "func(...)(bean, error)"
 			panic(fmt.Errorf("constructor should be %s or %s", t1, t2))
 		}
 
 		var err error
-		f, err = gsarg.Bind(objOrCtor, ctorArgs, skip)
+		f, err = gs_arg.Bind(objOrCtor, ctorArgs, skip)
 		if err != nil {
 			panic(err)
 		}
 
 		out0 := t.Out(0)
 		v = reflect.New(out0)
-		if gsutil.IsBeanType(out0) {
+		if gs_util.IsBeanType(out0) {
 			v = v.Elem()
 		}
 
 		t = v.Type()
-		if !gsutil.IsBeanType(t) {
+		if !gs_util.IsBeanType(t) {
 			panic(errors.New("bean must be ref type"))
 		}
 
@@ -315,7 +315,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *BeanDefinition {
 		method = strings.LastIndexByte(fnInfo.Name(), ')') > 0
 	}
 
-	if t.Kind() == reflect.Ptr && !gsutil.IsValueType(t.Elem()) {
+	if t.Kind() == reflect.Ptr && !gs_util.IsValueType(t.Elem()) {
 		panic(errors.New("bean should be *val but not *ref"))
 	}
 
@@ -331,7 +331,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *BeanDefinition {
 		V:        v,
 		F:        f,
 		name:     name,
-		typeName: gsutil.TypeName(t),
+		typeName: gs_util.TypeName(t),
 		status:   Default,
 		method:   method,
 		file:     file,

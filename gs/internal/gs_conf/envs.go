@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package appconf
+package gs_conf
 
 import (
 	"os"

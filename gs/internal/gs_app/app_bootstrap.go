@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
-package gsapp
+package gs_app
 
 import (
 	"reflect"
 
-	"github.com/go-spring/spring-core/gs/gsarg"
-	"github.com/go-spring/spring-core/gs/gsbean"
-	"github.com/go-spring/spring-core/gs/gsioc"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 )
 
 type Bootstrapper struct {
-	c gsioc.Container
+	c gs_ctx.Container
 }
 
 func newBootstrap() *Bootstrapper {
 	return &Bootstrapper{
-		c: gsioc.New(),
+		c: gs_ctx.New(),
 	}
 }
 
@@ -45,13 +45,13 @@ func (b *Bootstrapper) Property(key string, value interface{}) {
 }
 
 // Object 参考 Container.Object 的解释。
-func (b *Bootstrapper) Object(i interface{}) *gsbean.BeanDefinition {
-	return b.c.Accept(gsioc.NewBean(reflect.ValueOf(i)))
+func (b *Bootstrapper) Object(i interface{}) *gs_bean.BeanDefinition {
+	return b.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (b *Bootstrapper) Provide(ctor interface{}, args ...gsarg.Arg) *gsbean.BeanDefinition {
-	return b.c.Accept(gsioc.NewBean(ctor, args...))
+func (b *Bootstrapper) Provide(ctor interface{}, args ...gs_arg.Arg) *gs_bean.BeanDefinition {
+	return b.c.Accept(gs_ctx.NewBean(ctor, args...))
 }
 
 func (b *Bootstrapper) start() error {

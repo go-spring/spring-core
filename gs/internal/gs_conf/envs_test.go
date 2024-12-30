@@ -14,9 +14,15 @@
  * limitations under the License.
  */
 
-package version
+package gs_conf
 
-const (
-	Version = "go-spring@v1.1.3"
-	Website = "https://go-spring.com/"
+import (
+	"testing"
 )
+
+func TestReplaceKey(t *testing.T) {
+	s := replaceKey("__a_b__")
+	if s != "__a.b__" {
+		t.Fatal("replaceKey error")
+	}
+}

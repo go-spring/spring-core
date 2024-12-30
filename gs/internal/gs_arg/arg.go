@@ -17,7 +17,7 @@
 //go:generate mockgen -build_flags="-mod=mod" -package=arg -source=arg.go -destination=arg_mock.go
 
 // Package arg 用于实现函数参数绑定。
-package gsarg
+package gs_arg
 
 import (
 	"errors"
@@ -25,8 +25,8 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/go-spring/spring-core/gs/gscond"
-	"github.com/go-spring/spring-core/gs/gsutil"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -34,7 +34,7 @@ import (
 type Context interface {
 	// Matches returns true when the Condition returns true,
 	// and returns false when the Condition returns false.
-	Matches(c gscond.Condition) (bool, error)
+	Matches(c gs_cond.Condition) (bool, error)
 	// Bind binds properties value by the "value" tag.
 	Bind(v reflect.Value, tag string) error
 	// Wire wires dependent beans by the "autowire" tag.
@@ -240,16 +240,16 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 		return reflect.ValueOf(g.v), nil
 	case *optionArg:
 		return g.call(ctx)
-	case gsutil.BeanDefinition:
+	case gs_util.BeanDefinition:
 		tag = g.ID()
 	case string:
 		tag = g
 	default:
-		tag = gsutil.TypeName(g) + ":"
+		tag = gs_util.TypeName(g) + ":"
 	}
 
 	// binds properties value by the "value" tag.
-	if gsutil.IsValueType(t) {
+	if gs_util.IsValueType(t) {
 		if tag == "" {
 			tag = "${}"
 		}
@@ -261,7 +261,7 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 	}
 
 	// wires dependent beans by the "autowire" tag.
-	if gsutil.IsBeanReceiver(t) {
+	if gs_util.IsBeanReceiver(t) {
 		v := reflect.New(t).Elem()
 		if err = ctx.Wire(v, tag); err != nil {
 			return reflect.Value{}, err
@@ -275,7 +275,7 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 // optionArg Option 函数的参数绑定。
 type optionArg struct {
 	r *Callable
-	c gscond.Condition
+	c gs_cond.Condition
 }
 
 // Provide 为 Option 方法绑定运行时参数。
@@ -302,8 +302,8 @@ func Option(fn interface{}, args ...Arg) *optionArg {
 	return &optionArg{r: r}
 }
 
-// On 设置一个 gscond.Condition 对象。
-func (arg *optionArg) On(c gscond.Condition) *optionArg {
+// On 设置一个 gs_cond.Condition 对象。
+func (arg *optionArg) On(c gs_cond.Condition) *optionArg {
 	arg.c = c
 	return arg
 }
@@ -400,7 +400,7 @@ func (r *Callable) Call(ctx Context) ([]reflect.Value, error) {
 	}
 
 	o := out[n-1]
-	if gsutil.IsErrorType(o.Type()) {
+	if gs_util.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
 			return out[:n-1], i.(error)
 		}

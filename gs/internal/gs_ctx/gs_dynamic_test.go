@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gsioc_test
+package gs_ctx_test
 
 import (
 	"encoding/json"
@@ -24,7 +24,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
-	"github.com/go-spring/spring-core/gs/gsioc"
+	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,7 +45,7 @@ func TestDynamic(t *testing.T) {
 	var cfg *DynamicConfig
 	wrapper := new(DynamicConfigWrapper)
 
-	c := gsioc.New()
+	c := gs_ctx.New()
 	c.Provide(func() *DynamicConfig {
 		config := new(DynamicConfig)
 		config.Int.OnValidate(func(v int64) error {

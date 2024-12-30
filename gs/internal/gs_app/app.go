@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gsapp
+package gs_app
 
 import (
 	"context"
@@ -25,10 +25,14 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/go-spring/spring-core/gs/gsarg"
-	"github.com/go-spring/spring-core/gs/gsbean"
-	"github.com/go-spring/spring-core/gs/gsioc"
-	"github.com/go-spring/spring-core/gs/version"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
+)
+
+const (
+	Version = "go-spring@v1.1.3"
+	Website = "https://go-spring.com/"
 )
 
 // SpringBannerVisible 是否显示 banner。
@@ -36,12 +40,12 @@ const SpringBannerVisible = "spring.banner.visible"
 
 // AppRunner 命令行启动器接口
 type AppRunner interface {
-	Run(ctx gsioc.Context)
+	Run(ctx gs_ctx.Context)
 }
 
 // AppEvent 应用运行过程中的事件
 type AppEvent interface {
-	OnAppStart(ctx gsioc.Context)  // 应用启动的事件
+	OnAppStart(ctx gs_ctx.Context) // 应用启动的事件
 	OnAppStop(ctx context.Context) // 应用停止的事件
 }
 
@@ -53,7 +57,7 @@ type tempApp struct {
 type App struct {
 	*tempApp
 
-	c gsioc.Container
+	c gs_ctx.Container
 	b *Bootstrapper
 
 	exitChan chan struct{}
@@ -65,7 +69,7 @@ type App struct {
 // NewApp application 的构造函数
 func NewApp() *App {
 	return &App{
-		c:        gsioc.New(),
+		c:        gs_ctx.New(),
 		tempApp:  &tempApp{},
 		exitChan: make(chan struct{}),
 	}
@@ -76,7 +80,7 @@ func (app *App) Banner(banner string) {
 	app.banner = banner
 }
 
-func (app *App) Start() (gsioc.Context, error) {
+func (app *App) Start() (gs_ctx.Context, error) {
 
 	app.Object(app)
 
@@ -106,23 +110,23 @@ func (app *App) Start() (gsioc.Context, error) {
 
 	// 执行命令行启动器
 	for _, r := range app.Runners {
-		r.Run(app.c.(gsioc.Context))
+		r.Run(app.c.(gs_ctx.Context))
 	}
 
 	// 通知应用启动事件
 	for _, event := range app.Events {
-		event.OnAppStart(app.c.(gsioc.Context))
+		event.OnAppStart(app.c.(gs_ctx.Context))
 	}
 
 	// 通知应用停止事件
-	app.c.(gsioc.Context).Go(func(ctx context.Context) {
+	app.c.(gs_ctx.Context).Go(func(ctx context.Context) {
 		<-ctx.Done()
 		for _, event := range app.Events {
 			event.OnAppStop(context.Background())
 		}
 	})
 
-	return app.c.(gsioc.Context), nil
+	return app.c.(gs_ctx.Context), nil
 }
 
 func (app *App) wait() {
@@ -197,13 +201,13 @@ func (app *App) printBanner(banner string) {
 	}
 
 	var padding []byte
-	if n := (maxLength - len(version.Version)) / 2; n > 0 {
+	if n := (maxLength - len(Version)) / 2; n > 0 {
 		padding = make([]byte, n)
 		for i := range padding {
 			padding[i] = ' '
 		}
 	}
-	fmt.Println(string(padding) + version.Version + "\n")
+	fmt.Println(string(padding) + Version + "\n")
 }
 
 // ShutDown 关闭执行器
@@ -235,16 +239,16 @@ func (app *App) Property(key string, value interface{}) {
 }
 
 // Accept 参考 Container.Accept 的解释。
-func (app *App) Accept(b *gsbean.BeanDefinition) *gsbean.BeanDefinition {
+func (app *App) Accept(b *gs_bean.BeanDefinition) *gs_bean.BeanDefinition {
 	return app.c.Accept(b)
 }
 
 // Object 参考 Container.Object 的解释。
-func (app *App) Object(i interface{}) *gsbean.BeanDefinition {
-	return app.c.Accept(gsioc.NewBean(reflect.ValueOf(i)))
+func (app *App) Object(i interface{}) *gs_bean.BeanDefinition {
+	return app.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (app *App) Provide(ctor interface{}, args ...gsarg.Arg) *gsbean.BeanDefinition {
-	return app.c.Accept(gsioc.NewBean(ctor, args...))
+func (app *App) Provide(ctor interface{}, args ...gs_arg.Arg) *gs_bean.BeanDefinition {
+	return app.c.Accept(gs_ctx.NewBean(ctor, args...))
 }

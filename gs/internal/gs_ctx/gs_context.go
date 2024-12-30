@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package gsioc
+package gs_ctx
 
 import (
 	"errors"
 	"reflect"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/gs/gsarg"
-	"github.com/go-spring/spring-core/gs/gsutil"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_util"
 )
 
 func (c *container) Keys() []string {
@@ -47,12 +47,12 @@ func (c *container) Bind(i interface{}, opts ...conf.BindArg) error {
 
 // Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，即未被
 // 标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *container) Find(selector gsutil.BeanSelector) ([]gsutil.BeanDefinition, error) {
+func (c *container) Find(selector gs_util.BeanSelector) ([]gs_util.BeanDefinition, error) {
 	beans, err := c.findBean(selector)
 	if err != nil {
 		return nil, err
 	}
-	var ret []gsutil.BeanDefinition
+	var ret []gs_util.BeanDefinition
 	for _, b := range beans {
 		ret = append(ret, b)
 	}
@@ -68,7 +68,7 @@ func (c *container) Find(selector gsutil.BeanSelector) ([]gsutil.BeanDefinition,
 // 工作模式称为自动模式，否则根据传入的选择器列表进行排序，这种工作模式成为指派模式。
 // 该方法和 Find 方法的区别是该方法保证返回的所有 bean 对象都已经完成属性绑定和依
 // 赖注入，而 Find 方法只能保证返回的 bean 对象是有效的，即未被标记为删除的。
-func (c *container) Get(i interface{}, selectors ...gsutil.BeanSelector) error {
+func (c *container) Get(i interface{}, selectors ...gs_util.BeanSelector) error {
 
 	if i == nil {
 		return errors.New("i can't be nil")
@@ -97,7 +97,7 @@ func (c *container) Get(i interface{}, selectors ...gsutil.BeanSelector) error {
 // Wire 如果传入的是 bean 对象，则对 bean 对象进行属性绑定和依赖注入，如果传入的
 // 是构造函数，则立即执行该构造函数，然后对返回的结果进行属性绑定和依赖注入。无论哪
 // 种方式，该函数执行完后都会返回 bean 对象的真实值。
-func (c *container) Wire(objOrCtor interface{}, ctorArgs ...gsarg.Arg) (interface{}, error) {
+func (c *container) Wire(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) (interface{}, error) {
 
 	stack := newWiringStack()
 
@@ -115,9 +115,9 @@ func (c *container) Wire(objOrCtor interface{}, ctorArgs ...gsarg.Arg) (interfac
 	return b.Interface(), nil
 }
 
-func (c *container) Invoke(fn interface{}, args ...gsarg.Arg) ([]interface{}, error) {
+func (c *container) Invoke(fn interface{}, args ...gs_arg.Arg) ([]interface{}, error) {
 
-	if !gsutil.IsFuncType(reflect.TypeOf(fn)) {
+	if !gs_util.IsFuncType(reflect.TypeOf(fn)) {
 		return nil, errors.New("fn should be func type")
 	}
 
@@ -129,7 +129,7 @@ func (c *container) Invoke(fn interface{}, args ...gsarg.Arg) ([]interface{}, er
 	// 	}
 	// }()
 
-	r, err := gsarg.Bind(fn, args, 1)
+	r, err := gs_arg.Bind(fn, args, 1)
 	if err != nil {
 		return nil, err
 	}

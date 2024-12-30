@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gscond_test
+package gs_cond_test
 
 // func TestOK(t *testing.T) {
 // 	ctrl := gomock.NewController(t)

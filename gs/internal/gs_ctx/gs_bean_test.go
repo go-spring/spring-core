@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gsioc_test
+package gs_ctx_test
 
 import (
 	"fmt"
@@ -23,18 +23,18 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs/gsarg"
-	"github.com/go-spring/spring-core/gs/gsbean"
-	"github.com/go-spring/spring-core/gs/gsioc"
-	"github.com/go-spring/spring-core/gs/gsutil"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
+	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 	"github.com/stretchr/testify/assert"
 )
 
 // newBean 该方法是为了平衡调用栈的深度，一般情况下 gs.NewBean 不应该被直接使用。
-func newBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *gsbean.BeanDefinition {
-	return gsioc.NewBean(objOrCtor, ctorArgs...)
+func newBean(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) *gs_bean.BeanDefinition {
+	return gs_ctx.NewBean(objOrCtor, ctorArgs...)
 }
 
 // func TestParseSingletonTag(t *testing.T) {
@@ -101,7 +101,7 @@ func TestIsFuncBeanType(t *testing.T) {
 	}
 
 	for k, v := range data {
-		ok := gsutil.IsConstructor(k)
+		ok := gs_util.IsConstructor(k)
 		assert.Equal(t, ok, v)
 	}
 }
@@ -109,7 +109,7 @@ func TestIsFuncBeanType(t *testing.T) {
 func TestBeanDefinition_Match(t *testing.T) {
 
 	data := []struct {
-		bd       *gsbean.BeanDefinition
+		bd       *gs_bean.BeanDefinition
 		typeName string
 		beanName string
 		expect   bool
@@ -184,7 +184,7 @@ func TestObjectBean(t *testing.T) {
 
 	t.Run("check name && typename", func(t *testing.T) {
 
-		data := map[*gsbean.BeanDefinition]struct {
+		data := map[*gs_bean.BeanDefinition]struct {
 			name     string
 			typeName string
 		}{
