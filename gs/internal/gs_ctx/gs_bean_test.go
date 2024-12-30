@@ -193,7 +193,7 @@ func TestObjectBean(t *testing.T) {
 
 			newBean(newHistoryTeacher("")): {
 				"historyTeacher",
-				"github.com/go-spring/spring-core/gs/gs_test.historyTeacher",
+				"github.com/go-spring/spring-core/gs/internal/gs_ctx/gs_ctx_test.historyTeacher",
 			},
 
 			newBean(new(pkg2.SamePkg)): {
@@ -217,10 +217,10 @@ func TestObjectBean(t *testing.T) {
 func TestConstructorBean(t *testing.T) {
 
 	bd := newBean(NewStudent)
-	assert.Equal(t, bd.Type().String(), "*gs_test.Student")
+	assert.Equal(t, bd.Type().String(), "*gs_ctx_test.Student")
 
 	bd = newBean(NewPtrStudent)
-	assert.Equal(t, bd.Type().String(), "*gs_test.Student")
+	assert.Equal(t, bd.Type().String(), "*gs_ctx_test.Student")
 
 	// mapFn := func() map[int]string { return make(map[int]string) }
 	// bd = newBean(mapFn)
@@ -236,7 +236,7 @@ func TestConstructorBean(t *testing.T) {
 
 	interfaceFn := func(name string) Teacher { return newHistoryTeacher(name) }
 	bd = newBean(interfaceFn)
-	assert.Equal(t, bd.Type().String(), "gs_test.Teacher")
+	assert.Equal(t, bd.Type().String(), "gs_ctx_test.Teacher")
 
 	// assert.Panic(t, func() {
 	// 	_ = newBean(func() (*int, *int) { return nil, nil })

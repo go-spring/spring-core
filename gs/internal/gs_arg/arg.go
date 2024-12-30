@@ -25,6 +25,7 @@ import (
 	"reflect"
 	"runtime"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
@@ -223,7 +224,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 		return reflect.ValueOf(g.v), nil
 	case *optionArg:
 		return g.call(ctx)
-	case gs_util.BeanDefinition:
+	case *gs.BeanDefinition:
 		tag = g.ID()
 	case string:
 		tag = g
@@ -232,7 +233,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	}
 
 	// binds properties value by the "value" tag.
-	if gs_util.IsValueType(t) {
+	if conf.IsValueType(t) {
 		if tag == "" {
 			tag = "${}"
 		}

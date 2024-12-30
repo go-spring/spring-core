@@ -55,35 +55,6 @@ func TypeName(i interface{}) string {
 	return typ.String() // the path of built-in type is empty
 }
 
-// A BeanSelector can be the ID of a bean, a `reflect.Type`, a pointer such as
-// `(*error)(nil)`, or a BeanDefinition value.
-type BeanSelector interface{}
-
-// A BeanDefinition describes a bean whose lifecycle is managed by IoC container.
-type BeanDefinition interface {
-	Type() reflect.Type
-	Value() reflect.Value
-	Interface() interface{}
-	ID() string
-	BeanName() string
-	TypeName() string
-	Created() bool
-	Wired() bool
-}
-
-// Converter converts string value into user-defined value. It should be function
-// type, and its prototype is func(string)(type,error).
-type Converter interface{}
-
-// IsConverter returns whether `t` is a converter type.
-func IsConverter(t reflect.Type) bool {
-	return IsFuncType(t) &&
-		t.NumIn() == 1 &&
-		t.In(0).Kind() == reflect.String &&
-		t.NumOut() == 2 &&
-		(IsValueType(t.Out(0)) || IsFuncType(t.Out(0))) && IsErrorType(t.Out(1))
-}
-
 // IsFuncType returns whether `t` is func type.
 func IsFuncType(t reflect.Type) bool {
 	return t.Kind() == reflect.Func
@@ -134,40 +105,40 @@ func HasReceiver(t reflect.Type, receiver reflect.Value) bool {
 	return receiver.Type().Implements(t0)
 }
 
-// IsPrimitiveValueType returns whether `t` is the primitive value type which only is
-// int, unit, float, bool, string and complex.
-func IsPrimitiveValueType(t reflect.Type) bool {
-	switch t.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return true
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return true
-	case reflect.Complex64, reflect.Complex128:
-		return true
-	case reflect.Float32, reflect.Float64:
-		return true
-	case reflect.String:
-		return true
-	case reflect.Bool:
-		return true
-	}
-	return false
-}
-
-// IsValueType returns whether the input type is the primitive value type and their
-// composite type including array, slice, map and struct, such as []int, [3]string,
-// []string, map[int]int, map[string]string, etc.
-func IsValueType(t reflect.Type) bool {
-	fn := func(t reflect.Type) bool {
-		return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct
-	}
-	switch t.Kind() {
-	case reflect.Map, reflect.Slice, reflect.Array:
-		return fn(t.Elem())
-	default:
-		return fn(t)
-	}
-}
+//// IsPrimitiveValueType returns whether `t` is the primitive value type which only is
+//// int, unit, float, bool, string and complex.
+//func IsPrimitiveValueType(t reflect.Type) bool {
+//	switch t.Kind() {
+//	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+//		return true
+//	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+//		return true
+//	case reflect.Complex64, reflect.Complex128:
+//		return true
+//	case reflect.Float32, reflect.Float64:
+//		return true
+//	case reflect.String:
+//		return true
+//	case reflect.Bool:
+//		return true
+//	}
+//	return false
+//}
+//
+//// IsValueType returns whether the input type is the primitive value type and their
+//// composite type including array, slice, map and struct, such as []int, [3]string,
+//// []string, map[int]int, map[string]string, etc.
+//func IsValueType(t reflect.Type) bool {
+//	fn := func(t reflect.Type) bool {
+//		return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct
+//	}
+//	switch t.Kind() {
+//	case reflect.Map, reflect.Slice, reflect.Array:
+//		return fn(t.Elem())
+//	default:
+//		return fn(t)
+//	}
+//}
 
 // IsBeanType returns whether `t` is a bean type.
 func IsBeanType(t reflect.Type) bool {

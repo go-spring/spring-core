@@ -27,7 +27,6 @@ import (
 
 	"github.com/go-spring/spring-core/expr"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -110,7 +109,7 @@ func (c *onMissingProperty) Matches(ctx gs.ConditionContext) (bool, error) {
 
 // onBean is a Condition that returns true when finding more than one beans.
 type onBean struct {
-	selector gs_util.BeanSelector
+	selector gs.BeanSelector
 }
 
 func (c *onBean) Matches(ctx gs.ConditionContext) (bool, error) {
@@ -120,7 +119,7 @@ func (c *onBean) Matches(ctx gs.ConditionContext) (bool, error) {
 
 // onMissingBean is a Condition that returns true when finding no beans.
 type onMissingBean struct {
-	selector gs_util.BeanSelector
+	selector gs.BeanSelector
 }
 
 func (c *onMissingBean) Matches(ctx gs.ConditionContext) (bool, error) {
@@ -130,7 +129,7 @@ func (c *onMissingBean) Matches(ctx gs.ConditionContext) (bool, error) {
 
 // onSingleBean is a Condition that returns true when finding only one bean.
 type onSingleBean struct {
-	selector gs_util.BeanSelector
+	selector gs.BeanSelector
 }
 
 func (c *onSingleBean) Matches(ctx gs.ConditionContext) (bool, error) {
@@ -340,34 +339,34 @@ func (c *conditional) OnMissingProperty(name string) *conditional {
 
 // OnBean returns a conditional that starts with a Condition that returns true when
 // finding more than one beans.
-func OnBean(selector gs_util.BeanSelector) *conditional {
+func OnBean(selector gs.BeanSelector) *conditional {
 	return New().OnBean(selector)
 }
 
 // OnBean adds a Condition that returns true when finding more than one beans.
-func (c *conditional) OnBean(selector gs_util.BeanSelector) *conditional {
+func (c *conditional) OnBean(selector gs.BeanSelector) *conditional {
 	return c.On(&onBean{selector: selector})
 }
 
 // OnMissingBean returns a conditional that starts with a Condition that returns
 // true when finding no beans.
-func OnMissingBean(selector gs_util.BeanSelector) *conditional {
+func OnMissingBean(selector gs.BeanSelector) *conditional {
 	return New().OnMissingBean(selector)
 }
 
 // OnMissingBean adds a Condition that returns true when finding no beans.
-func (c *conditional) OnMissingBean(selector gs_util.BeanSelector) *conditional {
+func (c *conditional) OnMissingBean(selector gs.BeanSelector) *conditional {
 	return c.On(&onMissingBean{selector: selector})
 }
 
 // OnSingleBean returns a conditional that starts with a Condition that returns
 // true when finding only one bean.
-func OnSingleBean(selector gs_util.BeanSelector) *conditional {
+func OnSingleBean(selector gs.BeanSelector) *conditional {
 	return New().OnSingleBean(selector)
 }
 
 // OnSingleBean adds a Condition that returns true when finding only one bean.
-func (c *conditional) OnSingleBean(selector gs_util.BeanSelector) *conditional {
+func (c *conditional) OnSingleBean(selector gs.BeanSelector) *conditional {
 	return c.On(&onSingleBean{selector: selector})
 }
 

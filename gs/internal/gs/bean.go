@@ -50,31 +50,31 @@ type BeanDefinition struct {
 	file string // 注册点所在文件
 	line int    // 注册点所在行数
 
-	name     string                 // 名称
-	typeName string                 // 原始类型的全限定名
-	status   BeanStatus             // 状态
-	primary  bool                   // 是否为主版本
-	method   bool                   // 是否为成员方法
-	cond     Condition              // 判断条件
-	order    float32                // 收集时的顺序
-	init     interface{}            // 初始化函数
-	destroy  interface{}            // 销毁函数
-	depends  []gs_util.BeanSelector // 间接依赖项
-	exports  []reflect.Type         // 导出的接口
+	name     string         // 名称
+	typeName string         // 原始类型的全限定名
+	status   BeanStatus     // 状态
+	primary  bool           // 是否为主版本
+	method   bool           // 是否为成员方法
+	cond     Condition      // 判断条件
+	order    float32        // 收集时的顺序
+	init     interface{}    // 初始化函数
+	destroy  interface{}    // 销毁函数
+	depends  []BeanSelector // 间接依赖项
+	exports  []reflect.Type // 导出的接口
 }
 
-func (d *BeanDefinition) GetName() string                    { return d.name }
-func (d *BeanDefinition) GetTypeName() string                { return d.typeName }
-func (d *BeanDefinition) GetStatus() BeanStatus              { return d.status }
-func (d *BeanDefinition) SetStatus(status BeanStatus)        { d.status = status }
-func (d *BeanDefinition) IsPrimary() bool                    { return d.primary }
-func (d *BeanDefinition) IsMethod() bool                     { return d.method }
-func (d *BeanDefinition) GetCond() Condition                 { return d.cond }
-func (d *BeanDefinition) GetOrder() float32                  { return d.order }
-func (d *BeanDefinition) GetInit() interface{}               { return d.init }
-func (d *BeanDefinition) GetDestroy() interface{}            { return d.destroy }
-func (d *BeanDefinition) GetDepends() []gs_util.BeanSelector { return d.depends }
-func (d *BeanDefinition) GetExports() []reflect.Type         { return d.exports }
+func (d *BeanDefinition) GetName() string             { return d.name }
+func (d *BeanDefinition) GetTypeName() string         { return d.typeName }
+func (d *BeanDefinition) GetStatus() BeanStatus       { return d.status }
+func (d *BeanDefinition) SetStatus(status BeanStatus) { d.status = status }
+func (d *BeanDefinition) IsPrimary() bool             { return d.primary }
+func (d *BeanDefinition) IsMethod() bool              { return d.method }
+func (d *BeanDefinition) GetCond() Condition          { return d.cond }
+func (d *BeanDefinition) GetOrder() float32           { return d.order }
+func (d *BeanDefinition) GetInit() interface{}        { return d.init }
+func (d *BeanDefinition) GetDestroy() interface{}     { return d.destroy }
+func (d *BeanDefinition) GetDepends() []BeanSelector  { return d.depends }
+func (d *BeanDefinition) GetExports() []reflect.Type  { return d.exports }
 
 // Type 返回 bean 的类型。
 func (d *BeanDefinition) Type() reflect.Type {
@@ -168,7 +168,7 @@ func (d *BeanDefinition) Order(order float32) *BeanDefinition {
 }
 
 // DependsOn 设置 bean 的间接依赖项。
-func (d *BeanDefinition) DependsOn(selectors ...gs_util.BeanSelector) *BeanDefinition {
+func (d *BeanDefinition) DependsOn(selectors ...BeanSelector) *BeanDefinition {
 	d.depends = append(d.depends, selectors...)
 	return d
 }

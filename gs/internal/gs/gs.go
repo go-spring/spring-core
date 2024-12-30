@@ -5,9 +5,11 @@ import (
 	"reflect"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/dync"
-	"github.com/go-spring/spring-core/gs/internal/gs_util"
 )
+
+// A BeanSelector can be the ID of a bean, a `reflect.Type`, a pointer such as
+// `(*error)(nil)`, or a BeanDefinition value.
+type BeanSelector interface{}
 
 // ConditionContext defines some methods of IoC container that conditions use.
 type ConditionContext interface {
@@ -17,7 +19,7 @@ type ConditionContext interface {
 	// returns empty string when the IoC container doesn't have it.
 	Prop(key string, opts ...conf.GetOption) string
 	// Find returns bean definitions that matched with the bean selector.
-	Find(selector gs_util.BeanSelector) ([]gs_util.BeanDefinition, error)
+	Find(selector BeanSelector) ([]*BeanDefinition, error)
 }
 
 // Condition is used when registering a bean to determine whether it's valid.
@@ -48,18 +50,6 @@ type Callable interface {
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 
-type Container interface {
-	Context() context.Context
-	Properties() *dync.Properties
-	Property(key string, value interface{})
-	Object(i interface{}) *BeanDefinition
-	Provide(ctor interface{}, args ...Arg) *BeanDefinition
-	Accept(b *BeanDefinition) *BeanDefinition
-	OnProperty(key string, fn interface{})
-	Refresh(autoClear bool) error
-	Close()
-}
-
 // Context 提供了一些在 IoC 容器启动后基于反射获取和使用 property 与 bean 的接
 // 口。因为很多人会担心在运行时大量使用反射会降低程序性能，所以命名为 Context，取
 // 其诱人但危险的含义。事实上，这些在 IoC 容器启动后使用属性绑定和依赖注入的方案，
@@ -75,7 +65,7 @@ type Context interface {
 	Prop(key string, opts ...conf.GetOption) string
 	Resolve(s string) (string, error)
 	Bind(i interface{}, opts ...conf.BindArg) error
-	Get(i interface{}, selectors ...gs_util.BeanSelector) error
+	Get(i interface{}, selectors ...BeanSelector) error
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 	Go(fn func(ctx context.Context))

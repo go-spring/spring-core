@@ -56,7 +56,7 @@ type tempApp struct {
 type App struct {
 	*tempApp
 
-	c gs.Container
+	c *gs_ctx.Container
 	b *Bootstrapper
 
 	exitChan chan struct{}
@@ -109,23 +109,23 @@ func (app *App) Start() (gs.Context, error) {
 
 	// 执行命令行启动器
 	for _, r := range app.Runners {
-		r.Run(app.c.(gs.Context))
+		r.Run(app.c)
 	}
 
 	// 通知应用启动事件
 	for _, event := range app.Events {
-		event.OnAppStart(app.c.(gs.Context))
+		event.OnAppStart(app.c)
 	}
 
 	// 通知应用停止事件
-	app.c.(gs.Context).Go(func(ctx context.Context) {
+	app.c.Go(func(ctx context.Context) {
 		<-ctx.Done()
 		for _, event := range app.Events {
 			event.OnAppStop(context.Background())
 		}
 	})
 
-	return app.c.(gs.Context), nil
+	return app.c, nil
 }
 
 func (app *App) wait() {
@@ -230,11 +230,6 @@ func (app *App) Bootstrap() *Bootstrapper {
 // OnProperty 当 key 对应的属性值准备好后发送一个通知。
 func (app *App) OnProperty(key string, fn interface{}) {
 	app.c.OnProperty(key, fn)
-}
-
-// Property 参考 Container.Property 的解释。
-func (app *App) Property(key string, value interface{}) {
-	app.c.Property(key, value)
 }
 
 // Accept 参考 Container.Accept 的解释。

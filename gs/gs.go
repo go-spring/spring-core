@@ -25,8 +25,9 @@ import (
 )
 
 type (
-	Arg     = gs.Arg
-	Context = gs.Context
+	Arg          = gs.Arg
+	Context      = gs.Context
+	BeanSelector = gs.BeanSelector
 )
 
 var app = gs_app.NewApp()
@@ -59,11 +60,6 @@ func Bootstrap() *gs_app.Bootstrapper {
 // OnProperty 参考 App.OnProperty 的解释。
 func OnProperty(key string, fn interface{}) {
 	app.OnProperty(key, fn)
-}
-
-// Property 参考 Container.Property 的解释。
-func Property(key string, value interface{}) {
-	app.Property(key, value)
 }
 
 // Accept 参考 Container.Accept 的解释。

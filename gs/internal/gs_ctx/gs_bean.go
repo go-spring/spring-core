@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
@@ -333,7 +334,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		method = strings.LastIndexByte(fnInfo.Name(), ')') > 0
 	}
 
-	if t.Kind() == reflect.Ptr && !gs_util.IsValueType(t.Elem()) {
+	if t.Kind() == reflect.Ptr && !conf.IsValueType(t.Elem()) {
 		panic(errors.New("bean should be *val but not *ref"))
 	}
 

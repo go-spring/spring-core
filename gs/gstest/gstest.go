@@ -21,7 +21,6 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_util"
 )
 
 var ctx gs.Context
@@ -63,7 +62,7 @@ func Bind(i interface{}, opts ...conf.BindArg) error {
 }
 
 // Get 获取对象
-func Get(i interface{}, selectors ...gs_util.BeanSelector) error {
+func Get(i interface{}, selectors ...gs.BeanSelector) error {
 	return ctx.Get(i, selectors...)
 }
 
