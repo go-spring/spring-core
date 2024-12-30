@@ -30,15 +30,15 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
-type FuncCond func(ctx gs.ConditionContext) (bool, error)
+type FuncCond func(ctx gs.CondContext) (bool, error)
 
-func (c FuncCond) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c FuncCond) Matches(ctx gs.CondContext) (bool, error) {
 	return c(ctx)
 }
 
 // OK returns a Condition that always returns true.
 func OK() gs.Condition {
-	return FuncCond(func(ctx gs.ConditionContext) (bool, error) {
+	return FuncCond(func(ctx gs.CondContext) (bool, error) {
 		return true, nil
 	})
 }
@@ -53,7 +53,7 @@ func Not(c gs.Condition) gs.Condition {
 	return &not{c: c}
 }
 
-func (c *not) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c *not) Matches(ctx gs.CondContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	return !ok, err
 }
@@ -65,7 +65,7 @@ type onProperty struct {
 	matchIfMissing bool
 }
 
-func (c *onProperty) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 
 	if !ctx.Has(c.name) {
 		return c.matchIfMissing, nil
@@ -103,7 +103,7 @@ type onMissingProperty struct {
 	name string
 }
 
-func (c *onMissingProperty) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c *onMissingProperty) Matches(ctx gs.CondContext) (bool, error) {
 	return !ctx.Has(c.name), nil
 }
 
@@ -112,7 +112,7 @@ type onBean struct {
 	selector gs.BeanSelector
 }
 
-func (c *onBean) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	return len(beans) > 0, err
 }
@@ -122,7 +122,7 @@ type onMissingBean struct {
 	selector gs.BeanSelector
 }
 
-func (c *onMissingBean) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	return len(beans) == 0, err
 }
@@ -132,7 +132,7 @@ type onSingleBean struct {
 	selector gs.BeanSelector
 }
 
-func (c *onSingleBean) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	return len(beans) == 1, err
 }
@@ -142,7 +142,7 @@ type onExpression struct {
 	expression string
 }
 
-func (c *onExpression) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
 	return false, util.UnimplementedMethod
 }
 
@@ -166,7 +166,7 @@ func Group(op Operator, cond ...gs.Condition) gs.Condition {
 	return &group{op: op, cond: cond}
 }
 
-func (g *group) Matches(ctx gs.ConditionContext) (bool, error) {
+func (g *group) Matches(ctx gs.CondContext) (bool, error) {
 
 	if len(g.cond) == 0 {
 		return false, errors.New("no condition in group")
@@ -212,7 +212,7 @@ type node struct {
 	next *node
 }
 
-func (n *node) Matches(ctx gs.ConditionContext) (bool, error) {
+func (n *node) Matches(ctx gs.CondContext) (bool, error) {
 
 	if n.cond == nil {
 		return true, nil
@@ -259,7 +259,7 @@ func New() *conditional {
 	return &conditional{head: n, curr: n}
 }
 
-func (c *conditional) Matches(ctx gs.ConditionContext) (bool, error) {
+func (c *conditional) Matches(ctx gs.CondContext) (bool, error) {
 	return c.head.Matches(ctx)
 }
 
@@ -383,12 +383,12 @@ func (c *conditional) OnExpression(expression string) *conditional {
 
 // OnMatches returns a conditional that starts with a Condition that returns true
 // when function returns true.
-func OnMatches(fn func(ctx gs.ConditionContext) (bool, error)) *conditional {
+func OnMatches(fn func(ctx gs.CondContext) (bool, error)) *conditional {
 	return New().OnMatches(fn)
 }
 
 // OnMatches adds a Condition that returns true when function returns true.
-func (c *conditional) OnMatches(fn func(ctx gs.ConditionContext) (bool, error)) *conditional {
+func (c *conditional) OnMatches(fn func(ctx gs.CondContext) (bool, error)) *conditional {
 	return c.On(FuncCond(fn))
 }
 

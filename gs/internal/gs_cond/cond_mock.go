@@ -114,7 +114,7 @@ func (m *MockCondition) EXPECT() *MockConditionMockRecorder {
 }
 
 // Matches mocks base method.
-func (m *MockCondition) Matches(ctx gs.ConditionContext) (bool, error) {
+func (m *MockCondition) Matches(ctx gs.CondContext) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Matches", ctx)
 	ret0, _ := ret[0].(bool)

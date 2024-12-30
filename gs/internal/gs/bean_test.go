@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_ctx_test
+package gs_test
 
 import (
 	"fmt"
@@ -134,6 +134,52 @@ func TestBeanDefinition_Match(t *testing.T) {
 	}
 }
 
+type Teacher interface {
+	Course() string
+}
+
+type historyTeacher struct {
+	name string
+}
+
+func newHistoryTeacher(name string) *historyTeacher {
+	return &historyTeacher{name: name}
+}
+
+func newTeacher(course string, name string) Teacher {
+	switch course {
+	case "history":
+		return &historyTeacher{name: name}
+	default:
+		return nil
+	}
+}
+
+func (t *historyTeacher) Course() string {
+	return "history"
+}
+
+type Student struct {
+	Teacher Teacher
+	Room    string
+}
+
+// 入参可以进行注入或者属性绑定，返回值可以是 struct、map、slice、func 等。
+func NewStudent(teacher Teacher, room string) Student {
+	return Student{
+		Teacher: teacher,
+		Room:    room,
+	}
+}
+
+// 入参可以进行注入或者属性绑定，返回值可以是 struct、map、slice、func 等。
+func NewPtrStudent(teacher Teacher, room string) *Student {
+	return &Student{
+		Teacher: teacher,
+		Room:    room,
+	}
+}
+
 type BeanZero struct {
 	Int int
 }
@@ -193,7 +239,7 @@ func TestObjectBean(t *testing.T) {
 
 			newBean(newHistoryTeacher("")): {
 				"historyTeacher",
-				"github.com/go-spring/spring-core/gs/internal/gs_ctx/gs_ctx_test.historyTeacher",
+				"github.com/go-spring/spring-core/gs/internal/gs/gs_test.historyTeacher",
 			},
 
 			newBean(new(pkg2.SamePkg)): {
@@ -217,10 +263,10 @@ func TestObjectBean(t *testing.T) {
 func TestConstructorBean(t *testing.T) {
 
 	bd := newBean(NewStudent)
-	assert.Equal(t, bd.Type().String(), "*gs_ctx_test.Student")
+	assert.Equal(t, bd.Type().String(), "*gs_test.Student")
 
 	bd = newBean(NewPtrStudent)
-	assert.Equal(t, bd.Type().String(), "*gs_ctx_test.Student")
+	assert.Equal(t, bd.Type().String(), "*gs_test.Student")
 
 	// mapFn := func() map[int]string { return make(map[int]string) }
 	// bd = newBean(mapFn)
@@ -236,7 +282,7 @@ func TestConstructorBean(t *testing.T) {
 
 	interfaceFn := func(name string) Teacher { return newHistoryTeacher(name) }
 	bd = newBean(interfaceFn)
-	assert.Equal(t, bd.Type().String(), "gs_ctx_test.Teacher")
+	assert.Equal(t, bd.Type().String(), "gs_test.Teacher")
 
 	// assert.Panic(t, func() {
 	// 	_ = newBean(func() (*int, *int) { return nil, nil })

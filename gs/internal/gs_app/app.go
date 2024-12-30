@@ -227,9 +227,8 @@ func (app *App) Bootstrap() *Bootstrapper {
 	return app.b
 }
 
-// OnProperty 当 key 对应的属性值准备好后发送一个通知。
-func (app *App) OnProperty(key string, fn interface{}) {
-	app.c.OnProperty(key, fn)
+func (app *App) Group(fn gs.GroupFunc) {
+	app.c.Group(fn)
 }
 
 // Accept 参考 Container.Accept 的解释。

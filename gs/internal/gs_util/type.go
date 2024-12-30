@@ -105,41 +105,6 @@ func HasReceiver(t reflect.Type, receiver reflect.Value) bool {
 	return receiver.Type().Implements(t0)
 }
 
-//// IsPrimitiveValueType returns whether `t` is the primitive value type which only is
-//// int, unit, float, bool, string and complex.
-//func IsPrimitiveValueType(t reflect.Type) bool {
-//	switch t.Kind() {
-//	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-//		return true
-//	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-//		return true
-//	case reflect.Complex64, reflect.Complex128:
-//		return true
-//	case reflect.Float32, reflect.Float64:
-//		return true
-//	case reflect.String:
-//		return true
-//	case reflect.Bool:
-//		return true
-//	}
-//	return false
-//}
-//
-//// IsValueType returns whether the input type is the primitive value type and their
-//// composite type including array, slice, map and struct, such as []int, [3]string,
-//// []string, map[int]int, map[string]string, etc.
-//func IsValueType(t reflect.Type) bool {
-//	fn := func(t reflect.Type) bool {
-//		return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct
-//	}
-//	switch t.Kind() {
-//	case reflect.Map, reflect.Slice, reflect.Array:
-//		return fn(t.Elem())
-//	default:
-//		return fn(t)
-//	}
-//}
-
 // IsBeanType returns whether `t` is a bean type.
 func IsBeanType(t reflect.Type) bool {
 	switch t.Kind() {

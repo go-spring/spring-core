@@ -28,6 +28,7 @@ type (
 	Arg          = gs.Arg
 	Context      = gs.Context
 	BeanSelector = gs.BeanSelector
+	GroupFunc    = gs.GroupFunc
 )
 
 var app = gs_app.NewApp()
@@ -57,16 +58,6 @@ func Bootstrap() *gs_app.Bootstrapper {
 	return app.Bootstrap()
 }
 
-// OnProperty 参考 App.OnProperty 的解释。
-func OnProperty(key string, fn interface{}) {
-	app.OnProperty(key, fn)
-}
-
-// Accept 参考 Container.Accept 的解释。
-func Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
-	return app.Accept(b)
-}
-
 // Object 参考 Container.Object 的解释。
 func Object(i interface{}) *gs.BeanDefinition {
 	return app.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
@@ -75,4 +66,13 @@ func Object(i interface{}) *gs.BeanDefinition {
 // Provide 参考 Container.Provide 的解释。
 func Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
 	return app.Accept(gs_ctx.NewBean(ctor, args...))
+}
+
+// Accept 参考 Container.Accept 的解释。
+func Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
+	return app.Accept(b)
+}
+
+func Group(fn GroupFunc) {
+	app.Group(fn)
 }

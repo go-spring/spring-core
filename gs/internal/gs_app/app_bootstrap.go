@@ -33,9 +33,8 @@ func newBootstrap() *Bootstrapper {
 	}
 }
 
-// OnProperty 参考 App.OnProperty 的解释。
-func (b *Bootstrapper) OnProperty(key string, fn interface{}) {
-	b.c.OnProperty(key, fn)
+func (b *Bootstrapper) Group(fn gs.GroupFunc) {
+	b.c.Group(fn)
 }
 
 // Object 参考 Container.Object 的解释。

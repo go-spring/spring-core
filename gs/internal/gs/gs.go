@@ -11,8 +11,8 @@ import (
 // `(*error)(nil)`, or a BeanDefinition value.
 type BeanSelector interface{}
 
-// ConditionContext defines some methods of IoC container that conditions use.
-type ConditionContext interface {
+// CondContext defines some methods of IoC container that conditions use.
+type CondContext interface {
 	// Has returns whether the IoC container has a property.
 	Has(key string) bool
 	// Prop returns the property's value when the IoC container has it, or
@@ -24,8 +24,14 @@ type ConditionContext interface {
 
 // Condition is used when registering a bean to determine whether it's valid.
 type Condition interface {
-	Matches(ctx ConditionContext) (bool, error)
+	Matches(ctx CondContext) (bool, error)
 }
+
+// Arg 用于为函数参数提供绑定值。可以是 bean.Selector 类型，表示注入 bean ；
+// 可以是 ${X:=Y} 形式的字符串，表示属性绑定或者注入 bean ；可以是 ValueArg
+// 类型，表示不从 IoC 容器获取而是用户传入的普通值；可以是 IndexArg 类型，表示
+// 带有下标的参数绑定；可以是 *optionArg 类型，用于为 Option 方法提供参数绑定。
+type Arg interface{}
 
 // ArgContext defines some methods of IoC container that Callable use.
 type ArgContext interface {
@@ -38,17 +44,13 @@ type ArgContext interface {
 	Wire(v reflect.Value, tag string) error
 }
 
-// Arg 用于为函数参数提供绑定值。可以是 bean.Selector 类型，表示注入 bean ；
-// 可以是 ${X:=Y} 形式的字符串，表示属性绑定或者注入 bean ；可以是 ValueArg
-// 类型，表示不从 IoC 容器获取而是用户传入的普通值；可以是 IndexArg 类型，表示
-// 带有下标的参数绑定；可以是 *optionArg 类型，用于为 Option 方法提供参数绑定。
-type Arg interface{}
-
 type Callable interface {
 	Arg(i int) (Arg, bool)
 	In(i int) (reflect.Type, bool)
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
+
+type GroupFunc func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)
 
 // Context 提供了一些在 IoC 容器启动后基于反射获取和使用 property 与 bean 的接
 // 口。因为很多人会担心在运行时大量使用反射会降低程序性能，所以命名为 Context，取

@@ -54,25 +54,29 @@ func (p *Properties) load() *conf.Properties {
 	return p.value.Load().(*conf.Properties)
 }
 
-func (p *Properties) Keys() []string {
-	return p.load().Keys()
+func (p *Properties) Data() conf.ReadOnlyProperties {
+	return p.load()
 }
 
-func (p *Properties) Has(key string) bool {
-	return p.load().Has(key)
-}
-
-func (p *Properties) Get(key string, opts ...conf.GetOption) string {
-	return p.load().Get(key, opts...)
-}
-
-func (p *Properties) Resolve(s string) (string, error) {
-	return p.load().Resolve(s)
-}
-
-func (p *Properties) Bind(i interface{}, opts ...conf.BindArg) error {
-	return p.load().Bind(i, opts...)
-}
+// func (p *Properties) Keys() []string {
+// 	return p.load().Keys()
+// }
+//
+// func (p *Properties) Has(key string) bool {
+// 	return p.load().Has(key)
+// }
+//
+// func (p *Properties) Get(key string, opts ...conf.GetOption) string {
+// 	return p.load().Get(key, opts...)
+// }
+//
+// func (p *Properties) Resolve(s string) (string, error) {
+// 	return p.load().Resolve(s)
+// }
+//
+// func (p *Properties) Bind(i interface{}, opts ...conf.BindArg) error {
+// 	return p.load().Bind(i, opts...)
+// }
 
 func (p *Properties) Update(m map[string]interface{}) error {
 
