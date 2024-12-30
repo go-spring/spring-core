@@ -31,9 +31,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
-	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
-	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
 )
@@ -48,52 +46,19 @@ const (
 )
 
 var (
-	contextType = reflect.TypeOf((*Context)(nil)).Elem()
+	contextType = reflect.TypeOf((*gs.Context)(nil)).Elem()
 )
-
-type Container interface {
-	Context() context.Context
-	Properties() *dync.Properties
-	Property(key string, value interface{})
-	Object(i interface{}) *gs_bean.BeanDefinition
-	Provide(ctor interface{}, args ...gs_arg.Arg) *gs_bean.BeanDefinition
-	Accept(b *gs_bean.BeanDefinition) *gs_bean.BeanDefinition
-	OnProperty(key string, fn interface{})
-	Refresh(autoClear bool) error
-	Close()
-}
-
-// Context 提供了一些在 IoC 容器启动后基于反射获取和使用 property 与 bean 的接
-// 口。因为很多人会担心在运行时大量使用反射会降低程序性能，所以命名为 Context，取
-// 其诱人但危险的含义。事实上，这些在 IoC 容器启动后使用属性绑定和依赖注入的方案，
-// 都可以转换为启动阶段的方案以提高程序的性能。
-// 另一方面，为了统一 Container 和 App 两种启动方式下这些方法的使用方式，需要提取
-// 出一个可共用的接口来，也就是说，无论程序是 Container 方式启动还是 App 方式启动，
-// 都可以在需要使用这些方法的地方注入一个 Context 对象而不是 Container 对象或者
-// App 对象，从而实现使用方式的统一。
-type Context interface {
-	Context() context.Context
-	Keys() []string
-	Has(key string) bool
-	Prop(key string, opts ...conf.GetOption) string
-	Resolve(s string) (string, error)
-	Bind(i interface{}, opts ...conf.BindArg) error
-	Get(i interface{}, selectors ...gs_util.BeanSelector) error
-	Wire(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) (interface{}, error)
-	Invoke(fn interface{}, args ...gs_arg.Arg) ([]interface{}, error)
-	Go(fn func(ctx context.Context))
-}
 
 // ContextAware injects the Context into a struct as the field GSContext.
 type ContextAware struct {
-	GSContext Context `autowire:""`
+	GSContext gs.Context `autowire:""`
 }
 
 type tempContainer struct {
 	initProperties  *conf.Properties
-	beans           []*gs_bean.BeanDefinition
-	beansByName     map[string][]*gs_bean.BeanDefinition
-	beansByType     map[reflect.Type][]*gs_bean.BeanDefinition
+	beans           []*gs.BeanDefinition
+	beansByName     map[string][]*gs.BeanDefinition
+	beansByType     map[reflect.Type][]*gs.BeanDefinition
 	mapOfOnProperty map[string]interface{}
 }
 
@@ -117,7 +82,7 @@ type container struct {
 }
 
 // New 创建 IoC 容器。
-func New() Container {
+func New() *container {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &container{
 		ctx:    ctx,
@@ -125,8 +90,8 @@ func New() Container {
 		p:      dync.New(),
 		tempContainer: &tempContainer{
 			initProperties:  conf.NewProperties(),
-			beansByName:     make(map[string][]*gs_bean.BeanDefinition),
-			beansByType:     make(map[reflect.Type][]*gs_bean.BeanDefinition),
+			beansByName:     make(map[string][]*gs.BeanDefinition),
+			beansByType:     make(map[reflect.Type][]*gs.BeanDefinition),
 			mapOfOnProperty: make(map[string]interface{}),
 		},
 	}
@@ -170,7 +135,7 @@ func (c *container) Property(key string, value interface{}) {
 	c.initProperties.Set(key, value)
 }
 
-func (c *container) Accept(b *gs_bean.BeanDefinition) *gs_bean.BeanDefinition {
+func (c *container) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
 	if c.state >= Refreshing {
 		panic(errors.New("should call before Refresh"))
 	}
@@ -179,22 +144,22 @@ func (c *container) Accept(b *gs_bean.BeanDefinition) *gs_bean.BeanDefinition {
 }
 
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *container) Object(i interface{}) *gs_bean.BeanDefinition {
+func (c *container) Object(i interface{}) *gs.BeanDefinition {
 	return c.Accept(NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *container) Provide(ctor interface{}, args ...gs_arg.Arg) *gs_bean.BeanDefinition {
+func (c *container) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
 	return c.Accept(NewBean(ctor, args...))
 }
 
 // destroyer 保存具有销毁函数的 bean 以及销毁函数的调用顺序。
 type destroyer struct {
-	current *gs_bean.BeanDefinition
-	earlier []*gs_bean.BeanDefinition
+	current *gs.BeanDefinition
+	earlier []*gs.BeanDefinition
 }
 
-func (d *destroyer) foundEarlier(b *gs_bean.BeanDefinition) bool {
+func (d *destroyer) foundEarlier(b *gs.BeanDefinition) bool {
 	for _, c := range d.earlier {
 		if c == b {
 			return true
@@ -204,7 +169,7 @@ func (d *destroyer) foundEarlier(b *gs_bean.BeanDefinition) bool {
 }
 
 // after 添加一个需要在该 bean 的销毁函数执行之前调用销毁函数的 bean 。
-func (d *destroyer) after(b *gs_bean.BeanDefinition) {
+func (d *destroyer) after(b *gs.BeanDefinition) {
 	if d.foundEarlier(b) {
 		return
 	}
@@ -234,7 +199,7 @@ type lazyField struct {
 type wiringStack struct {
 	destroyers   *list.List
 	destroyerMap map[string]*destroyer
-	beans        []*gs_bean.BeanDefinition
+	beans        []*gs.BeanDefinition
 	lazyFields   []lazyField
 }
 
@@ -246,7 +211,7 @@ func newWiringStack() *wiringStack {
 }
 
 // pushBack 添加一个即将注入的 bean 。
-func (s *wiringStack) pushBack(b *gs_bean.BeanDefinition) {
+func (s *wiringStack) pushBack(b *gs.BeanDefinition) {
 	// s.logger.Tracef("push %s %s", b, getStatusString(b.status))
 	s.beans = append(s.beans, b)
 }
@@ -268,7 +233,7 @@ func (s *wiringStack) path() (path string) {
 }
 
 // saveDestroyer 记录具有销毁函数的 bean ，因为可能有多个依赖，因此需要排重处理。
-func (s *wiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
+func (s *wiringStack) saveDestroyer(b *gs.BeanDefinition) *destroyer {
 	d, ok := s.destroyerMap[b.ID()]
 	if !ok {
 		d = &destroyer{current: b}
@@ -322,7 +287,7 @@ func (c *container) Refresh(autoClear bool) (err error) {
 	c.p.Refresh(c.initProperties)
 
 	// start := time.Now()
-	c.Object(c).Export((*Context)(nil))
+	c.Object(c).Export((*gs.Context)(nil))
 
 	for key, f := range c.mapOfOnProperty {
 		t := reflect.TypeOf(f)
@@ -345,13 +310,13 @@ func (c *container) Refresh(autoClear bool) (err error) {
 		}
 	}
 
-	beansById := make(map[string]*gs_bean.BeanDefinition)
+	beansById := make(map[string]*gs.BeanDefinition)
 	{
 		for _, b := range c.beans {
-			if b.GetStatus() == gs_bean.Deleted {
+			if b.GetStatus() == gs.Deleted {
 				continue
 			}
-			if b.GetStatus() != gs_bean.Resolved {
+			if b.GetStatus() != gs.Resolved {
 				return fmt.Errorf("unexpected status %d", b.GetStatus())
 			}
 			beanID := b.ID()
@@ -412,7 +377,7 @@ func (c *container) Refresh(autoClear bool) (err error) {
 	return nil
 }
 
-func (c *container) registerBean(b *gs_bean.BeanDefinition) {
+func (c *container) registerBean(b *gs.BeanDefinition) {
 	// c.logger.Debugf("register %s name:%q type:%q %s", b.getClass(), b.BeanName(), b.Type(), b.FileLine())
 	c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
@@ -423,13 +388,13 @@ func (c *container) registerBean(b *gs_bean.BeanDefinition) {
 }
 
 // resolveBean 判断 bean 的有效性，如果 bean 是无效的则被标记为已删除。
-func (c *container) resolveBean(b *gs_bean.BeanDefinition) error {
+func (c *container) resolveBean(b *gs.BeanDefinition) error {
 
-	if b.GetStatus() >= gs_bean.Resolving {
+	if b.GetStatus() >= gs.Resolving {
 		return nil
 	}
 
-	b.SetStatus(gs_bean.Resolving)
+	b.SetStatus(gs.Resolving)
 
 	// method bean 先确定 parent bean 是否存在
 	if b.IsMethod() {
@@ -450,7 +415,7 @@ func (c *container) resolveBean(b *gs_bean.BeanDefinition) error {
 			msg = msg[:len(msg)-2] + "]"
 			return errors.New(msg)
 		} else if n == 0 {
-			b.SetStatus(gs_bean.Deleted)
+			b.SetStatus(gs.Deleted)
 			return nil
 		}
 	}
@@ -459,12 +424,12 @@ func (c *container) resolveBean(b *gs_bean.BeanDefinition) error {
 		if ok, err := b.GetCond().Matches(c); err != nil {
 			return err
 		} else if !ok {
-			b.SetStatus(gs_bean.Deleted)
+			b.SetStatus(gs.Deleted)
 			return nil
 		}
 	}
 
-	b.SetStatus(gs_bean.Resolved)
+	b.SetStatus(gs.Resolved)
 	return nil
 }
 
@@ -516,9 +481,9 @@ func toWireTag(selector gs_util.BeanSelector) wireTag {
 	switch s := selector.(type) {
 	case string:
 		return parseWireTag(s)
-	case gs_bean.BeanDefinition:
+	case gs.BeanDefinition:
 		return parseWireTag(s.ID())
-	case *gs_bean.BeanDefinition:
+	case *gs.BeanDefinition:
 		return parseWireTag(s.ID())
 	default:
 		return parseWireTag(gs_util.TypeName(s) + ":")
@@ -538,18 +503,18 @@ func toWireString(tags []wireTag) string {
 
 // findBean 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
 // 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *container) findBean(selector gs_util.BeanSelector) ([]*gs_bean.BeanDefinition, error) {
+func (c *container) findBean(selector gs_util.BeanSelector) ([]*gs.BeanDefinition, error) {
 
-	finder := func(fn func(*gs_bean.BeanDefinition) bool) ([]*gs_bean.BeanDefinition, error) {
-		var result []*gs_bean.BeanDefinition
+	finder := func(fn func(*gs.BeanDefinition) bool) ([]*gs.BeanDefinition, error) {
+		var result []*gs.BeanDefinition
 		for _, b := range c.beans {
-			if b.GetStatus() == gs_bean.Resolving || b.GetStatus() == gs_bean.Deleted || !fn(b) {
+			if b.GetStatus() == gs.Resolving || b.GetStatus() == gs.Deleted || !fn(b) {
 				continue
 			}
 			if err := c.resolveBean(b); err != nil {
 				return nil, err
 			}
-			if b.GetStatus() == gs_bean.Deleted {
+			if b.GetStatus() == gs.Deleted {
 				continue
 			}
 			result = append(result, b)
@@ -559,9 +524,9 @@ func (c *container) findBean(selector gs_util.BeanSelector) ([]*gs_bean.BeanDefi
 
 	var t reflect.Type
 	switch st := selector.(type) {
-	case string, gs_bean.BeanDefinition, *gs_bean.BeanDefinition:
+	case string, gs.BeanDefinition, *gs.BeanDefinition:
 		tag := toWireTag(selector)
-		return finder(func(b *gs_bean.BeanDefinition) bool {
+		return finder(func(b *gs.BeanDefinition) bool {
 			return b.Match(tag.typeName, tag.beanName)
 		})
 	case reflect.Type:
@@ -576,7 +541,7 @@ func (c *container) findBean(selector gs_util.BeanSelector) ([]*gs_bean.BeanDefi
 		}
 	}
 
-	return finder(func(b *gs_bean.BeanDefinition) bool {
+	return finder(func(b *gs.BeanDefinition) bool {
 		if b.Type() == t {
 			return true
 		}
@@ -592,14 +557,14 @@ func (c *container) findBean(selector gs_util.BeanSelector) ([]*gs_bean.BeanDefi
 // wireBean 对 bean 进行属性绑定和依赖注入，同时追踪其注入路径。如果 bean 有初始
 // 化函数，则在注入完成之后执行其初始化函数。如果 bean 依赖了其他 bean，则首先尝试
 // 实例化被依赖的 bean 然后对它们进行注入。
-func (c *container) wireBean(b *gs_bean.BeanDefinition, stack *wiringStack) error {
+func (c *container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
 
-	if b.GetStatus() == gs_bean.Deleted {
+	if b.GetStatus() == gs.Deleted {
 		return fmt.Errorf("bean:%q have been deleted", b.ID())
 	}
 
 	// 运行时 Get 或者 Wire 会出现下面这种情况。
-	if c.state == Refreshed && b.GetStatus() == gs_bean.Wired {
+	if c.state == Refreshed && b.GetStatus() == gs.Wired {
 		return nil
 	}
 
@@ -616,26 +581,26 @@ func (c *container) wireBean(b *gs_bean.BeanDefinition, stack *wiringStack) erro
 		haveDestroy = true
 		d := stack.saveDestroyer(b)
 		if i := stack.destroyers.Back(); i != nil {
-			d.after(i.Value.(*gs_bean.BeanDefinition))
+			d.after(i.Value.(*gs.BeanDefinition))
 		}
 		stack.destroyers.PushBack(b)
 	}
 
 	stack.pushBack(b)
 
-	if b.GetStatus() == gs_bean.Creating && b.F != nil {
+	if b.GetStatus() == gs.Creating && b.F != nil {
 		prev := stack.beans[len(stack.beans)-2]
-		if prev.GetStatus() == gs_bean.Creating {
+		if prev.GetStatus() == gs.Creating {
 			return errors.New("found circle autowire")
 		}
 	}
 
-	if b.GetStatus() >= gs_bean.Creating {
+	if b.GetStatus() >= gs.Creating {
 		stack.popBack()
 		return nil
 	}
 
-	b.SetStatus(gs_bean.Creating)
+	b.SetStatus(gs.Creating)
 
 	// 对当前 bean 的间接依赖项进行注入。
 	for _, s := range b.GetDepends() {
@@ -656,7 +621,7 @@ func (c *container) wireBean(b *gs_bean.BeanDefinition, stack *wiringStack) erro
 		return err
 	}
 
-	b.SetStatus(gs_bean.Created)
+	b.SetStatus(gs.Created)
 
 	t := v.Type()
 	for _, typ := range b.GetExports() {
@@ -684,7 +649,7 @@ func (c *container) wireBean(b *gs_bean.BeanDefinition, stack *wiringStack) erro
 		}
 	}
 
-	b.SetStatus(gs_bean.Wired)
+	b.SetStatus(gs.Wired)
 	stack.popBack()
 	return nil
 }
@@ -694,7 +659,7 @@ type argContext struct {
 	stack *wiringStack
 }
 
-func (a *argContext) Matches(c gs_cond.Condition) (bool, error) {
+func (a *argContext) Matches(c gs.Condition) (bool, error) {
 	return c.Matches(a.c)
 }
 
@@ -707,7 +672,7 @@ func (a *argContext) Wire(v reflect.Value, tag string) error {
 }
 
 // getBeanValue 获取 bean 的值，如果是构造函数 bean 则执行其构造函数然后返回执行结果。
-func (c *container) getBeanValue(b *gs_bean.BeanDefinition, stack *wiringStack) (reflect.Value, error) {
+func (c *container) getBeanValue(b *gs.BeanDefinition, stack *wiringStack) (reflect.Value, error) {
 
 	if b.F == nil {
 		return b.Value(), nil
@@ -886,9 +851,9 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
-	var foundBeans []*gs_bean.BeanDefinition
+	var foundBeans []*gs.BeanDefinition
 	for _, b := range c.beansByType[t] {
-		if b.GetStatus() == gs_bean.Deleted {
+		if b.GetStatus() == gs.Deleted {
 			continue
 		}
 		if !b.Match(tag.typeName, tag.beanName) {
@@ -900,7 +865,7 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
 	if t.Kind() == reflect.Interface && tag.beanName != "" {
 		for _, b := range c.beansByName[tag.beanName] {
-			if b.GetStatus() == gs_bean.Deleted {
+			if b.GetStatus() == gs.Deleted {
 				continue
 			}
 			if !b.Type().AssignableTo(t) {
@@ -932,7 +897,7 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	}
 
 	// 优先使用设置成主版本的 bean
-	var primaryBeans []*gs_bean.BeanDefinition
+	var primaryBeans []*gs.BeanDefinition
 
 	for _, b := range foundBeans {
 		if b.IsPrimary() {
@@ -958,7 +923,7 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return errors.New(msg)
 	}
 
-	var result *gs_bean.BeanDefinition
+	var result *gs.BeanDefinition
 	if len(primaryBeans) == 1 {
 		result = primaryBeans[0]
 	} else {
@@ -976,7 +941,7 @@ func (c *container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 }
 
 // filterBean 返回 tag 对应的 bean 在数组中的索引，找不到返回 -1。
-func filterBean(beans []*gs_bean.BeanDefinition, tag wireTag, t reflect.Type) (int, error) {
+func filterBean(beans []*gs.BeanDefinition, tag wireTag, t reflect.Type) (int, error) {
 
 	var found []int
 	for i, b := range beans {
@@ -1006,7 +971,7 @@ func filterBean(beans []*gs_bean.BeanDefinition, tag wireTag, t reflect.Type) (i
 	return -1, fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
 }
 
-type byOrder []*gs_bean.BeanDefinition
+type byOrder []*gs.BeanDefinition
 
 func (b byOrder) Len() int           { return len(b) }
 func (b byOrder) Less(i, j int) bool { return b[i].GetOrder() < b[j].GetOrder() }
@@ -1024,7 +989,7 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
-	var beans []*gs_bean.BeanDefinition
+	var beans []*gs.BeanDefinition
 	if et.Kind() == reflect.Interface && et.NumMethod() == 0 {
 		beans = c.beans
 	} else {
@@ -1032,9 +997,9 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	}
 
 	{
-		var arr []*gs_bean.BeanDefinition
+		var arr []*gs.BeanDefinition
 		for _, b := range beans {
-			if b.GetStatus() == gs_bean.Deleted {
+			if b.GetStatus() == gs.Deleted {
 				continue
 			}
 			arr = append(arr, b)
@@ -1045,9 +1010,9 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	if len(tags) > 0 {
 
 		var (
-			anyBeans  []*gs_bean.BeanDefinition
-			afterAny  []*gs_bean.BeanDefinition
-			beforeAny []*gs_bean.BeanDefinition
+			anyBeans  []*gs.BeanDefinition
+			afterAny  []*gs.BeanDefinition
+			beforeAny []*gs.BeanDefinition
 		)
 
 		foundAny := false
@@ -1076,7 +1041,7 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 				beforeAny = append(beforeAny, beans[index])
 			}
 
-			tmpBeans := append([]*gs_bean.BeanDefinition{}, beans[:index]...)
+			tmpBeans := append([]*gs.BeanDefinition{}, beans[:index]...)
 			beans = append(tmpBeans, beans[index+1:]...)
 		}
 
@@ -1085,7 +1050,7 @@ func (c *container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		}
 
 		n := len(beforeAny) + len(anyBeans) + len(afterAny)
-		arr := make([]*gs_bean.BeanDefinition, 0, n)
+		arr := make([]*gs.BeanDefinition, 0, n)
 		arr = append(arr, beforeAny...)
 		arr = append(arr, anyBeans...)
 		arr = append(arr, afterAny...)

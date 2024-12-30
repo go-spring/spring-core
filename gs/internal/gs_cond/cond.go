@@ -25,52 +25,36 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/expr"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
 )
 
-// Context defines some methods of IoC container that conditions use.
-type Context interface {
-	// Has returns whether the IoC container has a property.
-	Has(key string) bool
-	// Prop returns the property's value when the IoC container has it, or
-	// returns empty string when the IoC container doesn't have it.
-	Prop(key string, opts ...conf.GetOption) string
-	// Find returns bean definitions that matched with the bean selector.
-	Find(selector gs_util.BeanSelector) ([]gs_util.BeanDefinition, error)
-}
+type FuncCond func(ctx gs.ConditionContext) (bool, error)
 
-// Condition is used when registering a bean to determine whether it's valid.
-type Condition interface {
-	Matches(ctx Context) (bool, error)
-}
-
-type FuncCond func(ctx Context) (bool, error)
-
-func (c FuncCond) Matches(ctx Context) (bool, error) {
+func (c FuncCond) Matches(ctx gs.ConditionContext) (bool, error) {
 	return c(ctx)
 }
 
 // OK returns a Condition that always returns true.
-func OK() Condition {
-	return FuncCond(func(ctx Context) (bool, error) {
+func OK() gs.Condition {
+	return FuncCond(func(ctx gs.ConditionContext) (bool, error) {
 		return true, nil
 	})
 }
 
 // not is a Condition that negating to another.
 type not struct {
-	c Condition
+	c gs.Condition
 }
 
 // Not returns a Condition that negating to another.
-func Not(c Condition) Condition {
+func Not(c gs.Condition) gs.Condition {
 	return &not{c: c}
 }
 
-func (c *not) Matches(ctx Context) (bool, error) {
+func (c *not) Matches(ctx gs.ConditionContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	return !ok, err
 }
@@ -82,7 +66,7 @@ type onProperty struct {
 	matchIfMissing bool
 }
 
-func (c *onProperty) Matches(ctx Context) (bool, error) {
+func (c *onProperty) Matches(ctx gs.ConditionContext) (bool, error) {
 
 	if !ctx.Has(c.name) {
 		return c.matchIfMissing, nil
@@ -120,7 +104,7 @@ type onMissingProperty struct {
 	name string
 }
 
-func (c *onMissingProperty) Matches(ctx Context) (bool, error) {
+func (c *onMissingProperty) Matches(ctx gs.ConditionContext) (bool, error) {
 	return !ctx.Has(c.name), nil
 }
 
@@ -129,7 +113,7 @@ type onBean struct {
 	selector gs_util.BeanSelector
 }
 
-func (c *onBean) Matches(ctx Context) (bool, error) {
+func (c *onBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	return len(beans) > 0, err
 }
@@ -139,7 +123,7 @@ type onMissingBean struct {
 	selector gs_util.BeanSelector
 }
 
-func (c *onMissingBean) Matches(ctx Context) (bool, error) {
+func (c *onMissingBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	return len(beans) == 0, err
 }
@@ -149,7 +133,7 @@ type onSingleBean struct {
 	selector gs_util.BeanSelector
 }
 
-func (c *onSingleBean) Matches(ctx Context) (bool, error) {
+func (c *onSingleBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	return len(beans) == 1, err
 }
@@ -159,7 +143,7 @@ type onExpression struct {
 	expression string
 }
 
-func (c *onExpression) Matches(ctx Context) (bool, error) {
+func (c *onExpression) Matches(ctx gs.ConditionContext) (bool, error) {
 	return false, util.UnimplementedMethod
 }
 
@@ -175,15 +159,15 @@ const (
 // group is a Condition implemented by operation of Condition(s).
 type group struct {
 	op   Operator
-	cond []Condition
+	cond []gs.Condition
 }
 
 // Group returns a Condition implemented by operation of Condition(s).
-func Group(op Operator, cond ...Condition) Condition {
+func Group(op Operator, cond ...gs.Condition) gs.Condition {
 	return &group{op: op, cond: cond}
 }
 
-func (g *group) Matches(ctx Context) (bool, error) {
+func (g *group) Matches(ctx gs.ConditionContext) (bool, error) {
 
 	if len(g.cond) == 0 {
 		return false, errors.New("no condition in group")
@@ -224,12 +208,12 @@ func (g *group) Matches(ctx Context) (bool, error) {
 
 // node is a Condition implemented by link of Condition(s).
 type node struct {
-	cond Condition
+	cond gs.Condition
 	op   Operator
 	next *node
 }
 
-func (n *node) Matches(ctx Context) (bool, error) {
+func (n *node) Matches(ctx gs.ConditionContext) (bool, error) {
 
 	if n.cond == nil {
 		return true, nil
@@ -276,7 +260,7 @@ func New() *conditional {
 	return &conditional{head: n, curr: n}
 }
 
-func (c *conditional) Matches(ctx Context) (bool, error) {
+func (c *conditional) Matches(ctx gs.ConditionContext) (bool, error) {
 	return c.head.Matches(ctx)
 }
 
@@ -299,12 +283,12 @@ func (c *conditional) And() *conditional {
 }
 
 // On returns a conditional that starts with one Condition.
-func On(cond Condition) *conditional {
+func On(cond gs.Condition) *conditional {
 	return New().On(cond)
 }
 
 // On adds one Condition.
-func (c *conditional) On(cond Condition) *conditional {
+func (c *conditional) On(cond gs.Condition) *conditional {
 	if c.curr.cond != nil {
 		c.And()
 	}
@@ -400,12 +384,12 @@ func (c *conditional) OnExpression(expression string) *conditional {
 
 // OnMatches returns a conditional that starts with a Condition that returns true
 // when function returns true.
-func OnMatches(fn func(ctx Context) (bool, error)) *conditional {
+func OnMatches(fn func(ctx gs.ConditionContext) (bool, error)) *conditional {
 	return New().OnMatches(fn)
 }
 
 // OnMatches adds a Condition that returns true when function returns true.
-func (c *conditional) OnMatches(fn func(ctx Context) (bool, error)) *conditional {
+func (c *conditional) OnMatches(fn func(ctx gs.ConditionContext) (bool, error)) *conditional {
 	return c.On(FuncCond(fn))
 }
 

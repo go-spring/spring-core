@@ -19,16 +19,20 @@ package gs
 import (
 	"reflect"
 
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
-	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
+)
+
+type (
+	Arg     = gs.Arg
+	Context = gs.Context
 )
 
 var app = gs_app.NewApp()
 
 // Start 启动程序。
-func Start() (gs_ctx.Context, error) {
+func Start() (gs.Context, error) {
 	return app.Start()
 }
 
@@ -63,16 +67,16 @@ func Property(key string, value interface{}) {
 }
 
 // Accept 参考 Container.Accept 的解释。
-func Accept(b *gs_bean.BeanDefinition) *gs_bean.BeanDefinition {
+func Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
 	return app.Accept(b)
 }
 
 // Object 参考 Container.Object 的解释。
-func Object(i interface{}) *gs_bean.BeanDefinition {
+func Object(i interface{}) *gs.BeanDefinition {
 	return app.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func Provide(ctor interface{}, args ...gs_arg.Arg) *gs_bean.BeanDefinition {
+func Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
 	return app.Accept(gs_ctx.NewBean(ctor, args...))
 }

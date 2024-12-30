@@ -21,12 +21,10 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 )
 
-var ctx gs_ctx.Context
+var ctx gs.Context
 
 // Init 初始化测试环境
 func Init() error {
@@ -70,11 +68,11 @@ func Get(i interface{}, selectors ...gs_util.BeanSelector) error {
 }
 
 // Wire 注入对象
-func Wire(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) (interface{}, error) {
+func Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 	return ctx.Wire(objOrCtor, ctorArgs...)
 }
 
 // Invoke 调用函数
-func Invoke(fn interface{}, args ...gs_arg.Arg) ([]interface{}, error) {
+func Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 	return ctx.Invoke(fn, args...)
 }

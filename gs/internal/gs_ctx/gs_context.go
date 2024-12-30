@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 )
@@ -97,7 +98,7 @@ func (c *container) Get(i interface{}, selectors ...gs_util.BeanSelector) error 
 // Wire 如果传入的是 bean 对象，则对 bean 对象进行属性绑定和依赖注入，如果传入的
 // 是构造函数，则立即执行该构造函数，然后对返回的结果进行属性绑定和依赖注入。无论哪
 // 种方式，该函数执行完后都会返回 bean 对象的真实值。
-func (c *container) Wire(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) (interface{}, error) {
+func (c *container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 
 	stack := newWiringStack()
 
@@ -115,7 +116,7 @@ func (c *container) Wire(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) (interfa
 	return b.Interface(), nil
 }
 
-func (c *container) Invoke(fn interface{}, args ...gs_arg.Arg) ([]interface{}, error) {
+func (c *container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 
 	if !gs_util.IsFuncType(reflect.TypeOf(fn)) {
 		return nil, errors.New("fn should be func type")

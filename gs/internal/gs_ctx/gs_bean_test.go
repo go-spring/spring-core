@@ -23,8 +23,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
@@ -33,7 +32,7 @@ import (
 )
 
 // newBean 该方法是为了平衡调用栈的深度，一般情况下 gs.NewBean 不应该被直接使用。
-func newBean(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) *gs_bean.BeanDefinition {
+func newBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	return gs_ctx.NewBean(objOrCtor, ctorArgs...)
 }
 
@@ -109,7 +108,7 @@ func TestIsFuncBeanType(t *testing.T) {
 func TestBeanDefinition_Match(t *testing.T) {
 
 	data := []struct {
-		bd       *gs_bean.BeanDefinition
+		bd       *gs.BeanDefinition
 		typeName string
 		beanName string
 		expect   bool
@@ -184,7 +183,7 @@ func TestObjectBean(t *testing.T) {
 
 	t.Run("check name && typename", func(t *testing.T) {
 
-		data := map[*gs_bean.BeanDefinition]struct {
+		data := map[*gs.BeanDefinition]struct {
 			name     string
 			typeName string
 		}{

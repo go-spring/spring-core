@@ -10,11 +10,12 @@
 package gs_cond
 
 import (
-	reflect "reflect"
+	"reflect"
 
-	conf "github.com/go-spring/spring-core/conf"
-	gsutil "github.com/go-spring/spring-core/gs/internal/gs_util"
-	gomock "go.uber.org/mock/gomock"
+	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_util"
+	"go.uber.org/mock/gomock"
 )
 
 // MockContext is a mock of Context interface.
@@ -42,10 +43,10 @@ func (m *MockContext) EXPECT() *MockContextMockRecorder {
 }
 
 // Find mocks base method.
-func (m *MockContext) Find(selector gsutil.BeanSelector) ([]gsutil.BeanDefinition, error) {
+func (m *MockContext) Find(selector gs_util.BeanSelector) ([]gs_util.BeanDefinition, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Find", selector)
-	ret0, _ := ret[0].([]gsutil.BeanDefinition)
+	ret0, _ := ret[0].([]gs_util.BeanDefinition)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -114,7 +115,7 @@ func (m *MockCondition) EXPECT() *MockConditionMockRecorder {
 }
 
 // Matches mocks base method.
-func (m *MockCondition) Matches(ctx Context) (bool, error) {
+func (m *MockCondition) Matches(ctx gs.ConditionContext) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Matches", ctx)
 	ret0, _ := ret[0].(bool)

@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -32,7 +33,7 @@ func TestBind(t *testing.T) {
 		defer ctrl.Finish()
 		ctx := gs_arg.NewMockContext(ctrl)
 		fn := func() {}
-		c, err := gs_arg.Bind(fn, []gs_arg.Arg{}, 1)
+		c, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -51,7 +52,7 @@ func TestBind(t *testing.T) {
 		fn := func(i int) {
 			expectInt = i
 		}
-		c, err := gs_arg.Bind(fn, []gs_arg.Arg{
+		c, err := gs_arg.Bind(fn, []gs.Arg{
 			gs_arg.Value(3),
 		}, 1)
 		if err != nil {
@@ -77,7 +78,7 @@ func TestBind(t *testing.T) {
 		fn := func(i int) {
 			expectInt = i
 		}
-		c, err := gs_arg.Bind(fn, []gs_arg.Arg{
+		c, err := gs_arg.Bind(fn, []gs.Arg{
 			"${a.b.c}",
 		}, 1)
 		if err != nil {
@@ -106,7 +107,7 @@ func TestBind(t *testing.T) {
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		c, err := gs_arg.Bind(fn, []gs_arg.Arg{
+		c, err := gs_arg.Bind(fn, []gs.Arg{
 			"a",
 		}, 1)
 		if err != nil {
@@ -135,7 +136,7 @@ func TestBind(t *testing.T) {
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		c, err := gs_arg.Bind(fn, []gs_arg.Arg{}, 1)
+		c, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}

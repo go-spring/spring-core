@@ -25,8 +25,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 )
 
@@ -40,12 +39,12 @@ const SpringBannerVisible = "spring.banner.visible"
 
 // AppRunner 命令行启动器接口
 type AppRunner interface {
-	Run(ctx gs_ctx.Context)
+	Run(ctx gs.Context)
 }
 
 // AppEvent 应用运行过程中的事件
 type AppEvent interface {
-	OnAppStart(ctx gs_ctx.Context) // 应用启动的事件
+	OnAppStart(ctx gs.Context)     // 应用启动的事件
 	OnAppStop(ctx context.Context) // 应用停止的事件
 }
 
@@ -57,7 +56,7 @@ type tempApp struct {
 type App struct {
 	*tempApp
 
-	c gs_ctx.Container
+	c gs.Container
 	b *Bootstrapper
 
 	exitChan chan struct{}
@@ -80,7 +79,7 @@ func (app *App) Banner(banner string) {
 	app.banner = banner
 }
 
-func (app *App) Start() (gs_ctx.Context, error) {
+func (app *App) Start() (gs.Context, error) {
 
 	app.Object(app)
 
@@ -110,23 +109,23 @@ func (app *App) Start() (gs_ctx.Context, error) {
 
 	// 执行命令行启动器
 	for _, r := range app.Runners {
-		r.Run(app.c.(gs_ctx.Context))
+		r.Run(app.c.(gs.Context))
 	}
 
 	// 通知应用启动事件
 	for _, event := range app.Events {
-		event.OnAppStart(app.c.(gs_ctx.Context))
+		event.OnAppStart(app.c.(gs.Context))
 	}
 
 	// 通知应用停止事件
-	app.c.(gs_ctx.Context).Go(func(ctx context.Context) {
+	app.c.(gs.Context).Go(func(ctx context.Context) {
 		<-ctx.Done()
 		for _, event := range app.Events {
 			event.OnAppStop(context.Background())
 		}
 	})
 
-	return app.c.(gs_ctx.Context), nil
+	return app.c.(gs.Context), nil
 }
 
 func (app *App) wait() {
@@ -239,16 +238,16 @@ func (app *App) Property(key string, value interface{}) {
 }
 
 // Accept 参考 Container.Accept 的解释。
-func (app *App) Accept(b *gs_bean.BeanDefinition) *gs_bean.BeanDefinition {
+func (app *App) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
 	return app.c.Accept(b)
 }
 
 // Object 参考 Container.Object 的解释。
-func (app *App) Object(i interface{}) *gs_bean.BeanDefinition {
+func (app *App) Object(i interface{}) *gs.BeanDefinition {
 	return app.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (app *App) Provide(ctor interface{}, args ...gs_arg.Arg) *gs_bean.BeanDefinition {
+func (app *App) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
 	return app.c.Accept(gs_ctx.NewBean(ctor, args...))
 }

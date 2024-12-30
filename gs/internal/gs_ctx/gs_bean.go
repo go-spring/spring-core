@@ -17,8 +17,15 @@
 package gs_ctx
 
 import (
+	"errors"
+	"fmt"
+	"reflect"
+	"runtime"
+	"strings"
+
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs_util"
 )
 
 // type beanStatus int8
@@ -59,7 +66,7 @@ import (
 // }
 
 type BeanInit interface {
-	OnInit(ctx Context) error
+	OnInit(ctx gs.Context) error
 }
 
 type BeanDestroy interface {
@@ -258,99 +265,95 @@ type BeanDestroy interface {
 // 	}
 // 	return nil
 // }
-//
-// // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-// func NewBean(objOrCtor interface{}, ctorArgs ...gsarg.Arg) *gsbean.BeanDefinition {
-//
-// 	var v reflect.Value
-// 	var fromValue bool
-// 	var method bool
-// 	var name string
-//
-// 	switch i := objOrCtor.(type) {
-// 	case reflect.Value:
-// 		fromValue = true
-// 		v = i
-// 	default:
-// 		v = reflect.ValueOf(i)
-// 	}
-//
-// 	t := v.Type()
-// 	if !gsutil.IsBeanType(t) {
-// 		panic(errors.New("bean must be ref type"))
-// 	}
-//
-// 	if !v.IsValid() || v.IsNil() {
-// 		panic(errors.New("bean can't be nil"))
-// 	}
-//
-// 	const skip = 2
-// 	var f *gsarg.Callable
-// 	_, file, line, _ := runtime.Caller(skip)
-//
-// 	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
-// 	if !fromValue && t.Kind() == reflect.Func {
-//
-// 		if !gsutil.IsConstructor(t) {
-// 			t1 := "func(...)bean"
-// 			t2 := "func(...)(bean, error)"
-// 			panic(fmt.Errorf("constructor should be %s or %s", t1, t2))
-// 		}
-//
-// 		var err error
-// 		f, err = gsarg.Bind(objOrCtor, ctorArgs, skip)
-// 		if err != nil {
-// 			panic(err)
-// 		}
-//
-// 		out0 := t.Out(0)
-// 		v = reflect.New(out0)
-// 		if gsutil.IsBeanType(out0) {
-// 			v = v.Elem()
-// 		}
-//
-// 		t = v.Type()
-// 		if !gsutil.IsBeanType(t) {
-// 			panic(errors.New("bean must be ref type"))
-// 		}
-//
-// 		// 成员方法一般是 xxx/gs_test.(*Server).Consumer 形式命名
-// 		fnPtr := reflect.ValueOf(objOrCtor).Pointer()
-// 		fnInfo := runtime.FuncForPC(fnPtr)
-// 		funcName := fnInfo.Name()
-// 		name = funcName[strings.LastIndex(funcName, "/")+1:]
-// 		name = name[strings.Index(name, ".")+1:]
-// 		if name[0] == '(' {
-// 			name = name[strings.Index(name, ".")+1:]
-// 		}
-// 		method = strings.LastIndexByte(fnInfo.Name(), ')') > 0
-// 	}
-//
-// 	if t.Kind() == reflect.Ptr && !gsutil.IsValueType(t.Elem()) {
-// 		panic(errors.New("bean should be *val but not *ref"))
-// 	}
-//
-// 	// Type.String() 一般返回 *pkg.Type 形式的字符串，
-// 	// 我们只取最后的类型名，如有需要请自定义 bean 名称。
-// 	if name == "" {
-// 		s := strings.Split(t.String(), ".")
-// 		name = strings.TrimPrefix(s[len(s)-1], "*")
-// 	}
-//
-// 	return &gsbean.BeanDefinition{
-// 		t:        t,
-// 		v:        v,
-// 		f:        f,
-// 		name:     name,
-// 		typeName: gsutil.TypeName(t),
-// 		status:   gsbean.Default,
-// 		method:   method,
-// 		file:     file,
-// 		line:     line,
-// 	}
-// }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(objOrCtor interface{}, ctorArgs ...gs_arg.Arg) *gs_bean.BeanDefinition {
-	return gs_bean.NewBean(objOrCtor, ctorArgs...)
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+
+	var v reflect.Value
+	var fromValue bool
+	var method bool
+	var name string
+
+	switch i := objOrCtor.(type) {
+	case reflect.Value:
+		fromValue = true
+		v = i
+	default:
+		v = reflect.ValueOf(i)
+	}
+
+	t := v.Type()
+	if !gs_util.IsBeanType(t) {
+		panic(errors.New("bean must be ref type"))
+	}
+
+	if !v.IsValid() || v.IsNil() {
+		panic(errors.New("bean can't be nil"))
+	}
+
+	const skip = 2
+	var f gs.Callable
+	_, file, line, _ := runtime.Caller(skip)
+
+	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
+	if !fromValue && t.Kind() == reflect.Func {
+
+		if !gs_util.IsConstructor(t) {
+			t1 := "func(...)bean"
+			t2 := "func(...)(bean, error)"
+			panic(fmt.Errorf("constructor should be %s or %s", t1, t2))
+		}
+
+		var err error
+		f, err = gs_arg.Bind(objOrCtor, ctorArgs, skip)
+		if err != nil {
+			panic(err)
+		}
+
+		out0 := t.Out(0)
+		v = reflect.New(out0)
+		if gs_util.IsBeanType(out0) {
+			v = v.Elem()
+		}
+
+		t = v.Type()
+		if !gs_util.IsBeanType(t) {
+			panic(errors.New("bean must be ref type"))
+		}
+
+		// 成员方法一般是 xxx/gs_test.(*Server).Consumer 形式命名
+		fnPtr := reflect.ValueOf(objOrCtor).Pointer()
+		fnInfo := runtime.FuncForPC(fnPtr)
+		funcName := fnInfo.Name()
+		name = funcName[strings.LastIndex(funcName, "/")+1:]
+		name = name[strings.Index(name, ".")+1:]
+		if name[0] == '(' {
+			name = name[strings.Index(name, ".")+1:]
+		}
+		method = strings.LastIndexByte(fnInfo.Name(), ')') > 0
+	}
+
+	if t.Kind() == reflect.Ptr && !gs_util.IsValueType(t.Elem()) {
+		panic(errors.New("bean should be *val but not *ref"))
+	}
+
+	// Type.String() 一般返回 *pkg.Type 形式的字符串，
+	// 我们只取最后的类型名，如有需要请自定义 bean 名称。
+	if name == "" {
+		s := strings.Split(t.String(), ".")
+		name = strings.TrimPrefix(s[len(s)-1], "*")
+	}
+
+	return gs.NewBean(t, v, f, name, method, file, line)
+	//return &gs.BeanDefinition{
+	//	t:        t,
+	//	v:        v,
+	//	f:        f,
+	//	name:     name,
+	//	typeName: gs_util.TypeName(t),
+	//	status:   gs.Default,
+	//	method:   method,
+	//	file:     file,
+	//	line:     line,
+	//}
 }

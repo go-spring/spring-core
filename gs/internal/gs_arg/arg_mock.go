@@ -10,10 +10,10 @@
 package gs_arg
 
 import (
-	reflect "reflect"
+	"reflect"
 
-	cond "github.com/go-spring/spring-core/gs/internal/gs_cond"
-	gomock "go.uber.org/mock/gomock"
+	"github.com/go-spring/spring-core/gs/internal/gs"
+	"go.uber.org/mock/gomock"
 )
 
 // MockContext is a mock of Context interface.
@@ -55,7 +55,7 @@ func (mr *MockContextMockRecorder) Bind(v, tag any) *gomock.Call {
 }
 
 // Matches mocks base method.
-func (m *MockContext) Matches(c cond.Condition) (bool, error) {
+func (m *MockContext) Matches(c gs.Condition) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Matches", c)
 	ret0, _ := ret[0].(bool)

@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
@@ -40,7 +41,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runTest(c gs_ctx.Container, fn func(gs_ctx.Context)) error {
+func runTest(c gs.Container, fn func(gs_ctx.Context)) error {
 	type PandoraAware struct{}
 	c.Provide(func(p gs_ctx.Context) PandoraAware {
 		fn(p)

@@ -19,13 +19,12 @@ package gs_app
 import (
 	"reflect"
 
-	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 )
 
 type Bootstrapper struct {
-	c gs_ctx.Container
+	c gs.Container
 }
 
 func newBootstrap() *Bootstrapper {
@@ -45,12 +44,12 @@ func (b *Bootstrapper) Property(key string, value interface{}) {
 }
 
 // Object 参考 Container.Object 的解释。
-func (b *Bootstrapper) Object(i interface{}) *gs_bean.BeanDefinition {
+func (b *Bootstrapper) Object(i interface{}) *gs.BeanDefinition {
 	return b.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (b *Bootstrapper) Provide(ctor interface{}, args ...gs_arg.Arg) *gs_bean.BeanDefinition {
+func (b *Bootstrapper) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
 	return b.c.Accept(gs_ctx.NewBean(ctor, args...))
 }
 

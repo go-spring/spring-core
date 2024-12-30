@@ -25,59 +25,42 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
 )
 
-// Context defines some methods of IoC container that Callable use.
-type Context interface {
-	// Matches returns true when the Condition returns true,
-	// and returns false when the Condition returns false.
-	Matches(c gs_cond.Condition) (bool, error)
-	// Bind binds properties value by the "value" tag.
-	Bind(v reflect.Value, tag string) error
-	// Wire wires dependent beans by the "autowire" tag.
-	Wire(v reflect.Value, tag string) error
-}
-
-// Arg 用于为函数参数提供绑定值。可以是 bean.Selector 类型，表示注入 bean ；
-// 可以是 ${X:=Y} 形式的字符串，表示属性绑定或者注入 bean ；可以是 ValueArg
-// 类型，表示不从 IoC 容器获取而是用户传入的普通值；可以是 IndexArg 类型，表示
-// 带有下标的参数绑定；可以是 *optionArg 类型，用于为 Option 方法提供参数绑定。
-type Arg interface{}
-
 // IndexArg is an Arg that has an index.
 type IndexArg struct {
 	n   int
-	arg Arg
+	arg gs.Arg
 }
 
 // Index returns an IndexArg.
-func Index(n int, arg Arg) IndexArg {
+func Index(n int, arg gs.Arg) IndexArg {
 	return IndexArg{n: n, arg: arg}
 }
 
 // R0 returns an IndexArg with index 0.
-func R0(arg Arg) IndexArg { return Index(0, arg) }
+func R0(arg gs.Arg) IndexArg { return Index(0, arg) }
 
 // R1 returns an IndexArg with index 1.
-func R1(arg Arg) IndexArg { return Index(1, arg) }
+func R1(arg gs.Arg) IndexArg { return Index(1, arg) }
 
 // R2 returns an IndexArg with index 2.
-func R2(arg Arg) IndexArg { return Index(2, arg) }
+func R2(arg gs.Arg) IndexArg { return Index(2, arg) }
 
 // R3 returns an IndexArg with index 3.
-func R3(arg Arg) IndexArg { return Index(3, arg) }
+func R3(arg gs.Arg) IndexArg { return Index(3, arg) }
 
 // R4 returns an IndexArg with index 4.
-func R4(arg Arg) IndexArg { return Index(4, arg) }
+func R4(arg gs.Arg) IndexArg { return Index(4, arg) }
 
 // R5 returns an IndexArg with index 5.
-func R5(arg Arg) IndexArg { return Index(5, arg) }
+func R5(arg gs.Arg) IndexArg { return Index(5, arg) }
 
 // R6 returns an IndexArg with index 6.
-func R6(arg Arg) IndexArg { return Index(6, arg) }
+func R6(arg gs.Arg) IndexArg { return Index(6, arg) }
 
 // ValueArg is an Arg that has a value.
 type ValueArg struct {
@@ -97,11 +80,11 @@ func Value(v interface{}) ValueArg {
 // argList stores the arguments of a function.
 type argList struct {
 	fnType reflect.Type
-	args   []Arg
+	args   []gs.Arg
 }
 
 // newArgList returns a new argList.
-func newArgList(fnType reflect.Type, args []Arg) (*argList, error) {
+func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
 
 	fixedArgCount := fnType.NumIn()
 	if fnType.IsVariadic() {
@@ -116,7 +99,7 @@ func newArgList(fnType reflect.Type, args []Arg) (*argList, error) {
 		return ok
 	}()
 
-	fnArgs := make([]Arg, fixedArgCount)
+	fnArgs := make([]gs.Arg, fixedArgCount)
 
 	if len(args) > 0 {
 		switch arg := args[0].(type) {
@@ -178,7 +161,7 @@ func newArgList(fnType reflect.Type, args []Arg) (*argList, error) {
 }
 
 // get returns all processed Args value. fileLine is the binding position of Callable.
-func (r *argList) get(ctx Context, fileLine string) ([]reflect.Value, error) {
+func (r *argList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, error) {
 
 	fnType := r.fnType
 	numIn := fnType.NumIn()
@@ -207,7 +190,7 @@ func (r *argList) get(ctx Context, fileLine string) ([]reflect.Value, error) {
 	return result, nil
 }
 
-func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) (reflect.Value, error) {
+func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine string) (reflect.Value, error) {
 
 	var (
 		err error
@@ -275,11 +258,11 @@ func (r *argList) getArg(ctx Context, arg Arg, t reflect.Type, fileLine string) 
 // optionArg Option 函数的参数绑定。
 type optionArg struct {
 	r *Callable
-	c gs_cond.Condition
+	c gs.Condition
 }
 
 // Provide 为 Option 方法绑定运行时参数。
-func Provide(fn interface{}, args ...Arg) *Callable {
+func Provide(fn interface{}, args ...gs.Arg) *Callable {
 	r, err := Bind(fn, args, 1)
 	if err != nil {
 		panic(err)
@@ -288,7 +271,7 @@ func Provide(fn interface{}, args ...Arg) *Callable {
 }
 
 // Option 返回 Option 函数的参数绑定。
-func Option(fn interface{}, args ...Arg) *optionArg {
+func Option(fn interface{}, args ...gs.Arg) *optionArg {
 
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func || t.NumOut() != 1 {
@@ -303,12 +286,12 @@ func Option(fn interface{}, args ...Arg) *optionArg {
 }
 
 // On 设置一个 gs_cond.Condition 对象。
-func (arg *optionArg) On(c gs_cond.Condition) *optionArg {
+func (arg *optionArg) On(c gs.Condition) *optionArg {
 	arg.c = c
 	return arg
 }
 
-func (arg *optionArg) call(ctx Context) (reflect.Value, error) {
+func (arg *optionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 
 	var (
 		ok  bool
@@ -351,7 +334,7 @@ type Callable struct {
 
 // Bind returns a Callable that wrappers a function and its binding arguments.
 // The argument skip is the number of frames to skip over.
-func Bind(fn interface{}, args []Arg, skip int) (*Callable, error) {
+func Bind(fn interface{}, args []gs.Arg, skip int) (*Callable, error) {
 
 	fnType := reflect.TypeOf(fn)
 	argList, err := newArgList(fnType, args)
@@ -370,7 +353,7 @@ func Bind(fn interface{}, args []Arg, skip int) (*Callable, error) {
 }
 
 // Arg returns the ith binding argument.
-func (r *Callable) Arg(i int) (Arg, bool) {
+func (r *Callable) Arg(i int) (gs.Arg, bool) {
 	if i >= len(r.argList.args) {
 		return nil, false
 	}
@@ -386,7 +369,7 @@ func (r *Callable) In(i int) (reflect.Type, bool) {
 
 // Call invokes the function with its binding arguments processed in the IoC
 // container. If the function returns an error, then the Call returns it.
-func (r *Callable) Call(ctx Context) ([]reflect.Value, error) {
+func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 
 	in, err := r.argList.get(ctx, r.fileLine)
 	if err != nil {
