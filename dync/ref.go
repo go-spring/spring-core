@@ -26,67 +26,43 @@ import (
 
 type RefValidateFunc func(v interface{}) error
 
-type Ref struct {
-	v    atomic.Value
-	f    RefValidateFunc
-	init func() (conf.ReadOnlyProperties, conf.BindParam)
+type Ref[T interface{}] struct {
+	v atomic.Value
+	f RefValidateFunc
 }
 
-func (r *Ref) Init(i interface{}) error {
-	r.v.Store(i)
-	if r.init == nil {
-		return nil
-	}
-	prop, param := r.init()
-	r.init = nil
-	return r.Refresh(prop, param)
-}
-
-func (r *Ref) Value() interface{} {
-	return r.v.Load()
-}
-
-func (r *Ref) OnValidate(f RefValidateFunc) {
+func (r *Ref[T]) OnValidate(f RefValidateFunc) {
 	r.f = f
 }
 
-func (r *Ref) getRef(prop conf.ReadOnlyProperties, param conf.BindParam) (interface{}, error) {
-	o := r.Value()
-	if o == nil {
-		r.init = func() (conf.ReadOnlyProperties, conf.BindParam) {
-			return prop, param
-		}
-		return nil, nil
-	}
-	t := reflect.TypeOf(o)
-	v := reflect.New(t)
-	err := conf.BindValue(prop, v.Elem(), t, param, nil)
-	if err != nil {
-		return nil, err
-	}
-	return v.Elem().Interface(), nil
+func bindRef[T any](o T, prop conf.ReadOnlyProperties, param conf.BindParam) error {
+	t := reflect.TypeOf(o).Elem()
+	v := reflect.ValueOf(o).Elem()
+	return conf.BindValue(prop, v, t, param, nil)
 }
 
-func (r *Ref) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-	v, err := r.getRef(prop, param)
+func (r *Ref[T]) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+	var o T
+	err := bindRef(&o, prop, param)
 	if err != nil {
 		return err
 	}
-	if v == nil {
-		return nil
-	}
-	r.v.Store(v)
+	r.v.Store(o)
 	return nil
 }
 
-func (r *Ref) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-	v, err := r.getRef(prop, param)
+func (r *Ref[T]) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+	var o T
+	err := bindRef(&o, prop, param)
+	if err != nil {
+		return err
+	}
 	if r.f != nil {
-		return r.f(v)
+		return r.f(o)
 	}
 	return err
 }
 
-func (r *Ref) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.Value())
+func (r *Ref[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.v.Load())
 }

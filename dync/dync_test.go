@@ -55,12 +55,12 @@ func (x *Integer) MarshalJSON() ([]byte, error) {
 }
 
 type Config struct {
-	Integer Integer      `value:"${int:=3}" expr:"$<6"`
-	Int     dync.Int64   `value:"${int:=3}" expr:"$<6"`
-	Float   dync.Float64 `value:"${float:=1.2}"`
-	Map     dync.Ref     `value:"${map:=}"`
-	Slice   dync.Ref     `value:"${slice:=}"`
-	Event   dync.Event   `value:"${event}"`
+	Integer Integer                     `value:"${int:=3}" expr:"$<6"`
+	Int     dync.Int64                  `value:"${int:=3}" expr:"$<6"`
+	Float   dync.Float64                `value:"${float:=1.2}"`
+	Map     dync.Ref[map[string]string] `value:"${map:=}"`
+	Slice   dync.Ref[[]string]          `value:"${slice:=}"`
+	Event   dync.Event                  `value:"${event}"`
 }
 
 func newTest() (*dync.Properties, *Config, error) {
@@ -81,7 +81,7 @@ func TestDynamic(t *testing.T) {
 			return
 		}
 		b, _ := json.Marshal(cfg)
-		assert.Equal(t, string(b), `{"Integer":3,"Int":3,"Float":1.2,"Map":null,"Slice":null,"Event":{}}`)
+		assert.Equal(t, string(b), `{"Integer":3,"Int":3,"Float":1.2,"Map":{},"Slice":[],"Event":{}}`)
 	})
 
 	t.Run("init", func(t *testing.T) {
@@ -89,8 +89,8 @@ func TestDynamic(t *testing.T) {
 		if err != nil {
 			return
 		}
-		cfg.Slice.Init(make([]string, 0))
-		cfg.Map.Init(make(map[string]string))
+		//cfg.Slice.Init(make([]string, 0))
+		//cfg.Map.Init(make(map[string]string))
 		cfg.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
@@ -122,8 +122,8 @@ func TestDynamic(t *testing.T) {
 			}
 			return nil
 		})
-		cfg.Slice.Init(make([]string, 0))
-		cfg.Map.Init(make(map[string]string))
+		//cfg.Slice.Init(make([]string, 0))
+		//cfg.Map.Init(make(map[string]string))
 		cfg.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
@@ -160,8 +160,8 @@ func TestDynamic(t *testing.T) {
 			}
 			return nil
 		})
-		cfg.Slice.Init(make([]string, 0))
-		cfg.Map.Init(make(map[string]string))
+		//cfg.Slice.Init(make([]string, 0))
+		//cfg.Map.Init(make(map[string]string))
 		cfg.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
