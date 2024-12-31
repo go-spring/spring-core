@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
-	"strings"
 	"syscall"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -49,13 +48,9 @@ type AppEvent interface {
 	OnAppStop(ctx context.Context) // 应用停止的事件
 }
 
-type tempApp struct {
-	banner string
-}
-
 // App 应用
 type App struct {
-	*tempApp
+	banner string
 
 	b *Boot
 	c *gs_ctx.Container
@@ -68,25 +63,29 @@ type App struct {
 
 // NewApp application 的构造函数
 func NewApp() *App {
-	return &App{
+	app := &App{
+		banner:   DefaultBanner,
 		c:        gs_ctx.New(),
 		p:        gs_conf.NewConfiguration(),
-		tempApp:  &tempApp{},
 		exitChan: make(chan struct{}),
 	}
+	app.Object(app)
+	return app
 }
 
-// Banner 自定义 banner 字符串。
-func (app *App) Banner(banner string) {
-	app.banner = banner
+func (app *App) Run() error {
+	_, err := app.Start()
+	if err != nil {
+		return err
+	}
+	app.wait()
+	app.Stop()
+	return nil
 }
 
 func (app *App) Start() (gs.Context, error) {
 
-	//showBanner, _ := strconv.ParseBool(e.p.Get(SpringBannerVisible))
-	//if showBanner {
-	//	app.printBanner(app.getBanner(e))
-	//}
+	app.showBanner()
 
 	if app.b != nil {
 		err := app.b.run()
@@ -100,28 +99,26 @@ func (app *App) Start() (gs.Context, error) {
 		return nil, err
 	}
 
-	app.Object(app)
-
 	err = app.c.RefreshProperties(p)
 	if err != nil {
 		return nil, err
 	}
 
-	err = app.c.Refresh(false)
+	err = app.c.Refresh()
 	if err != nil {
 		return nil, err
 	}
 
-	//var runners []AppRunner
-	//err = app.c.Get(&runners, "${command-line-runner.collection:=*?}")
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// 执行命令行启动器
-	//for _, r := range runners {
-	//	r.Run(app.c)
-	//}
+	var runners []AppRunner
+	err = app.c.Get(&runners, "${spring.app.runners:=*?}")
+	if err != nil {
+		return nil, err
+	}
+
+	// 执行命令行启动器
+	for _, r := range runners {
+		r.Run(app.c)
+	}
 
 	// 通知应用启动事件
 	for _, event := range app.Events {
@@ -150,74 +147,7 @@ func (app *App) wait() {
 }
 
 func (app *App) Stop() {
-
-	// if app.b != nil {
-	// 	app.b.c.Close()
-	// }
-
 	app.c.Close()
-}
-
-func (app *App) Run() error {
-	_, err := app.Start()
-	if err != nil {
-		return err
-	}
-	app.wait()
-	app.Stop()
-	return nil
-}
-
-const DefaultBanner = `
-                                              (_)              
-  __ _    ___             ___   _ __    _ __   _   _ __     __ _ 
- / _' |  / _ \   ______  / __| | '_ \  | '__| | | | '_ \   / _' |
-| (_| | | (_) | |______| \__ \ | |_) | | |    | | | | | | | (_| |
- \__, |  \___/           |___/ | .__/  |_|    |_| |_| |_|  \__, |
-  __/ |                        | |                          __/ |
- |___/                         |_|                         |___/ 
-`
-
-func (app *App) getBanner() string {
-	if app.banner != "" {
-		return app.banner
-	}
-	banner := DefaultBanner
-	// for _, resource := range resources {
-	// 	if b, _ := ioutil.ReadAll(resource); b != nil {
-	// 		banner = string(b)
-	// 	}
-	// }
-	return banner
-}
-
-// printBanner 打印 banner 到控制台
-func (app *App) printBanner(banner string) {
-
-	if banner[0] != '\n' {
-		fmt.Println()
-	}
-
-	maxLength := 0
-	for _, s := range strings.Split(banner, "\n") {
-		fmt.Printf("\x1b[36m%s\x1b[0m\n", s) // CYAN
-		if len(s) > maxLength {
-			maxLength = len(s)
-		}
-	}
-
-	if banner[len(banner)-1] != '\n' {
-		fmt.Println()
-	}
-
-	var padding []byte
-	if n := (maxLength - len(Version)) / 2; n > 0 {
-		padding = make([]byte, n)
-		for i := range padding {
-			padding[i] = ' '
-		}
-	}
-	fmt.Println(string(padding) + Version + "\n")
 }
 
 // ShutDown 关闭执行器
@@ -238,15 +168,6 @@ func (app *App) Boot() *Boot {
 	return app.b
 }
 
-func (app *App) Group(fn gs.GroupFunc) {
-	app.c.Group(fn)
-}
-
-// Accept 参考 Container.Accept 的解释。
-func (app *App) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
-	return app.c.Accept(b)
-}
-
 // Object 参考 Container.Object 的解释。
 func (app *App) Object(i interface{}) *gs.BeanDefinition {
 	return app.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
@@ -255,4 +176,13 @@ func (app *App) Object(i interface{}) *gs.BeanDefinition {
 // Provide 参考 Container.Provide 的解释。
 func (app *App) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
 	return app.c.Accept(gs_ctx.NewBean(ctor, args...))
+}
+
+// Accept 参考 Container.Accept 的解释。
+func (app *App) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
+	return app.c.Accept(b)
+}
+
+func (app *App) Group(fn gs.GroupFunc) {
+	app.c.Group(fn)
 }

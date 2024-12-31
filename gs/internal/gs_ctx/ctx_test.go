@@ -48,7 +48,7 @@ func runTest(c *gs_ctx.Container, fn func(gs.Context)) error {
 		fn(p)
 		return PandoraAware{}
 	})
-	return c.Refresh(false)
+	return c.Refresh()
 }
 
 func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
@@ -57,7 +57,7 @@ func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
 	// 	c.Object(func() {}).Init(func(f func()) {
 	// 		c.Object(func() {}) // 不能在这里注册新的 Object
 	// 	})
-	// 	_ = c.Refresh(false)
+	// 	_ = c.Refresh()
 	// }, "should call before Refresh")
 }
 
@@ -78,7 +78,7 @@ func TestApplicationContext(t *testing.T) {
 		c.Object(&e).Name("i3")
 		c.Object(&e).Name("i4")
 
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 
@@ -95,7 +95,7 @@ func TestApplicationContext(t *testing.T) {
 		c.Object(&e).Name("i4")
 		c.Object(&e).Name("i5")
 
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 }
@@ -226,7 +226,7 @@ func TestApplicationContext_ValueTag(t *testing.T) {
 	err := c.RefreshProperties(p)
 	assert.Nil(t, err)
 
-	err = c.Refresh(false)
+	err = c.Refresh()
 	assert.Nil(t, err)
 
 	fmt.Printf("%+v\n", setting)
@@ -281,7 +281,7 @@ func TestApplicationContext_PrototypeBean(t *testing.T) {
 	f := &PrototypeBeanFactory{}
 	c.Object(f)
 
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 
 	s.Service("Li Lei")
@@ -351,7 +351,7 @@ func TestApplicationContext_TypeConverter(t *testing.T) {
 	err := c.RefreshProperties(prop)
 	assert.Nil(t, err)
 
-	err = c.Refresh(false)
+	err = c.Refresh()
 	assert.Nil(t, err)
 
 	assert.Equal(t, b.EnvType, ENV_TEST)
@@ -381,7 +381,7 @@ func TestApplicationContext_NestedBean(t *testing.T) {
 	c := gs_ctx.New()
 	c.Object(new(MyGrouper)).Export((*Grouper)(nil))
 	c.Object(new(ProxyGrouper))
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 }
 
@@ -399,7 +399,7 @@ func TestApplicationContext_SameNameBean(t *testing.T) {
 	c.Object(new(SamePkgHolder))
 	c.Object(&pkg1.SamePkg{}).Export((*Pkg)(nil))
 	c.Object(&pkg2.SamePkg{}).Export((*Pkg)(nil))
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 }
 
@@ -427,7 +427,7 @@ func TestApplicationContext_DiffNameBean(t *testing.T) {
 	c.Object(&DiffPkgOne{}).Name("same").Export((*Pkg)(nil))
 	c.Object(&DiffPkgTwo{}).Name("same").Export((*Pkg)(nil))
 	c.Object(new(DiffPkgHolder))
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 }
 
@@ -558,7 +558,7 @@ func TestApplicationContext_Get(t *testing.T) {
 //	c.Object(&BeanZero{5})
 //	c.Object(new(BeanOne))
 //	c.Object(new(BeanTwo))
-//	c.Refresh(false)
+//	c.Refresh()
 //
 //	p := <-ch
 //
@@ -736,7 +736,7 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanFour))
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 
@@ -751,7 +751,7 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanFour)).DependsOn(dependsOn...)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 }
@@ -764,7 +764,7 @@ func TestApplicationContext_Primary(t *testing.T) {
 		c.Object(&BeanZero{6})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo))
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Error(t, err, "duplicate beans ")
 	})
 
@@ -775,7 +775,7 @@ func TestApplicationContext_Primary(t *testing.T) {
 		c.Object(&BeanZero{6}).Primary()
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo))
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Error(t, err, "duplicate beans ")
 	})
 
@@ -818,7 +818,7 @@ func TestDefaultProperties_WireFunc(t *testing.T) {
 	c.Object(func(int) int { return 6 })
 	obj := new(FuncObj)
 	c.Object(obj)
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 	i := obj.Fn(3)
 	assert.Equal(t, i, 6)
@@ -910,7 +910,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c := gs_ctx.New()
 		c.Provide(NewManagerRetError)
 		c.RefreshProperties(prop)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Error(t, err, "ctx_test.go:\\d* error")
 	})
 
@@ -922,7 +922,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.Provide(NewManagerRetErrorNil)
 
 		c.RefreshProperties(prop)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 
@@ -934,7 +934,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.Provide(NewNullPtrManager)
 
 		c.RefreshProperties(prop)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Error(t, err, "return nil")
 	})
 }
@@ -1004,7 +1004,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		{
 			c := gs_ctx.New()
 			c.Object(&callDestroy{i: 1}).Init((*callDestroy).InitWithError)
-			err := c.Refresh(false)
+			err := c.Refresh()
 			assert.Error(t, err, "error")
 		}
 
@@ -1041,7 +1041,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		{
 			c := gs_ctx.New()
 			c.Provide(func() destroyable { return &callDestroy{i: 1} }).Init(destroyable.InitWithError)
-			err := c.Refresh(false)
+			err := c.Refresh()
 			assert.Error(t, err, "error")
 		}
 
@@ -1189,7 +1189,7 @@ func TestApplicationContext_Collect(t *testing.T) {
 		assert.Equal(t, intBean.BeanName(), "TestApplicationContext_Collect.func6.1")
 
 		c.RefreshProperties(prop)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 }
@@ -1569,7 +1569,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 				c.Provide((*Server).Consumer, parent.ID()).DependsOn("Server")
 				c.Object(new(Service))
 				c.RefreshProperties(prop)
-				err := c.Refresh(false)
+				err := c.Refresh()
 				if err != nil {
 					panic(err)
 				}
@@ -1630,7 +1630,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, (*int)(nil))
 
 		c.RefreshProperties(prop)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Error(t, err, "can't find bean, bean:\"int:\" type:\"\\*gs_test.Server\"")
 	})
 
@@ -1669,7 +1669,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, "NULL")
 
 		c.RefreshProperties(prop)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Error(t, err, "can't find bean, bean:\"NULL\" type:\"\\*gs_test.Server\"")
 	})
 }
@@ -1703,7 +1703,7 @@ func TestApplicationContext_UserDefinedTypeProperty(t *testing.T) {
 	c.Object(&config)
 
 	c.RefreshProperties(prop)
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 
 	fmt.Printf("%+v\n", config)
@@ -1729,7 +1729,7 @@ func TestApplicationContext_CircleAutowire(t *testing.T) {
 		c.Object(new(CircleA))
 		c.Object(new(CircleB))
 		c.Object(new(CircleC))
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 
@@ -1740,7 +1740,7 @@ func TestApplicationContext_CircleAutowire(t *testing.T) {
 		c.Provide(func() *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 
@@ -1753,7 +1753,7 @@ func TestApplicationContext_CircleAutowire(t *testing.T) {
 		c.Provide(func() *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 
@@ -1768,7 +1768,7 @@ func TestApplicationContext_CircleAutowire(t *testing.T) {
 		c.Provide(func(a *CircleA) *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Error(t, err, "found circle autowire")
 	})
 }
@@ -1958,7 +1958,7 @@ func TestApplicationContext_Close(t *testing.T) {
 
 		c := gs_ctx.New()
 		c.Object(func() {}).Destroy(func(f func()) { called = true })
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 		c.Close()
 
@@ -2172,7 +2172,7 @@ func TestApplicationContext_FnArgCollectBean(t *testing.T) {
 			assert.Equal(t, names, []string{"t1", "t2"})
 			return func() {}
 		})
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 }
@@ -2193,7 +2193,7 @@ func TestApplicationContext_BeanCache(t *testing.T) {
 	t.Run("not implement interface", func(t *testing.T) {
 		c := gs_ctx.New()
 		c.Object(func() {}).Export((*filter)(nil))
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Error(t, err, "doesn't implement interface gs_test.filter")
 	})
 
@@ -2209,7 +2209,7 @@ func TestApplicationContext_BeanCache(t *testing.T) {
 		c.Object(new(filterImpl)).Export((*filter)(nil)).Name("f2")
 		c.Object(&server)
 
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 }
@@ -2227,7 +2227,7 @@ func (i Integer) Value() int {
 func TestApplicationContext_IntInterface(t *testing.T) {
 	c := gs_ctx.New()
 	c.Provide(func() IntInterface { return Integer(5) })
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 }
 
@@ -2254,7 +2254,7 @@ func TestApplicationContext_Properties(t *testing.T) {
 		b := new(ArrayProperties)
 		c := gs_ctx.New()
 		c.Object(b)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 
@@ -2277,7 +2277,7 @@ func TestApplicationContext_Properties(t *testing.T) {
 		c.Object(&obj)
 
 		c.RefreshProperties(prop)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 
 		assert.Equal(t, obj.Int, 5)
@@ -2331,7 +2331,7 @@ func TestApplicationContext_Destroy(t *testing.T) {
 			destroyArray[destroyIndex] = 4
 			destroyIndex++
 		})
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 	c.Close()
 
@@ -2492,7 +2492,7 @@ func TestDefaultSpringContext(t *testing.T) {
 //	parent := c.Provide(NewServerInterface).On(cond.OnProperty("server.is.nil"))
 //	c.Provide(ServerInterface.Consumer, parent.ID())
 //
-//	c.Refresh(false)
+//	c.Refresh()
 //
 //	var s *Server
 //	ok := p.Get(&s)
@@ -2623,7 +2623,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //	c := gs.New()
 //	c.Object(&BeanZero{5})
 //	c.Object(new(BeanOne))
-//	c.Refresh(false)
+//	c.Refresh()
 //
 //	c1 := cond.OnBean("BeanOne")
 //	assert.True(t, c1.Matches(c))
@@ -2637,7 +2637,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //	c := gs.New()
 //	c.Object(&BeanZero{5})
 //	c.Object(new(BeanOne))
-//	c.Refresh(false)
+//	c.Refresh()
 //
 //	c1 := cond.OnMissingBean("BeanOne")
 //	assert.False(t, c1.Matches(c))
@@ -2655,7 +2655,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //	c := gs.New()
 //	c.Property("bool", false)
 //	c.Property("int", 3)
-//	c.Refresh(false)
+//	c.Refresh()
 //
 //	c1 := cond.OnProperty("int")
 //	assert.True(t, c1.Matches(c))
@@ -2707,7 +2707,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //
 //	c := gs.New()
 //	c.Property(environ.SpringProfilesActive, "test")
-//	c.Refresh(false)
+//	c.Refresh()
 //
 //	profileCond := cond.OnProfile("test")
 //	assert.True(t, profileCond.Matches(c))
@@ -2774,7 +2774,7 @@ func TestEmptyStruct(t *testing.T) {
 	c.Object(objA)
 	objB := &emptyStructB{}
 	c.Object(objB)
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 
 	// objA 和 objB 的地址相同但是类型确实不一样。
@@ -2839,7 +2839,7 @@ func TestLazy(t *testing.T) {
 		c.Object(&d)
 
 		c.RefreshProperties(prop)
-		err := c.Refresh(false)
+		err := c.Refresh()
 		assert.Nil(t, err)
 		assert.NotNil(t, d.b)
 		assert.NotNil(t, d.b.A)
@@ -2876,7 +2876,7 @@ func TestDestroyDependence(t *testing.T) {
 	c.Object(new(memory))
 	c.Object(new(table)).Name("aaa")
 	c.Object(new(table)).Name("bbb")
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 }
 
@@ -2896,7 +2896,7 @@ func TestContextAware(t *testing.T) {
 	b := c.Object(new(ContextAware))
 
 	c.RefreshProperties(prop)
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 	a := b.Interface().(*ContextAware)
 	assert.Equal(t, a.Echo("gopher"), "hello gopher!")
@@ -2946,7 +2946,7 @@ func TestDynamic(t *testing.T) {
 			return nil
 		})
 	})
-	err := c.Refresh(false)
+	err := c.Refresh()
 	assert.Nil(t, err)
 
 	{

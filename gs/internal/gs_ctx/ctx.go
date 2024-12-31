@@ -360,7 +360,7 @@ func (c *Container) RefreshProperties(p conf.ReadOnlyProperties) error {
 	return c.p.Refresh(p)
 }
 
-func (c *Container) Refresh(autoClear bool) (err error) {
+func (c *Container) Refresh() (err error) {
 
 	if c.state != Unrefreshed {
 		return errors.New("Container already refreshed")
@@ -450,9 +450,9 @@ func (c *Container) Refresh(autoClear bool) (err error) {
 	// cost := time.Now().Sub(start)
 	// c.logger.Infof("refresh %d beans cost %v", len(beansById), cost)
 
-	if autoClear && !c.ContextAware {
-		c.clear()
-	}
+	// if autoClear && !c.ContextAware {
+	// 	c.clear()
+	// }
 
 	// c.logger.Info("Container refreshed successfully")
 	return nil
@@ -558,16 +558,20 @@ func (tag wireTag) String() string {
 	return b.String()
 }
 
-func toWireTag(selector gs.BeanSelector) wireTag {
+func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
 	switch s := selector.(type) {
 	case string:
-		return parseWireTag(s)
+		s, err := c.resolveTag(s)
+		if err != nil {
+			return wireTag{}, err
+		}
+		return parseWireTag(s), nil
 	case gs.BeanDefinition:
-		return parseWireTag(s.ID())
+		return parseWireTag(s.ID()), nil
 	case *gs.BeanDefinition:
-		return parseWireTag(s.ID())
+		return parseWireTag(s.ID()), nil
 	default:
-		return parseWireTag(gs_util.TypeName(s) + ":")
+		return parseWireTag(gs_util.TypeName(s) + ":"), nil
 	}
 }
 
@@ -606,7 +610,10 @@ func (c *Container) Find(selector gs.BeanSelector) ([]*gs.BeanDefinition, error)
 	var t reflect.Type
 	switch st := selector.(type) {
 	case string, gs.BeanDefinition, *gs.BeanDefinition:
-		tag := toWireTag(selector)
+		tag, err := c.toWireTag(selector)
+		if err != nil {
+			return nil, err
+		}
 		return finder(func(b *gs.BeanDefinition) bool {
 			return b.Match(tag.typeName, tag.beanName)
 		})
@@ -881,15 +888,23 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 	return nil
 }
 
-func (c *Container) wireByTag(v reflect.Value, tag string, stack *wiringStack) error {
-
-	// tag 预处理，可能通过属性值进行指定。
+// resolveTag tag 预处理，可能通过属性值进行指定。
+func (c *Container) resolveTag(tag string) (string, error) {
 	if strings.HasPrefix(tag, "${") {
 		s, err := c.p.Data().Resolve(tag)
 		if err != nil {
-			return err
+			return "", err
 		}
-		tag = s
+		return s, nil
+	}
+	return tag, nil
+}
+
+func (c *Container) wireByTag(v reflect.Value, tag string, stack *wiringStack) error {
+
+	tag, err := c.resolveTag(tag)
+	if err != nil {
+		return err
 	}
 
 	if tag == "" {
@@ -899,7 +914,12 @@ func (c *Container) wireByTag(v reflect.Value, tag string, stack *wiringStack) e
 	var tags []wireTag
 	if tag != "?" {
 		for _, s := range strings.Split(tag, ",") {
-			tags = append(tags, toWireTag(s))
+			var g wireTag
+			g, err = c.toWireTag(s)
+			if err != nil {
+				return err
+			}
+			tags = append(tags, g)
 		}
 	}
 	return c.autowire(v, tags, tag == "?", stack)
@@ -1205,7 +1225,11 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 
 	var tags []wireTag
 	for _, s := range selectors {
-		tags = append(tags, toWireTag(s))
+		g, err := c.toWireTag(s)
+		if err != nil {
+			return err
+		}
+		tags = append(tags, g)
 	}
 	return c.autowire(v.Elem(), tags, false, stack)
 }

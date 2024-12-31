@@ -24,16 +24,22 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 )
 
+type BootRunner interface {
+	Run(ctx gs.Context)
+}
+
 type Boot struct {
 	c *gs_ctx.Container
 	p *gs_conf.Bootstrap
 }
 
 func newBoot() *Boot {
-	return &Boot{
+	b := &Boot{
 		c: gs_ctx.New(),
 		p: gs_conf.NewBootstrap(),
 	}
+	b.c.Object(b)
+	return b
 }
 
 func (b *Boot) Group(fn gs.GroupFunc) {
@@ -57,17 +63,27 @@ func (b *Boot) run() error {
 		return err
 	}
 
-	b.c.Object(b)
-
 	err = b.c.RefreshProperties(p)
 	if err != nil {
 		return err
 	}
 
-	// // 保存从环境变量和命令行解析的属性
-	// for _, k := range e.p.Keys() {
-	// 	b.c.initProperties.Set(k, e.p.Get(k))
-	// }
+	err = b.c.Refresh()
+	if err != nil {
+		return err
+	}
 
-	return b.c.Refresh(false)
+	var runners []AppRunner
+	err = b.c.Get(&runners, "${spring.boot.runners:=*?}")
+	if err != nil {
+		return err
+	}
+
+	// 执行命令行启动器
+	for _, r := range runners {
+		r.Run(b.c)
+	}
+
+	b.c.Close()
+	return nil
 }
