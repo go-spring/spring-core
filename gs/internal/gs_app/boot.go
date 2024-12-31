@@ -20,41 +20,50 @@ import (
 	"reflect"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 )
 
-type Bootstrapper struct {
+type Boot struct {
 	c *gs_ctx.Container
+	p *gs_conf.Bootstrap
 }
 
-func newBootstrap() *Bootstrapper {
-	return &Bootstrapper{
+func newBoot() *Boot {
+	return &Boot{
 		c: gs_ctx.New(),
+		p: gs_conf.NewBootstrap(),
 	}
 }
 
-func (b *Bootstrapper) Group(fn gs.GroupFunc) {
+func (b *Boot) Group(fn gs.GroupFunc) {
 	b.c.Group(fn)
 }
 
 // Object 参考 Container.Object 的解释。
-func (b *Bootstrapper) Object(i interface{}) *gs.BeanDefinition {
+func (b *Boot) Object(i interface{}) *gs.BeanDefinition {
 	return b.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (b *Bootstrapper) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
+func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
 	return b.c.Accept(gs_ctx.NewBean(ctor, args...))
 }
 
-func (b *Bootstrapper) start() error {
+func (b *Boot) run() error {
+
+	p, err := b.p.Refresh()
+	if err != nil {
+		return err
+	}
 
 	b.c.Object(b)
 
-	// if err := b.loadBootstrap(e); err != nil {
-	// 	return err
-	// }
-	//
+	err = b.c.RefreshProperties(p)
+	if err != nil {
+		return err
+	}
+
 	// // 保存从环境变量和命令行解析的属性
 	// for _, k := range e.p.Keys() {
 	// 	b.c.initProperties.Set(k, e.p.Get(k))

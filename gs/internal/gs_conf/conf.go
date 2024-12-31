@@ -97,17 +97,17 @@ func (c *Configuration) Refresh() (conf.ReadOnlyProperties, error) {
 	return p, nil
 }
 
-/******************************* Bootstrapper ********************************/
+/******************************** Bootstrap **********************************/
 
-// Bootstrapper is a layered bootstrap configuration.
-type Bootstrapper struct {
+// Bootstrap is a layered bootstrap configuration.
+type Bootstrap struct {
 	LocalFile   *PropertySources
 	Environment *Environment
 	CommandArgs *CommandArgs
 }
 
-func NewBootstrapper() *Bootstrapper {
-	return &Bootstrapper{
+func NewBootstrap() *Bootstrap {
+	return &Bootstrap{
 		LocalFile:   NewPropertySources(ConfigTypeLocal, "bootstrap"),
 		Environment: NewEnvironment(),
 		CommandArgs: NewCommandArgs(),
@@ -115,7 +115,7 @@ func NewBootstrapper() *Bootstrapper {
 }
 
 // Refresh merges all layers into a properties as read-only.
-func (c *Bootstrapper) Refresh() (conf.ReadOnlyProperties, error) {
+func (c *Bootstrap) Refresh() (conf.ReadOnlyProperties, error) {
 
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)

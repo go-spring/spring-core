@@ -26,6 +26,7 @@ import (
 	"syscall"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 )
 
@@ -56,19 +57,20 @@ type tempApp struct {
 type App struct {
 	*tempApp
 
+	b *Boot
 	c *gs_ctx.Container
-	b *Bootstrapper
+	p *gs_conf.Configuration
 
 	exitChan chan struct{}
 
-	Events  []AppEvent  `autowire:"${application-event.collection:=*?}"`
-	Runners []AppRunner `autowire:"${command-line-runner.collection:=*?}"`
+	Events []AppEvent `autowire:"${application-event.collection:=*?}"`
 }
 
 // NewApp application 的构造函数
 func NewApp() *App {
 	return &App{
 		c:        gs_ctx.New(),
+		p:        gs_conf.NewConfiguration(),
 		tempApp:  &tempApp{},
 		exitChan: make(chan struct{}),
 	}
@@ -81,36 +83,45 @@ func (app *App) Banner(banner string) {
 
 func (app *App) Start() (gs.Context, error) {
 
-	app.Object(app)
+	//showBanner, _ := strconv.ParseBool(e.p.Get(SpringBannerVisible))
+	//if showBanner {
+	//	app.printBanner(app.getBanner(e))
+	//}
 
-	// showBanner, _ := strconv.ParseBool(e.p.Get(SpringBannerVisible))
-	// if showBanner {
-	// 	app.printBanner(app.getBanner(e))
-	// }
+	if app.b != nil {
+		err := app.b.run()
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	// if app.b != nil {
-	// 	if err := app.b.start(e); err != nil {
-	// 		return err
-	// 	}
-	// }
-	//
-	// if err := app.loadProperties(e); err != nil {
-	// 	return err
-	// }
-
-	// // 保存从环境变量和命令行解析的属性
-	// for _, k := range e.p.Keys() {
-	// 	app.c.initProperties.Set(k, e.p.Get(k))
-	// }
-
-	if err := app.c.Refresh(false); err != nil {
+	p, err := app.p.Refresh()
+	if err != nil {
 		return nil, err
 	}
 
-	// 执行命令行启动器
-	for _, r := range app.Runners {
-		r.Run(app.c)
+	app.Object(app)
+
+	err = app.c.RefreshProperties(p)
+	if err != nil {
+		return nil, err
 	}
+
+	err = app.c.Refresh(false)
+	if err != nil {
+		return nil, err
+	}
+
+	//var runners []AppRunner
+	//err = app.c.Get(&runners, "${command-line-runner.collection:=*?}")
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//// 执行命令行启动器
+	//for _, r := range runners {
+	//	r.Run(app.c)
+	//}
 
 	// 通知应用启动事件
 	for _, event := range app.Events {
@@ -219,10 +230,10 @@ func (app *App) ShutDown(msg ...string) {
 	}
 }
 
-// Bootstrap 返回 *bootstrap 对象。
-func (app *App) Bootstrap() *Bootstrapper {
+// Boot 返回 *bootstrap 对象。
+func (app *App) Boot() *Boot {
 	if app.b == nil {
-		app.b = newBootstrap()
+		app.b = newBoot()
 	}
 	return app.b
 }

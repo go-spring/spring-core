@@ -53,9 +53,9 @@ func ShutDown(msg ...string) {
 	app.ShutDown(msg...)
 }
 
-// Bootstrap 参考 App.Bootstrap 的解释。
-func Bootstrap() *gs_app.Bootstrapper {
-	return app.Bootstrap()
+// Boot 参考 App.Boot 的解释。
+func Boot() *gs_app.Boot {
+	return app.Boot()
 }
 
 // Object 参考 Container.Object 的解释。

@@ -911,7 +911,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.Provide(NewManagerRetError)
 		c.RefreshProperties(prop)
 		err := c.Refresh(false)
-		assert.Error(t, err, "gs_test.go:\\d* error")
+		assert.Error(t, err, "ctx_test.go:\\d* error")
 	})
 
 	t.Run("manager return error nil", func(t *testing.T) {
@@ -2903,11 +2903,11 @@ func TestContextAware(t *testing.T) {
 }
 
 type DynamicConfig struct {
-	Int   dync.Int64   `value:"${int:=3}" expr:"$<6"`
-	Float dync.Float64 `value:"${float:=1.2}"`
-	Map   dync.Ref     `value:"${map:=}"`
-	Slice dync.Ref     `value:"${slice:=}"`
-	Event dync.Event   `value:"${event}"`
+	Int   dync.Int64                  `value:"${int:=3}" expr:"$<6"`
+	Float dync.Float64                `value:"${float:=1.2}"`
+	Map   dync.Ref[map[string]string] `value:"${map:=}"`
+	Slice dync.Ref[[]string]          `value:"${slice:=}"`
+	Event dync.Event                  `value:"${event}"`
 }
 
 type DynamicConfigWrapper struct {
@@ -2928,8 +2928,8 @@ func TestDynamic(t *testing.T) {
 			}
 			return nil
 		})
-		config.Slice.Init(make([]string, 0))
-		config.Map.Init(make(map[string]string))
+		//config.Slice.Init(make([]string, 0))
+		//config.Map.Init(make(map[string]string))
 		config.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
@@ -2939,8 +2939,8 @@ func TestDynamic(t *testing.T) {
 		cfg = config
 	})
 	c.Object(wrapper).Init(func(p *DynamicConfigWrapper) {
-		p.Wrapper.Slice.Init(make([]string, 0))
-		p.Wrapper.Map.Init(make(map[string]string))
+		//p.Wrapper.Slice.Init(make([]string, 0))
+		//p.Wrapper.Map.Init(make(map[string]string))
 		p.Wrapper.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil

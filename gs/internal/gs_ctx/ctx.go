@@ -356,7 +356,7 @@ func (c *Container) clear() {
 	c.tempContainer = nil
 }
 
-func (c *Container) RefreshProperties(p *conf.Properties) error {
+func (c *Container) RefreshProperties(p conf.ReadOnlyProperties) error {
 	return c.p.Refresh(p)
 }
 
