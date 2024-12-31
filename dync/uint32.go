@@ -39,7 +39,7 @@ func (x *Uint32) OnValidate(f Uint32ValidateFunc) {
 	x.f = f
 }
 
-func (x *Uint32) getUint32(prop *conf.Properties, param conf.BindParam) (uint32, error) {
+func (x *Uint32) getUint32(prop conf.ReadOnlyProperties, param conf.BindParam) (uint32, error) {
 	s, err := GetProperty(prop, param)
 	if err != nil {
 		return 0, err
@@ -51,7 +51,7 @@ func (x *Uint32) getUint32(prop *conf.Properties, param conf.BindParam) (uint32,
 	return uint32(v), nil
 }
 
-func (x *Uint32) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (x *Uint32) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getUint32(prop, param)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func (x *Uint32) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return nil
 }
 
-func (x *Uint32) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (x *Uint32) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getUint32(prop, param)
 	if err != nil {
 		return err

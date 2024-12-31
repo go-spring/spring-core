@@ -33,7 +33,7 @@ type Integer struct {
 	v int
 }
 
-func (x *Integer) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (x *Integer) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	s, err := dync.GetProperty(prop, param)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func (x *Integer) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return nil
 }
 
-func (x *Integer) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (x *Integer) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	return nil
 }
 
@@ -91,7 +91,7 @@ func TestDynamic(t *testing.T) {
 		}
 		cfg.Slice.Init(make([]string, 0))
 		cfg.Map.Init(make(map[string]string))
-		cfg.Event.OnEvent(func(prop *conf.Properties, param conf.BindParam) error {
+		cfg.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
 		})
@@ -124,7 +124,7 @@ func TestDynamic(t *testing.T) {
 		})
 		cfg.Slice.Init(make([]string, 0))
 		cfg.Map.Init(make(map[string]string))
-		cfg.Event.OnEvent(func(prop *conf.Properties, param conf.BindParam) error {
+		cfg.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
 		})
@@ -162,7 +162,7 @@ func TestDynamic(t *testing.T) {
 		})
 		cfg.Slice.Init(make([]string, 0))
 		cfg.Map.Init(make(map[string]string))
-		cfg.Event.OnEvent(func(prop *conf.Properties, param conf.BindParam) error {
+		cfg.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
 		})

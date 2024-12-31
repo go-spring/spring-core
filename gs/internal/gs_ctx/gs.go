@@ -101,10 +101,6 @@ func (c *Container) Context() context.Context {
 	return c.ctx
 }
 
-func (c *Container) Properties() *dync.Properties {
-	return c.p
-}
-
 type BeanInit interface {
 	OnInit(ctx gs.Context) error
 }

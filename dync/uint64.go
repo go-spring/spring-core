@@ -39,7 +39,7 @@ func (x *Uint64) OnValidate(f Uint64ValidateFunc) {
 	x.f = f
 }
 
-func (x *Uint64) getUint64(prop *conf.Properties, param conf.BindParam) (uint64, error) {
+func (x *Uint64) getUint64(prop conf.ReadOnlyProperties, param conf.BindParam) (uint64, error) {
 	s, err := GetProperty(prop, param)
 	if err != nil {
 		return 0, err
@@ -51,7 +51,7 @@ func (x *Uint64) getUint64(prop *conf.Properties, param conf.BindParam) (uint64,
 	return v, nil
 }
 
-func (x *Uint64) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (x *Uint64) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getUint64(prop, param)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func (x *Uint64) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return nil
 }
 
-func (x *Uint64) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (x *Uint64) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getUint64(prop, param)
 	if err != nil {
 		return err

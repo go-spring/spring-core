@@ -22,13 +22,13 @@ import (
 	"github.com/go-spring/spring-core/conf"
 )
 
-type EventFunc func(prop *conf.Properties, param conf.BindParam) error
-type EventValidateFunc func(prop *conf.Properties, param conf.BindParam) error
+type EventFunc func(prop conf.ReadOnlyProperties, param conf.BindParam) error
+type EventValidateFunc func(prop conf.ReadOnlyProperties, param conf.BindParam) error
 
 type Event struct {
 	f    EventFunc
 	h    EventValidateFunc
-	init func() (*conf.Properties, conf.BindParam)
+	init func() (conf.ReadOnlyProperties, conf.BindParam)
 }
 
 func (e *Event) OnValidate(h EventValidateFunc) {
@@ -44,9 +44,9 @@ func (e *Event) OnEvent(f EventFunc) error {
 	return e.Refresh(prop, param)
 }
 
-func (e *Event) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (e *Event) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	if e.f == nil {
-		e.init = func() (*conf.Properties, conf.BindParam) {
+		e.init = func() (conf.ReadOnlyProperties, conf.BindParam) {
 			return prop, param
 		}
 		return nil
@@ -54,7 +54,7 @@ func (e *Event) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return e.f(prop, param)
 }
 
-func (e *Event) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (e *Event) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	if e.h != nil {
 		return e.h(prop, param)
 	}

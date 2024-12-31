@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	prop = conf.NewProperties()
+	prop = conf.New()
 	lock sync.Mutex
 )
 
@@ -51,7 +51,7 @@ func Unset(key string) {
 func Clear() {
 	lock.Lock()
 	defer lock.Unlock()
-	prop = conf.NewProperties()
+	prop = conf.New()
 }
 
 // Clone copies all properties into another properties.
@@ -59,7 +59,7 @@ func Clone() *conf.Properties {
 	lock.Lock()
 	m := prop.Data()
 	lock.Unlock()
-	p := conf.NewProperties()
+	p := conf.New()
 	for k, v := range m {
 		_ = p.Set(k, v)
 	}

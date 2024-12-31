@@ -130,7 +130,7 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 type Filter func(i interface{}, param BindParam) (bool, error)
 
 // BindValue binds properties to a value.
-func BindValue(p *Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
+func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
 	if !IsValueType(t) {
 		err := errors.New("target should be value type")
@@ -224,7 +224,7 @@ func BindValue(p *Properties, v reflect.Value, t reflect.Type, param BindParam, 
 }
 
 // bindSlice binds properties to a slice value.
-func bindSlice(p *Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindSlice(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	et := t.Elem()
 	p, err := getSlice(p, et, param)
@@ -257,7 +257,7 @@ func bindSlice(p *Properties, v reflect.Value, t reflect.Type, param BindParam, 
 	return nil
 }
 
-func getSlice(p *Properties, et reflect.Type, param BindParam) (*Properties, error) {
+func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyProperties, error) {
 
 	// properties that defined as list.
 	if p.Has(param.Key + "[0]") {
@@ -304,16 +304,16 @@ func getSlice(p *Properties, et reflect.Type, param BindParam) (*Properties, err
 		return nil, fmt.Errorf("%s: unknown splitter %q", util.FileLine(), s)
 	}
 
-	p = NewProperties()
+	r := New()
 	for i, s := range arrVal {
 		k := fmt.Sprintf("%s[%d]", param.Key, i)
-		_ = p.store(k, s)
+		_ = r.store(k, s)
 	}
-	return p, nil
+	return r, nil
 }
 
 // bindMap binds properties to a map value.
-func bindMap(p *Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("map can't have a non-empty default value")
@@ -324,7 +324,7 @@ func bindMap(p *Properties, v reflect.Value, t reflect.Type, param BindParam, fi
 	ret := reflect.MakeMap(t)
 	defer func() { v.Set(ret) }()
 
-	keys, err := p.storage.SubKeys(param.Key)
+	keys, err := p.SubKeys(param.Key)
 	if err != nil {
 		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
 	}
@@ -349,7 +349,7 @@ func bindMap(p *Properties, v reflect.Value, t reflect.Type, param BindParam, fi
 }
 
 // bindStruct binds properties to a struct value.
-func bindStruct(p *Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("struct can't have a non-empty default value")
@@ -416,11 +416,13 @@ func bindStruct(p *Properties, v reflect.Value, t reflect.Type, param BindParam,
 }
 
 // resolve returns property references processed property value.
-func resolve(p *Properties, param BindParam) (string, error) {
-	if val, ok := p.storage.Get(param.Key); ok {
+func resolve(p ReadOnlyProperties, param BindParam) (string, error) {
+	const defVal = "@@def@@"
+	val := p.Get(param.Key, Def(defVal))
+	if val != defVal {
 		return resolveString(p, val)
 	}
-	if p.storage.Has(param.Key) {
+	if p.Has(param.Key) {
 		err := fmt.Errorf("property %q isn't simple value", param.Key)
 		return "", fmt.Errorf("%s: resolve property %q error, %w", util.FileLine(), param.Key, err)
 	}
@@ -432,7 +434,7 @@ func resolve(p *Properties, param BindParam) (string, error) {
 }
 
 // resolveString returns property references processed string.
-func resolveString(p *Properties, s string) (string, error) {
+func resolveString(p ReadOnlyProperties, s string) (string, error) {
 
 	var (
 		length = len(s)

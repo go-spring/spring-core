@@ -40,7 +40,7 @@ func (x *Time) OnValidate(f TimeValidateFunc) {
 	x.f = f
 }
 
-func (x *Time) getTime(prop *conf.Properties, param conf.BindParam) (time.Time, error) {
+func (x *Time) getTime(prop conf.ReadOnlyProperties, param conf.BindParam) (time.Time, error) {
 	s, err := GetProperty(prop, param)
 	if err != nil {
 		return time.Time{}, err
@@ -52,7 +52,7 @@ func (x *Time) getTime(prop *conf.Properties, param conf.BindParam) (time.Time, 
 	return v, nil
 }
 
-func (x *Time) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (x *Time) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getTime(prop, param)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (x *Time) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return nil
 }
 
-func (x *Time) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (x *Time) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getTime(prop, param)
 	if err != nil {
 		return err

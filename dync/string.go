@@ -38,11 +38,11 @@ func (x *String) OnValidate(f StringValidateFunc) {
 	x.f = f
 }
 
-func (x *String) getString(prop *conf.Properties, param conf.BindParam) (string, error) {
+func (x *String) getString(prop conf.ReadOnlyProperties, param conf.BindParam) (string, error) {
 	return GetProperty(prop, param)
 }
 
-func (x *String) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (x *String) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getString(prop, param)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (x *String) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return nil
 }
 
-func (x *String) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (x *String) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getString(prop, param)
 	if err != nil {
 		return err

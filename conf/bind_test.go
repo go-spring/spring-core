@@ -80,7 +80,7 @@ type NestedDbMapConfig struct {
 func TestProperties_Bind(t *testing.T) {
 
 	t.Run("default", func(t *testing.T) {
-		p := conf.NewProperties()
+		p := conf.New()
 		v := &struct {
 			S struct {
 				V int `value:"${:=3}"`
@@ -139,7 +139,7 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("simple map bind", func(t *testing.T) {
 
-		p := conf.NewProperties()
+		p := conf.New()
 		err := p.Set("a.b1", "b1")
 		assert.Nil(t, err)
 		err = p.Set("a.b2", "b2")
@@ -189,13 +189,13 @@ func TestProperties_Bind(t *testing.T) {
 	})
 
 	t.Run("ignore interface", func(t *testing.T) {
-		p := conf.NewProperties()
+		p := conf.New()
 		err := p.Bind(&struct{ fmt.Stringer }{})
 		assert.Nil(t, err)
 	})
 
 	t.Run("", func(t *testing.T) {
-		p := conf.NewProperties()
+		p := conf.New()
 		err := p.Bytes([]byte(`m:`), ".yaml")
 		if err != nil {
 			t.Fatal(err)

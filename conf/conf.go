@@ -109,8 +109,8 @@ type Properties struct {
 	storage *store.Storage
 }
 
-// NewProperties creates empty *Properties.
-func NewProperties() *Properties {
+// New creates empty *Properties.
+func New() *Properties {
 	return &Properties{
 		storage: store.NewStorage(),
 	}
@@ -118,7 +118,7 @@ func NewProperties() *Properties {
 
 // Map creates *Properties from map.
 func Map(m map[string]interface{}) (*Properties, error) {
-	p := NewProperties()
+	p := New()
 	var keys []string
 	for k := range m {
 		keys = append(keys, k)
@@ -134,7 +134,7 @@ func Map(m map[string]interface{}) (*Properties, error) {
 
 // Load creates *Properties from file.
 func Load(file string) (*Properties, error) {
-	p := NewProperties()
+	p := New()
 	if err := p.Load(file); err != nil {
 		return nil, err
 	}
@@ -194,6 +194,11 @@ func (p *Properties) Keys() []string {
 // Has returns whether key exists.
 func (p *Properties) Has(key string) bool {
 	return p.storage.Has(key)
+}
+
+// SubKeys returns the sorted sub keys of the key.
+func (p *Properties) SubKeys(key string) ([]string, error) {
+	return p.storage.SubKeys(key)
 }
 
 type getArg struct {
@@ -339,6 +344,9 @@ type ReadOnlyProperties interface {
 
 	// Has returns whether the key exists.
 	Has(key string) bool
+
+	// SubKeys returns the sorted sub keys of the key.
+	SubKeys(key string) ([]string, error)
 
 	// Get returns key's value, using Def to return a default value.
 	Get(key string, opts ...GetOption) string

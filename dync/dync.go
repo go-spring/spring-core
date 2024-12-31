@@ -29,8 +29,8 @@ import (
 
 // Value 可动态刷新的对象
 type Value interface {
-	Refresh(prop *conf.Properties, param conf.BindParam) error
-	Validate(prop *conf.Properties, param conf.BindParam) error
+	Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
+	Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error
 }
 
 type Field struct {
@@ -46,7 +46,7 @@ type Properties struct {
 
 func New() *Properties {
 	p := &Properties{}
-	p.value.Store(conf.NewProperties())
+	p.value.Store(conf.New())
 	return p
 }
 
@@ -58,54 +58,7 @@ func (p *Properties) Data() conf.ReadOnlyProperties {
 	return p.load()
 }
 
-// func (p *Properties) Keys() []string {
-// 	return p.load().Keys()
-// }
-//
-// func (p *Properties) Has(key string) bool {
-// 	return p.load().Has(key)
-// }
-//
-// func (p *Properties) Get(key string, opts ...conf.GetOption) string {
-// 	return p.load().Get(key, opts...)
-// }
-//
-// func (p *Properties) Resolve(s string) (string, error) {
-// 	return p.load().Resolve(s)
-// }
-//
-// func (p *Properties) Bind(i interface{}, opts ...conf.BindArg) error {
-// 	return p.load().Bind(i, opts...)
-// }
-
-func (p *Properties) Update(m map[string]interface{}) error {
-
-	flat := make(map[string]string)
-	for key, val := range m {
-		conf.FlattenValue(key, val, flat)
-	}
-
-	keys := make([]string, 0, len(flat))
-	for k := range flat {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	prop := conf.NewProperties()
-	err := p.load().CopyTo(prop)
-	if err != nil {
-		return err
-	}
-	for _, k := range keys {
-		err = prop.Set(k, flat[k])
-		if err != nil {
-			return err
-		}
-	}
-	return p.refreshKeys(prop, keys)
-}
-
-func (p *Properties) Refresh(prop *conf.Properties) (err error) {
+func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) {
 
 	old := p.load()
 	oldKeys := old.Keys()
@@ -133,7 +86,7 @@ func (p *Properties) Refresh(prop *conf.Properties) (err error) {
 	return p.refreshKeys(prop, keys)
 }
 
-func (p *Properties) refreshKeys(prop *conf.Properties, keys []string) (err error) {
+func (p *Properties) refreshKeys(prop conf.ReadOnlyProperties, keys []string) (err error) {
 
 	updateIndexes := make(map[int]*Field)
 	for _, key := range keys {
@@ -165,7 +118,7 @@ func (p *Properties) refreshKeys(prop *conf.Properties, keys []string) (err erro
 	return p.refreshFields(prop, updateFields)
 }
 
-func (p *Properties) refreshFields(prop *conf.Properties, fields []*Field) (err error) {
+func (p *Properties) refreshFields(prop conf.ReadOnlyProperties, fields []*Field) (err error) {
 
 	err = validateFields(prop, fields)
 	if err != nil {
@@ -187,7 +140,7 @@ func (p *Properties) refreshFields(prop *conf.Properties, fields []*Field) (err 
 	return refreshFields(p.load(), fields)
 }
 
-func validateFields(prop *conf.Properties, fields []*Field) error {
+func validateFields(prop conf.ReadOnlyProperties, fields []*Field) error {
 	for _, f := range fields {
 		err := f.value.Validate(prop, f.param)
 		if err != nil {
@@ -197,7 +150,7 @@ func validateFields(prop *conf.Properties, fields []*Field) error {
 	return nil
 }
 
-func refreshFields(prop *conf.Properties, fields []*Field) error {
+func refreshFields(prop conf.ReadOnlyProperties, fields []*Field) error {
 	for _, f := range fields {
 		err := f.value.Refresh(prop, f.param)
 		if err != nil {
@@ -244,7 +197,7 @@ func (p *Properties) bindValue(i interface{}, param conf.BindParam) (bool, error
 	return true, nil
 }
 
-func GetProperty(prop *conf.Properties, param conf.BindParam) (string, error) {
+func GetProperty(prop conf.ReadOnlyProperties, param conf.BindParam) (string, error) {
 	key := param.Key
 	if !prop.Has(key) && !param.Tag.HasDef {
 		return "", fmt.Errorf("property %q not exist", key)

@@ -39,7 +39,7 @@ func (x *Float32) OnValidate(f Float32ValidateFunc) {
 	x.f = f
 }
 
-func (x *Float32) getFloat32(prop *conf.Properties, param conf.BindParam) (float32, error) {
+func (x *Float32) getFloat32(prop conf.ReadOnlyProperties, param conf.BindParam) (float32, error) {
 	s, err := GetProperty(prop, param)
 	if err != nil {
 		return 0, err
@@ -51,7 +51,7 @@ func (x *Float32) getFloat32(prop *conf.Properties, param conf.BindParam) (float
 	return float32(v), nil
 }
 
-func (x *Float32) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (x *Float32) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getFloat32(prop, param)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func (x *Float32) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return nil
 }
 
-func (x *Float32) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (x *Float32) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getFloat32(prop, param)
 	if err != nil {
 		return err

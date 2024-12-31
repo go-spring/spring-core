@@ -32,7 +32,7 @@ func (x *Bool) Value() bool {
 	return x.v.Load()
 }
 
-func (x *Bool) getBool(prop *conf.Properties, param conf.BindParam) (bool, error) {
+func (x *Bool) getBool(prop conf.ReadOnlyProperties, param conf.BindParam) (bool, error) {
 	s, err := GetProperty(prop, param)
 	if err != nil {
 		return false, err
@@ -44,7 +44,7 @@ func (x *Bool) getBool(prop *conf.Properties, param conf.BindParam) (bool, error
 	return v, nil
 }
 
-func (x *Bool) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (x *Bool) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getBool(prop, param)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (x *Bool) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return nil
 }
 
-func (x *Bool) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (x *Bool) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	_, err := x.getBool(prop, param)
 	return err
 }

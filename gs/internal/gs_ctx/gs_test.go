@@ -204,7 +204,7 @@ type Setting struct {
 func TestApplicationContext_ValueTag(t *testing.T) {
 	c := gs_ctx.New()
 
-	p := conf.NewProperties()
+	p := conf.New()
 	p.Set("int", int(3))
 	p.Set("uint", uint(3))
 	p.Set("float", float32(3))
@@ -643,7 +643,7 @@ func NewPtrStudent(teacher Teacher, room string) *Student {
 }
 
 func TestApplicationContext_RegisterBeanFn(t *testing.T) {
-	prop := conf.NewProperties()
+	prop := conf.New()
 	prop.Set("room", "Class 3 Grade 1")
 
 	c := gs_ctx.New()
@@ -711,7 +711,7 @@ func TestApplicationContext_Profile(t *testing.T) {
 	})
 
 	t.Run("bean:_c:test", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("spring.profiles.active", "test")
 
 		c := gs_ctx.New()
@@ -859,7 +859,7 @@ func (m localManager) Cluster() string {
 func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 
 	t.Run("ptr manager", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("manager.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -882,7 +882,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 	})
 
 	t.Run("manager", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("manager.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -905,7 +905,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 	})
 
 	t.Run("manager return error", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("manager.version", "1.0.0")
 		c := gs_ctx.New()
 		c.Provide(NewManagerRetError)
@@ -915,7 +915,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 	})
 
 	t.Run("manager return error nil", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("manager.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -927,7 +927,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 	})
 
 	t.Run("manager return nil", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("manager.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1008,7 +1008,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 			assert.Error(t, err, "error")
 		}
 
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("int", 0)
 
 		c := gs_ctx.New()
@@ -1045,7 +1045,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 			assert.Error(t, err, "error")
 		}
 
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("int", 0)
 
 		c := gs_ctx.New()
@@ -1093,7 +1093,7 @@ type RecoresCluster struct {
 }
 
 func TestApplicationContext_ValueBincoreng(t *testing.T) {
-	prop := conf.NewProperties()
+	prop := conf.New()
 	prop.Set("redis.endpoints", "redis://localhost:6379")
 
 	c := gs_ctx.New()
@@ -1150,7 +1150,7 @@ func TestApplicationContext_Collect(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("redis.endpoints", "redis://localhost:6379")
 
 		c := gs_ctx.New()
@@ -1168,7 +1168,7 @@ func TestApplicationContext_Collect(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("redis.endpoints", "redis://localhost:6379")
 
 		c := gs_ctx.New()
@@ -1296,7 +1296,7 @@ func TestOptionPattern(t *testing.T) {
 func TestOptionConstructorArg(t *testing.T) {
 
 	t.Run("option default", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("president", "CaiYuanPei")
 
 		c := gs_ctx.New()
@@ -1315,7 +1315,7 @@ func TestOptionConstructorArg(t *testing.T) {
 	})
 
 	t.Run("option withClassName", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("president", "CaiYuanPei")
 
 		c := gs_ctx.New()
@@ -1335,7 +1335,7 @@ func TestOptionConstructorArg(t *testing.T) {
 	})
 
 	t.Run("option withStudents", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("class_name", "二年级03班")
 		prop.Set("president", "CaiYuanPei")
 
@@ -1358,7 +1358,7 @@ func TestOptionConstructorArg(t *testing.T) {
 	})
 
 	t.Run("option withStudents withClassName", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("class_name", "二年级06班")
 		prop.Set("president", "CaiYuanPei")
 
@@ -1431,7 +1431,7 @@ type Service struct {
 func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 	t.Run("method bean", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1458,7 +1458,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean condition", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1481,7 +1481,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean arg", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1507,7 +1507,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean wire to other bean", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1561,7 +1561,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 					}
 				}()
 
-				prop := conf.NewProperties()
+				prop := conf.New()
 				prop.Set("server.version", "1.0.0")
 
 				c := gs_ctx.New()
@@ -1579,7 +1579,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean autowire", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1596,7 +1596,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean selector type", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1622,7 +1622,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean selector type error", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1635,7 +1635,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean selector beanId", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1661,7 +1661,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 
 	t.Run("method bean selector beanId error", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -1694,7 +1694,7 @@ func TestApplicationContext_UserDefinedTypeProperty(t *testing.T) {
 		return 0, errors.New("error level")
 	})
 
-	prop := conf.NewProperties()
+	prop := conf.New()
 	prop.Set("time", "2018-12-20")
 	prop.Set("duration", "1h")
 	prop.Set("level", "debug")
@@ -1837,7 +1837,7 @@ func NewNilVarObj(i interface{}, options ...VarOptionFunc) *VarObj {
 func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 
 	t.Run("nil param 0", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("var.obj", "description")
 
 		c := gs_ctx.New()
@@ -1857,7 +1857,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	})
 
 	t.Run("variable option param 1", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("var.obj", "description")
 
 		c := gs_ctx.New()
@@ -1878,7 +1878,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	})
 
 	t.Run("variable option param 2", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("var.obj", "description")
 
 		c := gs_ctx.New()
@@ -2045,7 +2045,7 @@ func TestApplicationContext_Close(t *testing.T) {
 
 		// nil
 		{
-			prop := conf.NewProperties()
+			prop := conf.New()
 			prop.Set("int", 0)
 
 			c := gs_ctx.New()
@@ -2119,7 +2119,7 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 
 	t.Run("private", func(t *testing.T) {
 
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("sdk.wx.auto-create", true)
 		prop.Set("sdk.wx.enable", true)
 
@@ -2138,7 +2138,7 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 	})
 
 	t.Run("public", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("sdk.wx.auto-create", true)
 		prop.Set("sdk.wx.enable", true)
 
@@ -2267,7 +2267,7 @@ func TestApplicationContext_Properties(t *testing.T) {
 			MapA map[string]string `value:"${map_a:=}"`
 		}{}
 
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("map_a.nba", "nba")
 		prop.Set("map_a.cba", "cba")
 		prop.Set("int_a", "3")
@@ -2379,7 +2379,7 @@ func TestDefaultSpringContext(t *testing.T) {
 	})
 
 	t.Run("bean:test_ctx:test", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("spring.profiles.active", "test")
 
 		c := gs_ctx.New()
@@ -2395,7 +2395,7 @@ func TestDefaultSpringContext(t *testing.T) {
 	})
 
 	t.Run("bean:test_ctx:stable", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("spring.profiles.active", "stable")
 
 		c := gs_ctx.New()
@@ -2412,7 +2412,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 	t.Run("option withClassName Condition", func(t *testing.T) {
 
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("president", "CaiYuanPei")
 		prop.Set("class_floor", 2)
 
@@ -2436,7 +2436,7 @@ func TestDefaultSpringContext(t *testing.T) {
 	})
 
 	t.Run("option withClassName Apply", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("president", "CaiYuanPei")
 
 		onProperty := gs_cond.OnProperty("class_name_enable")
@@ -2462,7 +2462,7 @@ func TestDefaultSpringContext(t *testing.T) {
 	})
 
 	t.Run("method bean cond", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_ctx.New()
@@ -2729,7 +2729,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 func TestApplicationContext_Invoke(t *testing.T) {
 
 	t.Run("not run", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("version", "v0.0.1")
 
 		c := gs_ctx.New()
@@ -2745,7 +2745,7 @@ func TestApplicationContext_Invoke(t *testing.T) {
 	})
 
 	t.Run("run", func(t *testing.T) {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("version", "v0.0.1")
 		prop.Set("spring.profiles.active", "dev")
 
@@ -2827,7 +2827,7 @@ func newCircularB() *circularB {
 
 func TestLazy(t *testing.T) {
 	for i := 0; i < 1; i++ {
-		prop := conf.NewProperties()
+		prop := conf.New()
 		prop.Set("spring.main.allow-circular-references", "true")
 
 		c := gs_ctx.New()
@@ -2889,7 +2889,7 @@ func (c *ContextAware) Echo(str string) string {
 }
 
 func TestContextAware(t *testing.T) {
-	prop := conf.NewProperties()
+	prop := conf.New()
 	prop.Set("prefix", "hello")
 
 	c := gs_ctx.New()
@@ -2930,7 +2930,7 @@ func TestDynamic(t *testing.T) {
 		})
 		config.Slice.Init(make([]string, 0))
 		config.Map.Init(make(map[string]string))
-		config.Event.OnEvent(func(prop *conf.Properties, param conf.BindParam) error {
+		config.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
 		})
@@ -2941,7 +2941,7 @@ func TestDynamic(t *testing.T) {
 	c.Object(wrapper).Init(func(p *DynamicConfigWrapper) {
 		p.Wrapper.Slice.Init(make([]string, 0))
 		p.Wrapper.Map.Init(make(map[string]string))
-		p.Wrapper.Event.OnEvent(func(prop *conf.Properties, param conf.BindParam) error {
+		p.Wrapper.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
 		})
@@ -2957,7 +2957,7 @@ func TestDynamic(t *testing.T) {
 	}
 
 	{
-		p := conf.NewProperties()
+		p := conf.New()
 		p.Set("int", 4)
 		p.Set("float", 2.3)
 		p.Set("map.a", 1)
@@ -2970,7 +2970,7 @@ func TestDynamic(t *testing.T) {
 		p.Set("wrapper.map.b", 8)
 		p.Set("wrapper.slice[0]", 4)
 		p.Set("wrapper.slice[1]", 6)
-		c.Properties().Refresh(p)
+		c.RefreshProperties(p)
 	}
 
 	{
@@ -2981,7 +2981,7 @@ func TestDynamic(t *testing.T) {
 	}
 
 	{
-		p := conf.NewProperties()
+		p := conf.New()
 		p.Set("int", 6)
 		p.Set("float", 5.1)
 		p.Set("map.a", 9)
@@ -2994,7 +2994,7 @@ func TestDynamic(t *testing.T) {
 		p.Set("wrapper.map.b", 4)
 		p.Set("wrapper.slice[0]", 2)
 		p.Set("wrapper.slice[1]", 1)
-		err = c.Properties().Refresh(p)
+		err = c.RefreshProperties(p)
 		assert.Error(t, err, "validate failed on \"value:\\\"${int:=3}\\\" expr:\\\"$<6\\\"\" for value 9")
 	}
 
@@ -3006,7 +3006,7 @@ func TestDynamic(t *testing.T) {
 	}
 
 	{
-		p := conf.NewProperties()
+		p := conf.New()
 		p.Set("int", 1)
 		p.Set("float", 5.1)
 		p.Set("map.a", 9)
@@ -3019,7 +3019,7 @@ func TestDynamic(t *testing.T) {
 		p.Set("wrapper.map.b", 4)
 		p.Set("wrapper.slice[0]", 2)
 		p.Set("wrapper.slice[1]", 1)
-		err = c.Properties().Refresh(p)
+		err = c.RefreshProperties(p)
 		assert.Error(t, err, "should greeter than 3")
 	}
 

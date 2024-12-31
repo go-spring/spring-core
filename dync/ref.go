@@ -29,7 +29,7 @@ type RefValidateFunc func(v interface{}) error
 type Ref struct {
 	v    atomic.Value
 	f    RefValidateFunc
-	init func() (*conf.Properties, conf.BindParam)
+	init func() (conf.ReadOnlyProperties, conf.BindParam)
 }
 
 func (r *Ref) Init(i interface{}) error {
@@ -50,10 +50,10 @@ func (r *Ref) OnValidate(f RefValidateFunc) {
 	r.f = f
 }
 
-func (r *Ref) getRef(prop *conf.Properties, param conf.BindParam) (interface{}, error) {
+func (r *Ref) getRef(prop conf.ReadOnlyProperties, param conf.BindParam) (interface{}, error) {
 	o := r.Value()
 	if o == nil {
-		r.init = func() (*conf.Properties, conf.BindParam) {
+		r.init = func() (conf.ReadOnlyProperties, conf.BindParam) {
 			return prop, param
 		}
 		return nil, nil
@@ -67,7 +67,7 @@ func (r *Ref) getRef(prop *conf.Properties, param conf.BindParam) (interface{}, 
 	return v.Elem().Interface(), nil
 }
 
-func (r *Ref) Refresh(prop *conf.Properties, param conf.BindParam) error {
+func (r *Ref) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := r.getRef(prop, param)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (r *Ref) Refresh(prop *conf.Properties, param conf.BindParam) error {
 	return nil
 }
 
-func (r *Ref) Validate(prop *conf.Properties, param conf.BindParam) error {
+func (r *Ref) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := r.getRef(prop, param)
 	if r.f != nil {
 		return r.f(v)
