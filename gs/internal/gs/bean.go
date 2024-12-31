@@ -61,6 +61,10 @@ type BeanDefinition struct {
 	destroy  interface{}    // 销毁函数
 	depends  []BeanSelector // 间接依赖项
 	exports  []reflect.Type // 导出的接口
+
+	configuration bool     // 是否扫描成员方法
+	includeMethod []string // 包含哪些成员方法
+	excludeMethod []string // 排除那些成员方法
 }
 
 func (d *BeanDefinition) GetName() string             { return d.name }
@@ -75,6 +79,9 @@ func (d *BeanDefinition) GetInit() interface{}        { return d.init }
 func (d *BeanDefinition) GetDestroy() interface{}     { return d.destroy }
 func (d *BeanDefinition) GetDepends() []BeanSelector  { return d.depends }
 func (d *BeanDefinition) GetExports() []reflect.Type  { return d.exports }
+func (d *BeanDefinition) IsConfiguration() bool       { return d.configuration }
+func (d *BeanDefinition) GetIncludeMethod() []string  { return d.includeMethod }
+func (d *BeanDefinition) GetExcludeMethod() []string  { return d.excludeMethod }
 
 // Type 返回 bean 的类型。
 func (d *BeanDefinition) Type() reflect.Type {
@@ -114,6 +121,14 @@ func (d *BeanDefinition) Created() bool {
 // Wired 返回 bean 是否已经注入。
 func (d *BeanDefinition) Wired() bool {
 	return d.status == Wired
+}
+
+func (d *BeanDefinition) File() string {
+	return d.file
+}
+
+func (d *BeanDefinition) Line() int {
+	return d.line
 }
 
 // FileLine 返回 bean 的注册点。
@@ -244,96 +259,13 @@ func (d *BeanDefinition) export(exports ...interface{}) error {
 	return nil
 }
 
-//// NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-//func NewBean(objOrCtor interface{}, ctorArgs ...Arg) *BeanDefinition {
-//
-//	var v reflect.Value
-//	var fromValue bool
-//	var method bool
-//	var name string
-//
-//	switch i := objOrCtor.(type) {
-//	case reflect.Value:
-//		fromValue = true
-//		v = i
-//	default:
-//		v = reflect.ValueOf(i)
-//	}
-//
-//	t := v.Type()
-//	if !gs_util.IsBeanType(t) {
-//		panic(errors.New("bean must be ref type"))
-//	}
-//
-//	if !v.IsValid() || v.IsNil() {
-//		panic(errors.New("bean can't be nil"))
-//	}
-//
-//	const skip = 2
-//	var f Callable
-//	_, file, line, _ := runtime.Caller(skip)
-//
-//	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
-//	if !fromValue && t.Kind() == reflect.Func {
-//
-//		if !gs_util.IsConstructor(t) {
-//			t1 := "func(...)bean"
-//			t2 := "func(...)(bean, error)"
-//			panic(fmt.Errorf("constructor should be %s or %s", t1, t2))
-//		}
-//
-//		var err error
-//		f, err = gs_arg.Bind(objOrCtor, ctorArgs, skip)
-//		if err != nil {
-//			panic(err)
-//		}
-//
-//		out0 := t.Out(0)
-//		v = reflect.New(out0)
-//		if gs_util.IsBeanType(out0) {
-//			v = v.Elem()
-//		}
-//
-//		t = v.Type()
-//		if !gs_util.IsBeanType(t) {
-//			panic(errors.New("bean must be ref type"))
-//		}
-//
-//		// 成员方法一般是 xxx/gs_test.(*Server).Consumer 形式命名
-//		fnPtr := reflect.ValueOf(objOrCtor).Pointer()
-//		fnInfo := runtime.FuncForPC(fnPtr)
-//		funcName := fnInfo.Name()
-//		name = funcName[strings.LastIndex(funcName, "/")+1:]
-//		name = name[strings.Index(name, ".")+1:]
-//		if name[0] == '(' {
-//			name = name[strings.Index(name, ".")+1:]
-//		}
-//		method = strings.LastIndexByte(fnInfo.Name(), ')') > 0
-//	}
-//
-//	if t.Kind() == reflect.Ptr && !gs_util.IsValueType(t.Elem()) {
-//		panic(errors.New("bean should be *val but not *ref"))
-//	}
-//
-//	// Type.String() 一般返回 *pkg.Type 形式的字符串，
-//	// 我们只取最后的类型名，如有需要请自定义 bean 名称。
-//	if name == "" {
-//		s := strings.Split(t.String(), ".")
-//		name = strings.TrimPrefix(s[len(s)-1], "*")
-//	}
-//
-//	return &BeanDefinition{
-//		T:        t,
-//		V:        v,
-//		F:        f,
-//		name:     name,
-//		typeName: gs_util.TypeName(t),
-//		status:   Default,
-//		method:   method,
-//		file:     file,
-//		line:     line,
-//	}
-//}
+// Configuration 设置 bean 为配置类。
+func (d *BeanDefinition) Configuration(includes []string, excludes []string) *BeanDefinition {
+	d.configuration = true
+	d.includeMethod = includes
+	d.excludeMethod = excludes
+	return d
+}
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
 func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bool, file string, line int) *BeanDefinition {

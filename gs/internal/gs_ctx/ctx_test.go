@@ -2928,8 +2928,8 @@ func TestDynamic(t *testing.T) {
 			}
 			return nil
 		})
-		//config.Slice.Init(make([]string, 0))
-		//config.Map.Init(make(map[string]string))
+		// config.Slice.Init(make([]string, 0))
+		// config.Map.Init(make(map[string]string))
 		config.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
@@ -2939,8 +2939,8 @@ func TestDynamic(t *testing.T) {
 		cfg = config
 	})
 	c.Object(wrapper).Init(func(p *DynamicConfigWrapper) {
-		//p.Wrapper.Slice.Init(make([]string, 0))
-		//p.Wrapper.Map.Init(make(map[string]string))
+		// p.Wrapper.Slice.Init(make([]string, 0))
+		// p.Wrapper.Map.Init(make(map[string]string))
 		p.Wrapper.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 			fmt.Println("event fired.")
 			return nil
@@ -3029,4 +3029,40 @@ func TestDynamic(t *testing.T) {
 		b, _ = json.Marshal(wrapper)
 		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.5,"Map":{"a":"9","b":"8"},"Slice":["4","6"],"Event":{}}}`)
 	}
+}
+
+type ChildBean struct {
+	s string
+}
+
+type ConfigurationBean struct {
+	s string
+}
+
+func NewConfigurationBean(s string) *ConfigurationBean {
+	return &ConfigurationBean{s}
+}
+
+func (c *ConfigurationBean) NewChild() *ChildBean {
+	return &ChildBean{c.s}
+}
+
+func TestConfiguration(t *testing.T) {
+	c := gs_ctx.New()
+	c.Object(&ConfigurationBean{"123"}).Configuration(nil, nil).Name("123")
+	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration(nil, nil).Name("456")
+	if err := c.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+	var b *ChildBean
+	err := c.Get(&b, "123_NewChild")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, b.s, "123")
+	err = c.Get(&b, "456_NewChild")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, b.s, "456")
 }

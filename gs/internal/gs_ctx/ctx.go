@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -56,13 +57,6 @@ type ContextAware struct {
 	GSContext gs.Context `autowire:""`
 }
 
-type tempContainer struct {
-	beans       []*gs.BeanDefinition
-	beansByName map[string][]*gs.BeanDefinition
-	beansByType map[reflect.Type][]*gs.BeanDefinition
-	groupFuncs  []gs.GroupFunc
-}
-
 // Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
 // of Control Containers and the Dependency Injection pattern >> 一文中
 // 提及的依赖注入的概念。但原文的依赖注入仅仅是指对象之间的依赖关系处理，而有些 IoC
@@ -71,7 +65,10 @@ type tempContainer struct {
 // go-spring 严格区分了这两种概念，在描述对 bean 的处理时要么单独使用依赖注入或属
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
-	*tempContainer
+	beans                   []*gs.BeanDefinition
+	beansByName             map[string][]*gs.BeanDefinition
+	beansByType             map[reflect.Type][]*gs.BeanDefinition
+	groupFuncs              []gs.GroupFunc
 	ctx                     context.Context
 	cancel                  context.CancelFunc
 	destroyers              []func()
@@ -85,15 +82,15 @@ type Container struct {
 // New 创建 IoC 容器。
 func New() *Container {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Container{
-		ctx:    ctx,
-		cancel: cancel,
-		p:      dync.New(),
-		tempContainer: &tempContainer{
-			beansByName: make(map[string][]*gs.BeanDefinition),
-			beansByType: make(map[reflect.Type][]*gs.BeanDefinition),
-		},
+	c := &Container{
+		ctx:         ctx,
+		cancel:      cancel,
+		p:           dync.New(),
+		beansByName: make(map[string][]*gs.BeanDefinition),
+		beansByType: make(map[reflect.Type][]*gs.BeanDefinition),
 	}
+	c.Object(c).Export((*gs.Context)(nil))
+	return c
 }
 
 // Context 返回 IoC 容器的 ctx 对象。
@@ -353,7 +350,6 @@ func (s *wiringStack) sortDestroyers() []func() {
 }
 
 func (c *Container) clear() {
-	c.tempContainer = nil
 }
 
 func (c *Container) RefreshProperties(p conf.ReadOnlyProperties) error {
@@ -368,7 +364,6 @@ func (c *Container) Refresh() (err error) {
 	c.state = RefreshInit
 
 	// start := time.Now()
-	c.Object(c).Export((*gs.Context)(nil))
 
 	for _, fn := range c.groupFuncs {
 		var beans []*gs.BeanDefinition
@@ -378,6 +373,72 @@ func (c *Container) Refresh() (err error) {
 		}
 		c.beans = append(c.beans, beans...)
 	}
+
+	var newBeans []*gs.BeanDefinition
+	for _, bd := range c.beans {
+		if !bd.IsConfiguration() {
+			continue
+		}
+		var (
+			includes []*regexp.Regexp
+			excludes []*regexp.Regexp
+		)
+		ss := bd.GetIncludeMethod()
+		if len(ss) == 0 {
+			ss = []string{"New*"}
+		}
+		for _, s := range ss {
+			var x *regexp.Regexp
+			x, err = regexp.Compile(s)
+			if err != nil {
+				return err
+			}
+			includes = append(includes, x)
+		}
+		ss = bd.GetExcludeMethod()
+		for _, s := range ss {
+			var x *regexp.Regexp
+			x, err = regexp.Compile(s)
+			if err != nil {
+				return err
+			}
+			excludes = append(excludes, x)
+		}
+		n := bd.T.NumMethod()
+		for i := 0; i < n; i++ {
+			m := bd.T.Method(i)
+			skip := false
+			for _, x := range excludes {
+				if x.MatchString(m.Name) {
+					skip = true
+					break
+				}
+			}
+			if skip {
+				continue
+			}
+			for _, x := range includes {
+				if x.MatchString(m.Name) {
+					var f gs.Callable
+					f, err = gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd}, 0)
+					if err != nil {
+						return err
+					}
+					name := bd.GetName() + "_" + m.Name
+					out0 := m.Type.Out(0)
+					v := reflect.New(out0)
+					if gs_util.IsBeanType(out0) {
+						v = v.Elem()
+					}
+					t := v.Type()
+					b := gs.NewBean(t, v, f, name, true, bd.File(), bd.Line())
+					newBeans = append(newBeans, b)
+					break
+				}
+			}
+		}
+	}
+	c.beans = append(c.beans, newBeans...)
 
 	c.state = Refreshing
 
