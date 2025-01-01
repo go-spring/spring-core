@@ -28,17 +28,17 @@ import (
 
 // todo 自定义类型通过类型转换器实现刷新机制
 
-type Object struct {
+type StructValue struct {
 	Str string `value:"${string:=abc}" expr:"len($)<6"`
 	Int int    `value:"${int:=3}" expr:"$<6"`
 }
 
 type Config struct {
-	Int    dync.Int64                    `value:"${int:=3}" expr:"$<6"`
-	Float  dync.Float64                  `value:"${float:=1.2}"`
+	Int    dync.Value[int64]             `value:"${int:=3}" expr:"$<6"`
+	Float  dync.Value[float64]           `value:"${float:=1.2}"`
 	Map    dync.Value[map[string]string] `value:"${map:=}"`
 	Slice  dync.Value[[]string]          `value:"${slice:=}"`
-	Object dync.Value[Object]            `value:"${object:=}"`
+	Object dync.Value[StructValue]       `value:"${object:=}"`
 }
 
 func newTest() (*dync.Properties, *Config, error) {

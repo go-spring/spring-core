@@ -17,19 +17,39 @@
 package dync
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/expr"
 	"go.uber.org/atomic"
 )
 
 // ValueInterface 可动态刷新的对象
 type ValueInterface interface {
 	OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
+}
+
+// Value 可动态刷新的对象
+type Value[T interface{}] struct {
+	v atomic.Value
+}
+
+func (r *Value[T]) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+	var o T
+	v := reflect.ValueOf(&o).Elem()
+	err := conf.BindValue(prop, v, v.Type(), param, nil)
+	if err != nil {
+		return err
+	}
+	r.v.Store(o)
+	return nil
+}
+
+func (r *Value[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.v.Load())
 }
 
 type Field struct {
@@ -175,29 +195,4 @@ func (p *Properties) bindValue(i interface{}, param conf.BindParam) (bool, error
 		param: param,
 	})
 	return true, nil
-}
-
-func GetProperty(prop conf.ReadOnlyProperties, param conf.BindParam) (string, error) {
-	key := param.Key
-	if !prop.Has(key) && !param.Tag.HasDef {
-		return "", fmt.Errorf("property %q not exist", key)
-	}
-	s := prop.Get(key, conf.Def(param.Tag.Def))
-	return s, nil
-}
-
-func Validate(val interface{}, param conf.BindParam) error {
-	if param.Validate == "" {
-		return nil
-	}
-	tag, ok := param.Validate.Lookup("expr")
-	if !ok {
-		return nil
-	}
-	if b, err := expr.Eval(tag, val); err != nil {
-		return err
-	} else if !b {
-		return fmt.Errorf("validate failed on %q for value %v", param.Validate, val)
-	}
-	return nil
 }

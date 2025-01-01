@@ -2903,11 +2903,10 @@ func TestContextAware(t *testing.T) {
 }
 
 type DynamicConfig struct {
-	Int   dync.Int64                  `value:"${int:=3}" expr:"$<6"`
-	Float dync.Float64                `value:"${float:=1.2}"`
-	Map   dync.Ref[map[string]string] `value:"${map:=}"`
-	Slice dync.Ref[[]string]          `value:"${slice:=}"`
-	Event dync.Event                  `value:"${event}"`
+	Int   dync.Value[int64]             `value:"${int:=3}" expr:"$<6"`
+	Float dync.Value[float64]           `value:"${float:=1.2}"`
+	Map   dync.Value[map[string]string] `value:"${map:=}"`
+	Slice dync.Value[[]string]          `value:"${slice:=}"`
 }
 
 type DynamicConfigWrapper struct {
@@ -2922,18 +2921,18 @@ func TestDynamic(t *testing.T) {
 	c := gs_ctx.New()
 	c.Provide(func() *DynamicConfig {
 		config := new(DynamicConfig)
-		config.Int.OnValidate(func(v int64) error {
-			if v < 3 {
-				return errors.New("should greeter than 3")
-			}
-			return nil
-		})
+		// config.Int.OnValidate(func(v int64) error {
+		// 	if v < 3 {
+		// 		return errors.New("should greeter than 3")
+		// 	}
+		// 	return nil
+		// })
 		// config.Slice.Init(make([]string, 0))
 		// config.Map.Init(make(map[string]string))
-		config.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-			fmt.Println("event fired.")
-			return nil
-		})
+		// config.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+		// 	fmt.Println("event fired.")
+		// 	return nil
+		// })
 		return config
 	}).Init(func(config *DynamicConfig) {
 		cfg = config
@@ -2941,19 +2940,19 @@ func TestDynamic(t *testing.T) {
 	c.Object(wrapper).Init(func(p *DynamicConfigWrapper) {
 		// p.Wrapper.Slice.Init(make([]string, 0))
 		// p.Wrapper.Map.Init(make(map[string]string))
-		p.Wrapper.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-			fmt.Println("event fired.")
-			return nil
-		})
+		// p.Wrapper.Event.OnEvent(func(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+		// 	fmt.Println("event fired.")
+		// 	return nil
+		// })
 	})
 	err := c.Refresh()
 	assert.Nil(t, err)
 
 	{
 		b, _ := json.Marshal(cfg)
-		assert.Equal(t, string(b), `{"Int":3,"Float":1.2,"Map":{},"Slice":[],"Event":{}}`)
+		assert.Equal(t, string(b), `{"Int":3,"Float":1.2,"Map":{},"Slice":[]}`)
 		b, _ = json.Marshal(wrapper)
-		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.2,"Map":{},"Slice":[],"Event":{}}}`)
+		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.2,"Map":{},"Slice":[]}}`)
 	}
 
 	{
@@ -2975,9 +2974,9 @@ func TestDynamic(t *testing.T) {
 
 	{
 		b, _ := json.Marshal(cfg)
-		assert.Equal(t, string(b), `{"Int":4,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"],"Event":{}}`)
+		assert.Equal(t, string(b), `{"Int":4,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"]}`)
 		b, _ = json.Marshal(wrapper)
-		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.5,"Map":{"a":"9","b":"8"},"Slice":["4","6"],"Event":{}}}`)
+		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.5,"Map":{"a":"9","b":"8"},"Slice":["4","6"]}}`)
 	}
 
 	{
@@ -3000,9 +2999,9 @@ func TestDynamic(t *testing.T) {
 
 	{
 		b, _ := json.Marshal(cfg)
-		assert.Equal(t, string(b), `{"Int":4,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"],"Event":{}}`)
+		assert.Equal(t, string(b), `{"Int":4,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"]}`)
 		b, _ = json.Marshal(wrapper)
-		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.5,"Map":{"a":"9","b":"8"},"Slice":["4","6"],"Event":{}}}`)
+		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.5,"Map":{"a":"9","b":"8"},"Slice":["4","6"]}}`)
 	}
 
 	{
@@ -3025,9 +3024,9 @@ func TestDynamic(t *testing.T) {
 
 	{
 		b, _ := json.Marshal(cfg)
-		assert.Equal(t, string(b), `{"Int":4,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"],"Event":{}}`)
+		assert.Equal(t, string(b), `{"Int":4,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"]}`)
 		b, _ = json.Marshal(wrapper)
-		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.5,"Map":{"a":"9","b":"8"},"Slice":["4","6"],"Event":{}}}`)
+		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":1.5,"Map":{"a":"9","b":"8"},"Slice":["4","6"]}}`)
 	}
 }
 
