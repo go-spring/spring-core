@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// SpringBannerVisible 是否显示 banner。
+const SpringBannerVisible = "spring.banner.visible"
+
 const DefaultBanner = `
                                               (_)              
   __ _    ___             ___   _ __    _ __   _   _ __     __ _ 

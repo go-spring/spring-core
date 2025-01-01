@@ -247,24 +247,24 @@ func (n *node) Matches(ctx gs.CondContext) (bool, error) {
 	return false, fmt.Errorf("error condition operator %d", n.op)
 }
 
-// conditional is a Condition implemented by link of Condition(s).
-type conditional struct {
+// Conditional is a Condition implemented by link of Condition(s).
+type Conditional struct {
 	head *node
 	curr *node
 }
 
 // New returns a Condition implemented by link of Condition(s).
-func New() *conditional {
+func New() *Conditional {
 	n := &node{}
-	return &conditional{head: n, curr: n}
+	return &Conditional{head: n, curr: n}
 }
 
-func (c *conditional) Matches(ctx gs.CondContext) (bool, error) {
+func (c *Conditional) Matches(ctx gs.CondContext) (bool, error) {
 	return c.head.Matches(ctx)
 }
 
 // Or sets a Or operator.
-func (c *conditional) Or() *conditional {
+func (c *Conditional) Or() *Conditional {
 	n := &node{}
 	c.curr.op = Or
 	c.curr.next = n
@@ -273,7 +273,7 @@ func (c *conditional) Or() *conditional {
 }
 
 // And sets a And operator.
-func (c *conditional) And() *conditional {
+func (c *Conditional) And() *Conditional {
 	n := &node{}
 	c.curr.op = And
 	c.curr.next = n
@@ -281,13 +281,13 @@ func (c *conditional) And() *conditional {
 	return c
 }
 
-// On returns a conditional that starts with one Condition.
-func On(cond gs.Condition) *conditional {
+// On returns a Conditional that starts with one Condition.
+func On(cond gs.Condition) *Conditional {
 	return New().On(cond)
 }
 
 // On adds one Condition.
-func (c *conditional) On(cond gs.Condition) *conditional {
+func (c *Conditional) On(cond gs.Condition) *Conditional {
 	if c.curr.cond != nil {
 		c.And()
 	}
@@ -311,14 +311,14 @@ func HavingValue(havingValue string) PropertyOption {
 	}
 }
 
-// OnProperty returns a conditional that starts with a Condition that checks a property
+// OnProperty returns a Conditional that starts with a Condition that checks a property
 // and its value.
-func OnProperty(name string, options ...PropertyOption) *conditional {
+func OnProperty(name string, options ...PropertyOption) *Conditional {
 	return New().OnProperty(name, options...)
 }
 
 // OnProperty adds a Condition that checks a property and its value.
-func (c *conditional) OnProperty(name string, options ...PropertyOption) *conditional {
+func (c *Conditional) OnProperty(name string, options ...PropertyOption) *Conditional {
 	cond := &onProperty{name: name}
 	for _, option := range options {
 		option(cond)
@@ -326,79 +326,79 @@ func (c *conditional) OnProperty(name string, options ...PropertyOption) *condit
 	return c.On(cond)
 }
 
-// OnMissingProperty returns a conditional that starts with a Condition that returns
+// OnMissingProperty returns a Conditional that starts with a Condition that returns
 // true when property doesn't exist.
-func OnMissingProperty(name string) *conditional {
+func OnMissingProperty(name string) *Conditional {
 	return New().OnMissingProperty(name)
 }
 
 // OnMissingProperty adds a Condition that returns true when property doesn't exist.
-func (c *conditional) OnMissingProperty(name string) *conditional {
+func (c *Conditional) OnMissingProperty(name string) *Conditional {
 	return c.On(&onMissingProperty{name: name})
 }
 
-// OnBean returns a conditional that starts with a Condition that returns true when
+// OnBean returns a Conditional that starts with a Condition that returns true when
 // finding more than one beans.
-func OnBean(selector gs.BeanSelector) *conditional {
+func OnBean(selector gs.BeanSelector) *Conditional {
 	return New().OnBean(selector)
 }
 
 // OnBean adds a Condition that returns true when finding more than one beans.
-func (c *conditional) OnBean(selector gs.BeanSelector) *conditional {
+func (c *Conditional) OnBean(selector gs.BeanSelector) *Conditional {
 	return c.On(&onBean{selector: selector})
 }
 
-// OnMissingBean returns a conditional that starts with a Condition that returns
+// OnMissingBean returns a Conditional that starts with a Condition that returns
 // true when finding no beans.
-func OnMissingBean(selector gs.BeanSelector) *conditional {
+func OnMissingBean(selector gs.BeanSelector) *Conditional {
 	return New().OnMissingBean(selector)
 }
 
 // OnMissingBean adds a Condition that returns true when finding no beans.
-func (c *conditional) OnMissingBean(selector gs.BeanSelector) *conditional {
+func (c *Conditional) OnMissingBean(selector gs.BeanSelector) *Conditional {
 	return c.On(&onMissingBean{selector: selector})
 }
 
-// OnSingleBean returns a conditional that starts with a Condition that returns
+// OnSingleBean returns a Conditional that starts with a Condition that returns
 // true when finding only one bean.
-func OnSingleBean(selector gs.BeanSelector) *conditional {
+func OnSingleBean(selector gs.BeanSelector) *Conditional {
 	return New().OnSingleBean(selector)
 }
 
 // OnSingleBean adds a Condition that returns true when finding only one bean.
-func (c *conditional) OnSingleBean(selector gs.BeanSelector) *conditional {
+func (c *Conditional) OnSingleBean(selector gs.BeanSelector) *Conditional {
 	return c.On(&onSingleBean{selector: selector})
 }
 
-// OnExpression returns a conditional that starts with a Condition that returns
+// OnExpression returns a Conditional that starts with a Condition that returns
 // true when an expression returns true.
-func OnExpression(expression string) *conditional {
+func OnExpression(expression string) *Conditional {
 	return New().OnExpression(expression)
 }
 
 // OnExpression adds a Condition that returns true when an expression returns true.
-func (c *conditional) OnExpression(expression string) *conditional {
+func (c *Conditional) OnExpression(expression string) *Conditional {
 	return c.On(&onExpression{expression: expression})
 }
 
-// OnMatches returns a conditional that starts with a Condition that returns true
+// OnMatches returns a Conditional that starts with a Condition that returns true
 // when function returns true.
-func OnMatches(fn func(ctx gs.CondContext) (bool, error)) *conditional {
+func OnMatches(fn func(ctx gs.CondContext) (bool, error)) *Conditional {
 	return New().OnMatches(fn)
 }
 
 // OnMatches adds a Condition that returns true when function returns true.
-func (c *conditional) OnMatches(fn func(ctx gs.CondContext) (bool, error)) *conditional {
+func (c *Conditional) OnMatches(fn func(ctx gs.CondContext) (bool, error)) *Conditional {
 	return c.On(FuncCond(fn))
 }
 
-// OnProfile returns a conditional that starts with a Condition that returns true
+// OnProfile returns a Conditional that starts with a Condition that returns true
 // when property value equals to profile.
-func OnProfile(profile string) *conditional {
+func OnProfile(profile string) *Conditional {
 	return New().OnProfile(profile)
 }
 
 // OnProfile adds a Condition that returns true when property value equals to profile.
-func (c *conditional) OnProfile(profile string) *conditional {
+func (c *Conditional) OnProfile(profile string) *Conditional {
 	return c.OnProperty("spring.profiles.active", HavingValue(profile))
 }

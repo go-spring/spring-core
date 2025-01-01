@@ -104,7 +104,7 @@ func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
 
 	if len(args) > 0 {
 		switch arg := args[0].(type) {
-		case *optionArg:
+		case *OptionArg:
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
 			if arg.n < 0 || arg.n >= fixedArgCount {
@@ -125,7 +125,7 @@ func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
 
 	for i := 1; i < len(args); i++ {
 		switch arg := args[i].(type) {
-		case *optionArg:
+		case *OptionArg:
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
 			if !shouldIndex {
@@ -222,7 +222,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 			return reflect.Zero(t), nil
 		}
 		return reflect.ValueOf(g.v), nil
-	case *optionArg:
+	case *OptionArg:
 		return g.call(ctx)
 	case *gs.BeanDefinition:
 		tag = g.ID()
@@ -256,8 +256,8 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	return reflect.Value{}, util.Errorf(util.FileLine(), "error type %s", t.String())
 }
 
-// optionArg Option 函数的参数绑定。
-type optionArg struct {
+// OptionArg Option 函数的参数绑定。
+type OptionArg struct {
 	r *Callable
 	c gs.Condition
 }
@@ -272,7 +272,7 @@ func Provide(fn interface{}, args ...gs.Arg) *Callable {
 }
 
 // Option 返回 Option 函数的参数绑定。
-func Option(fn interface{}, args ...gs.Arg) *optionArg {
+func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func || t.NumOut() != 1 {
@@ -283,16 +283,16 @@ func Option(fn interface{}, args ...gs.Arg) *optionArg {
 	if err != nil {
 		panic(err)
 	}
-	return &optionArg{r: r}
+	return &OptionArg{r: r}
 }
 
 // On 设置一个 gs_cond.Condition 对象。
-func (arg *optionArg) On(c gs.Condition) *optionArg {
+func (arg *OptionArg) On(c gs.Condition) *OptionArg {
 	arg.c = c
 	return arg
 }
 
-func (arg *optionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
+func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 
 	var (
 		ok  bool

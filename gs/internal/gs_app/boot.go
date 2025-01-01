@@ -42,10 +42,6 @@ func newBoot() *Boot {
 	return b
 }
 
-func (b *Boot) Group(fn gs.GroupFunc) {
-	b.c.Group(fn)
-}
-
 // Object 参考 Container.Object 的解释。
 func (b *Boot) Object(i interface{}) *gs.BeanDefinition {
 	return b.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
@@ -54,6 +50,15 @@ func (b *Boot) Object(i interface{}) *gs.BeanDefinition {
 // Provide 参考 Container.Provide 的解释。
 func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
 	return b.c.Accept(gs_ctx.NewBean(ctor, args...))
+}
+
+// Accept 参考 Container.Accept 的解释。
+func (b *Boot) Accept(bd *gs.BeanDefinition) *gs.BeanDefinition {
+	return b.c.Accept(bd)
+}
+
+func (b *Boot) Group(fn gs.GroupFunc) {
+	b.c.Group(fn)
 }
 
 func (b *Boot) run() error {

@@ -34,16 +34,11 @@ const (
 	Website = "https://go-spring.com/"
 )
 
-// SpringBannerVisible 是否显示 banner。
-const SpringBannerVisible = "spring.banner.visible"
-
-// AppRunner 命令行启动器接口
 type AppRunner interface {
 	Run(ctx gs.Context)
 }
 
-// AppEvent 应用运行过程中的事件
-type AppEvent interface {
+type AppServer interface {
 	OnAppStart(ctx gs.Context)     // 应用启动的事件
 	OnAppStop(ctx context.Context) // 应用停止的事件
 }
@@ -58,7 +53,7 @@ type App struct {
 
 	exitChan chan struct{}
 
-	Events []AppEvent `autowire:"${application-event.collection:=*?}"`
+	Servers []AppServer `autowire:"${spring.app.servers:=*?}"`
 }
 
 // NewApp application 的构造函数
@@ -74,11 +69,16 @@ func NewApp() *App {
 }
 
 func (app *App) Run() error {
-	_, err := app.Start()
-	if err != nil {
+	if _, err := app.Start(); err != nil {
 		return err
 	}
-	app.wait()
+	go func() {
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+		sig := <-ch
+		app.ShutDown(fmt.Sprintf("signal %v", sig))
+	}()
+	<-app.exitChan
 	app.Stop()
 	return nil
 }
@@ -121,29 +121,19 @@ func (app *App) Start() (gs.Context, error) {
 	}
 
 	// 通知应用启动事件
-	for _, event := range app.Events {
+	for _, event := range app.Servers {
 		event.OnAppStart(app.c)
 	}
 
 	// 通知应用停止事件
 	app.c.Go(func(ctx context.Context) {
 		<-ctx.Done()
-		for _, event := range app.Events {
+		for _, event := range app.Servers {
 			event.OnAppStop(context.Background())
 		}
 	})
 
 	return app.c, nil
-}
-
-func (app *App) wait() {
-	go func() {
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-		sig := <-ch
-		app.ShutDown(fmt.Sprintf("signal %v", sig))
-	}()
-	<-app.exitChan
 }
 
 func (app *App) Stop() {
