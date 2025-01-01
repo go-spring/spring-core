@@ -25,19 +25,12 @@ import (
 	"go.uber.org/atomic"
 )
 
-type DurationValidateFunc func(v time.Duration) error
-
 type Duration struct {
 	v atomic.Duration
-	f DurationValidateFunc
 }
 
 func (x *Duration) Value() time.Duration {
 	return x.v.Load()
-}
-
-func (x *Duration) OnValidate(f DurationValidateFunc) {
-	x.f = f
 }
 
 func (x *Duration) getDuration(prop conf.ReadOnlyProperties, param conf.BindParam) (time.Duration, error) {
@@ -52,23 +45,12 @@ func (x *Duration) getDuration(prop conf.ReadOnlyProperties, param conf.BindPara
 	return v, nil
 }
 
-func (x *Duration) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (x *Duration) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getDuration(prop, param)
 	if err != nil {
 		return err
 	}
 	x.v.Store(v)
-	return nil
-}
-
-func (x *Duration) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-	v, err := x.getDuration(prop, param)
-	if err != nil {
-		return err
-	}
-	if x.f != nil {
-		return x.f(v)
-	}
 	return nil
 }
 

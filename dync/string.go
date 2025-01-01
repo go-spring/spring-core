@@ -23,35 +23,19 @@ import (
 	"go.uber.org/atomic"
 )
 
-type StringValidateFunc func(v string) error
-
 type String struct {
 	v atomic.String
-	f StringValidateFunc
 }
 
 func (x *String) Value() string {
 	return x.v.Load()
 }
 
-func (x *String) OnValidate(f StringValidateFunc) {
-	x.f = f
-}
-
 func (x *String) getString(prop conf.ReadOnlyProperties, param conf.BindParam) (string, error) {
 	return GetProperty(prop, param)
 }
 
-func (x *String) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-	v, err := x.getString(prop, param)
-	if err != nil {
-		return err
-	}
-	x.v.Store(v)
-	return nil
-}
-
-func (x *String) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (x *String) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getString(prop, param)
 	if err != nil {
 		return err
@@ -60,9 +44,7 @@ func (x *String) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) er
 	if err != nil {
 		return err
 	}
-	if x.f != nil {
-		return x.f(v)
-	}
+	x.v.Store(v)
 	return nil
 }
 

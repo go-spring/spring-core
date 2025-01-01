@@ -27,14 +27,13 @@ import (
 	"go.uber.org/atomic"
 )
 
-// Value 可动态刷新的对象
-type Value interface {
-	Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
-	Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error
+// ValueInterface 可动态刷新的对象
+type ValueInterface interface {
+	OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
 }
 
 type Field struct {
-	value Value
+	value ValueInterface
 	param conf.BindParam
 }
 
@@ -120,11 +119,6 @@ func (p *Properties) refreshKeys(prop conf.ReadOnlyProperties, keys []string) (e
 
 func (p *Properties) refreshFields(prop conf.ReadOnlyProperties, fields []*Field) (err error) {
 
-	err = validateFields(prop, fields)
-	if err != nil {
-		return
-	}
-
 	old := p.load()
 	defer func() {
 		if r := recover(); err != nil || r != nil {
@@ -140,19 +134,9 @@ func (p *Properties) refreshFields(prop conf.ReadOnlyProperties, fields []*Field
 	return refreshFields(p.load(), fields)
 }
 
-func validateFields(prop conf.ReadOnlyProperties, fields []*Field) error {
-	for _, f := range fields {
-		err := f.value.Validate(prop, f.param)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func refreshFields(prop conf.ReadOnlyProperties, fields []*Field) error {
 	for _, f := range fields {
-		err := f.value.Refresh(prop, f.param)
+		err := f.value.OnRefresh(prop, f.param)
 		if err != nil {
 			return err
 		}
@@ -175,17 +159,13 @@ func (p *Properties) BindValue(v reflect.Value, param conf.BindParam) error {
 
 func (p *Properties) bindValue(i interface{}, param conf.BindParam) (bool, error) {
 
-	v, ok := i.(Value)
+	v, ok := i.(ValueInterface)
 	if !ok {
 		return false, nil
 	}
 
 	prop := p.load()
-	err := v.Validate(prop, param)
-	if err != nil {
-		return false, err
-	}
-	err = v.Refresh(prop, param)
+	err := v.OnRefresh(prop, param)
 	if err != nil {
 		return false, err
 	}

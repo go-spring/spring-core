@@ -24,19 +24,12 @@ import (
 	"go.uber.org/atomic"
 )
 
-type Int64ValidateFunc func(v int64) error
-
 type Int64 struct {
 	v atomic.Int64
-	f Int64ValidateFunc
 }
 
 func (x *Int64) Value() int64 {
 	return x.v.Load()
-}
-
-func (x *Int64) OnValidate(f Int64ValidateFunc) {
-	x.f = f
 }
 
 func (x *Int64) getInt64(prop conf.ReadOnlyProperties, param conf.BindParam) (int64, error) {
@@ -51,16 +44,7 @@ func (x *Int64) getInt64(prop conf.ReadOnlyProperties, param conf.BindParam) (in
 	return v, nil
 }
 
-func (x *Int64) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-	v, err := x.getInt64(prop, param)
-	if err != nil {
-		return err
-	}
-	x.v.Store(v)
-	return nil
-}
-
-func (x *Int64) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (x *Int64) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getInt64(prop, param)
 	if err != nil {
 		return err
@@ -69,9 +53,7 @@ func (x *Int64) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) err
 	if err != nil {
 		return err
 	}
-	if x.f != nil {
-		return x.f(v)
-	}
+	x.v.Store(v)
 	return nil
 }
 

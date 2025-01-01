@@ -24,26 +24,19 @@ import (
 	"go.uber.org/atomic"
 )
 
-type RefValidateFunc func(v interface{}) error
-
-type Ref[T interface{}] struct {
+type Value[T interface{}] struct {
 	v atomic.Value
-	f RefValidateFunc
 }
 
-func (r *Ref[T]) OnValidate(f RefValidateFunc) {
-	r.f = f
-}
-
-func bindRef[T any](o T, prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func bindValue[T any](o T, prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	t := reflect.TypeOf(o).Elem()
 	v := reflect.ValueOf(o).Elem()
 	return conf.BindValue(prop, v, t, param, nil)
 }
 
-func (r *Ref[T]) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (r *Value[T]) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	var o T
-	err := bindRef(&o, prop, param)
+	err := bindValue(&o, prop, param)
 	if err != nil {
 		return err
 	}
@@ -51,18 +44,6 @@ func (r *Ref[T]) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) err
 	return nil
 }
 
-func (r *Ref[T]) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-	var o T
-	err := bindRef(&o, prop, param)
-	if err != nil {
-		return err
-	}
-	if r.f != nil {
-		return r.f(o)
-	}
-	return err
-}
-
-func (r *Ref[T]) MarshalJSON() ([]byte, error) {
+func (r *Value[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.v.Load())
 }

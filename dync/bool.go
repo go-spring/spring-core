@@ -44,18 +44,13 @@ func (x *Bool) getBool(prop conf.ReadOnlyProperties, param conf.BindParam) (bool
 	return v, nil
 }
 
-func (x *Bool) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (x *Bool) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getBool(prop, param)
 	if err != nil {
 		return err
 	}
 	x.v.Store(v)
 	return nil
-}
-
-func (x *Bool) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-	_, err := x.getBool(prop, param)
-	return err
 }
 
 func (x *Bool) MarshalJSON() ([]byte, error) {

@@ -24,19 +24,12 @@ import (
 	"go.uber.org/atomic"
 )
 
-type Float32ValidateFunc func(v float32) error
-
 type Float32 struct {
 	v atomic.Float32
-	f Float32ValidateFunc
 }
 
 func (x *Float32) Value() float32 {
 	return x.v.Load()
-}
-
-func (x *Float32) OnValidate(f Float32ValidateFunc) {
-	x.f = f
 }
 
 func (x *Float32) getFloat32(prop conf.ReadOnlyProperties, param conf.BindParam) (float32, error) {
@@ -51,16 +44,7 @@ func (x *Float32) getFloat32(prop conf.ReadOnlyProperties, param conf.BindParam)
 	return float32(v), nil
 }
 
-func (x *Float32) Refresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
-	v, err := x.getFloat32(prop, param)
-	if err != nil {
-		return err
-	}
-	x.v.Store(v)
-	return nil
-}
-
-func (x *Float32) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (x *Float32) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	v, err := x.getFloat32(prop, param)
 	if err != nil {
 		return err
@@ -69,9 +53,7 @@ func (x *Float32) Validate(prop conf.ReadOnlyProperties, param conf.BindParam) e
 	if err != nil {
 		return err
 	}
-	if x.f != nil {
-		return x.f(v)
-	}
+	x.v.Store(v)
 	return nil
 }
 
