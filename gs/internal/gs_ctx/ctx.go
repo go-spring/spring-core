@@ -930,7 +930,7 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 					return err
 				}
 			} else {
-				err := c.p.BindValue(fv.Addr(), subParam)
+				err := c.p.AddField(fv.Addr(), subParam)
 				if err != nil {
 					return err
 				}

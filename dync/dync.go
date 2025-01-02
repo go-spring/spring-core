@@ -22,13 +22,14 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
-	"go.uber.org/atomic"
 )
 
-// ValueInterface 可动态刷新的对象
-type ValueInterface interface {
+// Refreshable 可动态刷新的对象
+type Refreshable interface {
 	OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
 }
 
@@ -37,6 +38,12 @@ type Value[T interface{}] struct {
 	v atomic.Value
 }
 
+// Value 获取值
+func (r *Value[T]) Value() T {
+	return r.v.Load().(T)
+}
+
+// OnRefresh 实现 Refreshable 接口
 func (r *Value[T]) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	var o T
 	v := reflect.ValueOf(&o).Elem()
@@ -48,38 +55,46 @@ func (r *Value[T]) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam)
 	return nil
 }
 
+// MarshalJSON 实现 json.Marshaler 接口
 func (r *Value[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.v.Load())
 }
 
-type Field struct {
-	value ValueInterface
-	param conf.BindParam
+// refreshObject 绑定的可刷新对象
+type refreshObject struct {
+	target Refreshable
+	param  conf.BindParam
 }
 
 // Properties 动态属性
 type Properties struct {
-	value  atomic.Value
-	fields []*Field
+	prop    conf.ReadOnlyProperties
+	lock    sync.RWMutex
+	objects []*refreshObject
 }
 
+// New 创建一个 Properties 对象
 func New() *Properties {
-	p := &Properties{}
-	p.value.Store(conf.New())
-	return p
+	return &Properties{
+		prop: conf.New(),
+	}
 }
 
-func (p *Properties) load() *conf.Properties {
-	return p.value.Load().(*conf.Properties)
-}
-
+// Data 获取属性列表
 func (p *Properties) Data() conf.ReadOnlyProperties {
-	return p.load()
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.prop
 }
 
+// Refresh 更新属性列表以及绑定的可刷新对象
 func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 
-	old := p.load()
+	old := p.prop
+	p.prop = prop
+
 	oldKeys := old.Keys()
 	newKeys := prop.Keys()
 
@@ -102,69 +117,95 @@ func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	return p.refreshKeys(prop, keys)
+	return p.refreshKeys(keys)
 }
 
-func (p *Properties) refreshKeys(prop conf.ReadOnlyProperties, keys []string) (err error) {
-
-	updateIndexes := make(map[int]*Field)
+func (p *Properties) refreshKeys(keys []string) (err error) {
+	var objects []*refreshObject
 	for _, key := range keys {
-		for index, field := range p.fields {
-			s := strings.TrimPrefix(key, field.param.Key)
-			if len(s) == len(key) {
+		for _, obj := range p.objects {
+			if !strings.HasPrefix(key, obj.param.Key) {
 				continue
 			}
+			s := strings.TrimPrefix(key, obj.param.Key)
 			if len(s) == 0 || s[0] == '.' || s[0] == '[' {
-				if _, ok := updateIndexes[index]; !ok {
-					updateIndexes[index] = field
-				}
+				objects = append(objects, obj)
 			}
 		}
 	}
-
-	updateFields := make([]*Field, 0, len(updateIndexes))
-	{
-		ints := make([]int, 0, len(updateIndexes))
-		for k := range updateIndexes {
-			ints = append(ints, k)
-		}
-		sort.Ints(ints)
-		for _, k := range ints {
-			updateFields = append(updateFields, updateIndexes[k])
-		}
+	if len(objects) == 0 {
+		return nil
 	}
-
-	return p.refreshFields(prop, updateFields)
+	return p.refreshObjects(objects)
 }
 
-func (p *Properties) refreshFields(prop conf.ReadOnlyProperties, fields []*Field) (err error) {
+// Errors 错误列表
+type Errors struct {
+	arr []error
+}
 
-	old := p.load()
+// Len 错误数量
+func (e *Errors) Len() int {
+	return len(e.arr)
+}
+
+// Append 添加一个错误
+func (e *Errors) Append(err error) {
+	if err != nil {
+		e.arr = append(e.arr, err)
+	}
+}
+
+// Error 实现 error 接口
+func (e *Errors) Error() string {
+	var sb strings.Builder
+	for _, err := range e.arr {
+		sb.WriteString(err.Error())
+		sb.WriteString("\n")
+	}
+	return sb.String()
+}
+
+func (p *Properties) refreshObjects(objects []*refreshObject) error {
+	ret := &Errors{}
+	for _, f := range objects {
+		err := p.safeRefreshObject(f)
+		ret.Append(err)
+	}
+	if ret.Len() == 0 {
+		return nil
+	}
+	return ret
+}
+
+func (p *Properties) safeRefreshObject(f *refreshObject) (err error) {
 	defer func() {
-		if r := recover(); err != nil || r != nil {
-			if err == nil {
-				err = fmt.Errorf("%v", r)
-			}
-			p.value.Store(old)
-			_ = refreshFields(old, fields)
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
 		}
 	}()
-
-	p.value.Store(prop)
-	return refreshFields(p.load(), fields)
+	return f.target.OnRefresh(p.prop, f.param)
 }
 
-func refreshFields(prop conf.ReadOnlyProperties, fields []*Field) error {
-	for _, f := range fields {
-		err := f.value.OnRefresh(prop, f.param)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+// AddBean 添加一个可刷新对象
+func (p *Properties) AddBean(v Refreshable, param conf.BindParam) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.addObjectNoLock(v, param)
 }
 
-func (p *Properties) BindValue(v reflect.Value, param conf.BindParam) error {
+func (p *Properties) addObjectNoLock(v Refreshable, param conf.BindParam) error {
+	p.objects = append(p.objects, &refreshObject{
+		target: v,
+		param:  param,
+	})
+	return v.OnRefresh(p.prop, param)
+}
+
+// AddField 添加一个 bean 的 field
+func (p *Properties) AddField(v reflect.Value, param conf.BindParam) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	if v.Kind() == reflect.Ptr {
 		ok, err := p.bindValue(v.Interface(), param)
 		if err != nil {
@@ -174,25 +215,13 @@ func (p *Properties) BindValue(v reflect.Value, param conf.BindParam) error {
 			return nil
 		}
 	}
-	return conf.BindValue(p.load(), v.Elem(), v.Elem().Type(), param, p.bindValue)
+	return conf.BindValue(p.prop, v.Elem(), v.Elem().Type(), param, p.bindValue)
 }
 
 func (p *Properties) bindValue(i interface{}, param conf.BindParam) (bool, error) {
-
-	v, ok := i.(ValueInterface)
+	v, ok := i.(Refreshable)
 	if !ok {
 		return false, nil
 	}
-
-	prop := p.load()
-	err := v.OnRefresh(prop, param)
-	if err != nil {
-		return false, err
-	}
-
-	p.fields = append(p.fields, &Field{
-		value: v,
-		param: param,
-	})
-	return true, nil
+	return true, p.addObjectNoLock(v, param)
 }

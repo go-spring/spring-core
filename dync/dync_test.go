@@ -44,7 +44,7 @@ type Config struct {
 func newTest() (*dync.Properties, *Config, error) {
 	mgr := dync.New()
 	cfg := new(Config)
-	err := mgr.BindValue(reflect.ValueOf(cfg), conf.BindParam{})
+	err := mgr.AddField(reflect.ValueOf(cfg), conf.BindParam{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -106,7 +106,7 @@ func TestDynamic(t *testing.T) {
 		// 	fmt.Println("event fired.")
 		// 	return nil
 		// })
-		err := mgr.BindValue(reflect.ValueOf(cfg), conf.BindParam{})
+		err := mgr.AddField(reflect.ValueOf(cfg), conf.BindParam{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -144,7 +144,7 @@ func TestDynamic(t *testing.T) {
 		// 	fmt.Println("event fired.")
 		// 	return nil
 		// })
-		err := mgr.BindValue(reflect.ValueOf(cfg), conf.BindParam{})
+		err := mgr.AddField(reflect.ValueOf(cfg), conf.BindParam{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -176,7 +176,7 @@ func TestDynamic(t *testing.T) {
 		assert.Error(t, err, "validate failed on \"\\$<6\" for value 6")
 
 		b, _ = json.Marshal(cfg)
-		assert.Equal(t, string(b), `{"Int":1,"Float":5.4,"Map":{"a":"3","b":"7"},"Slice":["2","9"],"Object":{"Str":"abc","Int":3}}`)
+		assert.Equal(t, string(b), `{"Int":1,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"],"Object":{"Str":"abc","Int":3}}`)
 
 		p = conf.New()
 		p.Set("int", 4)
@@ -186,6 +186,8 @@ func TestDynamic(t *testing.T) {
 		p.Set("slice[0]", 3)
 		p.Set("slice[1]", 4)
 		mgr.Refresh(p)
+
+		assert.Equal(t, cfg.Int.Value(), int64(4))
 
 		b, _ = json.Marshal(cfg)
 		assert.Equal(t, string(b), `{"Int":4,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"],"Object":{"Str":"abc","Int":3}}`)
