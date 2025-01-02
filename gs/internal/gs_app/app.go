@@ -40,8 +40,6 @@ type AppServer interface {
 
 // App 应用
 type App struct {
-	banner string
-
 	c *gs_ctx.Container
 	p *gs_conf.Configuration
 
@@ -59,6 +57,25 @@ func NewApp() *App {
 	}
 	app.Object(app)
 	return app
+}
+
+// Object 参考 Container.Object 的解释。
+func (app *App) Object(i interface{}) *gs.BeanDefinition {
+	return app.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
+}
+
+// Provide 参考 Container.Provide 的解释。
+func (app *App) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
+	return app.c.Accept(gs_ctx.NewBean(ctor, args...))
+}
+
+// Accept 参考 Container.Accept 的解释。
+func (app *App) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
+	return app.c.Accept(b)
+}
+
+func (app *App) Group(fn gs.GroupFunc) {
+	app.c.Group(fn)
 }
 
 func (app *App) Run() error {
@@ -132,23 +149,4 @@ func (app *App) ShutDown(msg ...string) {
 	default:
 		close(app.exitChan)
 	}
-}
-
-// Object 参考 Container.Object 的解释。
-func (app *App) Object(i interface{}) *gs.BeanDefinition {
-	return app.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
-}
-
-// Provide 参考 Container.Provide 的解释。
-func (app *App) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
-	return app.c.Accept(gs_ctx.NewBean(ctor, args...))
-}
-
-// Accept 参考 Container.Accept 的解释。
-func (app *App) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
-	return app.c.Accept(b)
-}
-
-func (app *App) Group(fn gs.GroupFunc) {
-	app.c.Group(fn)
 }

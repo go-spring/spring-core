@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-
-	"github.com/go-spring/spring-core/gs/internal/gs_util"
 )
 
 type BeanStatus int8
@@ -20,82 +18,83 @@ const (
 	Wired                        // 注入完成
 )
 
-func GetStatusString(status BeanStatus) string {
-	switch status {
-	case Deleted:
-		return "Deleted"
-	case Default:
-		return "Default"
-	case Resolving:
-		return "Resolving"
-	case Resolved:
-		return "Resolved"
-	case Creating:
-		return "Creating"
-	case Created:
-		return "Created"
-	case Wired:
-		return "Wired"
-	default:
-		return ""
-	}
+func (d *BeanDefinition) GetName() string {
+	return d.name
 }
 
-// BeanDefinition bean 元数据。
-type BeanDefinition struct {
-	V reflect.Value // 值
-	T reflect.Type  // 类型
-	F Callable      // 构造函数
-
-	file string // 注册点所在文件
-	line int    // 注册点所在行数
-
-	name     string         // 名称
-	typeName string         // 原始类型的全限定名
-	status   BeanStatus     // 状态
-	primary  bool           // 是否为主版本
-	method   bool           // 是否为成员方法
-	cond     Condition      // 判断条件
-	order    float32        // 收集时的顺序
-	init     interface{}    // 初始化函数
-	destroy  interface{}    // 销毁函数
-	depends  []BeanSelector // 间接依赖项
-	exports  []reflect.Type // 导出的接口
-
-	configuration bool     // 是否扫描成员方法
-	includeMethod []string // 包含哪些成员方法
-	excludeMethod []string // 排除那些成员方法
+func (d *BeanDefinition) GetTypeName() string {
+	return d.typeName
 }
 
-func (d *BeanDefinition) GetName() string             { return d.name }
-func (d *BeanDefinition) GetTypeName() string         { return d.typeName }
-func (d *BeanDefinition) GetStatus() BeanStatus       { return d.status }
-func (d *BeanDefinition) SetStatus(status BeanStatus) { d.status = status }
-func (d *BeanDefinition) IsPrimary() bool             { return d.primary }
-func (d *BeanDefinition) IsMethod() bool              { return d.method }
-func (d *BeanDefinition) GetCond() Condition          { return d.cond }
-func (d *BeanDefinition) GetOrder() float32           { return d.order }
-func (d *BeanDefinition) GetInit() interface{}        { return d.init }
-func (d *BeanDefinition) GetDestroy() interface{}     { return d.destroy }
-func (d *BeanDefinition) GetDepends() []BeanSelector  { return d.depends }
-func (d *BeanDefinition) GetExports() []reflect.Type  { return d.exports }
-func (d *BeanDefinition) IsConfiguration() bool       { return d.configuration }
-func (d *BeanDefinition) GetIncludeMethod() []string  { return d.includeMethod }
-func (d *BeanDefinition) GetExcludeMethod() []string  { return d.excludeMethod }
+func (d *BeanDefinition) GetStatus() BeanStatus {
+	return d.status
+}
+
+func (d *BeanDefinition) SetStatus(status BeanStatus) {
+	d.status = status
+}
+
+func (d *BeanDefinition) IsPrimary() bool {
+	return d.primary
+}
+
+func (d *BeanDefinition) IsMethod() bool {
+	return d.method
+}
+
+func (d *BeanDefinition) GetCond() Condition {
+	return d.cond
+}
+
+func (d *BeanDefinition) GetOrder() float32 {
+	return d.order
+}
+
+func (d *BeanDefinition) GetInit() interface{} {
+	return d.init
+}
+
+func (d *BeanDefinition) GetDestroy() interface{} {
+	return d.destroy
+}
+
+func (d *BeanDefinition) GetDepends() []BeanSelector {
+	return d.depends
+}
+
+func (d *BeanDefinition) GetExports() []reflect.Type {
+	return d.exports
+}
+
+func (d *BeanDefinition) IsConfiguration() bool {
+	return d.configuration
+}
+
+func (d *BeanDefinition) GetIncludeMethod() []string {
+	return d.includeMethod
+}
+
+func (d *BeanDefinition) GetExcludeMethod() []string {
+	return d.excludeMethod
+}
+
+func (d *BeanDefinition) Callable() Callable {
+	return d.f
+}
 
 // Type 返回 bean 的类型。
 func (d *BeanDefinition) Type() reflect.Type {
-	return d.T
+	return d.t
 }
 
 // Value 返回 bean 的值。
 func (d *BeanDefinition) Value() reflect.Value {
-	return d.V
+	return d.v
 }
 
 // Interface 返回 bean 的真实值。
 func (d *BeanDefinition) Interface() interface{} {
-	return d.V.Interface()
+	return d.v.Interface()
 }
 
 // ID 返回 bean 的 ID 。
@@ -138,7 +137,7 @@ func (d *BeanDefinition) FileLine() string {
 
 // GetClass 返回 bean 的类型描述。
 func (d *BeanDefinition) GetClass() string {
-	if d.F == nil {
+	if d.f == nil {
 		return "object bean"
 	}
 	return "constructor bean"
@@ -197,13 +196,13 @@ func (d *BeanDefinition) Primary() *BeanDefinition {
 // validLifeCycleFunc 判断是否是合法的用于 bean 生命周期控制的函数，生命周期函数
 // 的要求：只能有一个入参并且必须是 bean 的类型，没有返回值或者只返回 error 类型值。
 func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
-	if !gs_util.IsFuncType(fnType) {
+	if !IsFuncType(fnType) {
 		return false
 	}
-	if fnType.NumIn() != 1 || !gs_util.HasReceiver(fnType, beanValue) {
+	if fnType.NumIn() != 1 || !HasReceiver(fnType, beanValue) {
 		return false
 	}
-	return gs_util.ReturnNothing(fnType) || gs_util.ReturnOnlyError(fnType)
+	return ReturnNothing(fnType) || ReturnOnlyError(fnType)
 }
 
 // Init 设置 bean 的初始化函数。
@@ -235,18 +234,19 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 
 func (d *BeanDefinition) export(exports ...interface{}) error {
 	for _, o := range exports {
-		var typ reflect.Type
-		if t, ok := o.(reflect.Type); ok {
-			typ = t
-		} else { // 处理 (*error)(nil) 这种导出形式
-			typ = gs_util.Indirect(reflect.TypeOf(o))
+		t, ok := o.(reflect.Type)
+		if !ok {
+			t = reflect.TypeOf(o)
+			if t.Kind() == reflect.Ptr {
+				t = t.Elem()
+			}
 		}
-		if typ.Kind() != reflect.Interface {
+		if t.Kind() != reflect.Interface {
 			return errors.New("only interface type can be exported")
 		}
 		exported := false
 		for _, export := range d.exports {
-			if typ == export {
+			if t == export {
 				exported = true
 				break
 			}
@@ -254,7 +254,7 @@ func (d *BeanDefinition) export(exports ...interface{}) error {
 		if exported {
 			continue
 		}
-		d.exports = append(d.exports, typ)
+		d.exports = append(d.exports, t)
 	}
 	return nil
 }
@@ -270,11 +270,11 @@ func (d *BeanDefinition) Configuration(includes []string, excludes []string) *Be
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
 func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bool, file string, line int) *BeanDefinition {
 	return &BeanDefinition{
-		T:        t,
-		V:        v,
-		F:        f,
+		t:        t,
+		v:        v,
+		f:        f,
 		name:     name,
-		typeName: gs_util.TypeName(t),
+		typeName: TypeName(t),
 		status:   Default,
 		method:   method,
 		file:     file,

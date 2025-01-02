@@ -35,9 +35,16 @@ import (
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
 )
+
+type BeanInit interface {
+	OnInit(ctx gs.Context) error
+}
+
+type BeanDestroy interface {
+	OnDestroy()
+}
 
 type refreshState int
 
@@ -93,19 +100,6 @@ func New() *Container {
 	return c
 }
 
-// Context 返回 IoC 容器的 ctx 对象。
-func (c *Container) Context() context.Context {
-	return c.ctx
-}
-
-type BeanInit interface {
-	OnInit(ctx gs.Context) error
-}
-
-type BeanDestroy interface {
-	OnDestroy()
-}
-
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
 func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
@@ -123,7 +117,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	}
 
 	t := v.Type()
-	if !gs_util.IsBeanType(t) {
+	if !gs.IsBeanType(t) {
 		panic(errors.New("bean must be ref type"))
 	}
 
@@ -138,7 +132,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
 	if !fromValue && t.Kind() == reflect.Func {
 
-		if !gs_util.IsConstructor(t) {
+		if !gs.IsConstructor(t) {
 			t1 := "func(...)bean"
 			t2 := "func(...)(bean, error)"
 			panic(fmt.Errorf("constructor should be %s or %s", t1, t2))
@@ -152,12 +146,12 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 		out0 := t.Out(0)
 		v = reflect.New(out0)
-		if gs_util.IsBeanType(out0) {
+		if gs.IsBeanType(out0) {
 			v = v.Elem()
 		}
 
 		t = v.Type()
-		if !gs_util.IsBeanType(t) {
+		if !gs.IsBeanType(t) {
 			panic(errors.New("bean must be ref type"))
 		}
 
@@ -187,8 +181,14 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	return gs.NewBean(t, v, f, name, method, file, line)
 }
 
-func (c *Container) Group(fn gs.GroupFunc) {
-	c.groupFuncs = append(c.groupFuncs, fn)
+// Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
+func (c *Container) Object(i interface{}) *gs.BeanDefinition {
+	return c.Accept(NewBean(reflect.ValueOf(i)))
+}
+
+// Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
+func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
+	return c.Accept(NewBean(ctor, args...))
 }
 
 func (c *Container) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
@@ -199,14 +199,13 @@ func (c *Container) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
 	return b
 }
 
-// Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *Container) Object(i interface{}) *gs.BeanDefinition {
-	return c.Accept(NewBean(reflect.ValueOf(i)))
+func (c *Container) Group(fn gs.GroupFunc) {
+	c.groupFuncs = append(c.groupFuncs, fn)
 }
 
-// Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
-	return c.Accept(NewBean(ctor, args...))
+// Context 返回 IoC 容器的 ctx 对象。
+func (c *Container) Context() context.Context {
+	return c.ctx
 }
 
 func (c *Container) Keys() []string {
@@ -404,9 +403,9 @@ func (c *Container) Refresh() (err error) {
 			}
 			excludes = append(excludes, x)
 		}
-		n := bd.T.NumMethod()
+		n := bd.Type().NumMethod()
 		for i := 0; i < n; i++ {
-			m := bd.T.Method(i)
+			m := bd.Type().Method(i)
 			skip := false
 			for _, x := range excludes {
 				if x.MatchString(m.Name) {
@@ -427,7 +426,7 @@ func (c *Container) Refresh() (err error) {
 					name := bd.GetName() + "_" + m.Name
 					out0 := m.Type.Out(0)
 					v := reflect.New(out0)
-					if gs_util.IsBeanType(out0) {
+					if gs.IsBeanType(out0) {
 						v = v.Elem()
 					}
 					t := v.Type()
@@ -540,9 +539,9 @@ func (c *Container) resolveBean(b *gs.BeanDefinition) error {
 
 	// method bean 先确定 parent bean 是否存在
 	if b.IsMethod() {
-		selector, ok := b.F.Arg(0)
+		selector, ok := b.Callable().Arg(0)
 		if !ok || selector == "" {
-			selector, _ = b.F.In(0)
+			selector, _ = b.Callable().In(0)
 		}
 		parents, err := c.Find(selector)
 		if err != nil {
@@ -550,7 +549,7 @@ func (c *Container) resolveBean(b *gs.BeanDefinition) error {
 		}
 		n := len(parents)
 		if n > 1 {
-			msg := fmt.Sprintf("found %d parent beans, bean:%q type:%q [", n, selector, b.T.In(0))
+			msg := fmt.Sprintf("found %d parent beans, bean:%q type:%q [", n, selector, b.Type().In(0))
 			for _, b := range parents {
 				msg += "( " + b.String() + " ), "
 			}
@@ -632,7 +631,7 @@ func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
 	case *gs.BeanDefinition:
 		return parseWireTag(s.ID()), nil
 	default:
-		return parseWireTag(gs_util.TypeName(s) + ":"), nil
+		return parseWireTag(gs.TypeName(s) + ":"), nil
 	}
 }
 
@@ -737,7 +736,7 @@ func (c *Container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
 
 	stack.pushBack(b)
 
-	if b.GetStatus() == gs.Creating && b.F != nil {
+	if b.GetStatus() == gs.Creating && b.Callable() != nil {
 		prev := stack.beans[len(stack.beans)-2]
 		if prev.GetStatus() == gs.Creating {
 			return errors.New("found circle autowire")
@@ -823,17 +822,17 @@ func (a *argContext) Wire(v reflect.Value, tag string) error {
 // getBeanValue 获取 bean 的值，如果是构造函数 bean 则执行其构造函数然后返回执行结果。
 func (c *Container) getBeanValue(b *gs.BeanDefinition, stack *wiringStack) (reflect.Value, error) {
 
-	if b.F == nil {
+	if b.Callable() == nil {
 		return b.Value(), nil
 	}
 
-	out, err := b.F.Call(&argContext{c: c, stack: stack})
+	out, err := b.Callable().Call(&argContext{c: c, stack: stack})
 	if err != nil {
 		return reflect.Value{}, err /* fmt.Errorf("%s:%s return error: %v", b.getClass(), b.ID(), err) */
 	}
 
 	// 构造函数的返回值为值类型时 b.Type() 返回其指针类型。
-	if val := out[0]; gs_util.IsBeanType(val.Type()) {
+	if val := out[0]; gs.IsBeanType(val.Type()) {
 		// 如果实现接口的是值类型，那么需要转换成指针类型然后再赋值给接口。
 		if !val.IsNil() && val.Kind() == reflect.Interface && conf.IsValueType(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())
@@ -888,7 +887,7 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 		fv := v.Field(i)
 
 		if !fv.CanInterface() {
-			fv = gs_util.PatchValue(fv)
+			fv = PatchValue(fv)
 			if !fv.CanInterface() {
 				continue
 			}
@@ -1009,7 +1008,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	}
 
 	t := v.Type()
-	if !gs_util.IsBeanReceiver(t) {
+	if !gs.IsBeanReceiver(t) {
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
@@ -1147,7 +1146,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	}
 
 	et := t.Elem()
-	if !gs_util.IsBeanReceiver(et) {
+	if !gs.IsBeanReceiver(et) {
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
@@ -1318,7 +1317,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 
 func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 
-	if !gs_util.IsFuncType(reflect.TypeOf(fn)) {
+	if !gs.IsFuncType(reflect.TypeOf(fn)) {
 		return nil, errors.New("fn should be func type")
 	}
 

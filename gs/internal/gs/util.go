@@ -14,18 +14,15 @@
  * limitations under the License.
  */
 
-package gs_util
+package gs
 
 import (
-	"context"
 	"reflect"
 	"strings"
 )
 
 // errorType the reflection type of error.
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
-
-var contextType = reflect.TypeOf((*context.Context)(nil)).Elem()
 
 // TypeName returns a fully qualified name consisting of package path and type name.
 func TypeName(i interface{}) string {
@@ -63,11 +60,6 @@ func IsFuncType(t reflect.Type) bool {
 // IsErrorType returns whether `t` is error type.
 func IsErrorType(t reflect.Type) bool {
 	return t == errorType || t.Implements(errorType)
-}
-
-// IsContextType returns whether `t` is context.Context type.
-func IsContextType(t reflect.Type) bool {
-	return t == contextType || t.Implements(contextType)
 }
 
 // ReturnNothing returns whether the function has no return value.

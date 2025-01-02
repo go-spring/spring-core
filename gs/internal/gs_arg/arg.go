@@ -27,7 +27,6 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -229,7 +228,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	case string:
 		tag = g
 	default:
-		tag = gs_util.TypeName(g) + ":"
+		tag = gs.TypeName(g) + ":"
 	}
 
 	// binds properties value by the "value" tag.
@@ -245,7 +244,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	}
 
 	// wires dependent beans by the "autowire" tag.
-	if gs_util.IsBeanReceiver(t) {
+	if gs.IsBeanReceiver(t) {
 		v := reflect.New(t).Elem()
 		if err = ctx.Wire(v, tag); err != nil {
 			return reflect.Value{}, err
@@ -384,7 +383,7 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 	}
 
 	o := out[n-1]
-	if gs_util.IsErrorType(o.Type()) {
+	if gs.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
 			return out[:n-1], i.(error)
 		}

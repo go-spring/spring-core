@@ -11,6 +11,32 @@ import (
 // `(*error)(nil)`, or a BeanDefinition value.
 type BeanSelector interface{}
 
+// BeanDefinition bean 元数据。
+type BeanDefinition struct {
+	v reflect.Value // 值
+	t reflect.Type  // 类型
+	f Callable      // 构造函数
+
+	file string // 注册点所在文件
+	line int    // 注册点所在行数
+
+	name     string         // 名称
+	typeName string         // 原始类型的全限定名
+	status   BeanStatus     // 状态
+	primary  bool           // 是否为主版本
+	method   bool           // 是否为成员方法
+	cond     Condition      // 判断条件
+	order    float32        // 收集时的顺序
+	init     interface{}    // 初始化函数
+	destroy  interface{}    // 销毁函数
+	depends  []BeanSelector // 间接依赖项
+	exports  []reflect.Type // 导出的接口
+
+	configuration bool     // 是否扫描成员方法
+	includeMethod []string // 包含哪些成员方法
+	excludeMethod []string // 排除那些成员方法
+}
+
 // CondContext defines some methods of IoC container that conditions use.
 type CondContext interface {
 	// Has returns whether the IoC container has a property.
@@ -50,8 +76,6 @@ type Callable interface {
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 
-type GroupFunc func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)
-
 // Context 提供了一些在 IoC 容器启动后基于反射获取和使用 property 与 bean 的接
 // 口。因为很多人会担心在运行时大量使用反射会降低程序性能，所以命名为 Context，取
 // 其诱人但危险的含义。事实上，这些在 IoC 容器启动后使用属性绑定和依赖注入的方案，
@@ -72,3 +96,5 @@ type Context interface {
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 	Go(fn func(ctx context.Context))
 }
+
+type GroupFunc func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)

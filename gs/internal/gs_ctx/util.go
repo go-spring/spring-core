@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package gs_util
+package gs_ctx
 
 import (
 	"reflect"
-	"runtime"
-	"strings"
 	"unsafe"
 )
 
@@ -36,31 +34,4 @@ func PatchValue(v reflect.Value) reflect.Value {
 	ptrFlag := (*uintptr)(unsafe.Pointer(flag.UnsafeAddr()))
 	*ptrFlag = *ptrFlag &^ flagRO
 	return v
-}
-
-// Indirect returns its element type when t is a pointer type.
-func Indirect(t reflect.Type) reflect.Type {
-	if t.Kind() != reflect.Ptr {
-		return t
-	}
-	return t.Elem()
-}
-
-// FileLine returns a function's name, file name and line number.
-func FileLine(fn interface{}) (file string, line int, fnName string) {
-
-	fnPtr := reflect.ValueOf(fn).Pointer()
-	fnInfo := runtime.FuncForPC(fnPtr)
-	file, line = fnInfo.FileLine(fnPtr)
-
-	s := fnInfo.Name()
-	if ss := strings.Split(s, "/"); len(ss) > 0 {
-		s = ss[len(ss)-1]
-		i := strings.Index(s, ".")
-		s = s[i+1:]
-	}
-
-	// method values are printed as "T.m-fm"
-	s = strings.TrimRight(s, "-fm")
-	return file, line, s
 }

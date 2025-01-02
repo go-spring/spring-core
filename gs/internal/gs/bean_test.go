@@ -25,7 +25,6 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
-	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 	"github.com/stretchr/testify/assert"
@@ -100,7 +99,7 @@ func TestIsFuncBeanType(t *testing.T) {
 	}
 
 	for k, v := range data {
-		ok := gs_util.IsConstructor(k)
+		ok := gs.IsConstructor(k)
 		assert.Equal(t, ok, v)
 	}
 }
