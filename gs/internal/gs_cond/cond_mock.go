@@ -42,10 +42,10 @@ func (m *MockContext) EXPECT() *MockContextMockRecorder {
 }
 
 // Find mocks base method.
-func (m *MockContext) Find(selector gs.BeanSelector) ([]gs.BeanDefinition, error) {
+func (m *MockContext) Find(selector gs.BeanSelector) ([]*gs.BeanDefinition, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Find", selector)
-	ret0, _ := ret[0].([]gs.BeanDefinition)
+	ret0, _ := ret[0].([]*gs.BeanDefinition)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Package gsioc 实现了 go-spring 的核心骨架，包含 IoC 容器、基于 IoC 容器的 App
+// Package gs_ctx 实现了 go-spring 的核心骨架，包含 IoC 容器、基于 IoC 容器的 App
 // 以及全局 App 对象封装三个部分，可以应用于多种使用场景。
 package gs_ctx
 
@@ -35,7 +35,6 @@ import (
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/util"
 )
 
 type BeanInit interface {
@@ -338,7 +337,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 	for _, d := range s.destroyerMap {
 		destroyers.PushBack(d)
 	}
-	destroyers = util.TripleSort(destroyers, getBeforeDestroyers)
+	destroyers = TripleSort(destroyers, getBeforeDestroyers)
 
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {

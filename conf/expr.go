@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package expr
+package conf
 
 import (
 	"fmt"
@@ -22,32 +22,30 @@ import (
 	"github.com/expr-lang/expr"
 )
 
-type Validator struct{}
+type ValidateFunc interface{}
 
-// Name returns the name of the validator.
-func (d *Validator) Name() string {
-	return "expr"
+var validateFuncs = map[string]interface{}{}
+
+func RegisterValidateFunc(name string, fn ValidateFunc) {
+	validateFuncs[name] = fn
 }
 
-// Field validates the field with the given tag and value.
-func (d *Validator) Field(tag string, i interface{}) error {
-	if ret, err := Eval(tag, i); err != nil {
-		return err
-	} else if !ret {
-		return fmt.Errorf("validate failed on %q for value %v", tag, i)
+// validateField validates the field with the given tag and value.
+func validateField(tag string, i interface{}) error {
+	env := map[string]interface{}{"$": i}
+	for k, v := range validateFuncs {
+		env[k] = v
 	}
-	return nil
-}
-
-// Eval returns the value for the expression expr.
-func Eval(input string, val interface{}) (bool, error) {
-	r, err := expr.Eval(input, map[string]interface{}{"$": val})
+	r, err := expr.Eval(tag, env)
 	if err != nil {
-		return false, fmt.Errorf("eval %q returns error, %w", input, err)
+		return fmt.Errorf("eval %q returns error, %w", tag, err)
 	}
 	ret, ok := r.(bool)
 	if !ok {
-		return false, fmt.Errorf("eval %q doesn't return bool value", input)
+		return fmt.Errorf("eval %q doesn't return bool value", tag)
 	}
-	return ret, nil
+	if !ret {
+		return fmt.Errorf("validate failed on %q for value %v", tag, i)
+	}
+	return nil
 }

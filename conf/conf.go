@@ -32,7 +32,6 @@ import (
 	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
 	"github.com/go-spring/spring-core/conf/store"
-	"github.com/go-spring/spring-core/expr"
 	"github.com/spf13/cast"
 )
 
@@ -43,7 +42,6 @@ var (
 )
 
 func init() {
-	SetValidator(&expr.Validator{})
 
 	RegisterReader(json.Read, ".json")
 	RegisterReader(prop.Read, ".properties")

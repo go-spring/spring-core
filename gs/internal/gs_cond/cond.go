@@ -16,7 +16,7 @@
 
 //go:generate mockgen -build_flags="-mod=mod" -package=cond -source=cond.go -destination=cond_mock.go
 
-// Package cond provides many conditions used when registering bean.
+// Package gs_cond provides many conditions used when registering bean.
 package gs_cond
 
 import (
@@ -25,7 +25,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-spring/spring-core/expr"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
 )
@@ -76,7 +75,7 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 	}
 
 	val := ctx.Prop(c.name)
-	if !strings.HasPrefix(c.havingValue, "go:") {
+	if !strings.HasPrefix(c.havingValue, "expr:") {
 		return val == c.havingValue, nil
 	}
 
@@ -95,7 +94,7 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 		}
 		return val
 	}
-	return expr.Eval(c.havingValue[3:], getValue(val))
+	return evalExpr(c.havingValue[5:], getValue(val))
 }
 
 // onMissingProperty is a Condition that returns true when a property doesn't exist.

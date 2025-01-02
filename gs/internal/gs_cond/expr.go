@@ -14,32 +14,33 @@
  * limitations under the License.
  */
 
-package util
+package gs_cond
 
 import (
 	"fmt"
-	"runtime"
-	"sync"
+
+	"github.com/expr-lang/expr"
 )
 
-var frameMap sync.Map
+var exprFuncs = map[string]interface{}{}
 
-func fileLine() (string, int) {
-	rpc := make([]uintptr, 1)
-	runtime.Callers(3, rpc[:])
-	pc := rpc[0]
-	if v, ok := frameMap.Load(pc); ok {
-		e := v.(*runtime.Frame)
-		return e.File, e.Line
-	}
-	frame, _ := runtime.CallersFrames(rpc).Next()
-	frameMap.Store(pc, &frame)
-	return frame.File, frame.Line
+func RegisterExprFunc(name string, fn interface{}) {
+	exprFuncs[name] = fn
 }
 
-// FileLine returns the file name and line of the call point.
-// In reality FileLine here costs less time than debug.Stack.
-func FileLine() string {
-	file, line := fileLine()
-	return fmt.Sprintf("%s:%d", file, line)
+// evalExpr returns the value for the expression expr.
+func evalExpr(input string, val interface{}) (bool, error) {
+	env := map[string]interface{}{"$": val}
+	for k, v := range exprFuncs {
+		env[k] = v
+	}
+	r, err := expr.Eval(input, env)
+	if err != nil {
+		return false, fmt.Errorf("eval %q returns error, %w", input, err)
+	}
+	ret, ok := r.(bool)
+	if !ok {
+		return false, fmt.Errorf("eval %q doesn't return bool value", input)
+	}
+	return ret, nil
 }

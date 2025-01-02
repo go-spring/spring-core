@@ -31,21 +31,6 @@ var (
 	ErrInvalidSyntax = errors.New("invalid syntax")
 )
 
-var (
-	bindValidator ValidatorInterface
-)
-
-// ValidatorInterface is the interface for validating a field.
-type ValidatorInterface interface {
-	Name() string
-	Field(tag string, i interface{}) error
-}
-
-// SetValidator sets the validator.
-func SetValidator(i ValidatorInterface) {
-	bindValidator = i
-}
-
 // ParsedTag a value tag includes at most three parts: required key, optional
 // default value, and optional splitter, the syntax is ${key:=value}>>splitter.
 type ParsedTag struct {
@@ -139,9 +124,9 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 
 	defer func() {
 		if RetErr == nil {
-			tag, ok := param.Validate.Lookup(bindValidator.Name())
+			tag, ok := param.Validate.Lookup("expr")
 			if ok && len(tag) > 0 {
-				err := bindValidator.Field(tag, v.Interface())
+				err := validateField(tag, v.Interface())
 				if err != nil {
 					RetErr = err
 				}
