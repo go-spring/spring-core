@@ -17,24 +17,62 @@
 package gs
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 )
 
+const (
+	Version = "go-spring@v1.1.3"
+	Website = "https://go-spring.com/"
+)
+
 type (
+	BeanSelector = gs.BeanSelector
+	Condition    = gs.Condition
+	CondContext  = gs.CondContext
 	Arg          = gs.Arg
 	Context      = gs.Context
-	BeanSelector = gs.BeanSelector
 	GroupFunc    = gs.GroupFunc
 )
+
+/************************************ boot ***********************************/
+
+var boot *gs_app.Boot
+
+func runBoot() error {
+	if boot != nil {
+		if err := boot.Run(); err != nil {
+			return err
+		}
+		boot = nil // Boot 阶段结束，释放资源
+	}
+	return nil
+}
+
+// Boot 参考 App.Boot 的解释。
+func Boot() *gs_app.Boot {
+	if boot == nil {
+		boot = gs_app.NewBoot()
+	}
+	return boot
+}
+
+/*********************************** app *************************************/
 
 var app = gs_app.NewApp()
 
 // Start 启动程序。
 func Start() (gs.Context, error) {
+	printBanner()
+	err := runBoot()
+	if err != nil {
+		return nil, err
+	}
 	return app.Start()
 }
 
@@ -45,17 +83,17 @@ func Stop() {
 
 // Run 启动程序。
 func Run() error {
+	printBanner()
+	err := runBoot()
+	if err != nil {
+		return err
+	}
 	return app.Run()
 }
 
 // ShutDown 停止程序。
 func ShutDown(msg ...string) {
 	app.ShutDown(msg...)
-}
-
-// Boot 参考 App.Boot 的解释。
-func Boot() *gs_app.Boot {
-	return app.Boot()
 }
 
 // Object 参考 Container.Object 的解释。
@@ -75,4 +113,52 @@ func Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
 
 func Group(fn GroupFunc) {
 	app.Group(fn)
+}
+
+/********************************** banner ***********************************/
+
+var appBanner = `
+                                              (_)              
+  __ _    ___             ___   _ __    _ __   _   _ __     __ _ 
+ / _' |  / _ \   ______  / __| | '_ \  | '__| | | | '_ \   / _' |
+| (_| | | (_) | |______| \__ \ | |_) | | |    | | | | | | | (_| |
+ \__, |  \___/           |___/ | .__/  |_|    |_| |_| |_|  \__, |
+  __/ |                        | |                          __/ |
+ |___/                         |_|                         |___/ 
+`
+
+// Banner 自定义 banner 字符串。
+func Banner(banner string) {
+	appBanner = banner
+}
+
+func printBanner() {
+	if len(appBanner) == 0 {
+		return
+	}
+
+	if appBanner[0] != '\n' {
+		fmt.Println()
+	}
+
+	maxLength := 0
+	for _, s := range strings.Split(appBanner, "\n") {
+		fmt.Printf("\x1b[36m%s\x1b[0m\n", s) // CYAN
+		if len(s) > maxLength {
+			maxLength = len(s)
+		}
+	}
+
+	if appBanner[len(appBanner)-1] != '\n' {
+		fmt.Println()
+	}
+
+	var padding []byte
+	if n := (maxLength - len(Version)) / 2; n > 0 {
+		padding = make([]byte, n)
+		for i := range padding {
+			padding[i] = ' '
+		}
+	}
+	fmt.Println(string(padding) + Version + "\n")
 }

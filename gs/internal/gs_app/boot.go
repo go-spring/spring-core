@@ -33,7 +33,7 @@ type Boot struct {
 	p *gs_conf.Bootstrap
 }
 
-func newBoot() *Boot {
+func NewBoot() *Boot {
 	b := &Boot{
 		c: gs_ctx.New(),
 		p: gs_conf.NewBootstrap(),
@@ -61,7 +61,7 @@ func (b *Boot) Group(fn gs.GroupFunc) {
 	b.c.Group(fn)
 }
 
-func (b *Boot) run() error {
+func (b *Boot) Run() error {
 
 	p, err := b.p.Refresh()
 	if err != nil {

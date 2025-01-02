@@ -29,11 +29,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
 )
 
-const (
-	Version = "go-spring@v1.1.3"
-	Website = "https://go-spring.com/"
-)
-
 type AppRunner interface {
 	Run(ctx gs.Context)
 }
@@ -47,7 +42,6 @@ type AppServer interface {
 type App struct {
 	banner string
 
-	b *Boot
 	c *gs_ctx.Container
 	p *gs_conf.Configuration
 
@@ -59,7 +53,6 @@ type App struct {
 // NewApp application 的构造函数
 func NewApp() *App {
 	app := &App{
-		banner:   DefaultBanner,
 		c:        gs_ctx.New(),
 		p:        gs_conf.NewConfiguration(),
 		exitChan: make(chan struct{}),
@@ -84,15 +77,6 @@ func (app *App) Run() error {
 }
 
 func (app *App) Start() (gs.Context, error) {
-
-	app.showBanner()
-
-	if app.b != nil {
-		err := app.b.run()
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	p, err := app.p.Refresh()
 	if err != nil {
@@ -148,14 +132,6 @@ func (app *App) ShutDown(msg ...string) {
 	default:
 		close(app.exitChan)
 	}
-}
-
-// Boot 返回 *bootstrap 对象。
-func (app *App) Boot() *Boot {
-	if app.b == nil {
-		app.b = newBoot()
-	}
-	return app.b
 }
 
 // Object 参考 Container.Object 的解释。
