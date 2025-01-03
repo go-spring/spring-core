@@ -24,7 +24,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/go-spring/spring-core/conf/reader/json"
@@ -87,6 +86,34 @@ func RegisterConverter(fn Converter) {
 		panic(errors.New("converter is func(string)(type,error)"))
 	}
 	converters[t.Out(0)] = fn
+}
+
+// ReadOnlyProperties is the interface for read-only properties.
+type ReadOnlyProperties interface {
+
+	// Data returns key-value pairs of the properties.
+	Data() map[string]string
+
+	// Keys returns keys of the properties.
+	Keys() []string
+
+	// Has returns whether the key exists.
+	Has(key string) bool
+
+	// SubKeys returns the sorted sub keys of the key.
+	SubKeys(key string) ([]string, error)
+
+	// Get returns key's value, using Def to return a default value.
+	Get(key string, opts ...GetOption) string
+
+	// Resolve resolves string that contains references.
+	Resolve(s string) (string, error)
+
+	// Bind binds properties into a value.
+	Bind(i interface{}, args ...BindArg) error
+
+	// CopyTo copies properties into another by override.
+	CopyTo(out *Properties) error
 }
 
 var _ ReadOnlyProperties = (*Properties)(nil)
@@ -329,55 +356,4 @@ func (p *Properties) Bind(i interface{}, args ...BindArg) error {
 // CopyTo copies properties into another by override.
 func (p *Properties) CopyTo(out *Properties) error {
 	return out.merge(p.storage.RawData())
-}
-
-// ReadOnlyProperties is the interface for read-only properties.
-type ReadOnlyProperties interface {
-
-	// Data returns key-value pairs of the properties.
-	Data() map[string]string
-
-	// Keys returns keys of the properties.
-	Keys() []string
-
-	// Has returns whether the key exists.
-	Has(key string) bool
-
-	// SubKeys returns the sorted sub keys of the key.
-	SubKeys(key string) ([]string, error)
-
-	// Get returns key's value, using Def to return a default value.
-	Get(key string, opts ...GetOption) string
-
-	// Resolve resolves string that contains references.
-	Resolve(s string) (string, error)
-
-	// Bind binds properties into a value.
-	Bind(i interface{}, args ...BindArg) error
-
-	// CopyTo copies properties into another by override.
-	CopyTo(out *Properties) error
-}
-
-// AtomicProperties is a thread-safe version of Properties.
-type AtomicProperties struct {
-	v atomic.Pointer[Properties]
-}
-
-// NewAtomicProperties creates a new atomic properties.
-func NewAtomicProperties() *AtomicProperties {
-	return new(AtomicProperties)
-}
-
-// Load loads as read-only properties.
-func (p *AtomicProperties) Load() ReadOnlyProperties {
-	if s := p.v.Load(); s != nil {
-		return s
-	}
-	return nil
-}
-
-// Store stores a new properties.
-func (p *AtomicProperties) Store(v *Properties) {
-	p.v.Store(v)
 }

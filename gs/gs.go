@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
-	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
+	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
 const (
@@ -44,7 +44,7 @@ type (
 
 var boot *gs_app.Boot
 
-func runBoot() error {
+func bootRun() error {
 	if boot != nil {
 		if err := boot.Run(); err != nil {
 			return err
@@ -69,7 +69,7 @@ var app = gs_app.NewApp()
 // Start 启动程序。
 func Start() (gs.Context, error) {
 	printBanner()
-	err := runBoot()
+	err := bootRun()
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func Stop() {
 // Run 启动程序。
 func Run() error {
 	printBanner()
-	err := runBoot()
+	err := bootRun()
 	if err != nil {
 		return err
 	}
@@ -98,12 +98,12 @@ func ShutDown(msg ...string) {
 
 // Object 参考 Container.Object 的解释。
 func Object(i interface{}) *gs.BeanDefinition {
-	return app.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
+	return app.Accept(gs_core.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
 func Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
-	return app.Accept(gs_ctx.NewBean(ctor, args...))
+	return app.Accept(gs_core.NewBean(ctor, args...))
 }
 
 // Accept 参考 Container.Accept 的解释。

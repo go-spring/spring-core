@@ -26,7 +26,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
-	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
+	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
 type AppRunner interface {
@@ -40,8 +40,8 @@ type AppServer interface {
 
 // App 应用
 type App struct {
-	c *gs_ctx.Container
-	p *gs_conf.Configuration
+	c *gs_core.Container
+	p *gs_conf.AppConfig
 
 	exitChan chan struct{}
 
@@ -51,22 +51,26 @@ type App struct {
 // NewApp application 的构造函数
 func NewApp() *App {
 	app := &App{
-		c:        gs_ctx.New(),
-		p:        gs_conf.NewConfiguration(),
+		c:        gs_core.New(),
+		p:        gs_conf.NewAppConfig(),
 		exitChan: make(chan struct{}),
 	}
 	app.Object(app)
 	return app
 }
 
+func (app *App) Config() *gs_conf.AppConfig {
+	return app.p
+}
+
 // Object 参考 Container.Object 的解释。
 func (app *App) Object(i interface{}) *gs.BeanDefinition {
-	return app.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
+	return app.c.Accept(gs_core.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
 func (app *App) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
-	return app.c.Accept(gs_ctx.NewBean(ctor, args...))
+	return app.c.Accept(gs_core.NewBean(ctor, args...))
 }
 
 // Accept 参考 Container.Accept 的解释。

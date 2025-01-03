@@ -16,7 +16,7 @@
 
 // Package gs_ctx 实现了 go-spring 的核心骨架，包含 IoC 容器、基于 IoC 容器的 App
 // 以及全局 App 对象封装三个部分，可以应用于多种使用场景。
-package gs_ctx
+package gs_core
 
 import (
 	"bytes"

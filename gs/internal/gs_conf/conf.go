@@ -20,25 +20,51 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/sysconf"
 )
 
-// Configuration is a layered configuration manager.
-type Configuration struct {
+// AtomicProperties is a thread-safe version of Properties.
+type AtomicProperties struct {
+	v atomic.Pointer[conf.Properties]
+}
+
+// NewAtomicProperties creates a new atomic properties.
+func NewAtomicProperties() *AtomicProperties {
+	return new(AtomicProperties)
+}
+
+// Load loads as read-only properties.
+func (p *AtomicProperties) Load() conf.ReadOnlyProperties {
+	if s := p.v.Load(); s != nil {
+		return s
+	}
+	return nil
+}
+
+// Store stores a new properties.
+func (p *AtomicProperties) Store(v *conf.Properties) {
+	p.v.Store(v)
+}
+
+/******************************** AppConfig **********************************/
+
+// AppConfig is a layered app configuration.
+type AppConfig struct {
 	LocalFile   *PropertySources
 	RemoteFile  *PropertySources
-	RemoteProp  *conf.AtomicProperties
+	RemoteProp  *AtomicProperties
 	Environment *Environment
 	CommandArgs *CommandArgs
 }
 
-func NewConfiguration() *Configuration {
-	return &Configuration{
+func NewAppConfig() *AppConfig {
+	return &AppConfig{
 		LocalFile:   NewPropertySources(ConfigTypeLocal, "application"),
 		RemoteFile:  NewPropertySources(ConfigTypeRemote, "application"),
-		RemoteProp:  conf.NewAtomicProperties(),
+		RemoteProp:  NewAtomicProperties(),
 		Environment: NewEnvironment(),
 		CommandArgs: NewCommandArgs(),
 	}
@@ -58,7 +84,7 @@ func merge(out *conf.Properties, sources ...interface {
 }
 
 // Refresh merges all layers into a properties as read-only.
-func (c *Configuration) Refresh() (conf.ReadOnlyProperties, error) {
+func (c *AppConfig) Refresh() (conf.ReadOnlyProperties, error) {
 
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)
@@ -97,17 +123,17 @@ func (c *Configuration) Refresh() (conf.ReadOnlyProperties, error) {
 	return p, nil
 }
 
-/******************************** Bootstrap **********************************/
+/******************************** BootConfig *********************************/
 
-// Bootstrap is a layered bootstrap configuration.
-type Bootstrap struct {
+// BootConfig is a layered boot configuration.
+type BootConfig struct {
 	LocalFile   *PropertySources
 	Environment *Environment
 	CommandArgs *CommandArgs
 }
 
-func NewBootstrap() *Bootstrap {
-	return &Bootstrap{
+func NewBootConfig() *BootConfig {
+	return &BootConfig{
 		LocalFile:   NewPropertySources(ConfigTypeLocal, "bootstrap"),
 		Environment: NewEnvironment(),
 		CommandArgs: NewCommandArgs(),
@@ -115,7 +141,7 @@ func NewBootstrap() *Bootstrap {
 }
 
 // Refresh merges all layers into a properties as read-only.
-func (c *Bootstrap) Refresh() (conf.ReadOnlyProperties, error) {
+func (c *BootConfig) Refresh() (conf.ReadOnlyProperties, error) {
 
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)

@@ -21,7 +21,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
-	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
+	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
 type BootRunner interface {
@@ -29,27 +29,31 @@ type BootRunner interface {
 }
 
 type Boot struct {
-	c *gs_ctx.Container
-	p *gs_conf.Bootstrap
+	c *gs_core.Container
+	p *gs_conf.BootConfig
 }
 
 func NewBoot() *Boot {
 	b := &Boot{
-		c: gs_ctx.New(),
-		p: gs_conf.NewBootstrap(),
+		c: gs_core.New(),
+		p: gs_conf.NewBootConfig(),
 	}
 	b.c.Object(b)
 	return b
 }
 
+func (b *Boot) Config() *gs_conf.BootConfig {
+	return b.p
+}
+
 // Object 参考 Container.Object 的解释。
 func (b *Boot) Object(i interface{}) *gs.BeanDefinition {
-	return b.c.Accept(gs_ctx.NewBean(reflect.ValueOf(i)))
+	return b.c.Accept(gs_core.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
 func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
-	return b.c.Accept(gs_ctx.NewBean(ctor, args...))
+	return b.c.Accept(gs_core.NewBean(ctor, args...))
 }
 
 // Accept 参考 Container.Accept 的解释。

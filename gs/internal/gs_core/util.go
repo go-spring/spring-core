@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_ctx
+package gs_core
 
 import (
 	"container/list"

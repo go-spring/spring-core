@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_test
+package gs_core_test
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_ctx"
+	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +32,7 @@ import (
 
 // newBean 该方法是为了平衡调用栈的深度，一般情况下 gs.NewBean 不应该被直接使用。
 func newBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
-	return gs_ctx.NewBean(objOrCtor, ctorArgs...)
+	return gs_core.NewBean(objOrCtor, ctorArgs...)
 }
 
 // func TestParseSingletonTag(t *testing.T) {
@@ -133,75 +133,6 @@ func TestBeanDefinition_Match(t *testing.T) {
 	}
 }
 
-type Teacher interface {
-	Course() string
-}
-
-type historyTeacher struct {
-	name string
-}
-
-func newHistoryTeacher(name string) *historyTeacher {
-	return &historyTeacher{name: name}
-}
-
-func newTeacher(course string, name string) Teacher {
-	switch course {
-	case "history":
-		return &historyTeacher{name: name}
-	default:
-		return nil
-	}
-}
-
-func (t *historyTeacher) Course() string {
-	return "history"
-}
-
-type Student struct {
-	Teacher Teacher
-	Room    string
-}
-
-// 入参可以进行注入或者属性绑定，返回值可以是 struct、map、slice、func 等。
-func NewStudent(teacher Teacher, room string) Student {
-	return Student{
-		Teacher: teacher,
-		Room:    room,
-	}
-}
-
-// 入参可以进行注入或者属性绑定，返回值可以是 struct、map、slice、func 等。
-func NewPtrStudent(teacher Teacher, room string) *Student {
-	return &Student{
-		Teacher: teacher,
-		Room:    room,
-	}
-}
-
-type BeanZero struct {
-	Int int
-}
-
-type BeanOne struct {
-	Zero *BeanZero `autowire:""`
-}
-
-type BeanTwo struct {
-	One *BeanOne `autowire:""`
-}
-
-func (t *BeanTwo) Group() {
-}
-
-type BeanThree struct {
-	One *BeanTwo `autowire:""`
-}
-
-func (t *BeanThree) String() string {
-	return ""
-}
-
 func TestObjectBean(t *testing.T) {
 
 	// t.Run("bean must be ref type", func(t *testing.T) {
@@ -238,7 +169,7 @@ func TestObjectBean(t *testing.T) {
 
 			newBean(newHistoryTeacher("")): {
 				"historyTeacher",
-				"github.com/go-spring/spring-core/gs/internal/gs/gs_test.historyTeacher",
+				"github.com/go-spring/spring-core/gs/internal/gs_core/gs_core_test.historyTeacher",
 			},
 
 			newBean(new(pkg2.SamePkg)): {
@@ -262,10 +193,10 @@ func TestObjectBean(t *testing.T) {
 func TestConstructorBean(t *testing.T) {
 
 	bd := newBean(NewStudent)
-	assert.Equal(t, bd.Type().String(), "*gs_test.Student")
+	assert.Equal(t, bd.Type().String(), "*gs_core_test.Student")
 
 	bd = newBean(NewPtrStudent)
-	assert.Equal(t, bd.Type().String(), "*gs_test.Student")
+	assert.Equal(t, bd.Type().String(), "*gs_core_test.Student")
 
 	// mapFn := func() map[int]string { return make(map[int]string) }
 	// bd = newBean(mapFn)
@@ -281,7 +212,7 @@ func TestConstructorBean(t *testing.T) {
 
 	interfaceFn := func(name string) Teacher { return newHistoryTeacher(name) }
 	bd = newBean(interfaceFn)
-	assert.Equal(t, bd.Type().String(), "gs_test.Teacher")
+	assert.Equal(t, bd.Type().String(), "gs_core_test.Teacher")
 
 	// assert.Panic(t, func() {
 	// 	_ = newBean(func() (*int, *int) { return nil, nil })
