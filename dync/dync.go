@@ -121,22 +121,39 @@ func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) {
 }
 
 func (p *Properties) refreshKeys(keys []string) (err error) {
-	var objects []*refreshObject
+
+	// 找出需要更新的对象，一个对象可能对应多个 key，因此需要去重
+	updateIndexes := make(map[int]*refreshObject)
 	for _, key := range keys {
-		for _, obj := range p.objects {
-			if !strings.HasPrefix(key, obj.param.Key) {
+		for index, o := range p.objects {
+			s := strings.TrimPrefix(key, o.param.Key)
+			if len(s) == len(key) { // 是否去除了前缀
 				continue
 			}
-			s := strings.TrimPrefix(key, obj.param.Key)
 			if len(s) == 0 || s[0] == '.' || s[0] == '[' {
-				objects = append(objects, obj)
+				if _, ok := updateIndexes[index]; !ok {
+					updateIndexes[index] = o
+				}
 			}
 		}
 	}
-	if len(objects) == 0 {
+
+	updateObjects := make([]*refreshObject, 0, len(updateIndexes))
+	{
+		ints := make([]int, 0, len(updateIndexes))
+		for k := range updateIndexes {
+			ints = append(ints, k)
+		}
+		sort.Ints(ints)
+		for _, k := range ints {
+			updateObjects = append(updateObjects, updateIndexes[k])
+		}
+	}
+
+	if len(updateObjects) == 0 {
 		return nil
 	}
-	return p.refreshObjects(objects)
+	return p.refreshObjects(updateObjects)
 }
 
 // Errors 错误列表

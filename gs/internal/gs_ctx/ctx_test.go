@@ -2999,7 +2999,7 @@ func TestDynamic(t *testing.T) {
 
 	{
 		b, _ := json.Marshal(cfg)
-		assert.Equal(t, string(b), `{"Int":6,"Float":5.1,"Map":{"a":"9","b":"8"},"Slice":["7","6"]}`)
+		assert.Equal(t, string(b), `{"Int":4,"Float":5.1,"Map":{"a":"9","b":"8"},"Slice":["7","6"]}`)
 		b, _ = json.Marshal(wrapper)
 		assert.Equal(t, string(b), `{"Wrapper":{"Int":3,"Float":8.4,"Map":{"a":"3","b":"4"},"Slice":["2","1"]}}`)
 	}

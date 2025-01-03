@@ -35,6 +35,9 @@ type BeanDefinition struct {
 	configuration bool     // 是否扫描成员方法
 	includeMethod []string // 包含哪些成员方法
 	excludeMethod []string // 排除那些成员方法
+
+	enableRefresh bool
+	refreshParam  conf.BindParam
 }
 
 // CondContext defines some methods of IoC container that conditions use.

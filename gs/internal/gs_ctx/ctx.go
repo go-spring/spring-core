@@ -782,6 +782,7 @@ func (c *Container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
 		return err
 	}
 
+	// 如果 bean 有初始化函数，则执行其初始化函数。
 	if b.GetInit() != nil {
 		fnValue := reflect.ValueOf(b.GetInit())
 		out := fnValue.Call([]reflect.Value{b.Value()})
@@ -790,8 +791,17 @@ func (c *Container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
 		}
 	}
 
+	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
 	if f, ok := b.Interface().(BeanInit); ok {
 		if err = f.OnInit(c); err != nil {
+			return err
+		}
+	}
+
+	// 如果 bean 实现了 dync.Refreshable 接口，则将 bean 添加到可刷新对象列表中。
+	if b.IsRefreshEnable() {
+		i := b.Interface().(dync.Refreshable)
+		if err = c.p.AddBean(i, b.GetRefreshParam()); err != nil {
 			return err
 		}
 	}
@@ -920,8 +930,7 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 		}
 
 		if tag, ok = ft.Tag.Lookup("value"); ok {
-			// validateTag, _ := ft.Tag.Lookup(validate.TagName())
-			if err := subParam.BindTag(tag, ""); err != nil {
+			if err := subParam.BindTag(tag, ft.Tag); err != nil {
 				return err
 			}
 			if ft.Anonymous {

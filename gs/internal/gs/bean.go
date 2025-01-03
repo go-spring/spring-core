@@ -4,7 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/dync"
 )
+
+var refreshableType = reflect.TypeFor[dync.Refreshable]()
 
 type BeanStatus int8
 
@@ -76,6 +81,14 @@ func (d *BeanDefinition) GetIncludeMethod() []string {
 
 func (d *BeanDefinition) GetExcludeMethod() []string {
 	return d.excludeMethod
+}
+
+func (d *BeanDefinition) IsRefreshEnable() bool {
+	return d.enableRefresh
+}
+
+func (d *BeanDefinition) GetRefreshParam() conf.BindParam {
+	return d.refreshParam
 }
 
 func (d *BeanDefinition) Callable() Callable {
@@ -265,6 +278,18 @@ func (d *BeanDefinition) Configuration(includes []string, excludes []string) *Be
 	d.includeMethod = includes
 	d.excludeMethod = excludes
 	return d
+}
+
+// EnableRefresh 设置 bean 为可刷新的。
+func (d *BeanDefinition) EnableRefresh(tag string) {
+	if !d.Type().Implements(refreshableType) {
+		panic(errors.New("must implement dync.Refreshable interface"))
+	}
+	d.enableRefresh = true
+	err := d.refreshParam.BindTag(tag, "")
+	if err != nil {
+		panic(err)
+	}
 }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
