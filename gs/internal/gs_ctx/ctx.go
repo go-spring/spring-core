@@ -35,6 +35,7 @@ import (
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 )
 
 type BeanInit interface {
@@ -429,7 +430,7 @@ func (c *Container) Refresh() (err error) {
 						v = v.Elem()
 					}
 					t := v.Type()
-					b := gs.NewBean(t, v, f, name, true, bd.File(), bd.Line())
+					b := gs.NewBean(t, v, f, name, true, bd.File(), bd.Line()).On(gs_cond.OnBean(bd))
 					newBeans = append(newBeans, b)
 					break
 				}
