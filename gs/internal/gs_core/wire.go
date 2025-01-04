@@ -237,11 +237,11 @@ func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, sta
 	}
 }
 
-type byOrder []*gs.BeanDefinition
+type byBeanName []*gs.BeanDefinition
 
-func (b byOrder) Len() int           { return len(b) }
-func (b byOrder) Less(i, j int) bool { return b[i].GetOrder() < b[j].GetOrder() }
-func (b byOrder) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+func (b byBeanName) Len() int           { return len(b) }
+func (b byBeanName) Less(i, j int) bool { return b[i].GetName() < b[j].GetName() }
+func (b byBeanName) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // filterBean 返回 tag 对应的 bean 在数组中的索引，找不到返回 -1。
 func filterBean(beans []*gs.BeanDefinition, tag wireTag, t reflect.Type) (int, error) {
@@ -375,7 +375,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	var ret reflect.Value
 	switch t.Kind() {
 	case reflect.Slice:
-		sort.Sort(byOrder(beans))
+		sort.Sort(byBeanName(beans))
 		ret = reflect.MakeSlice(t, 0, 0)
 		for _, b := range beans {
 			ret = reflect.Append(ret, b.Value())

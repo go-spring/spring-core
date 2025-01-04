@@ -23,6 +23,39 @@ const (
 	Wired                        // 注入完成
 )
 
+// BeanRegistration bean 注册数据。
+type BeanRegistration struct {
+	f       Callable       // 构造函数
+	method  bool           // 是否为成员方法
+	cond    Condition      // 判断条件
+	init    interface{}    // 初始化函数
+	destroy interface{}    // 销毁函数
+	depends []BeanSelector // 间接依赖项
+	exports []reflect.Type // 导出的接口
+	file    string         // 注册点所在文件
+	line    int            // 注册点所在行数
+	status  BeanStatus     // 状态
+
+	configuration bool     // 是否扫描成员方法
+	includeMethod []string // 包含哪些成员方法
+	excludeMethod []string // 排除那些成员方法
+
+	enableRefresh bool
+	refreshParam  conf.BindParam
+}
+
+// BeanDefinition bean 元数据。
+type BeanDefinition struct {
+	r *BeanRegistration
+
+	v reflect.Value // 值
+	t reflect.Type  // 类型
+
+	name     string // 名称
+	typeName string // 原始类型的全限定名
+	primary  bool   // 是否为主版本
+}
+
 func (d *BeanDefinition) GetName() string {
 	return d.name
 }
@@ -32,11 +65,11 @@ func (d *BeanDefinition) GetTypeName() string {
 }
 
 func (d *BeanDefinition) GetStatus() BeanStatus {
-	return d.status
+	return d.r.status
 }
 
 func (d *BeanDefinition) SetStatus(status BeanStatus) {
-	d.status = status
+	d.r.status = status
 }
 
 func (d *BeanDefinition) IsPrimary() bool {
@@ -44,55 +77,51 @@ func (d *BeanDefinition) IsPrimary() bool {
 }
 
 func (d *BeanDefinition) IsMethod() bool {
-	return d.method
+	return d.r.method
 }
 
 func (d *BeanDefinition) GetCond() Condition {
-	return d.cond
-}
-
-func (d *BeanDefinition) GetOrder() float32 {
-	return d.order
+	return d.r.cond
 }
 
 func (d *BeanDefinition) GetInit() interface{} {
-	return d.init
+	return d.r.init
 }
 
 func (d *BeanDefinition) GetDestroy() interface{} {
-	return d.destroy
+	return d.r.destroy
 }
 
 func (d *BeanDefinition) GetDepends() []BeanSelector {
-	return d.depends
+	return d.r.depends
 }
 
 func (d *BeanDefinition) GetExports() []reflect.Type {
-	return d.exports
+	return d.r.exports
 }
 
 func (d *BeanDefinition) IsConfiguration() bool {
-	return d.configuration
+	return d.r.configuration
 }
 
 func (d *BeanDefinition) GetIncludeMethod() []string {
-	return d.includeMethod
+	return d.r.includeMethod
 }
 
 func (d *BeanDefinition) GetExcludeMethod() []string {
-	return d.excludeMethod
+	return d.r.excludeMethod
 }
 
 func (d *BeanDefinition) IsRefreshEnable() bool {
-	return d.enableRefresh
+	return d.r.enableRefresh
 }
 
 func (d *BeanDefinition) GetRefreshParam() conf.BindParam {
-	return d.refreshParam
+	return d.r.refreshParam
 }
 
 func (d *BeanDefinition) Callable() Callable {
-	return d.f
+	return d.r.f
 }
 
 // Type 返回 bean 的类型。
@@ -127,30 +156,30 @@ func (d *BeanDefinition) TypeName() string {
 
 // Created 返回是否已创建。
 func (d *BeanDefinition) Created() bool {
-	return d.status >= Created
+	return d.r.status >= Created
 }
 
 // Wired 返回 bean 是否已经注入。
 func (d *BeanDefinition) Wired() bool {
-	return d.status == Wired
+	return d.r.status == Wired
 }
 
 func (d *BeanDefinition) File() string {
-	return d.file
+	return d.r.file
 }
 
 func (d *BeanDefinition) Line() int {
-	return d.line
+	return d.r.line
 }
 
 // FileLine 返回 bean 的注册点。
 func (d *BeanDefinition) FileLine() string {
-	return fmt.Sprintf("%s:%d", d.file, d.line)
+	return fmt.Sprintf("%s:%d", d.r.file, d.r.line)
 }
 
 // GetClass 返回 bean 的类型描述。
 func (d *BeanDefinition) GetClass() string {
-	if d.f == nil {
+	if d.r.f == nil {
 		return "object bean"
 	}
 	return "constructor bean"
@@ -184,19 +213,13 @@ func (d *BeanDefinition) Name(name string) *BeanDefinition {
 
 // On 设置 bean 的 Condition。
 func (d *BeanDefinition) On(cond Condition) *BeanDefinition {
-	d.cond = cond
-	return d
-}
-
-// Order 设置 bean 的排序序号，值越小顺序越靠前(优先级越高)。
-func (d *BeanDefinition) Order(order float32) *BeanDefinition {
-	d.order = order
+	d.r.cond = cond
 	return d
 }
 
 // DependsOn 设置 bean 的间接依赖项。
 func (d *BeanDefinition) DependsOn(selectors ...BeanSelector) *BeanDefinition {
-	d.depends = append(d.depends, selectors...)
+	d.r.depends = append(d.r.depends, selectors...)
 	return d
 }
 
@@ -221,7 +244,7 @@ func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
 // Init 设置 bean 的初始化函数。
 func (d *BeanDefinition) Init(fn interface{}) *BeanDefinition {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
-		d.init = fn
+		d.r.init = fn
 		return d
 	}
 	panic(errors.New("init should be func(bean) or func(bean)error"))
@@ -230,7 +253,7 @@ func (d *BeanDefinition) Init(fn interface{}) *BeanDefinition {
 // Destroy 设置 bean 的销毁函数。
 func (d *BeanDefinition) Destroy(fn interface{}) *BeanDefinition {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
-		d.destroy = fn
+		d.r.destroy = fn
 		return d
 	}
 	panic(errors.New("destroy should be func(bean) or func(bean)error"))
@@ -250,7 +273,7 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 			panic(errors.New("only interface type can be exported"))
 		}
 		exported := false
-		for _, export := range d.exports {
+		for _, export := range d.r.exports {
 			if t == export {
 				exported = true
 				break
@@ -259,16 +282,16 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 		if exported {
 			continue
 		}
-		d.exports = append(d.exports, t)
+		d.r.exports = append(d.r.exports, t)
 	}
 	return d
 }
 
 // Configuration 设置 bean 为配置类。
 func (d *BeanDefinition) Configuration(includes []string, excludes []string) *BeanDefinition {
-	d.configuration = true
-	d.includeMethod = includes
-	d.excludeMethod = excludes
+	d.r.configuration = true
+	d.r.includeMethod = includes
+	d.r.excludeMethod = excludes
 	return d
 }
 
@@ -277,11 +300,16 @@ func (d *BeanDefinition) EnableRefresh(tag string) {
 	if !d.Type().Implements(refreshableType) {
 		panic(errors.New("must implement dync.Refreshable interface"))
 	}
-	d.enableRefresh = true
-	err := d.refreshParam.BindTag(tag, "")
+	d.r.enableRefresh = true
+	err := d.r.refreshParam.BindTag(tag, "")
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Simplify 精简内存
+func (d *BeanDefinition) Simplify() {
+	d.r = nil
 }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
@@ -289,12 +317,14 @@ func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bo
 	return &BeanDefinition{
 		t:        t,
 		v:        v,
-		f:        f,
 		name:     name,
 		typeName: TypeName(t),
-		status:   Default,
-		method:   method,
-		file:     file,
-		line:     line,
+		r: &BeanRegistration{
+			f:      f,
+			status: Default,
+			method: method,
+			file:   file,
+			line:   line,
+		},
 	}
 }

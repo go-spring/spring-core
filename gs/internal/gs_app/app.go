@@ -50,13 +50,11 @@ type App struct {
 
 // NewApp application 的构造函数
 func NewApp() *App {
-	app := &App{
+	return &App{
 		c:        gs_core.New(),
 		p:        gs_conf.NewAppConfig(),
 		exitChan: make(chan struct{}),
 	}
-	app.Object(app)
-	return app
 }
 
 func (app *App) Config() *gs_conf.AppConfig {
@@ -83,7 +81,7 @@ func (app *App) Group(fn gs.GroupFunc) {
 }
 
 func (app *App) Run() error {
-	if _, err := app.Start(); err != nil {
+	if err := app.Start(); err != nil {
 		return err
 	}
 	go func() {
@@ -97,27 +95,27 @@ func (app *App) Run() error {
 	return nil
 }
 
-func (app *App) Start() (gs.Context, error) {
+func (app *App) Start() error {
 
 	p, err := app.p.Refresh()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = app.c.RefreshProperties(p)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = app.c.Refresh()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var runners []AppRunner
 	err = app.c.Get(&runners, "${spring.app.runners:=*?}")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// 执行命令行启动器
@@ -126,22 +124,18 @@ func (app *App) Start() (gs.Context, error) {
 	}
 
 	// 通知应用启动事件
-	for _, event := range app.Servers {
-		event.OnAppStart(app.c)
+	for _, svr := range app.Servers {
+		svr.OnAppStart(app.c)
 	}
 
-	// 通知应用停止事件
-	app.c.Go(func(ctx context.Context) {
-		<-ctx.Done()
-		for _, event := range app.Servers {
-			event.OnAppStop(context.Background())
-		}
-	})
-
-	return app.c, nil
+	app.c.Simplify()
+	return nil
 }
 
 func (app *App) Stop() {
+	for _, svr := range app.Servers {
+		svr.OnAppStop(context.Background())
+	}
 	app.c.Close()
 }
 

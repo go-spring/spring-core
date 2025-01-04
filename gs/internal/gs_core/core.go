@@ -52,11 +52,6 @@ const (
 	Refreshed                        // 已刷新
 )
 
-// ContextAware injects the Context into a struct as the field GSContext.
-type ContextAware struct {
-	GSContext gs.Context `autowire:""`
-}
-
 // Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
 // of Control Containers and the Dependency Injection pattern >> 一文中
 // 提及的依赖注入的概念。但原文的依赖注入仅仅是指对象之间的依赖关系处理，而有些 IoC
@@ -65,18 +60,17 @@ type ContextAware struct {
 // go-spring 严格区分了这两种概念，在描述对 bean 的处理时要么单独使用依赖注入或属
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
-	beans                   []*gs.BeanDefinition
-	beansByName             map[string][]*gs.BeanDefinition
-	beansByType             map[reflect.Type][]*gs.BeanDefinition
-	groupFuncs              []gs.GroupFunc
-	ctx                     context.Context
-	cancel                  context.CancelFunc
-	destroyers              []func()
-	state                   refreshState
-	wg                      sync.WaitGroup
-	p                       *dync.Properties
-	ContextAware            bool
-	AllowCircularReferences bool `value:"${spring.main.allow-circular-references:=false}"`
+	beans        []*gs.BeanDefinition
+	beansByName  map[string][]*gs.BeanDefinition
+	beansByType  map[reflect.Type][]*gs.BeanDefinition
+	groupFuncs   []gs.GroupFunc
+	p            *dync.Properties
+	ctx          context.Context
+	cancel       context.CancelFunc
+	wg           sync.WaitGroup
+	state        refreshState
+	destroyers   []func()
+	ContextAware bool
 }
 
 // New 创建 IoC 容器。
@@ -229,7 +223,12 @@ func (c *Container) Refresh() (err error) {
 		}
 	}
 
-	if c.AllowCircularReferences {
+	var AllowCircularReferences bool
+	err = c.Bind(&AllowCircularReferences, conf.Tag("${spring.allow-circular-references:=false}"))
+	if err != nil {
+		return err
+	}
+	if AllowCircularReferences {
 		// 处理被标记为延迟注入的那些 bean 字段
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
@@ -246,13 +245,24 @@ func (c *Container) Refresh() (err error) {
 
 	// cost := time.Now().Sub(start)
 	// c.logger.Infof("refresh %d beans cost %v", len(beansById), cost)
-
-	// if autoClear && !c.ContextAware {
-	// 	c.clear()
-	// }
-
 	// c.logger.Info("Container refreshed successfully")
 	return nil
+}
+
+// Simplify 清理运行时不需要的空间。
+func (c *Container) Simplify() {
+	for _, bd := range c.beans {
+		bd.Simplify()
+	}
+	c.beans = nil
+	c.groupFuncs = nil
+	if !c.ContextAware {
+		if c.p.ObjectsCount() == 0 {
+			c.p = nil
+		}
+		c.beansByName = nil
+		c.beansByType = nil
+	}
 }
 
 func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefinition, error) {

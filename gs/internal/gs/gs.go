@@ -11,35 +11,6 @@ import (
 // `(*error)(nil)`, or a BeanDefinition value.
 type BeanSelector interface{}
 
-// BeanDefinition bean 元数据。
-type BeanDefinition struct {
-	v reflect.Value // 值
-	t reflect.Type  // 类型
-	f Callable      // 构造函数
-
-	file string // 注册点所在文件
-	line int    // 注册点所在行数
-
-	name     string         // 名称
-	typeName string         // 原始类型的全限定名
-	status   BeanStatus     // 状态
-	primary  bool           // 是否为主版本
-	method   bool           // 是否为成员方法
-	cond     Condition      // 判断条件
-	order    float32        // 收集时的顺序
-	init     interface{}    // 初始化函数
-	destroy  interface{}    // 销毁函数
-	depends  []BeanSelector // 间接依赖项
-	exports  []reflect.Type // 导出的接口
-
-	configuration bool     // 是否扫描成员方法
-	includeMethod []string // 包含哪些成员方法
-	excludeMethod []string // 排除那些成员方法
-
-	enableRefresh bool
-	refreshParam  conf.BindParam
-}
-
 // CondContext defines some methods of IoC container that conditions use.
 type CondContext interface {
 	// Has returns whether the IoC container has a property.
@@ -101,3 +72,8 @@ type Context interface {
 }
 
 type GroupFunc func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)
+
+// ContextAware injects the Context into a struct as the field GSContext.
+type ContextAware struct {
+	GSContext Context `autowire:""`
+}

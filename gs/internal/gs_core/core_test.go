@@ -1172,8 +1172,8 @@ func TestApplicationContext_Collect(t *testing.T) {
 		prop.Set("redis.endpoints", "redis://localhost:6379")
 
 		c := gs_core.New()
-		c.Object(new(RecoresCluster)).Name("a").Order(1)
-		c.Object(new(RecoresCluster)).Name("b").Order(2)
+		c.Object(new(RecoresCluster)).Name("a")
+		c.Object(new(RecoresCluster)).Name("b")
 
 		intBean := c.Provide(func(p gs.Context) func() {
 
@@ -2790,8 +2790,8 @@ func TestMapCollection(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
 		c := gs_core.New()
-		c.Object(&mapValue{"a"}).Name("a").Order(1)
-		c.Object(&mapValue{"b"}).Name("b").Order(2)
+		c.Object(&mapValue{"a"}).Name("a")
+		c.Object(&mapValue{"b"}).Name("b")
 		c.Object(&mapValue{"c"}).Name("c").On(gs_cond.Not(gs_cond.OK()))
 		err := runTest(c, func(p gs.Context) {
 
@@ -2828,7 +2828,7 @@ func newCircularB() *circularB {
 func TestLazy(t *testing.T) {
 	for i := 0; i < 1; i++ {
 		prop := conf.New()
-		prop.Set("spring.main.allow-circular-references", "true")
+		prop.Set("spring.allow-circular-references", "true")
 
 		c := gs_core.New()
 		c.Provide(newCircularA)
@@ -2881,7 +2881,7 @@ func TestDestroyDependence(t *testing.T) {
 }
 
 type ContextAware struct {
-	gs_core.ContextAware
+	gs.ContextAware
 }
 
 func (c *ContextAware) Echo(str string) string {
@@ -3040,16 +3040,18 @@ func TestConfiguration(t *testing.T) {
 	c := gs_core.New()
 	c.Object(&ConfigurationBean{"123"}).Configuration(nil, nil).Name("123")
 	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration(nil, nil).Name("456")
+	ctx := &gs.ContextAware{}
+	c.Object(ctx)
 	if err := c.Refresh(); err != nil {
 		t.Fatal(err)
 	}
 	var b *ChildBean
-	err := c.Get(&b, "123_NewChild")
+	err := ctx.GSContext.Get(&b, "123_NewChild")
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, b.s, "123")
-	err = c.Get(&b, "456_NewChild")
+	err = ctx.GSContext.Get(&b, "456_NewChild")
 	if err != nil {
 		t.Fatal(err)
 	}

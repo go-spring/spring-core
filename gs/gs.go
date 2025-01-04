@@ -37,6 +37,7 @@ type (
 	CondContext  = gs.CondContext
 	Arg          = gs.Arg
 	Context      = gs.Context
+	ContextAware = gs.ContextAware
 	GroupFunc    = gs.GroupFunc
 )
 
@@ -67,11 +68,10 @@ func Boot() *gs_app.Boot {
 var app = gs_app.NewApp()
 
 // Start 启动程序。
-func Start() (gs.Context, error) {
+func Start() error {
 	printBanner()
-	err := bootRun()
-	if err != nil {
-		return nil, err
+	if err := bootRun(); err != nil {
+		return err
 	}
 	return app.Start()
 }
@@ -84,8 +84,7 @@ func Stop() {
 // Run 启动程序。
 func Run() error {
 	printBanner()
-	err := bootRun()
-	if err != nil {
+	if err := bootRun(); err != nil {
 		return err
 	}
 	return app.Run()

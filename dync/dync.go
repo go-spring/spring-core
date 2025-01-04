@@ -87,6 +87,13 @@ func (p *Properties) Data() conf.ReadOnlyProperties {
 	return p.prop
 }
 
+// ObjectsCount 绑定的可刷新对象数量
+func (p *Properties) ObjectsCount() int {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return len(p.objects)
+}
+
 // Refresh 更新属性列表以及绑定的可刷新对象
 func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) {
 	p.lock.Lock()

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_test
+package gstest_test
 
 import (
 	"os"

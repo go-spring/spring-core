@@ -23,16 +23,12 @@ import (
 	"github.com/go-spring/spring-core/gs"
 )
 
-var ctx gs.Context
+var ctx = &gs.ContextAware{}
 
 // Init 初始化测试环境
 func Init() error {
-	c, err := gs.Start()
-	if err != nil {
-		return err
-	}
-	ctx = c
-	return nil
+	gs.Object(ctx)
+	return gs.Start()
 }
 
 // Run 运行测试用例
@@ -43,35 +39,35 @@ func Run(m *testing.M) (code int) {
 
 // HasProperty 判断属性是否存在
 func HasProperty(key string) bool {
-	return ctx.Has(key)
+	return ctx.GSContext.Has(key)
 }
 
 // GetProperty 获取属性值
 func GetProperty(key string, opts ...conf.GetOption) string {
-	return ctx.Prop(key, opts...)
+	return ctx.GSContext.Prop(key, opts...)
 }
 
 // Resolve 解析字符串
 func Resolve(s string) (string, error) {
-	return ctx.Resolve(s)
+	return ctx.GSContext.Resolve(s)
 }
 
 // Bind 绑定对象
 func Bind(i interface{}, opts ...conf.BindArg) error {
-	return ctx.Bind(i, opts...)
+	return ctx.GSContext.Bind(i, opts...)
 }
 
 // Get 获取对象
 func Get(i interface{}, selectors ...gs.BeanSelector) error {
-	return ctx.Get(i, selectors...)
+	return ctx.GSContext.Get(i, selectors...)
 }
 
 // Wire 注入对象
 func Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
-	return ctx.Wire(objOrCtor, ctorArgs...)
+	return ctx.GSContext.Wire(objOrCtor, ctorArgs...)
 }
 
 // Invoke 调用函数
 func Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
-	return ctx.Invoke(fn, args...)
+	return ctx.GSContext.Invoke(fn, args...)
 }
