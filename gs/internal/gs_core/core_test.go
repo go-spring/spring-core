@@ -42,7 +42,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runTest(c *gs_core.Container, fn func(gs.Context)) error {
+func runTest(c gs.Container, fn func(gs.Context)) error {
 	type PandoraAware struct{}
 	c.Provide(func(p gs.Context) PandoraAware {
 		fn(p)

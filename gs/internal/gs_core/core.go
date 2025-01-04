@@ -74,7 +74,7 @@ type Container struct {
 }
 
 // New 创建 IoC 容器。
-func New() *Container {
+func New() gs.Container {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Container{
 		ctx:         ctx,

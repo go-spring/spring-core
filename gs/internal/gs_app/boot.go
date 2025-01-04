@@ -29,8 +29,10 @@ type BootRunner interface {
 }
 
 type Boot struct {
-	c *gs_core.Container
+	c gs.Container
 	p *gs_conf.BootConfig
+
+	Runners []AppRunner `autowire:"${spring.boot.runners:=*?}"`
 }
 
 func NewBoot() *Boot {
@@ -82,15 +84,9 @@ func (b *Boot) Run() error {
 		return err
 	}
 
-	var runners []AppRunner
-	err = b.c.Get(&runners, "${spring.boot.runners:=*?}")
-	if err != nil {
-		return err
-	}
-
 	// 执行命令行启动器
-	for _, r := range runners {
-		r.Run(b.c)
+	for _, r := range b.Runners {
+		r.Run(b.c.(gs.Context))
 	}
 
 	b.c.Close()

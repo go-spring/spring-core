@@ -40,11 +40,12 @@ type AppServer interface {
 
 // App 应用
 type App struct {
-	c *gs_core.Container
+	c gs.Container
 	p *gs_conf.AppConfig
 
 	exitChan chan struct{}
 
+	Runners []AppRunner `autowire:"${spring.app.runners:=*?}"`
 	Servers []AppServer `autowire:"${spring.app.servers:=*?}"`
 }
 
@@ -112,20 +113,14 @@ func (app *App) Start() error {
 		return err
 	}
 
-	var runners []AppRunner
-	err = app.c.Get(&runners, "${spring.app.runners:=*?}")
-	if err != nil {
-		return err
-	}
-
 	// 执行命令行启动器
-	for _, r := range runners {
-		r.Run(app.c)
+	for _, r := range app.Runners {
+		r.Run(app.c.(gs.Context))
 	}
 
 	// 通知应用启动事件
 	for _, svr := range app.Servers {
-		svr.OnAppStart(app.c)
+		svr.OnAppStart(app.c.(gs.Context))
 	}
 
 	app.c.Simplify()

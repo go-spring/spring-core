@@ -50,6 +50,19 @@ type Callable interface {
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 
+type GroupFunc func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)
+
+type Container interface {
+	Object(i interface{}) *BeanDefinition
+	Provide(ctor interface{}, args ...Arg) *BeanDefinition
+	Accept(b *BeanDefinition) *BeanDefinition
+	Group(fn GroupFunc)
+	RefreshProperties(p conf.ReadOnlyProperties) error
+	Refresh() error
+	Simplify()
+	Close()
+}
+
 // Context 提供了一些在 IoC 容器启动后基于反射获取和使用 property 与 bean 的接
 // 口。因为很多人会担心在运行时大量使用反射会降低程序性能，所以命名为 Context，取
 // 其诱人但危险的含义。事实上，这些在 IoC 容器启动后使用属性绑定和依赖注入的方案，
@@ -70,8 +83,6 @@ type Context interface {
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 	Go(fn func(ctx context.Context))
 }
-
-type GroupFunc func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)
 
 // ContextAware injects the Context into a struct as the field GSContext.
 type ContextAware struct {
