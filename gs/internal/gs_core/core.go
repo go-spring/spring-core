@@ -52,6 +52,8 @@ const (
 	Refreshed                        // 已刷新
 )
 
+var BeanDefinitionPtrType = reflect.TypeOf((*gs.BeanDefinition)(nil))
+
 // Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
 // of Control Containers and the Dependency Injection pattern >> 一文中
 // 提及的依赖注入的概念。但原文的依赖注入仅仅是指对象之间的依赖关系处理，而有些 IoC
@@ -306,23 +308,40 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 			continue
 		}
 		for _, x := range includes {
-			if x.MatchString(m.Name) {
+			if !x.MatchString(m.Name) {
+				continue
+			}
+			fnType := m.Func.Type()
+			out0 := fnType.Out(0)
+			if out0 == BeanDefinitionPtrType {
+				ret := m.Func.Call([]reflect.Value{bd.Value()})
+				if len(ret) > 1 {
+					if err := ret[1].Interface().(error); err != nil {
+						return nil, err
+					}
+				}
+				b := ret[0].Interface().(*gs.BeanDefinition)
+				newBeans = append(newBeans, b)
+				retBeans, err := c.scanConfiguration(b)
+				if err != nil {
+					return nil, err
+				}
+				newBeans = append(newBeans, retBeans...)
+			} else {
 				var f gs.Callable
 				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd}, 0)
 				if err != nil {
 					return nil, err
 				}
-				name := bd.GetName() + "_" + m.Name
-				out0 := m.Type.Out(0)
 				v := reflect.New(out0)
 				if gs.IsBeanType(out0) {
 					v = v.Elem()
 				}
-				t := v.Type()
-				b := gs.NewBean(t, v, f, name, true, bd.File(), bd.Line()).On(gs_cond.OnBean(bd))
+				name := bd.GetName() + "_" + m.Name
+				b := gs.NewBean(v.Type(), v, f, name, true, bd.File(), bd.Line()).On(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
-				break
 			}
+			break
 		}
 	}
 	return newBeans, nil
