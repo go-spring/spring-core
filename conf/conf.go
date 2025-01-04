@@ -37,7 +37,7 @@ import (
 var (
 	readers    = map[string]Reader{}
 	splitters  = map[string]Splitter{}
-	converters = map[reflect.Type]Converter{}
+	converters = map[reflect.Type]interface{}{}
 )
 
 func init() {
@@ -76,15 +76,12 @@ func RegisterSplitter(name string, fn Splitter) {
 
 // Converter converts string value into user-defined value. It should be function
 // type, and its prototype is func(string)(type,error).
-type Converter interface{}
+type Converter[T any] func(string) (T, error)
 
 // RegisterConverter registers its converter for non-primitive type such as
 // time.Time, time.Duration, or other user-defined value type.
-func RegisterConverter(fn Converter) {
+func RegisterConverter[T any](fn Converter[T]) {
 	t := reflect.TypeOf(fn)
-	if !IsConverter(t) {
-		panic(errors.New("converter is func(string)(type,error)"))
-	}
 	converters[t.Out(0)] = fn
 }
 

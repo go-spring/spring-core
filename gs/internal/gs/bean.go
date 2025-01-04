@@ -238,14 +238,6 @@ func (d *BeanDefinition) Destroy(fn interface{}) *BeanDefinition {
 
 // Export 设置 bean 的导出接口。
 func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
-	err := d.export(exports...)
-	if err != nil {
-		panic(err)
-	}
-	return d
-}
-
-func (d *BeanDefinition) export(exports ...interface{}) error {
 	for _, o := range exports {
 		t, ok := o.(reflect.Type)
 		if !ok {
@@ -255,7 +247,7 @@ func (d *BeanDefinition) export(exports ...interface{}) error {
 			}
 		}
 		if t.Kind() != reflect.Interface {
-			return errors.New("only interface type can be exported")
+			panic(errors.New("only interface type can be exported"))
 		}
 		exported := false
 		for _, export := range d.exports {
@@ -269,7 +261,7 @@ func (d *BeanDefinition) export(exports ...interface{}) error {
 		}
 		d.exports = append(d.exports, t)
 	}
-	return nil
+	return d
 }
 
 // Configuration 设置 bean 为配置类。
