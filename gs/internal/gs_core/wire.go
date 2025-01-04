@@ -592,7 +592,9 @@ func (c *Container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
 	// 如果 bean 实现了 dync.Refreshable 接口，则将 bean 添加到可刷新对象列表中。
 	if b.IsRefreshEnable() {
 		i := b.Interface().(dync.Refreshable)
-		if err = c.p.AddBean(i, b.GetRefreshParam()); err != nil {
+		refreshParam := b.GetRefreshParam()
+		watch := c.state == Refreshing
+		if err = c.p.RefreshBean(i, refreshParam, watch); err != nil {
 			return err
 		}
 	}
@@ -730,7 +732,8 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 					return err
 				}
 			} else {
-				err := c.p.AddField(fv.Addr(), subParam)
+				watch := c.state == Refreshing
+				err := c.p.RefreshField(fv.Addr(), subParam, watch)
 				if err != nil {
 					return err
 				}

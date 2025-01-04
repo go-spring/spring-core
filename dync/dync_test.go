@@ -44,7 +44,7 @@ type Config struct {
 func newTest() (*dync.Properties, *Config, error) {
 	mgr := dync.New()
 	cfg := new(Config)
-	err := mgr.AddField(reflect.ValueOf(cfg), conf.BindParam{})
+	err := mgr.RefreshField(reflect.ValueOf(cfg), conf.BindParam{}, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -106,7 +106,7 @@ func TestDynamic(t *testing.T) {
 		// 	fmt.Println("event fired.")
 		// 	return nil
 		// })
-		err := mgr.AddField(reflect.ValueOf(cfg), conf.BindParam{})
+		err := mgr.RefreshField(reflect.ValueOf(cfg), conf.BindParam{}, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -144,7 +144,7 @@ func TestDynamic(t *testing.T) {
 		// 	fmt.Println("event fired.")
 		// 	return nil
 		// })
-		err := mgr.AddField(reflect.ValueOf(cfg), conf.BindParam{})
+		err := mgr.RefreshField(reflect.ValueOf(cfg), conf.BindParam{}, true)
 		if err != nil {
 			t.Fatal(err)
 		}

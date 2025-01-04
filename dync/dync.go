@@ -211,27 +211,43 @@ func (p *Properties) safeRefreshObject(f *refreshObject) (err error) {
 	return f.target.OnRefresh(p.prop, f.param)
 }
 
-// AddBean 添加一个可刷新对象
-func (p *Properties) AddBean(v Refreshable, param conf.BindParam) error {
+// RefreshBean 刷新一个 bean 对象，根据 watch 的值决定是否添加监听
+func (p *Properties) RefreshBean(v Refreshable, param conf.BindParam, watch bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	return p.addObjectNoLock(v, param)
+	return p.doRefresh(v, param, watch)
 }
 
-func (p *Properties) addObjectNoLock(v Refreshable, param conf.BindParam) error {
-	p.objects = append(p.objects, &refreshObject{
-		target: v,
-		param:  param,
-	})
+func (p *Properties) doRefresh(v Refreshable, param conf.BindParam, watch bool) error {
+	if watch {
+		p.objects = append(p.objects, &refreshObject{
+			target: v,
+			param:  param,
+		})
+	}
 	return v.OnRefresh(p.prop, param)
 }
 
-// AddField 添加一个 bean 的 field
-func (p *Properties) AddField(v reflect.Value, param conf.BindParam) error {
+type filter struct {
+	*Properties
+	watch bool
+}
+
+func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
+	v, ok := i.(Refreshable)
+	if !ok {
+		return false, nil
+	}
+	return true, f.doRefresh(v, param, f.watch)
+}
+
+// RefreshField 刷新一个 bean 的 field，根据 watch 的值决定是否添加监听
+func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam, watch bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	f := &filter{Properties: p, watch: watch}
 	if v.Kind() == reflect.Ptr {
-		ok, err := p.bindValue(v.Interface(), param)
+		ok, err := f.Do(v.Interface(), param)
 		if err != nil {
 			return err
 		}
@@ -239,13 +255,5 @@ func (p *Properties) AddField(v reflect.Value, param conf.BindParam) error {
 			return nil
 		}
 	}
-	return conf.BindValue(p.prop, v.Elem(), v.Elem().Type(), param, p.bindValue)
-}
-
-func (p *Properties) bindValue(i interface{}, param conf.BindParam) (bool, error) {
-	v, ok := i.(Refreshable)
-	if !ok {
-		return false, nil
-	}
-	return true, p.addObjectNoLock(v, param)
+	return conf.BindValue(p.prop, v.Elem(), v.Elem().Type(), param, f)
 }

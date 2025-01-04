@@ -112,7 +112,9 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 	return nil
 }
 
-type Filter func(i interface{}, param BindParam) (bool, error)
+type Filter interface {
+	Do(i interface{}, param BindParam) (bool, error)
+}
 
 // BindValue binds properties to a value.
 func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
@@ -359,7 +361,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 				return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
 			}
 			if filter != nil {
-				ret, err := filter(fv.Addr().Interface(), subParam)
+				ret, err := filter.Do(fv.Addr().Interface(), subParam)
 				if err != nil {
 					return err
 				}
