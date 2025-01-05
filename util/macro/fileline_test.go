@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package macros_test
+package macro_test
 
 import (
 	"fmt"
@@ -23,79 +23,79 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/util/assert"
-	"github.com/go-spring/spring-core/util/macros"
+	"github.com/go-spring/spring-core/util/macro"
 )
 
 func f1(t *testing.T) ([]string, time.Duration) {
 	ret, cost := f2(t)
-	assert.String(t, macros.File()).HasSuffix("code/fileline_test.go")
-	assert.Equal(t, macros.Line(), 32)
+	assert.String(t, macro.File()).HasSuffix("macro/fileline_test.go")
+	assert.Equal(t, macro.Line(), 32)
 	start := time.Now()
-	fileLine := macros.FileLine()
+	fileLine := macro.FileLine()
 	cost += time.Since(start)
 	return append(ret, fileLine), cost
 }
 
 func f2(t *testing.T) ([]string, time.Duration) {
 	ret, cost := f3(t)
-	assert.String(t, macros.File()).HasSuffix("code/fileline_test.go")
-	assert.Equal(t, macros.Line(), 42)
+	assert.String(t, macro.File()).HasSuffix("macro/fileline_test.go")
+	assert.Equal(t, macro.Line(), 42)
 	start := time.Now()
-	fileLine := macros.FileLine()
+	fileLine := macro.FileLine()
 	cost += time.Since(start)
 	return append(ret, fileLine), cost
 }
 
 func f3(t *testing.T) ([]string, time.Duration) {
 	ret, cost := f4(t)
-	assert.String(t, macros.File()).HasSuffix("code/fileline_test.go")
-	assert.Equal(t, macros.Line(), 52)
+	assert.String(t, macro.File()).HasSuffix("macro/fileline_test.go")
+	assert.Equal(t, macro.Line(), 52)
 	start := time.Now()
-	fileLine := macros.FileLine()
+	fileLine := macro.FileLine()
 	cost += time.Since(start)
 	return append(ret, fileLine), cost
 }
 
 func f4(t *testing.T) ([]string, time.Duration) {
 	ret, cost := f5(t)
-	assert.String(t, macros.File()).HasSuffix("code/fileline_test.go")
-	assert.Equal(t, macros.Line(), 62)
+	assert.String(t, macro.File()).HasSuffix("macro/fileline_test.go")
+	assert.Equal(t, macro.Line(), 62)
 	start := time.Now()
-	fileLine := macros.FileLine()
+	fileLine := macro.FileLine()
 	cost += time.Since(start)
 	return append(ret, fileLine), cost
 }
 
 func f5(t *testing.T) ([]string, time.Duration) {
 	ret, cost := f6(t)
-	assert.String(t, macros.File()).HasSuffix("code/fileline_test.go")
-	assert.Equal(t, macros.Line(), 72)
+	assert.String(t, macro.File()).HasSuffix("macro/fileline_test.go")
+	assert.Equal(t, macro.Line(), 72)
 	start := time.Now()
-	fileLine := macros.FileLine()
+	fileLine := macro.FileLine()
 	cost += time.Since(start)
 	return append(ret, fileLine), cost
 }
 
 func f6(t *testing.T) ([]string, time.Duration) {
 	ret, cost := f7(t)
-	assert.String(t, macros.File()).HasSuffix("code/fileline_test.go")
-	assert.Equal(t, macros.Line(), 82)
+	assert.String(t, macro.File()).HasSuffix("macro/fileline_test.go")
+	assert.Equal(t, macro.Line(), 82)
 	start := time.Now()
-	fileLine := macros.FileLine()
+	fileLine := macro.FileLine()
 	cost += time.Since(start)
 	return append(ret, fileLine), cost
 }
 
 func f7(t *testing.T) ([]string, time.Duration) {
-	assert.String(t, macros.File()).HasSuffix("code/fileline_test.go")
-	assert.Equal(t, macros.Line(), 91)
+	assert.String(t, macro.File()).HasSuffix("macro/fileline_test.go")
+	assert.Equal(t, macro.Line(), 91)
 	{
 		start := time.Now()
 		_ = debug.Stack()
 		fmt.Println("\t", "debug.Stack cost", time.Since(start))
 	}
 	start := time.Now()
-	fileLine := macros.FileLine()
+	fileLine := macro.FileLine()
 	cost := time.Since(start)
 	return []string{fileLine}, cost
 }
@@ -105,21 +105,21 @@ func TestFileLine(t *testing.T) {
 		fmt.Printf("loop %d\n", i)
 		ret, cost := f1(t)
 		fmt.Println("\t", ret)
-		fmt.Println("\t", "all macros.FileLine cost", cost)
+		fmt.Println("\t", "all macro.FileLine cost", cost)
 	}
 	// loop 0
 	//	 debug.Stack cost 37.794µs
-	//	 all macros.FileLine cost 14.638µs
+	//	 all macro.FileLine cost 14.638µs
 	// loop 1
 	//	 debug.Stack cost 11.699µs
-	//	 all macros.FileLine cost 6.398µs
+	//	 all macro.FileLine cost 6.398µs
 	// loop 2
 	//	 debug.Stack cost 20.62µs
-	//	 all macros.FileLine cost 4.185µs
+	//	 all macro.FileLine cost 4.185µs
 	// loop 3
 	//	 debug.Stack cost 11.736µs
-	//	 all macros.FileLine cost 4.274µs
+	//	 all macro.FileLine cost 4.274µs
 	// loop 4
 	//	 debug.Stack cost 19.821µs
-	//	 all macros.FileLine cost 4.061µs
+	//	 all macro.FileLine cost 4.061µs
 }

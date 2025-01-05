@@ -27,7 +27,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
-	"github.com/go-spring/spring-core/util/macros"
+	"github.com/go-spring/spring-core/util/macro"
 )
 
 // IndexArg is an Arg that has an index.
@@ -107,7 +107,7 @@ func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
 			if arg.n < 0 || arg.n >= fixedArgCount {
-				return nil, util.Errorf(macros.FileLine(), "arg index %d exceeds max index %d", arg.n, fixedArgCount)
+				return nil, util.Errorf(macro.FileLine(), "arg index %d exceeds max index %d", arg.n, fixedArgCount)
 			} else {
 				fnArgs[arg.n] = arg.arg
 			}
@@ -117,7 +117,7 @@ func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
 			} else if fnType.IsVariadic() {
 				fnArgs = append(fnArgs, arg)
 			} else {
-				return nil, util.Errorf(macros.FileLine(), "function has no args but given %d", len(args))
+				return nil, util.Errorf(macro.FileLine(), "function has no args but given %d", len(args))
 			}
 		}
 	}
@@ -128,25 +128,25 @@ func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
 			if !shouldIndex {
-				return nil, util.Errorf(macros.FileLine(), "the Args must have or have no index")
+				return nil, util.Errorf(macro.FileLine(), "the Args must have or have no index")
 			}
 			if arg.n < 0 || arg.n >= fixedArgCount {
-				return nil, util.Errorf(macros.FileLine(), "arg index %d exceeds max index %d", arg.n, fixedArgCount)
+				return nil, util.Errorf(macro.FileLine(), "arg index %d exceeds max index %d", arg.n, fixedArgCount)
 			} else if fnArgs[arg.n] != nil {
-				return nil, util.Errorf(macros.FileLine(), "found same index %d", arg.n)
+				return nil, util.Errorf(macro.FileLine(), "found same index %d", arg.n)
 			} else {
 				fnArgs[arg.n] = arg.arg
 			}
 		default:
 			if shouldIndex {
-				return nil, util.Errorf(macros.FileLine(), "the Args must have or have no index")
+				return nil, util.Errorf(macro.FileLine(), "the Args must have or have no index")
 			}
 			if i < fixedArgCount {
 				fnArgs[i] = arg
 			} else if fnType.IsVariadic() {
 				fnArgs = append(fnArgs, arg)
 			} else {
-				return nil, util.Errorf(macros.FileLine(), "the count %d of Args exceeds max index %d", len(args), fixedArgCount)
+				return nil, util.Errorf(macro.FileLine(), "the count %d of Args exceeds max index %d", len(args), fixedArgCount)
 			}
 		}
 	}
@@ -180,7 +180,7 @@ func (r *argList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, erro
 		// option arg may not return a value when the condition is not met.
 		v, err := r.getArg(ctx, arg, t, fileLine)
 		if err != nil {
-			return nil, util.Wrapf(err, macros.FileLine(), "returns error when getting %d arg", idx)
+			return nil, util.Wrapf(err, macro.FileLine(), "returns error when getting %d arg", idx)
 		}
 		if v.IsValid() {
 			result = append(result, v)
@@ -210,7 +210,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	switch g := arg.(type) {
 	case *Callable:
 		if results, err := g.Call(ctx); err != nil {
-			return reflect.Value{}, util.Wrapf(err, macros.FileLine(), "")
+			return reflect.Value{}, util.Wrapf(err, macro.FileLine(), "")
 		} else if len(results) < 1 {
 			return reflect.Value{}, errors.New("")
 		} else {
@@ -252,7 +252,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 		return v, nil
 	}
 
-	return reflect.Value{}, util.Errorf(macros.FileLine(), "error type %s", t.String())
+	return reflect.Value{}, util.Errorf(macro.FileLine(), "error type %s", t.String())
 }
 
 // OptionArg Option 函数的参数绑定。

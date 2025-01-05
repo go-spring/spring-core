@@ -38,7 +38,7 @@ import (
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
-	"github.com/go-spring/spring-core/util/macros"
+	"github.com/go-spring/spring-core/util/macro"
 	"github.com/spf13/cast"
 )
 
@@ -833,7 +833,7 @@ func NewManager() Manager {
 }
 
 func NewManagerRetError() (Manager, error) {
-	return localManager{}, util.Error(macros.FileLine(), "error")
+	return localManager{}, util.Error(macro.FileLine(), "error")
 }
 
 func NewManagerRetErrorNil() (Manager, error) {
@@ -965,7 +965,7 @@ func (d *callDestroy) InitWithError() error {
 		d.inited = true
 		return nil
 	}
-	return util.Error(macros.FileLine(), "error")
+	return util.Error(macro.FileLine(), "error")
 }
 
 func (d *callDestroy) DestroyWithError() error {
@@ -973,7 +973,7 @@ func (d *callDestroy) DestroyWithError() error {
 		d.destroyed = true
 		return nil
 	}
-	return util.Error(macros.FileLine(), "error")
+	return util.Error(macro.FileLine(), "error")
 }
 
 type nestedCallDestroy struct {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package macros
+package macro
 
 import (
 	"fmt"
@@ -50,7 +50,7 @@ func Line() int {
 }
 
 // FileLine returns the file name and line of the call point.
-// In reality macros.FileLine costs less time than debug.Stack.
+// In reality macro.FileLine costs less time than debug.Stack.
 func FileLine() string {
 	file, line := fileLine()
 	return fmt.Sprintf("%s:%d", file, line)
