@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_core
+package util
 
 import (
 	"container/list"

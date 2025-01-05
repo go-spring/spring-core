@@ -12,6 +12,7 @@ import (
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/util"
 )
 
 var (
@@ -128,7 +129,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 	for _, d := range s.destroyerMap {
 		destroyers.PushBack(d)
 	}
-	destroyers = TripleSort(destroyers, getBeforeDestroyers)
+	destroyers = util.TripleSort(destroyers, getBeforeDestroyers)
 
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
@@ -636,7 +637,7 @@ func (c *Container) getBeanValue(b *gs.BeanDefinition, stack *wiringStack) (refl
 	// 构造函数的返回值为值类型时 b.Type() 返回其指针类型。
 	if val := out[0]; gs.IsBeanType(val.Type()) {
 		// 如果实现接口的是值类型，那么需要转换成指针类型然后再赋值给接口。
-		if !val.IsNil() && val.Kind() == reflect.Interface && conf.IsValueType(val.Elem().Type()) {
+		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsValueType(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())
 			v.Elem().Set(val.Elem())
 			b.Value().Set(v)
@@ -689,7 +690,7 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 		fv := v.Field(i)
 
 		if !fv.CanInterface() {
-			fv = PatchValue(fv)
+			fv = util.PatchValue(fv)
 			if !fv.CanInterface() {
 				continue
 			}

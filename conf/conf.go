@@ -22,7 +22,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"sort"
 	"strings"
 	"time"
 
@@ -141,15 +140,8 @@ func New() *Properties {
 // Map creates *Properties from map.
 func Map(m map[string]interface{}) (*Properties, error) {
 	p := New()
-	var keys []string
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		if err := p.Set(k, m[k]); err != nil {
-			return nil, err
-		}
+	if err := p.Merge(m); err != nil {
+		return nil, err
 	}
 	return p, nil
 }

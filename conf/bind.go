@@ -119,7 +119,7 @@ type Filter interface {
 // BindValue binds properties to a value.
 func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
-	if !IsValueType(t) {
+	if !util.IsValueType(t) {
 		err := errors.New("target should be value type")
 		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
 	}
@@ -263,7 +263,7 @@ func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyP
 			if param.Tag.Def == "" {
 				return nil, nil
 			}
-			if !IsPrimitiveValueType(et) && converters[et] == nil {
+			if !util.IsPrimitiveValueType(et) && converters[et] == nil {
 				return nil, fmt.Errorf("%s: can't find converter for %s", util.FileLine(), et.String())
 			}
 			strVal = param.Tag.Def
@@ -386,7 +386,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 			continue
 		}
 
-		if IsValueType(ft.Type) {
+		if util.IsValueType(ft.Type) {
 			if subParam.Key == "" {
 				subParam.Key = ft.Name
 			} else {

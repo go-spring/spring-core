@@ -25,7 +25,6 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
 )
@@ -232,7 +231,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	}
 
 	// binds properties value by the "value" tag.
-	if conf.IsValueType(t) {
+	if util.IsValueType(t) {
 		if tag == "" {
 			tag = "${}"
 		}
