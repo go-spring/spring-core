@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/macros"
 )
 
 var (
@@ -121,7 +122,7 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 
 	if !util.IsValueType(t) {
 		err := errors.New("target should be value type")
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	}
 
 	defer func() {
@@ -143,21 +144,21 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 		return bindSlice(p, v, t, param, filter)
 	case reflect.Array:
 		err := errors.New("use slice instead of array")
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	default: // for linter
 	}
 
 	fn := converters[t]
 	if fn == nil && v.Kind() == reflect.Struct {
 		if err := bindStruct(p, v, t, param, filter); err != nil {
-			return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+			return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 		}
 		return nil
 	}
 
 	val, err := resolve(p, param)
 	if err != nil {
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	}
 
 	if fn != nil {
@@ -165,7 +166,7 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 		out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
 		if !out[1].IsNil() {
 			err = out[1].Interface().(error)
-			return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+			return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 		}
 		v.Set(out[0])
 		return nil
@@ -178,28 +179,28 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 			v.SetUint(u)
 			return nil
 		}
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var i int64
 		if i, err = strconv.ParseInt(val, 0, 0); err == nil {
 			v.SetInt(i)
 			return nil
 		}
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	case reflect.Float32, reflect.Float64:
 		var f float64
 		if f, err = strconv.ParseFloat(val, 64); err == nil {
 			v.SetFloat(f)
 			return nil
 		}
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	case reflect.Bool:
 		var b bool
 		if b, err = strconv.ParseBool(val); err == nil {
 			v.SetBool(b)
 			return nil
 		}
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	case reflect.String:
 		v.SetString(val)
 		return nil
@@ -207,7 +208,7 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 	}
 
 	err = fmt.Errorf("unsupported bind type %q", t.String())
-	return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+	return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 }
 
 // bindSlice binds properties to a slice value.
@@ -216,7 +217,7 @@ func bindSlice(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 	et := t.Elem()
 	p, err := getSlice(p, et, param)
 	if err != nil {
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	}
 
 	slice := reflect.MakeSlice(t, 0, 0)
@@ -237,7 +238,7 @@ func bindSlice(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+			return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 		}
 		slice = reflect.Append(slice, e)
 	}
@@ -258,13 +259,13 @@ func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyP
 			strVal = p.Get(param.Key)
 		} else {
 			if !param.Tag.HasDef {
-				return nil, fmt.Errorf("%s: property %q %w", util.FileLine(), param.Key, ErrNotExist)
+				return nil, fmt.Errorf("%s: property %q %w", macros.FileLine(), param.Key, ErrNotExist)
 			}
 			if param.Tag.Def == "" {
 				return nil, nil
 			}
 			if !util.IsPrimitiveValueType(et) && converters[et] == nil {
-				return nil, fmt.Errorf("%s: can't find converter for %s", util.FileLine(), et.String())
+				return nil, fmt.Errorf("%s: can't find converter for %s", macros.FileLine(), et.String())
 			}
 			strVal = param.Tag.Def
 		}
@@ -285,10 +286,10 @@ func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyP
 		}
 	} else if fn, ok := splitters[s]; ok && fn != nil {
 		if arrVal, err = fn(strVal); err != nil {
-			return nil, fmt.Errorf("%s: split error: %w, value: %q", util.FileLine(), err, strVal)
+			return nil, fmt.Errorf("%s: split error: %w, value: %q", macros.FileLine(), err, strVal)
 		}
 	} else {
-		return nil, fmt.Errorf("%s: unknown splitter %q", util.FileLine(), s)
+		return nil, fmt.Errorf("%s: unknown splitter %q", macros.FileLine(), s)
 	}
 
 	r := New()
@@ -304,7 +305,7 @@ func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("map can't have a non-empty default value")
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	}
 
 	et := t.Elem()
@@ -313,7 +314,7 @@ func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 
 	keys, err := p.SubKeys(param.Key)
 	if err != nil {
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	}
 
 	for _, key := range keys {
@@ -328,7 +329,7 @@ func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 		}
 		err = BindValue(p, e, et, subParam, filter)
 		if err != nil {
-			return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+			return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 		}
 		ret.SetMapIndex(reflect.ValueOf(key), e)
 	}
@@ -340,7 +341,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("struct can't have a non-empty default value")
-		return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+		return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -358,7 +359,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 
 		if tag, ok := ft.Tag.Lookup("value"); ok {
 			if err := subParam.BindTag(tag, ft.Tag); err != nil {
-				return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+				return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 			}
 			if filter != nil {
 				ret, err := filter.Do(fv.Addr().Interface(), subParam)
@@ -370,7 +371,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 				}
 			}
 			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
-				return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+				return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 			}
 			continue
 		}
@@ -381,7 +382,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 				continue
 			}
 			if err := bindStruct(p, fv, ft.Type, subParam, filter); err != nil {
-				return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+				return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 			}
 			continue
 		}
@@ -395,7 +396,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 			subParam.Key = strings.ToLower(subParam.Key)
 			subParam.Key = strings.ReplaceAll(subParam.Key, "_", ".")
 			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
-				return fmt.Errorf("%s: bind %s error, %w", util.FileLine(), param.Path, err)
+				return fmt.Errorf("%s: bind %s error, %w", macros.FileLine(), param.Path, err)
 			}
 		}
 	}
@@ -411,13 +412,13 @@ func resolve(p ReadOnlyProperties, param BindParam) (string, error) {
 	}
 	if p.Has(param.Key) {
 		err := fmt.Errorf("property %q isn't simple value", param.Key)
-		return "", fmt.Errorf("%s: resolve property %q error, %w", util.FileLine(), param.Key, err)
+		return "", fmt.Errorf("%s: resolve property %q error, %w", macros.FileLine(), param.Key, err)
 	}
 	if param.Tag.HasDef {
 		return resolveString(p, param.Tag.Def)
 	}
 	err := fmt.Errorf("property %q %w", param.Key, ErrNotExist)
-	return "", fmt.Errorf("%s: resolve property %q error, %w", util.FileLine(), param.Key, err)
+	return "", fmt.Errorf("%s: resolve property %q error, %w", macros.FileLine(), param.Key, err)
 }
 
 // resolveString returns property references processed string.
@@ -455,7 +456,7 @@ func resolveString(p ReadOnlyProperties, s string) (string, error) {
 
 	if end < 0 || count > 0 {
 		err := ErrInvalidSyntax
-		return "", fmt.Errorf("%s: resolve string %q error, %w", util.FileLine(), s, err)
+		return "", fmt.Errorf("%s: resolve string %q error, %w", macros.FileLine(), s, err)
 	}
 
 	var param BindParam
@@ -463,12 +464,12 @@ func resolveString(p ReadOnlyProperties, s string) (string, error) {
 
 	s1, err := resolve(p, param)
 	if err != nil {
-		return "", fmt.Errorf("%s: resolve string %q error, %w", util.FileLine(), s, err)
+		return "", fmt.Errorf("%s: resolve string %q error, %w", macros.FileLine(), s, err)
 	}
 
 	s2, err := resolveString(p, s[end+1:])
 	if err != nil {
-		return "", fmt.Errorf("%s: resolve string %q error, %w", util.FileLine(), s, err)
+		return "", fmt.Errorf("%s: resolve string %q error, %w", macros.FileLine(), s, err)
 	}
 
 	return s[:start] + s1 + s2, nil

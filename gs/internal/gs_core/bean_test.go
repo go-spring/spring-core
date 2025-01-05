@@ -27,7 +27,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
-	"github.com/stretchr/testify/assert"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 // newBean 该方法是为了平衡调用栈的深度，一般情况下 gs.NewBean 不应该被直接使用。

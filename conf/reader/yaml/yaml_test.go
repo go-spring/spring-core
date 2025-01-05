@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf/reader/yaml"
-	"github.com/stretchr/testify/assert"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestRead(t *testing.T) {

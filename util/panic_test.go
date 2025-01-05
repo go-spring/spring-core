@@ -14,26 +14,30 @@
  * limitations under the License.
  */
 
-package gstest_test
+package util_test
 
 import (
-	"os"
+	"errors"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs/gstest"
+	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
-func TestMain(m *testing.M) {
-	err := gstest.Init()
-	if err != nil {
-		panic(err)
-	}
-	os.Exit(gstest.Run(m))
-}
+func TestPanicCond(t *testing.T) {
 
-func TestConfig(t *testing.T) {
-	os.Clearenv()
-	os.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev")
-	assert.Equal(t, gstest.GetProperty("spring.profiles.active"), "dev")
+	util.Panic("this is an error").When(false)
+	assert.Panic(t, func() {
+		util.Panic("this is an error").When(true)
+	}, "this is an error")
+
+	util.Panic(errors.New("this is an error")).When(false)
+	assert.Panic(t, func() {
+		util.Panic(errors.New("this is an error")).When(true)
+	}, "this is an error")
+
+	util.Panicf("this is an %s", "error").When(false)
+	assert.Panic(t, func() {
+		util.Panicf("this is an %s", "error").When(true)
+	}, "this is an error")
 }

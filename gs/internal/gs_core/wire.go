@@ -129,7 +129,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 	for _, d := range s.destroyerMap {
 		destroyers.PushBack(d)
 	}
-	destroyers = util.TripleSort(destroyers, getBeforeDestroyers)
+	destroyers = TripleSort(destroyers, getBeforeDestroyers)
 
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {

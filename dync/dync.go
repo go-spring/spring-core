@@ -183,9 +183,11 @@ func (e *Errors) Append(err error) {
 // Error 实现 error 接口
 func (e *Errors) Error() string {
 	var sb strings.Builder
-	for _, err := range e.arr {
+	for i, err := range e.arr {
 		sb.WriteString(err.Error())
-		sb.WriteString("\n")
+		if i < len(e.arr)-1 {
+			sb.WriteString("\n")
+		}
 	}
 	return sb.String()
 }

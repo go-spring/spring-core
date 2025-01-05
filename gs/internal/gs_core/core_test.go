@@ -37,9 +37,9 @@ import (
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 	"github.com/go-spring/spring-core/util"
-	util2 "github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/assert"
+	"github.com/go-spring/spring-core/util/macros"
 	"github.com/spf13/cast"
-	"github.com/stretchr/testify/assert"
 )
 
 func runTest(c gs.Container, fn func(gs.Context)) error {
@@ -833,7 +833,7 @@ func NewManager() Manager {
 }
 
 func NewManagerRetError() (Manager, error) {
-	return localManager{}, util.Error(util2.FileLine(), "error")
+	return localManager{}, util.Error(macros.FileLine(), "error")
 }
 
 func NewManagerRetErrorNil() (Manager, error) {
@@ -965,7 +965,7 @@ func (d *callDestroy) InitWithError() error {
 		d.inited = true
 		return nil
 	}
-	return util.Error(util2.FileLine(), "error")
+	return util.Error(macros.FileLine(), "error")
 }
 
 func (d *callDestroy) DestroyWithError() error {
@@ -973,7 +973,7 @@ func (d *callDestroy) DestroyWithError() error {
 		d.destroyed = true
 		return nil
 	}
-	return util.Error(util2.FileLine(), "error")
+	return util.Error(macros.FileLine(), "error")
 }
 
 type nestedCallDestroy struct {
@@ -1470,11 +1470,11 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 			var s *Server
 			err := p.Get(&s)
-			assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_test.Server\"")
+			assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Server\"")
 
 			var consumer *Consumer
 			err = p.Get(&consumer)
-			assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_test.Consumer\"")
+			assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Consumer\"")
 		})
 		assert.Nil(t, err)
 		assert.Equal(t, bd.BeanName(), "Consumer")
@@ -1631,7 +1631,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := c.Refresh()
-		assert.Error(t, err, "can't find bean, bean:\"int:\" type:\"\\*gs_test.Server\"")
+		assert.Error(t, err, "can't find bean, bean:\"int:\" type:\"\\*gs_core_test.Server\"")
 	})
 
 	t.Run("method bean selector beanId", func(t *testing.T) {
@@ -1670,7 +1670,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := c.Refresh()
-		assert.Error(t, err, "can't find bean, bean:\"NULL\" type:\"\\*gs_test.Server\"")
+		assert.Error(t, err, "can't find bean, bean:\"NULL\" type:\"\\*gs_core_test.Server\"")
 	})
 }
 
@@ -2194,7 +2194,7 @@ func TestApplicationContext_BeanCache(t *testing.T) {
 		c := gs_core.New()
 		c.Object(func() {}).Export((*filter)(nil))
 		err := c.Refresh()
-		assert.Error(t, err, "doesn't implement interface gs_test.filter")
+		assert.Error(t, err, "doesn't implement interface gs_core_test.filter")
 	})
 
 	t.Run("implement interface", func(t *testing.T) {
@@ -2984,7 +2984,7 @@ func TestDynamic(t *testing.T) {
 		p.Set("wrapper.slice[0]", 2)
 		p.Set("wrapper.slice[1]", 1)
 		err = c.RefreshProperties(p)
-		assert.Error(t, err, "validate failed on \"value:\\\"${int:=3}\\\" expr:\\\"$<6\\\"\" for value 9")
+		assert.Error(t, err, "validate failed on \"\\$<6\" for value 6")
 	}
 
 	{

@@ -22,7 +22,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/stretchr/testify/assert"
+	"github.com/go-spring/spring-core/util/assert"
 	"go.uber.org/mock/gomock"
 )
 

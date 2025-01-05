@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-package gstest_test
+package pkg
 
 import (
-	"os"
-	"testing"
-
-	"github.com/go-spring/spring-core/gs/gstest"
-	"github.com/go-spring/spring-core/util/assert"
+	"fmt"
 )
 
-func TestMain(m *testing.M) {
-	err := gstest.Init()
-	if err != nil {
-		panic(err)
-	}
-	os.Exit(gstest.Run(m))
-}
+// SamePkg golang allows packages with the same name under different paths.
+type SamePkg struct{}
 
-func TestConfig(t *testing.T) {
-	os.Clearenv()
-	os.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev")
-	assert.Equal(t, gstest.GetProperty("spring.profiles.active"), "dev")
+func (p *SamePkg) Package() {
+	fmt.Println("github.com/go-spring/spring-base/util/testdata/pkg/foo/pkg.SamePkg")
 }

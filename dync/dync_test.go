@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
-	"github.com/stretchr/testify/assert"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 // todo 自定义类型通过类型转换器实现刷新机制

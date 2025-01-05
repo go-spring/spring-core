@@ -14,26 +14,20 @@
  * limitations under the License.
  */
 
-package gstest_test
+package testdata
 
-import (
-	"os"
-	"testing"
+func FnNoArgs() {}
 
-	"github.com/go-spring/spring-core/gs/gstest"
-	"github.com/go-spring/spring-core/util/assert"
-)
+func FnWithArgs(i int) {}
 
-func TestMain(m *testing.M) {
-	err := gstest.Init()
-	if err != nil {
-		panic(err)
-	}
-	os.Exit(gstest.Run(m))
-}
+type Receiver struct{}
 
-func TestConfig(t *testing.T) {
-	os.Clearenv()
-	os.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev")
-	assert.Equal(t, gstest.GetProperty("spring.profiles.active"), "dev")
-}
+func (r Receiver) FnNoArgs() {}
+
+func (r Receiver) FnWithArgs(i int) {}
+
+func (r *Receiver) PtrFnNoArgs() {}
+
+func (r *Receiver) PtrFnWithArgs(i int) {}
+
+func (r *Receiver) String() string { return "" }

@@ -14,26 +14,27 @@
  * limitations under the License.
  */
 
-package gstest_test
+package util_test
 
 import (
-	"os"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs/gstest"
+	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
+	"github.com/go-spring/spring-core/util/macros"
 )
 
-func TestMain(m *testing.M) {
-	err := gstest.Init()
-	if err != nil {
-		panic(err)
-	}
-	os.Exit(gstest.Run(m))
-}
+func TestError(t *testing.T) {
 
-func TestConfig(t *testing.T) {
-	os.Clearenv()
-	os.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev")
-	assert.Equal(t, gstest.GetProperty("spring.profiles.active"), "dev")
+	e0 := util.Error(macros.FileLine(), "error")
+	assert.Error(t, e0, ".*/error_test.go:29 error")
+
+	e1 := util.Errorf(macros.FileLine(), "error: %d", 0)
+	assert.Error(t, e1, ".*/error_test.go:32 error: 0")
+
+	e2 := util.Wrap(e0, macros.FileLine(), "error")
+	assert.Error(t, e2, ".*/error_test.go:35 error; .*/error_test.go:29 error")
+
+	e3 := util.Wrapf(e1, macros.FileLine(), "error: %d", 1)
+	assert.Error(t, e3, ".*/error_test.go:38 error: 1; .*/error_test.go:32 error: 0")
 }

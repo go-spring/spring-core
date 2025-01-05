@@ -19,26 +19,7 @@ package util
 import (
 	"errors"
 	"fmt"
-	"runtime"
-	"sync"
 )
-
-var frameMap sync.Map
-
-// FileLine returns the file name and line of the call point.
-// In reality FileLine here costs less time than debug.Stack.
-func FileLine() string {
-	rpc := make([]uintptr, 1)
-	runtime.Callers(3, rpc[:])
-	pc := rpc[0]
-	if v, ok := frameMap.Load(pc); ok {
-		e := v.(*runtime.Frame)
-		return fmt.Sprintf("%s:%d", e.File, e.Line)
-	}
-	e, _ := runtime.CallersFrames(rpc).Next()
-	frameMap.Store(pc, &e)
-	return fmt.Sprintf("%s:%d", e.File, e.Line)
-}
 
 // ForbiddenMethod throws this error when calling a method is prohibited.
 var ForbiddenMethod = errors.New("forbidden method")

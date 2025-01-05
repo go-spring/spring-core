@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,60 +18,49 @@ package util
 
 import (
 	"reflect"
+	"runtime"
+	"strings"
+	"unsafe"
 )
 
-// errorType the reflection type of error.
-var errorType = reflect.TypeOf((*error)(nil)).Elem()
+const (
+	flagStickyRO = 1 << 5
+	flagEmbedRO  = 1 << 6
+	flagRO       = flagStickyRO | flagEmbedRO
+)
 
-// IsFuncType returns whether `t` is func type.
-func IsFuncType(t reflect.Type) bool {
-	return t.Kind() == reflect.Func
+// PatchValue makes an unexported field can be assignable.
+func PatchValue(v reflect.Value) reflect.Value {
+	rv := reflect.ValueOf(&v)
+	flag := rv.Elem().FieldByName("flag")
+	ptrFlag := (*uintptr)(unsafe.Pointer(flag.UnsafeAddr()))
+	*ptrFlag = *ptrFlag &^ flagRO
+	return v
 }
 
-// IsErrorType returns whether `t` is error type.
-func IsErrorType(t reflect.Type) bool {
-	return t == errorType || t.Implements(errorType)
-}
-
-// IsConverter returns whether `t` is a converter type.
-func IsConverter(t reflect.Type) bool {
-	return IsFuncType(t) &&
-		t.NumIn() == 1 &&
-		t.In(0).Kind() == reflect.String &&
-		t.NumOut() == 2 &&
-		(IsValueType(t.Out(0)) || IsFuncType(t.Out(0))) && IsErrorType(t.Out(1))
-}
-
-// IsValueType returns whether the input type is the primitive value type and their
-// composite type including array, slice, map and struct, such as []int, [3]string,
-// []string, map[int]int, map[string]string, etc.
-func IsValueType(t reflect.Type) bool {
-	fn := func(t reflect.Type) bool {
-		return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct
+// Indirect returns its element type when t is a pointer type.
+func Indirect(t reflect.Type) reflect.Type {
+	if t.Kind() != reflect.Ptr {
+		return t
 	}
-	switch t.Kind() {
-	case reflect.Map, reflect.Slice, reflect.Array:
-		return fn(t.Elem())
-	default:
-		return fn(t)
-	}
+	return t.Elem()
 }
 
-// IsPrimitiveValueType returns whether `t` is the primitive value type which only is
-// int, unit, float, bool, string and complex.
-func IsPrimitiveValueType(t reflect.Type) bool {
-	switch t.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return true
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return true
-	case reflect.Float32, reflect.Float64:
-		return true
-	case reflect.String:
-		return true
-	case reflect.Bool:
-		return true
-	default:
-		return false
+// FileLine returns a function's name, file name and line number.
+func FileLine(fn interface{}) (file string, line int, fnName string) {
+
+	fnPtr := reflect.ValueOf(fn).Pointer()
+	fnInfo := runtime.FuncForPC(fnPtr)
+	file, line = fnInfo.FileLine(fnPtr)
+
+	s := fnInfo.Name()
+	if ss := strings.Split(s, "/"); len(ss) > 0 {
+		s = ss[len(ss)-1]
+		i := strings.Index(s, ".")
+		s = s[i+1:]
 	}
+
+	// method values are printed as "T.m-fm"
+	s = strings.TrimRight(s, "-fm")
+	return file, line, s
 }

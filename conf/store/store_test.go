@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf/store"
-	"github.com/stretchr/testify/assert"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestStorage(t *testing.T) {

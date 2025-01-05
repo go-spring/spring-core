@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf/store"
-	"github.com/stretchr/testify/assert"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestSplitPath(t *testing.T) {

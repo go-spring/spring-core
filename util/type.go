@@ -14,94 +14,183 @@
  * limitations under the License.
  */
 
+//go:generate mockgen -build_flags="-mod=mod" -package=util -source=type.go -destination=type_mock.go
+
 package util
 
 import (
-	"container/list"
-	"errors"
+	"context"
 	"reflect"
-	"unsafe"
+	"strings"
 )
 
-const (
-	flagStickyRO = 1 << 5
-	flagEmbedRO  = 1 << 6
-	flagRO       = flagStickyRO | flagEmbedRO
-)
+// errorType the reflection type of error.
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-// PatchValue makes an unexported field can be assignable.
-func PatchValue(v reflect.Value) reflect.Value {
-	rv := reflect.ValueOf(&v)
-	flag := rv.Elem().FieldByName("flag")
-	ptrFlag := (*uintptr)(unsafe.Pointer(flag.UnsafeAddr()))
-	*ptrFlag = *ptrFlag &^ flagRO
-	return v
-}
+// contextType the reflection type of context.Context.
+var contextType = reflect.TypeOf((*context.Context)(nil)).Elem()
 
-// GetBeforeItems 获取 sorting 中排在 current 前面的元素
-type GetBeforeItems func(sorting *list.List, current interface{}) *list.List
+// TypeName returns a fully qualified name consisting of package path and type name.
+func TypeName(i interface{}) string {
 
-// TripleSort 三路排序
-func TripleSort(sorting *list.List, fn GetBeforeItems) *list.List {
-
-	toSort := list.New()     // 待排序列表
-	sorted := list.New()     // 已排序列表
-	processing := list.New() // 正在处理列表
-
-	toSort.PushBackList(sorting)
-
-	for toSort.Len() > 0 { // 递归选出依赖链条最前端的元素
-		tripleSortByAfter(sorting, toSort, sorted, processing, nil, fn)
-	}
-	return sorted
-}
-
-// searchInList 在列表中查询指定元素，存在则返回列表项指针，不存在返回 nil。
-func searchInList(l *list.List, v interface{}) *list.Element {
-	for e := l.Front(); e != nil; e = e.Next() {
-		if e.Value == v {
-			return e
-		}
-	}
-	return nil
-}
-
-// tripleSortByAfter 递归选出依赖链条最前端的元素
-func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
-	processing *list.List, current interface{}, fn GetBeforeItems) {
-
-	if current == nil {
-		current = toSort.Remove(toSort.Front())
+	var typ reflect.Type
+	switch o := i.(type) {
+	case reflect.Type:
+		typ = o
+	case reflect.Value:
+		typ = o.Type()
+	default:
+		typ = reflect.TypeOf(o)
 	}
 
-	// 将当前元素标记为正在处理
-	processing.PushBack(current)
-
-	// 获取排在当前元素前面的列表项，然后依次对它们进行排序
-	for e := fn(sorting, current).Front(); e != nil; e = e.Next() {
-		c := e.Value
-
-		// 自己不可能是自己前面的元素，除非出现了循环依赖，因此抛出 Panic
-		if searchInList(processing, c) != nil {
-			panic(errors.New("found sorting cycle"))
-		}
-
-		inSorted := searchInList(sorted, c) != nil
-		inToSort := searchInList(toSort, c) != nil
-
-		if !inSorted && inToSort { // 如果是待排元素则对其进行排序
-			tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
+	for {
+		if k := typ.Kind(); k == reflect.Ptr || k == reflect.Slice {
+			typ = typ.Elem()
+		} else {
+			break
 		}
 	}
 
-	if e := searchInList(processing, current); e != nil {
-		processing.Remove(e)
+	if pkgPath := typ.PkgPath(); pkgPath != "" {
+		pkgPath = strings.TrimSuffix(pkgPath, "_test")
+		return pkgPath + "/" + typ.String()
 	}
+	return typ.String() // the path of built-in type is empty
+}
 
-	if e := searchInList(toSort, current); e != nil {
-		toSort.Remove(e)
+// A BeanSelector can be the ID of a bean, a `reflect.Type`, a pointer such as
+// `(*error)(nil)`, or a BeanDefinition value.
+type BeanSelector interface{}
+
+// A BeanDefinition describes a bean whose lifecycle is managed by IoC container.
+type BeanDefinition interface {
+	Type() reflect.Type
+	Value() reflect.Value
+	Interface() interface{}
+	ID() string
+	BeanName() string
+	TypeName() string
+	Created() bool
+	Wired() bool
+}
+
+// Converter converts string value into user-defined value. It should be function
+// type, and its prototype is func(string)(type,error).
+type Converter interface{}
+
+// IsConverter returns whether `t` is a converter type.
+func IsConverter(t reflect.Type) bool {
+	return IsFuncType(t) &&
+		t.NumIn() == 1 &&
+		t.In(0).Kind() == reflect.String &&
+		t.NumOut() == 2 &&
+		(IsValueType(t.Out(0)) || IsFuncType(t.Out(0))) && IsErrorType(t.Out(1))
+}
+
+// IsFuncType returns whether `t` is func type.
+func IsFuncType(t reflect.Type) bool {
+	return t.Kind() == reflect.Func
+}
+
+// IsErrorType returns whether `t` is error type.
+func IsErrorType(t reflect.Type) bool {
+	return t == errorType || t.Implements(errorType)
+}
+
+// IsContextType returns whether `t` is context.Context type.
+func IsContextType(t reflect.Type) bool {
+	return t == contextType || t.Implements(contextType)
+}
+
+// ReturnNothing returns whether the function has no return value.
+func ReturnNothing(t reflect.Type) bool {
+	return t.NumOut() == 0
+}
+
+// ReturnOnlyError returns whether the function returns only error value.
+func ReturnOnlyError(t reflect.Type) bool {
+	return t.NumOut() == 1 && IsErrorType(t.Out(0))
+}
+
+// IsStructPtr returns whether it is the pointer type of structure.
+func IsStructPtr(t reflect.Type) bool {
+	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
+}
+
+// IsConstructor returns whether `t` is a constructor type. What is a constructor?
+// It should be a function first, has any number of inputs and supports the option
+// pattern input, has one or two outputs and the second output should be an error.
+func IsConstructor(t reflect.Type) bool {
+	returnError := t.NumOut() == 2 && IsErrorType(t.Out(1))
+	return IsFuncType(t) && (t.NumOut() == 1 || returnError)
+}
+
+// HasReceiver returns whether the function has a receiver.
+func HasReceiver(t reflect.Type, receiver reflect.Value) bool {
+	if t.NumIn() < 1 {
+		return false
 	}
+	t0 := t.In(0)
+	if t0.Kind() != reflect.Interface {
+		return t0 == receiver.Type()
+	}
+	return receiver.Type().Implements(t0)
+}
 
-	// 将当前元素标记为已完成
-	sorted.PushBack(current)
+// IsPrimitiveValueType returns whether `t` is the primitive value type which only is
+// int, unit, float, bool, string and complex.
+func IsPrimitiveValueType(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return true
+	case reflect.Complex64, reflect.Complex128:
+		return true
+	case reflect.Float32, reflect.Float64:
+		return true
+	case reflect.String:
+		return true
+	case reflect.Bool:
+		return true
+	}
+	return false
+}
+
+// IsValueType returns whether the input type is the primitive value type and their
+// composite type including array, slice, map and struct, such as []int, [3]string,
+// []string, map[int]int, map[string]string, etc.
+func IsValueType(t reflect.Type) bool {
+	fn := func(t reflect.Type) bool {
+		return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct
+	}
+	switch t.Kind() {
+	case reflect.Map, reflect.Slice, reflect.Array:
+		return fn(t.Elem())
+	default:
+		return fn(t)
+	}
+}
+
+// IsBeanType returns whether `t` is a bean type.
+func IsBeanType(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface:
+		return true
+	case reflect.Ptr:
+		return t.Elem().Kind() == reflect.Struct
+	default:
+		return false
+	}
+}
+
+// IsBeanReceiver returns whether the `t` is a bean receiver, a bean receiver can
+// be a bean, a map or slice whose elements are beans.
+func IsBeanReceiver(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Map, reflect.Slice, reflect.Array:
+		return IsBeanType(t.Elem())
+	default:
+		return IsBeanType(t)
+	}
 }

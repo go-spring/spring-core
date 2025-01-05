@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf/reader/prop"
-	"github.com/stretchr/testify/assert"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestRead(t *testing.T) {

@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/util/assert"
 	"github.com/spf13/cast"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestProperties_Load(t *testing.T) {
