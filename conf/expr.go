@@ -22,11 +22,11 @@ import (
 	"github.com/expr-lang/expr"
 )
 
-type ValidateFunc interface{}
+type ValidateFunc[T interface{}] func(T) bool
 
 var validateFuncs = map[string]interface{}{}
 
-func RegisterValidateFunc(name string, fn ValidateFunc) {
+func RegisterValidateFunc[T interface{}](name string, fn ValidateFunc[T]) {
 	validateFuncs[name] = fn
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/gs/sysconf"
 )
 
 const (
@@ -160,4 +161,11 @@ func printBanner() {
 		}
 	}
 	fmt.Println(string(padding) + Version + "\n")
+}
+
+/********************************** utility **********************************/
+
+func AllowCircularReferences(allow bool) {
+	err := sysconf.Set("spring.allow-circular-references", allow)
+	_ = err // ignore error
 }

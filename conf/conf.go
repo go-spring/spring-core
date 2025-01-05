@@ -30,6 +30,7 @@ import (
 	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
 	"github.com/go-spring/spring-core/conf/store"
+	"github.com/go-spring/spring-core/util"
 	"github.com/spf13/cast"
 )
 
@@ -179,7 +180,7 @@ func (p *Properties) Bytes(b []byte, ext string) error {
 
 // Merge flattens the map and sets all keys and values.
 func (p *Properties) Merge(m map[string]interface{}) error {
-	s := FlattenMap(m)
+	s := util.FlattenMap(m)
 	return p.merge(s)
 }
 
@@ -252,7 +253,7 @@ func (p *Properties) Set(key string, val interface{}) error {
 		return errors.New("key is empty")
 	}
 	m := make(map[string]string)
-	FlattenValue(key, val, m)
+	util.FlattenValue(key, val, m)
 	return p.merge(m)
 }
 
