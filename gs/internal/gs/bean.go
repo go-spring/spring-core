@@ -24,6 +24,28 @@ const (
 	Wired                        // 注入完成
 )
 
+// GetStatusString 获取 bean 状态的字符串表示。
+func GetStatusString(status BeanStatus) string {
+	switch status {
+	case Deleted:
+		return "Deleted"
+	case Default:
+		return "Default"
+	case Resolving:
+		return "Resolving"
+	case Resolved:
+		return "Resolved"
+	case Creating:
+		return "Creating"
+	case Created:
+		return "Created"
+	case Wired:
+		return "Wired"
+	default:
+		return ""
+	}
+}
+
 // BeanRegistration bean 注册数据。
 type BeanRegistration struct {
 	f       Callable       // 构造函数

@@ -27,12 +27,14 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -148,7 +150,7 @@ func (c *Container) Refresh() (err error) {
 	}
 	c.state = RefreshInit
 
-	// start := time.Now()
+	start := time.Now()
 
 	// 处理 group 逻辑
 	for _, fn := range c.groupFuncs {
@@ -204,12 +206,12 @@ func (c *Container) Refresh() (err error) {
 
 	stack := newWiringStack()
 
-	// defer func() {
-	// 	if err != nil || len(stack.beans) > 0 {
-	// 		err = fmt.Errorf("%s ↩\n%s", err, stack.path())
-	// 		c.logger.Error(err)
-	// 	}
-	// }()
+	defer func() {
+		if err != nil || len(stack.beans) > 0 {
+			err = fmt.Errorf("%s ↩\n%s", err, stack.path())
+			syslog.Error("%s", err.Error())
+		}
+	}()
 
 	// 按照 bean id 升序注入，保证注入过程始终一致。
 	{
@@ -246,9 +248,9 @@ func (c *Container) Refresh() (err error) {
 	c.destroyers = stack.sortDestroyers()
 	c.state = Refreshed
 
-	// cost := time.Now().Sub(start)
-	// c.logger.Infof("refresh %d beans cost %v", len(beansById), cost)
-	// c.logger.Info("Container refreshed successfully")
+	cost := time.Now().Sub(start)
+	syslog.Info("refresh %d beans cost %v", len(beansById), cost)
+	syslog.Info("refreshed successfully")
 	return nil
 }
 
@@ -349,11 +351,11 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 }
 
 func (c *Container) registerBean(b *gs.BeanDefinition) {
-	// c.logger.Debugf("register %s name:%q type:%q %s", b.getClass(), b.BeanName(), b.Type(), b.FileLine())
+	syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.BeanName(), b.Type(), b.FileLine())
 	c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 	for _, t := range b.GetExports() {
-		// c.logger.Debugf("register %s name:%q type:%q %s", b.getClass(), b.BeanName(), t, b.FileLine())
+		syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.BeanName(), t, b.FileLine())
 		c.beansByType[t] = append(c.beansByType[t], b)
 	}
 }
@@ -484,7 +486,7 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 
 	defer func() {
 		if len(stack.beans) > 0 {
-			// c.logger.Infof("wiring path %s", stack.path())
+			syslog.Info("wiring path %s", stack.path())
 		}
 	}()
 
@@ -506,11 +508,11 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 
 	stack := newWiringStack()
 
-	// defer func() {
-	// 	if len(stack.beans) > 0 {
-	// 		c.logger.Infof("wiring path %s", stack.path())
-	// 	}
-	// }()
+	defer func() {
+		if len(stack.beans) > 0 {
+			syslog.Info("wiring path %s", stack.path())
+		}
+	}()
 
 	b := NewBean(objOrCtor, ctorArgs...)
 	err := c.wireBean(b, stack)
@@ -529,11 +531,11 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 
 	stack := newWiringStack()
 
-	// defer func() {
-	// 	if len(stack.beans) > 0 {
-	// 		c.logger.Infof("wiring path %s", stack.path())
-	// 	}
-	// }()
+	defer func() {
+		if len(stack.beans) > 0 {
+			syslog.Info("wiring path %s", stack.path())
+		}
+	}()
 
 	r, err := gs_arg.Bind(fn, args, 1)
 	if err != nil {
@@ -560,7 +562,7 @@ func (c *Container) Go(fn func(ctx context.Context)) {
 		defer c.wg.Done()
 		defer func() {
 			if r := recover(); r != nil {
-				// c.logger.Panic(r)
+				syslog.Error("%v", r)
 			}
 		}()
 		fn(c.ctx)
@@ -574,11 +576,11 @@ func (c *Container) Close() {
 	c.cancel()
 	c.wg.Wait()
 
-	// c.logger.Info("goroutines exited")
+	syslog.Info("goroutines exited")
 
 	for _, f := range c.destroyers {
 		f()
 	}
 
-	// c.logger.Info("Container closed")
+	syslog.Info("container closed")
 }

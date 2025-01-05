@@ -26,6 +26,7 @@ import (
 	"runtime"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/macro"
 )
@@ -197,15 +198,15 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 		tag string
 	)
 
-	// description := fmt.Sprintf("arg:\"%v\" %s", arg, fileLine)
-	// r.logger.Tracef("get value %s", description)
-	// defer func() {
-	// 	if err == nil {
-	// 		r.logger.Tracef("get value success %s", description)
-	// 	} else {
-	// 		r.logger.Tracef("get value error %s %s", err.Error(), description)
-	// 	}
-	// }()
+	description := fmt.Sprintf("arg:\"%v\" %s", arg, fileLine)
+	syslog.Debug("get value %s", description)
+	defer func() {
+		if err == nil {
+			syslog.Debug("get value success %s", description)
+		} else {
+			syslog.Debug("get value error %s %s", err.Error(), description)
+		}
+	}()
 
 	switch g := arg.(type) {
 	case *Callable:
@@ -298,14 +299,14 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 		err error
 	)
 
-	// arg.logger.Tracef("call option func %s", arg.r.fileLine)
-	// defer func() {
-	// 	if err == nil {
-	// 		arg.logger.Tracef("call option func success %s", arg.r.fileLine)
-	// 	} else {
-	// 		arg.logger.Tracef("call option func error %s %s", err.Error(), arg.r.fileLine)
-	// 	}
-	// }()
+	syslog.Debug("call option func %s", arg.r.fileLine)
+	defer func() {
+		if err == nil {
+			syslog.Debug("call option func success %s", arg.r.fileLine)
+		} else {
+			syslog.Debug("call option func error %s %s", err.Error(), arg.r.fileLine)
+		}
+	}()
 
 	if arg.c != nil {
 		ok, err = ctx.Matches(arg.c)

@@ -12,6 +12,7 @@ import (
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -78,16 +79,16 @@ func newWiringStack() *wiringStack {
 
 // pushBack 添加一个即将注入的 bean 。
 func (s *wiringStack) pushBack(b *gs.BeanDefinition) {
-	// s.logger.Tracef("push %s %s", b, getStatusString(b.status))
+	syslog.Debug("push %s %s", b, gs.GetStatusString(b.GetStatus()))
 	s.beans = append(s.beans, b)
 }
 
 // popBack 删除一个已经注入的 bean 。
 func (s *wiringStack) popBack() {
 	n := len(s.beans)
-	// b := s.beans[n-1]
+	b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
-	// s.logger.Tracef("pop %s %s", b, getStatusString(b.status))
+	syslog.Debug("pop %s %s", b, gs.GetStatusString(b.GetStatus()))
 }
 
 // path 返回 bean 的注入路径。
@@ -119,7 +120,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 				fnValue := reflect.ValueOf(fn)
 				out := fnValue.Call([]reflect.Value{v})
 				if len(out) > 0 && !out[0].IsNil() {
-					// s.logger.Error(out[0].Interface().(error))
+					syslog.Error(out[0].Interface().(error).Error())
 				}
 			}
 		}
@@ -437,7 +438,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 			}
 			if !found {
 				foundBeans = append(foundBeans, b)
-				// c.logger.Warnf("you should call Export() on %s", b)
+				syslog.Warn("you should call Export() on %s", b)
 			}
 		}
 	}

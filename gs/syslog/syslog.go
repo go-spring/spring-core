@@ -23,7 +23,7 @@ import (
 )
 
 func init() {
-	slog.Default().Enabled(context.Background(), slog.LevelInfo)
+	slog.SetLogLoggerLevel(slog.LevelInfo)
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 }
 
