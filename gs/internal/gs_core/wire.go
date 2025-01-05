@@ -219,7 +219,7 @@ func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
 	case *gs.BeanDefinition:
 		return parseWireTag(s.ID()), nil
 	default:
-		return parseWireTag(gs.TypeName(s) + ":"), nil
+		return parseWireTag(util.TypeName(s) + ":"), nil
 	}
 }
 
@@ -283,7 +283,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	}
 
 	et := t.Elem()
-	if !gs.IsBeanReceiver(et) {
+	if !util.IsBeanReceiver(et) {
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
@@ -400,7 +400,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	}
 
 	t := v.Type()
-	if !gs.IsBeanReceiver(t) {
+	if !util.IsBeanReceiver(t) {
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
@@ -635,7 +635,7 @@ func (c *Container) getBeanValue(b *gs.BeanDefinition, stack *wiringStack) (refl
 	}
 
 	// 构造函数的返回值为值类型时 b.Type() 返回其指针类型。
-	if val := out[0]; gs.IsBeanType(val.Type()) {
+	if val := out[0]; util.IsBeanType(val.Type()) {
 		// 如果实现接口的是值类型，那么需要转换成指针类型然后再赋值给接口。
 		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsValueType(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())

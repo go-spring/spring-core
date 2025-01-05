@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/dync"
+	"github.com/go-spring/spring-core/util"
 )
 
 var refreshableType = reflect.TypeFor[dync.Refreshable]()
@@ -232,13 +233,13 @@ func (d *BeanDefinition) Primary() *BeanDefinition {
 // validLifeCycleFunc 判断是否是合法的用于 bean 生命周期控制的函数，生命周期函数
 // 的要求：只能有一个入参并且必须是 bean 的类型，没有返回值或者只返回 error 类型值。
 func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
-	if !IsFuncType(fnType) {
+	if !util.IsFuncType(fnType) {
 		return false
 	}
-	if fnType.NumIn() != 1 || !HasReceiver(fnType, beanValue) {
+	if fnType.NumIn() != 1 || !util.HasReceiver(fnType, beanValue) {
 		return false
 	}
-	return ReturnNothing(fnType) || ReturnOnlyError(fnType)
+	return util.ReturnNothing(fnType) || util.ReturnOnlyError(fnType)
 }
 
 // Init 设置 bean 的初始化函数。
@@ -318,7 +319,7 @@ func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bo
 		t:        t,
 		v:        v,
 		name:     name,
-		typeName: TypeName(t),
+		typeName: util.TypeName(t),
 		r: &BeanRegistration{
 			f:      f,
 			status: Default,

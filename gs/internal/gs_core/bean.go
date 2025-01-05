@@ -45,7 +45,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	}
 
 	t := v.Type()
-	if !gs.IsBeanType(t) {
+	if !util.IsBeanType(t) {
 		panic(errors.New("bean must be ref type"))
 	}
 
@@ -60,7 +60,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
 	if !fromValue && t.Kind() == reflect.Func {
 
-		if !gs.IsConstructor(t) {
+		if !util.IsConstructor(t) {
 			t1 := "func(...)bean"
 			t2 := "func(...)(bean, error)"
 			panic(fmt.Errorf("constructor should be %s or %s", t1, t2))
@@ -74,12 +74,12 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 		out0 := t.Out(0)
 		v = reflect.New(out0)
-		if gs.IsBeanType(out0) {
+		if util.IsBeanType(out0) {
 			v = v.Elem()
 		}
 
 		t = v.Type()
-		if !gs.IsBeanType(t) {
+		if !util.IsBeanType(t) {
 			panic(errors.New("bean must be ref type"))
 		}
 

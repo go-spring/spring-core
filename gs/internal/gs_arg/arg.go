@@ -228,7 +228,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	case string:
 		tag = g
 	default:
-		tag = gs.TypeName(g) + ":"
+		tag = util.TypeName(g) + ":"
 	}
 
 	// binds properties value by the "value" tag.
@@ -244,7 +244,7 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	}
 
 	// wires dependent beans by the "autowire" tag.
-	if gs.IsBeanReceiver(t) {
+	if util.IsBeanReceiver(t) {
 		v := reflect.New(t).Elem()
 		if err = ctx.Wire(v, tag); err != nil {
 			return reflect.Value{}, err
@@ -383,7 +383,7 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 	}
 
 	o := out[n-1]
-	if gs.IsErrorType(o.Type()) {
+	if util.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
 			return out[:n-1], i.(error)
 		}

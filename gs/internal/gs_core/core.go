@@ -33,6 +33,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/util"
 )
 
 type BeanInit interface {
@@ -334,7 +335,7 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 					return nil, err
 				}
 				v := reflect.New(out0)
-				if gs.IsBeanType(out0) {
+				if util.IsBeanType(out0) {
 					v = v.Elem()
 				}
 				name := bd.GetName() + "_" + m.Name
@@ -522,7 +523,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 // Invoke 调用函数，函数的参数会自动注入，函数的返回值也会自动注入。
 func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 
-	if !gs.IsFuncType(reflect.TypeOf(fn)) {
+	if !util.IsFuncType(reflect.TypeOf(fn)) {
 		return nil, errors.New("fn should be func type")
 	}
 
