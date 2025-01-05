@@ -319,3 +319,93 @@ func TestImplements(t *testing.T) {
 		assert.Implements(g, new(int), (*io.Reader)(nil))
 	})
 }
+
+func TestInSlice(t *testing.T) {
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"unsupported expect value (string) 1"})
+		assert.InSlice(g, 1, "1")
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got (int) 1 is not in ([]string) [1]"})
+		assert.InSlice(g, 1, []string{"1"})
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got (int64) 1 is not in ([]int64) [3 2]"})
+		assert.InSlice(g, int64(1), []int64{3, 2})
+	})
+	runCase(t, func(g *assert.MockT) {
+		assert.InSlice(g, int64(1), []int64{3, 2, 1})
+		assert.InSlice(g, "1", []string{"3", "2", "1"})
+	})
+}
+
+func TestNotInSlice(t *testing.T) {
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"unsupported expect value (string) 1"})
+		assert.NotInSlice(g, 1, "1")
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got type (int) doesn't match expect type ([]string)"})
+		assert.NotInSlice(g, 1, []string{"1"})
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got (string) 1 is in ([]string) [3 2 1]"})
+		assert.NotInSlice(g, "1", []string{"3", "2", "1"})
+	})
+	runCase(t, func(g *assert.MockT) {
+		assert.NotInSlice(g, int64(1), []int64{3, 2})
+	})
+}
+
+func TestSubInSlice(t *testing.T) {
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"unsupported got value (int) 1"})
+		assert.SubInSlice(g, 1, "1")
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"unsupported expect value (string) 1"})
+		assert.SubInSlice(g, []int{1}, "1")
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got ([]int) [1] is not sub in ([]string) [1]"})
+		assert.SubInSlice(g, []int{1}, []string{"1"})
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got ([]int) [1] is not sub in ([]int) [3 2]"})
+		assert.SubInSlice(g, []int{1}, []int{3, 2})
+	})
+	runCase(t, func(g *assert.MockT) {
+		assert.SubInSlice(g, []int{1}, []int{3, 2, 1})
+		assert.SubInSlice(g, []string{"1"}, []string{"3", "2", "1"})
+	})
+}
+
+func TestInMapKeys(t *testing.T) {
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"unsupported expect value (string) 1"})
+		assert.InMapKeys(g, 1, "1")
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got (int) 1 is not in keys of (map[string]string) map[1:1]"})
+		assert.InMapKeys(g, 1, map[string]string{"1": "1"})
+	})
+	runCase(t, func(g *assert.MockT) {
+		assert.InMapKeys(g, int64(1), map[int64]int64{3: 1, 2: 2, 1: 3})
+		assert.InMapKeys(g, "1", map[string]string{"3": "1", "2": "2", "1": "3"})
+	})
+}
+
+func TestInMapValues(t *testing.T) {
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"unsupported expect value (string) 1"})
+		assert.InMapValues(g, 1, "1")
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got (int) 1 is not in values of (map[string]string) map[1:1]"})
+		assert.InMapValues(g, 1, map[string]string{"1": "1"})
+	})
+	runCase(t, func(g *assert.MockT) {
+		assert.InMapValues(g, int64(1), map[int64]int64{3: 1, 2: 2, 1: 3})
+		assert.InMapValues(g, "1", map[string]string{"3": "1", "2": "2", "1": "3"})
+	})
+}

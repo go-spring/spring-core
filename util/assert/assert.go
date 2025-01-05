@@ -229,3 +229,123 @@ func Implements(t T, got interface{}, expect interface{}, msg ...string) {
 		fail(t, str, msg...)
 	}
 }
+
+// InSlice assertion failed when got is not in expect array & slice.
+func InSlice(t T, got interface{}, expect interface{}, msg ...string) {
+	t.Helper()
+
+	v := reflect.ValueOf(expect)
+	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
+		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
+		fail(t, str, msg...)
+		return
+	}
+
+	for i := 0; i < v.Len(); i++ {
+		if reflect.DeepEqual(got, v.Index(i).Interface()) {
+			return
+		}
+	}
+
+	str := fmt.Sprintf("got (%T) %v is not in (%T) %v", got, got, expect, expect)
+	fail(t, str, msg...)
+}
+
+// NotInSlice assertion failed when got is in expect array & slice.
+func NotInSlice(t T, got interface{}, expect interface{}, msg ...string) {
+	t.Helper()
+
+	v := reflect.ValueOf(expect)
+	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
+		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
+		fail(t, str, msg...)
+		return
+	}
+
+	e := reflect.TypeOf(got)
+	if e != v.Type().Elem() {
+		str := fmt.Sprintf("got type (%s) doesn't match expect type (%s)", e, v.Type())
+		fail(t, str, msg...)
+		return
+	}
+
+	for i := 0; i < v.Len(); i++ {
+		if reflect.DeepEqual(got, v.Index(i).Interface()) {
+			str := fmt.Sprintf("got (%T) %v is in (%T) %v", got, got, expect, expect)
+			fail(t, str, msg...)
+			return
+		}
+	}
+}
+
+// SubInSlice assertion failed when got is not sub in expect array & slice.
+func SubInSlice(t T, got interface{}, expect interface{}, msg ...string) {
+	t.Helper()
+
+	v1 := reflect.ValueOf(got)
+	if v1.Kind() != reflect.Array && v1.Kind() != reflect.Slice {
+		str := fmt.Sprintf("unsupported got value (%T) %v", got, got)
+		fail(t, str, msg...)
+		return
+	}
+
+	v2 := reflect.ValueOf(expect)
+	if v2.Kind() != reflect.Array && v2.Kind() != reflect.Slice {
+		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
+		fail(t, str, msg...)
+		return
+	}
+
+	for i := 0; i < v1.Len(); i++ {
+		for j := 0; j < v2.Len(); j++ {
+			if reflect.DeepEqual(v1.Index(i).Interface(), v2.Index(j).Interface()) {
+				return
+			}
+		}
+	}
+
+	str := fmt.Sprintf("got (%T) %v is not sub in (%T) %v", got, got, expect, expect)
+	fail(t, str, msg...)
+}
+
+// InMapKeys assertion failed when got is not in keys of expect map.
+func InMapKeys(t T, got interface{}, expect interface{}, msg ...string) {
+	t.Helper()
+
+	switch v := reflect.ValueOf(expect); v.Kind() {
+	case reflect.Map:
+		for _, key := range v.MapKeys() {
+			if reflect.DeepEqual(got, key.Interface()) {
+				return
+			}
+		}
+	default:
+		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
+		fail(t, str, msg...)
+		return
+	}
+
+	str := fmt.Sprintf("got (%T) %v is not in keys of (%T) %v", got, got, expect, expect)
+	fail(t, str, msg...)
+}
+
+// InMapValues assertion failed when got is not in values of expect map.
+func InMapValues(t T, got interface{}, expect interface{}, msg ...string) {
+	t.Helper()
+
+	switch v := reflect.ValueOf(expect); v.Kind() {
+	case reflect.Map:
+		for _, key := range v.MapKeys() {
+			if reflect.DeepEqual(got, v.MapIndex(key).Interface()) {
+				return
+			}
+		}
+	default:
+		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
+		fail(t, str, msg...)
+		return
+	}
+
+	str := fmt.Sprintf("got (%T) %v is not in values of (%T) %v", got, got, expect, expect)
+	fail(t, str, msg...)
+}
