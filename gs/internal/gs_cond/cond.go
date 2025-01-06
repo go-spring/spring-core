@@ -165,43 +165,57 @@ func Group(op Operator, cond ...gs.Condition) gs.Condition {
 	return &group{op: op, cond: cond}
 }
 
-func (g *group) Matches(ctx gs.CondContext) (bool, error) {
-
-	if len(g.cond) == 0 {
-		return false, errors.New("no condition in group")
+func (g *group) matchesOr(ctx gs.CondContext) (bool, error) {
+	for _, c := range g.cond {
+		if ok, err := c.Matches(ctx); err != nil {
+			return false, err
+		} else if ok {
+			return true, nil
+		}
 	}
+	return false, nil
+}
 
+func (g *group) matchesAnd(ctx gs.CondContext) (bool, error) {
+	for _, c := range g.cond {
+		if ok, err := c.Matches(ctx); err != nil {
+			return false, err
+		} else if !ok {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (g *group) matchesNone(ctx gs.CondContext) (bool, error) {
+	for _, c := range g.cond {
+		if ok, err := c.Matches(ctx); err != nil {
+			return false, err
+		} else if ok {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// Matches evaluates the group of conditions based on the specified operator.
+// - If the operator is Or, it returns true if at least one condition is satisfied.
+// - If the operator is And, it returns true if all conditions are satisfied.
+// - If the operator is None, it returns true if none of the conditions are satisfied.
+func (g *group) Matches(ctx gs.CondContext) (bool, error) {
+	if len(g.cond) == 0 {
+		return false, errors.New("no conditions in group")
+	}
 	switch g.op {
 	case Or:
-		for _, c := range g.cond {
-			if ok, err := c.Matches(ctx); err != nil {
-				return false, err
-			} else if ok {
-				return true, nil
-			}
-		}
-		return false, nil
+		return g.matchesOr(ctx)
 	case And:
-		for _, c := range g.cond {
-			if ok, err := c.Matches(ctx); err != nil {
-				return false, err
-			} else if !ok {
-				return false, nil
-			}
-		}
-		return true, nil
+		return g.matchesAnd(ctx)
 	case None:
-		for _, c := range g.cond {
-			if ok, err := c.Matches(ctx); err != nil {
-				return false, err
-			} else if ok {
-				return false, nil
-			}
-		}
-		return true, nil
+		return g.matchesNone(ctx)
+	default:
+		return false, fmt.Errorf("error condition operator %d", g.op)
 	}
-
-	return false, fmt.Errorf("error condition operator %d", g.op)
 }
 
 // node is a Condition implemented by link of Condition(s).

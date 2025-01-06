@@ -16,7 +16,7 @@
 
 //go:generate mockgen -build_flags="-mod=mod" -package=arg -source=arg.go -destination=arg_mock.go
 
-// Package arg 用于实现函数参数绑定。
+// Package gs_arg 用于实现函数参数绑定。
 package gs_arg
 
 import (
@@ -101,8 +101,10 @@ func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
 	}()
 
 	fnArgs := make([]gs.Arg, fixedArgCount)
-
 	if len(args) > 0 {
+		if args[0] == nil {
+			return nil, util.Errorf(macro.FileLine(), "the first arg must not be nil")
+		}
 		switch arg := args[0].(type) {
 		case *OptionArg:
 			fnArgs = append(fnArgs, arg)
@@ -202,9 +204,9 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	syslog.Debug("get value %s", description)
 	defer func() {
 		if err == nil {
-			syslog.Debug("get value success %s", description)
+			syslog.Debug("get value %s success", description)
 		} else {
-			syslog.Debug("get value error %s %s", err.Error(), description)
+			syslog.Debug("get value %s error:%s", err.Error(), description)
 		}
 	}()
 
