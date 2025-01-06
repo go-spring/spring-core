@@ -149,9 +149,9 @@ func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
 type Operator int
 
 const (
-	Or   = Operator(1) // at least one of the conditions must be met.
-	And  = Operator(2) // all conditions must be met.
-	None = Operator(3) // all conditions must be not met.
+	opOr   = Operator(iota) // at least one of the conditions must be met.
+	opAnd                   // all conditions must be met.
+	opNone                  // all conditions must be not met.
 )
 
 // group is a Condition implemented by operation of Condition(s).
@@ -160,9 +160,16 @@ type group struct {
 	cond []gs.Condition
 }
 
-// Group returns a Condition implemented by operation of Condition(s).
-func Group(op Operator, cond ...gs.Condition) gs.Condition {
-	return &group{op: op, cond: cond}
+func Or(cond ...gs.Condition) gs.Condition {
+	return &group{op: opOr, cond: cond}
+}
+
+func And(cond ...gs.Condition) gs.Condition {
+	return &group{op: opAnd, cond: cond}
+}
+
+func None(cond ...gs.Condition) gs.Condition {
+	return &group{op: opNone, cond: cond}
 }
 
 func (g *group) matchesOr(ctx gs.CondContext) (bool, error) {
@@ -207,11 +214,11 @@ func (g *group) Matches(ctx gs.CondContext) (bool, error) {
 		return false, errors.New("no conditions in group")
 	}
 	switch g.op {
-	case Or:
+	case opOr:
 		return g.matchesOr(ctx)
-	case And:
+	case opAnd:
 		return g.matchesAnd(ctx)
-	case None:
+	case opNone:
 		return g.matchesNone(ctx)
 	default:
 		return false, fmt.Errorf("error condition operator %d", g.op)
@@ -243,13 +250,13 @@ func (n *node) Matches(ctx gs.CondContext) (bool, error) {
 	}
 
 	switch n.op {
-	case Or:
+	case opOr:
 		if ok {
 			return ok, nil
 		} else {
 			return n.next.Matches(ctx)
 		}
-	case And:
+	case opAnd:
 		if ok {
 			return n.next.Matches(ctx)
 		} else {
@@ -279,7 +286,7 @@ func (c *Conditional) Matches(ctx gs.CondContext) (bool, error) {
 // Or sets a Or operator.
 func (c *Conditional) Or() *Conditional {
 	n := &node{}
-	c.curr.op = Or
+	c.curr.op = opOr
 	c.curr.next = n
 	c.curr = n
 	return c
@@ -288,7 +295,7 @@ func (c *Conditional) Or() *Conditional {
 // And sets a And operator.
 func (c *Conditional) And() *Conditional {
 	n := &node{}
-	c.curr.op = And
+	c.curr.op = opAnd
 	c.curr.next = n
 	c.curr = n
 	return c
