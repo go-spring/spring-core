@@ -55,6 +55,13 @@ const (
 
 var BeanDefinitionPtrType = reflect.TypeOf((*gs.BeanDefinition)(nil))
 
+type GroupFunc = func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error)
+
+// ContextAware injects the Context into a struct as the field GSContext.
+type ContextAware struct {
+	GSContext gs.Context `autowire:""`
+}
+
 // Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
 // of Control Containers and the Dependency Injection pattern >> 一文中
 // 提及的依赖注入的概念。但原文的依赖注入仅仅是指对象之间的依赖关系处理，而有些 IoC
@@ -66,7 +73,7 @@ type Container struct {
 	beans        []*gs.BeanDefinition
 	beansByName  map[string][]*gs.BeanDefinition
 	beansByType  map[reflect.Type][]*gs.BeanDefinition
-	groupFuncs   []gs.GroupFunc
+	groupFuncs   []GroupFunc
 	p            *dync.Properties
 	ctx          context.Context
 	cancel       context.CancelFunc
@@ -108,7 +115,7 @@ func (c *Container) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
 	return b
 }
 
-func (c *Container) Group(fn gs.GroupFunc) {
+func (c *Container) Group(fn GroupFunc) {
 	c.groupFuncs = append(c.groupFuncs, fn)
 }
 
@@ -252,10 +259,10 @@ func (c *Container) Refresh() (err error) {
 	return nil
 }
 
-// Simplify 清理运行时不需要的空间。
-func (c *Container) Simplify() {
+// SimplifyMemory 清理运行时不需要的空间。
+func (c *Container) SimplifyMemory() {
 	for _, bd := range c.beans {
-		bd.Simplify()
+		bd.SimplifyMemory()
 	}
 	c.beans = nil
 	c.groupFuncs = nil

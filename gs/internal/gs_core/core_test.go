@@ -2881,7 +2881,7 @@ func TestDestroyDependence(t *testing.T) {
 }
 
 type ContextAware struct {
-	gs.ContextAware
+	gs_core.ContextAware
 }
 
 func (c *ContextAware) Echo(str string) string {
@@ -3044,7 +3044,7 @@ func TestConfiguration(t *testing.T) {
 	c := gs_core.New()
 	c.Object(&ConfigurationBean{"123"}).Configuration(nil, []string{"NewBean"}).Name("123")
 	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration(nil, nil).Name("456")
-	ctx := &gs.ContextAware{}
+	ctx := &gs_core.ContextAware{}
 	c.Object(ctx)
 	if err := c.Refresh(); err != nil {
 		t.Fatal(err)

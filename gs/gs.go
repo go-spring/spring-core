@@ -43,7 +43,7 @@ type (
 	CondContext    = gs.CondContext
 	Condition      = gs.Condition
 	Context        = gs.Context
-	ContextAware   = gs.ContextAware
+	ContextAware   = gs_core.ContextAware
 )
 
 /************************************ arg ***********************************/
@@ -195,7 +195,7 @@ func Boot() *gs_app.Boot {
 /*********************************** app *************************************/
 
 type AppConfigAware struct {
-	AppConfig *gs_conf.AppConfig
+	AppConfig *gs_conf.AppConfig `autowire:""`
 }
 
 var app = gs_app.NewApp()

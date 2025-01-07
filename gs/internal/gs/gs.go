@@ -50,16 +50,14 @@ type Callable interface {
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 
-type GroupFunc func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)
-
 type Container interface {
 	Object(i interface{}) *BeanDefinition
 	Provide(ctor interface{}, args ...Arg) *BeanDefinition
 	Accept(b *BeanDefinition) *BeanDefinition
-	Group(fn GroupFunc)
+	Group(fn func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error))
 	RefreshProperties(p conf.ReadOnlyProperties) error
 	Refresh() error
-	Simplify()
+	SimplifyMemory()
 	Close()
 }
 
@@ -73,6 +71,7 @@ type Container interface {
 // App 对象，从而实现使用方式的统一。
 type Context interface {
 	Context() context.Context
+	RefreshProperties(p conf.ReadOnlyProperties) error
 	Keys() []string
 	Has(key string) bool
 	Prop(key string, opts ...conf.GetOption) string
@@ -82,9 +81,4 @@ type Context interface {
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 	Go(fn func(ctx context.Context))
-}
-
-// ContextAware injects the Context into a struct as the field GSContext.
-type ContextAware struct {
-	GSContext Context `autowire:""`
 }

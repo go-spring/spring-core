@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"syscall"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
@@ -80,7 +81,7 @@ func (app *App) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
 	return app.c.Accept(b)
 }
 
-func (app *App) Group(fn gs.GroupFunc) {
+func (app *App) Group(fn func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error)) {
 	app.c.Group(fn)
 }
 
@@ -116,17 +117,19 @@ func (app *App) Start() error {
 		return err
 	}
 
+	ctx := app.c.(gs.Context)
+
 	// 执行命令行启动器
 	for _, r := range app.Runners {
-		r.Run(app.c.(gs.Context))
+		r.Run(ctx)
 	}
 
 	// 通知应用启动事件
 	for _, svr := range app.Servers {
-		svr.OnAppStart(app.c.(gs.Context))
+		svr.OnAppStart(ctx)
 	}
 
-	app.c.Simplify()
+	app.c.SimplifyMemory()
 	return nil
 }
 

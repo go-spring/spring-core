@@ -330,8 +330,8 @@ func (d *BeanDefinition) EnableRefresh(tag string) {
 	}
 }
 
-// Simplify 精简内存
-func (d *BeanDefinition) Simplify() {
+// SimplifyMemory 精简内存
+func (d *BeanDefinition) SimplifyMemory() {
 	d.r = nil
 }
 
