@@ -21,10 +21,12 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/gs/sysconf"
 )
@@ -35,42 +37,42 @@ const (
 )
 
 type (
-	BeanSelector = gs.BeanSelector
-	Condition    = gs.Condition
-	CondContext  = gs.CondContext
-	Arg          = gs.Arg
-	Context      = gs.Context
-	ContextAware = gs.ContextAware
-	GroupFunc    = gs.GroupFunc
+	Arg            = gs.Arg
+	BeanDefinition = gs.BeanDefinition
+	BeanSelector   = gs.BeanSelector
+	CondContext    = gs.CondContext
+	Condition      = gs.Condition
+	Context        = gs.Context
+	ContextAware   = gs.ContextAware
 )
 
 /************************************ arg ***********************************/
 
 // IndexArg returns an IndexArg.
-func IndexArg(n int, arg gs.Arg) gs_arg.IndexArg {
+func IndexArg(n int, arg Arg) gs_arg.IndexArg {
 	return gs_arg.Index(n, arg)
 }
 
 // R0 returns an IndexArg with index 0.
-func R0(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R0(arg) }
+func R0(arg Arg) gs_arg.IndexArg { return gs_arg.R0(arg) }
 
 // R1 returns an IndexArg with index 1.
-func R1(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R1(arg) }
+func R1(arg Arg) gs_arg.IndexArg { return gs_arg.R1(arg) }
 
 // R2 returns an IndexArg with index 2.
-func R2(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R2(arg) }
+func R2(arg Arg) gs_arg.IndexArg { return gs_arg.R2(arg) }
 
 // R3 returns an IndexArg with index 3.
-func R3(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R3(arg) }
+func R3(arg Arg) gs_arg.IndexArg { return gs_arg.R3(arg) }
 
 // R4 returns an IndexArg with index 4.
-func R4(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R4(arg) }
+func R4(arg Arg) gs_arg.IndexArg { return gs_arg.R4(arg) }
 
 // R5 returns an IndexArg with index 5.
-func R5(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R5(arg) }
+func R5(arg Arg) gs_arg.IndexArg { return gs_arg.R5(arg) }
 
 // R6 returns an IndexArg with index 6.
-func R6(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R6(arg) }
+func R6(arg Arg) gs_arg.IndexArg { return gs_arg.R6(arg) }
 
 // NilArg return a ValueArg with a value of nil.
 func NilArg() gs_arg.ValueArg {
@@ -83,16 +85,16 @@ func ValueArg(v interface{}) gs_arg.ValueArg {
 }
 
 // OptionArg 返回 Option 函数的参数绑定。
-func OptionArg(fn interface{}, args ...gs.Arg) *gs_arg.OptionArg {
+func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
 	return gs_arg.Option(fn, args...)
 }
 
 // MustBindArg 为 Option 方法绑定运行时参数。
-func MustBindArg(fn interface{}, args ...gs.Arg) *gs_arg.Callable {
-	return gs_arg.Provide(fn, args...)
+func MustBindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
+	return gs_arg.MustBind(fn, args...)
 }
 
-func BindArg(fn interface{}, args []gs.Arg, skip int) (*gs_arg.Callable, error) {
+func BindArg(fn interface{}, args []Arg, skip int) (*gs_arg.Callable, error) {
 	return gs_arg.Bind(fn, args, skip)
 }
 
@@ -104,27 +106,27 @@ type (
 )
 
 // OK returns a Condition that always returns true.
-func OK() gs.Condition {
+func OK() Condition {
 	return gs_cond.OK()
 }
 
 // Not returns a Condition that returns true when the given Condition returns false.
-func Not(c gs.Condition) gs.Condition {
+func Not(c Condition) Condition {
 	return gs_cond.Not(c)
 }
 
 // Or returns a Condition that returns true when any of the given Conditions returns true.
-func Or(cond ...gs.Condition) gs.Condition {
+func Or(cond ...Condition) Condition {
 	return gs_cond.Or(cond...)
 }
 
 // And returns a Condition that returns true when all the given Conditions return true.
-func And(cond ...gs.Condition) gs.Condition {
+func And(cond ...Condition) Condition {
 	return gs_cond.And(cond...)
 }
 
 // None returns a Condition that returns true when none of the given Conditions returns true.
-func None(cond ...gs.Condition) gs.Condition {
+func None(cond ...Condition) Condition {
 	return gs_cond.None(cond...)
 }
 
@@ -144,15 +146,15 @@ func OnMissingProperty(name string) *Conditional {
 	return gs_cond.OnMissingProperty(name)
 }
 
-func OnBean(selector gs.BeanSelector) *Conditional {
+func OnBean(selector BeanSelector) *Conditional {
 	return gs_cond.OnBean(selector)
 }
 
-func OnMissingBean(selector gs.BeanSelector) *Conditional {
+func OnMissingBean(selector BeanSelector) *Conditional {
 	return gs_cond.OnMissingBean(selector)
 }
 
-func OnSingleBean(selector gs.BeanSelector) *Conditional {
+func OnSingleBean(selector BeanSelector) *Conditional {
 	return gs_cond.OnSingleBean(selector)
 }
 
@@ -160,7 +162,7 @@ func OnExpression(expression string) *Conditional {
 	return gs_cond.OnExpression(expression)
 }
 
-func OnMatches(fn func(ctx gs.CondContext) (bool, error)) *Conditional {
+func OnMatches(fn func(ctx CondContext) (bool, error)) *Conditional {
 	return gs_cond.OnMatches(fn)
 }
 
@@ -192,14 +194,14 @@ func Boot() *gs_app.Boot {
 
 /*********************************** app *************************************/
 
+type AppConfigAware struct {
+	AppConfig *gs_conf.AppConfig
+}
+
 var app = gs_app.NewApp()
 
 // Start 启动程序。
 func Start() error {
-	printBanner()
-	if err := bootRun(); err != nil {
-		return err
-	}
 	return app.Start()
 }
 
@@ -223,21 +225,21 @@ func ShutDown(msg ...string) {
 }
 
 // Object 参考 Container.Object 的解释。
-func Object(i interface{}) *gs.BeanDefinition {
+func Object(i interface{}) *BeanDefinition {
 	return app.Accept(gs_core.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
+func Provide(ctor interface{}, args ...Arg) *BeanDefinition {
 	return app.Accept(gs_core.NewBean(ctor, args...))
 }
 
 // Accept 参考 Container.Accept 的解释。
-func Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
+func Accept(b *BeanDefinition) *BeanDefinition {
 	return app.Accept(b)
 }
 
-func Group(fn GroupFunc) {
+func Group(fn func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)) {
 	app.Group(fn)
 }
 

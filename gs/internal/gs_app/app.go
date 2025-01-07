@@ -51,11 +51,14 @@ type App struct {
 
 // NewApp application 的构造函数
 func NewApp() *App {
-	return &App{
+	app := &App{
 		c:        gs_core.New(),
 		p:        gs_conf.NewAppConfig(),
 		exitChan: make(chan struct{}),
 	}
+	app.Object(app)
+	app.Object(app.p)
+	return app
 }
 
 func (app *App) Config() *gs_conf.AppConfig {

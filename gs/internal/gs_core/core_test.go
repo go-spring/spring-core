@@ -1366,7 +1366,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c.Provide(NewClassRoom,
 			gs_arg.Option(withStudents),
 			gs_arg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"),
-			gs_arg.Option(withBuilder, gs_arg.Provide(func(param string) *ClassBuilder {
+			gs_arg.Option(withBuilder, gs_arg.MustBind(func(param string) *ClassBuilder {
 				return &ClassBuilder{param: param}
 			}, gs_arg.Value("1"))),
 		)

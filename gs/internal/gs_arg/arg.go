@@ -264,15 +264,6 @@ type OptionArg struct {
 	c gs.Condition
 }
 
-// Provide 为 Option 方法绑定运行时参数。
-func Provide(fn interface{}, args ...gs.Arg) *Callable {
-	r, err := Bind(fn, args, 1)
-	if err != nil {
-		panic(err)
-	}
-	return r
-}
-
 // Option 返回 Option 函数的参数绑定。
 func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 
@@ -333,6 +324,15 @@ type Callable struct {
 	fnType   reflect.Type
 	argList  *argList
 	fileLine string
+}
+
+// MustBind 为 Option 方法绑定运行时参数。
+func MustBind(fn interface{}, args ...gs.Arg) *Callable {
+	r, err := Bind(fn, args, 1)
+	if err != nil {
+		panic(err)
+	}
+	return r
 }
 
 // Bind returns a Callable that wrappers a function and its binding arguments.
