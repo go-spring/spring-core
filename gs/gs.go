@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/gs/sysconf"
@@ -43,10 +44,61 @@ type (
 	GroupFunc    = gs.GroupFunc
 )
 
+/************************************ arg ***********************************/
+
+// IndexArg returns an IndexArg.
+func IndexArg(n int, arg gs.Arg) gs_arg.IndexArg {
+	return gs_arg.Index(n, arg)
+}
+
+// R0 returns an IndexArg with index 0.
+func R0(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R0(arg) }
+
+// R1 returns an IndexArg with index 1.
+func R1(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R1(arg) }
+
+// R2 returns an IndexArg with index 2.
+func R2(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R2(arg) }
+
+// R3 returns an IndexArg with index 3.
+func R3(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R3(arg) }
+
+// R4 returns an IndexArg with index 4.
+func R4(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R4(arg) }
+
+// R5 returns an IndexArg with index 5.
+func R5(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R5(arg) }
+
+// R6 returns an IndexArg with index 6.
+func R6(arg gs.Arg) gs_arg.IndexArg { return gs_arg.R6(arg) }
+
+// NilArg return a ValueArg with a value of nil.
+func NilArg() gs_arg.ValueArg {
+	return gs_arg.Nil()
+}
+
+// ValueArg return a ValueArg with a value of v.
+func ValueArg(v interface{}) gs_arg.ValueArg {
+	return gs_arg.Value(v)
+}
+
+// OptionArg 返回 Option 函数的参数绑定。
+func OptionArg(fn interface{}, args ...gs.Arg) *gs_arg.OptionArg {
+	return gs_arg.Option(fn, args...)
+}
+
+// MustBindArg 为 Option 方法绑定运行时参数。
+func MustBindArg(fn interface{}, args ...gs.Arg) *gs_arg.Callable {
+	return gs_arg.Provide(fn, args...)
+}
+
+func BindArg(fn interface{}, args []gs.Arg, skip int) (*gs_arg.Callable, error) {
+	return gs_arg.Bind(fn, args, skip)
+}
+
 /************************************ cond ***********************************/
 
 type (
-	FuncCond       = gs_cond.FuncCond
 	Conditional    = gs_cond.Conditional
 	PropertyOption = gs_cond.PropertyOption
 )
@@ -74,10 +126,6 @@ func And(cond ...gs.Condition) gs.Condition {
 // None returns a Condition that returns true when none of the given Conditions returns true.
 func None(cond ...gs.Condition) gs.Condition {
 	return gs_cond.None(cond...)
-}
-
-func On(cond gs.Condition) *Conditional {
-	return gs_cond.On(cond)
 }
 
 func MatchIfMissing() PropertyOption {
