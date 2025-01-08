@@ -20,14 +20,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/sysconf"
 )
-
-type AtomicProperties = atomic.Pointer[conf.Properties]
 
 /******************************** AppConfig **********************************/
 
@@ -35,7 +32,7 @@ type AtomicProperties = atomic.Pointer[conf.Properties]
 type AppConfig struct {
 	LocalFile   *PropertySources
 	RemoteFile  *PropertySources
-	RemoteProp  AtomicProperties
+	RemoteProp  gs.Properties
 	Environment *Environment
 	CommandArgs *CommandArgs
 }
@@ -90,7 +87,7 @@ func (c *AppConfig) Refresh() (gs.Properties, error) {
 	for _, file := range remoteFiles {
 		sources = append(sources, file)
 	}
-	sources = append(sources, c.RemoteProp.Load())
+	sources = append(sources, c.RemoteProp)
 	sources = append(sources, c.Environment)
 	sources = append(sources, c.CommandArgs)
 
