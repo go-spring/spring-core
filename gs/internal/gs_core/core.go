@@ -437,7 +437,7 @@ func (c *Container) Find(selector gs.BeanSelector) ([]*gs.BeanDefinition, error)
 
 	var t reflect.Type
 	switch st := selector.(type) {
-	case string, gs.BeanDefinition, *gs.BeanDefinition:
+	case string, *gs.BeanDefinition:
 		tag, err := c.toWireTag(selector)
 		if err != nil {
 			return nil, err

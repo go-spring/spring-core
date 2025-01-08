@@ -53,10 +53,8 @@ type beanRegistration struct {
 	init    interface{}    // 初始化函数
 	destroy interface{}    // 销毁函数
 	depends []BeanSelector // 间接依赖项
-	exports []reflect.Type // 导出的接口
 	file    string         // 注册点所在文件
 	line    int            // 注册点所在行数
-	status  BeanStatus     // 状态
 
 	configuration bool     // 是否扫描成员方法
 	includeMethod []string // 包含哪些成员方法
@@ -73,9 +71,11 @@ type BeanDefinition struct {
 	v reflect.Value // 值
 	t reflect.Type  // 类型
 
-	name     string // 名称
-	typeName string // 原始类型的全限定名
-	primary  bool   // 是否为主版本
+	name     string         // 名称
+	typeName string         // 原始类型的全限定名
+	primary  bool           // 是否为主版本
+	exports  []reflect.Type // 导出的接口
+	status   BeanStatus     // 状态
 }
 
 func (d *BeanDefinition) GetName() string {
@@ -87,11 +87,11 @@ func (d *BeanDefinition) GetTypeName() string {
 }
 
 func (d *BeanDefinition) GetStatus() BeanStatus {
-	return d.r.status
+	return d.status
 }
 
 func (d *BeanDefinition) SetStatus(status BeanStatus) {
-	d.r.status = status
+	d.status = status
 }
 
 func (d *BeanDefinition) IsPrimary() bool {
@@ -119,7 +119,7 @@ func (d *BeanDefinition) GetDepends() []BeanSelector {
 }
 
 func (d *BeanDefinition) GetExports() []reflect.Type {
-	return d.r.exports
+	return d.exports
 }
 
 func (d *BeanDefinition) IsConfiguration() bool {
@@ -178,12 +178,12 @@ func (d *BeanDefinition) TypeName() string {
 
 // Created 返回是否已创建。
 func (d *BeanDefinition) Created() bool {
-	return d.r.status >= Created
+	return d.status >= Created
 }
 
 // Wired 返回 bean 是否已经注入。
 func (d *BeanDefinition) Wired() bool {
-	return d.r.status == Wired
+	return d.status == Wired
 }
 
 func (d *BeanDefinition) File() string {
@@ -295,7 +295,7 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 			panic(errors.New("only interface type can be exported"))
 		}
 		exported := false
-		for _, export := range d.r.exports {
+		for _, export := range d.exports {
 			if t == export {
 				exported = true
 				break
@@ -304,7 +304,7 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 		if exported {
 			continue
 		}
-		d.r.exports = append(d.r.exports, t)
+		d.exports = append(d.exports, t)
 	}
 	return d
 }
@@ -342,9 +342,9 @@ func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bo
 		v:        v,
 		name:     name,
 		typeName: util.TypeName(t),
+		status:   Default,
 		r: &beanRegistration{
 			f:      f,
-			status: Default,
 			method: method,
 			file:   file,
 			line:   line,
