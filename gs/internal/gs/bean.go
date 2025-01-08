@@ -6,11 +6,10 @@ import (
 	"reflect"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/util"
 )
 
-var refreshableType = reflect.TypeFor[dync.Refreshable]()
+var refreshableType = reflect.TypeFor[Refreshable]()
 
 type BeanStatus int8
 

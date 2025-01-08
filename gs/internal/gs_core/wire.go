@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
@@ -593,7 +592,7 @@ func (c *Container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
 
 	// 如果 bean 实现了 dync.Refreshable 接口，则将 bean 添加到可刷新对象列表中。
 	if b.IsRefreshEnable() {
-		i := b.Interface().(dync.Refreshable)
+		i := b.Interface().(gs.Refreshable)
 		refreshParam := b.GetRefreshParam()
 		watch := c.state == Refreshing
 		if err = c.p.RefreshBean(i, refreshParam, watch); err != nil {

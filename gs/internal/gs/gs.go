@@ -50,12 +50,28 @@ type Callable interface {
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 
+type Properties interface {
+	Data() map[string]string
+	Keys() []string
+	Has(key string) bool
+	SubKeys(key string) ([]string, error)
+	Get(key string, opts ...conf.GetOption) string
+	Resolve(s string) (string, error)
+	Bind(i interface{}, args ...conf.BindArg) error
+	CopyTo(out *conf.Properties) error
+}
+
+// Refreshable 可动态刷新的对象
+type Refreshable interface {
+	OnRefresh(prop Properties, param conf.BindParam) error
+}
+
 type Container interface {
 	Object(i interface{}) *BeanDefinition
 	Provide(ctor interface{}, args ...Arg) *BeanDefinition
 	Accept(b *BeanDefinition) *BeanDefinition
-	Group(fn func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error))
-	RefreshProperties(p conf.ReadOnlyProperties) error
+	Group(fn func(p Properties) ([]*BeanDefinition, error))
+	RefreshProperties(p Properties) error
 	Refresh() error
 	SimplifyMemory()
 	Close()
@@ -71,7 +87,7 @@ type Container interface {
 // App 对象，从而实现使用方式的统一。
 type Context interface {
 	Context() context.Context
-	RefreshProperties(p conf.ReadOnlyProperties) error
+	RefreshProperties(p Properties) error
 	Keys() []string
 	Has(key string) bool
 	Prop(key string, opts ...conf.GetOption) string

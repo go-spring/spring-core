@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package dync
+package gs_dync
 
 import (
 	"encoding/json"
@@ -26,12 +26,8 @@ import (
 	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 )
-
-// Refreshable 可动态刷新的对象
-type Refreshable interface {
-	OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
-}
 
 // Value 可动态刷新的对象
 type Value[T interface{}] struct {
@@ -44,7 +40,7 @@ func (r *Value[T]) Value() T {
 }
 
 // OnRefresh 实现 Refreshable 接口
-func (r *Value[T]) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (r *Value[T]) OnRefresh(prop gs.Properties, param conf.BindParam) error {
 	var o T
 	v := reflect.ValueOf(&o).Elem()
 	err := conf.BindValue(prop, v, v.Type(), param, nil)
@@ -62,13 +58,13 @@ func (r *Value[T]) MarshalJSON() ([]byte, error) {
 
 // refreshObject 绑定的可刷新对象
 type refreshObject struct {
-	target Refreshable
+	target gs.Refreshable
 	param  conf.BindParam
 }
 
 // Properties 动态属性
 type Properties struct {
-	prop    conf.ReadOnlyProperties
+	prop    gs.Properties
 	lock    sync.RWMutex
 	objects []*refreshObject
 }
@@ -81,7 +77,7 @@ func New() *Properties {
 }
 
 // Data 获取属性列表
-func (p *Properties) Data() conf.ReadOnlyProperties {
+func (p *Properties) Data() gs.Properties {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.prop
@@ -95,7 +91,7 @@ func (p *Properties) ObjectsCount() int {
 }
 
 // Refresh 更新属性列表以及绑定的可刷新对象
-func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) {
+func (p *Properties) Refresh(prop gs.Properties) (err error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -214,13 +210,13 @@ func (p *Properties) safeRefreshObject(f *refreshObject) (err error) {
 }
 
 // RefreshBean 刷新一个 bean 对象，根据 watch 的值决定是否添加监听
-func (p *Properties) RefreshBean(v Refreshable, param conf.BindParam, watch bool) error {
+func (p *Properties) RefreshBean(v gs.Refreshable, param conf.BindParam, watch bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	return p.doRefresh(v, param, watch)
 }
 
-func (p *Properties) doRefresh(v Refreshable, param conf.BindParam, watch bool) error {
+func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch bool) error {
 	if watch {
 		p.objects = append(p.objects, &refreshObject{
 			target: v,
@@ -236,7 +232,7 @@ type filter struct {
 }
 
 func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
-	v, ok := i.(Refreshable)
+	v, ok := i.(gs.Refreshable)
 	if !ok {
 		return false, nil
 	}

@@ -28,10 +28,10 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
 )
@@ -55,7 +55,7 @@ const (
 
 var BeanDefinitionPtrType = reflect.TypeOf((*gs.BeanDefinition)(nil))
 
-type GroupFunc = func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error)
+type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
 
 // ContextAware injects the Context into a struct as the field GSContext.
 type ContextAware struct {
@@ -74,7 +74,7 @@ type Container struct {
 	beansByName  map[string][]*gs.BeanDefinition
 	beansByType  map[reflect.Type][]*gs.BeanDefinition
 	groupFuncs   []GroupFunc
-	p            *dync.Properties
+	p            *gs_dync.Properties
 	ctx          context.Context
 	cancel       context.CancelFunc
 	wg           sync.WaitGroup
@@ -89,7 +89,7 @@ func New() gs.Container {
 	c := &Container{
 		ctx:         ctx,
 		cancel:      cancel,
-		p:           dync.New(),
+		p:           gs_dync.New(),
 		beansByName: make(map[string][]*gs.BeanDefinition),
 		beansByType: make(map[reflect.Type][]*gs.BeanDefinition),
 	}
@@ -144,7 +144,7 @@ func (c *Container) Bind(i interface{}, opts ...conf.BindArg) error {
 	return c.p.Data().Bind(i, opts...)
 }
 
-func (c *Container) RefreshProperties(p conf.ReadOnlyProperties) error {
+func (c *Container) RefreshProperties(p gs.Properties) error {
 	return c.p.Refresh(p)
 }
 

@@ -29,11 +29,11 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/dync"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 	"github.com/go-spring/spring-core/util"
@@ -2903,15 +2903,15 @@ func TestContextAware(t *testing.T) {
 }
 
 type DynamicConfig struct {
-	Int   dync.Value[int64]             `value:"${int:=3}" expr:"$<6"`
-	Float dync.Value[float64]           `value:"${float:=1.2}"`
-	Map   dync.Value[map[string]string] `value:"${map:=}"`
-	Slice dync.Value[[]string]          `value:"${slice:=}"`
+	Int   gs_dync.Value[int64]             `value:"${int:=3}" expr:"$<6"`
+	Float gs_dync.Value[float64]           `value:"${float:=1.2}"`
+	Map   gs_dync.Value[map[string]string] `value:"${map:=}"`
+	Slice gs_dync.Value[[]string]          `value:"${slice:=}"`
 }
 
-var _ dync.Refreshable = (*DynamicConfig)(nil)
+var _ gs.Refreshable = (*DynamicConfig)(nil)
 
-func (d *DynamicConfig) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (d *DynamicConfig) OnRefresh(prop gs.Properties, param conf.BindParam) error {
 	fmt.Println("DynamicConfig.OnRefresh")
 	return nil
 }
@@ -2920,9 +2920,9 @@ type DynamicConfigWrapper struct {
 	Wrapper DynamicConfig `value:"${wrapper}"` // struct 自身的 refresh 会抑制 fields 的 refresh
 }
 
-var _ dync.Refreshable = (*DynamicConfigWrapper)(nil)
+var _ gs.Refreshable = (*DynamicConfigWrapper)(nil)
 
-func (d *DynamicConfigWrapper) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (d *DynamicConfigWrapper) OnRefresh(prop gs.Properties, param conf.BindParam) error {
 	fmt.Println("DynamicConfig.OnRefresh")
 	return nil
 }

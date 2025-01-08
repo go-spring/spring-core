@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package dync_test
+package gs_dync_test
 
 import (
 	"encoding/json"
@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/dync"
+	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
@@ -34,15 +34,15 @@ type StructValue struct {
 }
 
 type Config struct {
-	Int    dync.Value[int64]             `value:"${int:=3}" expr:"$<6"`
-	Float  dync.Value[float64]           `value:"${float:=1.2}"`
-	Map    dync.Value[map[string]string] `value:"${map:=}"`
-	Slice  dync.Value[[]string]          `value:"${slice:=}"`
-	Object dync.Value[StructValue]       `value:"${object:=}"`
+	Int    gs_dync.Value[int64]             `value:"${int:=3}" expr:"$<6"`
+	Float  gs_dync.Value[float64]           `value:"${float:=1.2}"`
+	Map    gs_dync.Value[map[string]string] `value:"${map:=}"`
+	Slice  gs_dync.Value[[]string]          `value:"${slice:=}"`
+	Object gs_dync.Value[StructValue]       `value:"${object:=}"`
 }
 
-func newTest() (*dync.Properties, *Config, error) {
-	mgr := dync.New()
+func newTest() (*gs_dync.Properties, *Config, error) {
+	mgr := gs_dync.New()
 	cfg := new(Config)
 	err := mgr.RefreshField(reflect.ValueOf(cfg), conf.BindParam{}, true)
 	if err != nil {
@@ -92,7 +92,7 @@ func TestDynamic(t *testing.T) {
 
 	t.Run("init validate error", func(t *testing.T) {
 
-		mgr := dync.New()
+		mgr := gs_dync.New()
 		cfg := new(Config)
 		// cfg.Int.OnValidate(func(v int64) error {
 		// 	if v < 3 {
@@ -130,7 +130,7 @@ func TestDynamic(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 
-		mgr := dync.New()
+		mgr := gs_dync.New()
 		cfg := new(Config)
 		// cfg.Int.OnValidate(func(v int64) error {
 		// 	if v < 3 {

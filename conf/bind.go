@@ -118,7 +118,7 @@ type Filter interface {
 }
 
 // BindValue binds properties to a value.
-func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
+func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
 	if !util.IsValueType(t) {
 		err := errors.New("target should be value type")
@@ -212,7 +212,7 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 }
 
 // bindSlice binds properties to a slice value.
-func bindSlice(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindSlice(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	et := t.Elem()
 	p, err := getSlice(p, et, param)
@@ -245,7 +245,7 @@ func bindSlice(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 	return nil
 }
 
-func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyProperties, error) {
+func getSlice(p readOnlyProperties, et reflect.Type, param BindParam) (readOnlyProperties, error) {
 
 	// properties that defined as list.
 	if p.Has(param.Key + "[0]") {
@@ -301,7 +301,7 @@ func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyP
 }
 
 // bindMap binds properties to a map value.
-func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindMap(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("map can't have a non-empty default value")
@@ -337,7 +337,7 @@ func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 }
 
 // bindStruct binds properties to a struct value.
-func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("struct can't have a non-empty default value")
@@ -404,7 +404,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 }
 
 // resolve returns property references processed property value.
-func resolve(p ReadOnlyProperties, param BindParam) (string, error) {
+func resolve(p readOnlyProperties, param BindParam) (string, error) {
 	const defVal = "@@def@@"
 	val := p.Get(param.Key, Def(defVal))
 	if val != defVal {
@@ -422,7 +422,7 @@ func resolve(p ReadOnlyProperties, param BindParam) (string, error) {
 }
 
 // resolveString returns property references processed string.
-func resolveString(p ReadOnlyProperties, s string) (string, error) {
+func resolveString(p readOnlyProperties, s string) (string, error) {
 
 	var (
 		length = len(s)

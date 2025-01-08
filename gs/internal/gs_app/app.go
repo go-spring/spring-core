@@ -24,7 +24,6 @@ import (
 	"reflect"
 	"syscall"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
@@ -81,7 +80,7 @@ func (app *App) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
 	return app.c.Accept(b)
 }
 
-func (app *App) Group(fn func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error)) {
+func (app *App) Group(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
 	app.c.Group(fn)
 }
 

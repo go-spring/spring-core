@@ -85,8 +85,8 @@ func RegisterConverter[T any](fn Converter[T]) {
 	converters[t.Out(0)] = fn
 }
 
-// ReadOnlyProperties is the interface for read-only properties.
-type ReadOnlyProperties interface {
+// readOnlyProperties is the interface for read-only properties.
+type readOnlyProperties interface {
 
 	// Data returns key-value pairs of the properties.
 	Data() map[string]string
@@ -113,7 +113,7 @@ type ReadOnlyProperties interface {
 	CopyTo(out *Properties) error
 }
 
-var _ ReadOnlyProperties = (*Properties)(nil)
+var _ readOnlyProperties = (*Properties)(nil)
 
 // Properties stores the data with map[string]string and the keys are case-sensitive,
 // you can get one of them by its key, or bind some of them to a value.

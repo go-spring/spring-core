@@ -19,7 +19,6 @@ package gs_app
 import (
 	"reflect"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
@@ -64,7 +63,7 @@ func (b *Boot) Accept(bd *gs.BeanDefinition) *gs.BeanDefinition {
 	return b.c.Accept(bd)
 }
 
-func (b *Boot) Group(fn func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error)) {
+func (b *Boot) Group(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
 	b.c.Group(fn)
 }
 

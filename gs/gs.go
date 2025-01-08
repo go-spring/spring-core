@@ -21,7 +21,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
@@ -239,7 +238,7 @@ func Accept(b *BeanDefinition) *BeanDefinition {
 	return app.Accept(b)
 }
 
-func Group(fn func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)) {
+func Group(fn func(p gs.Properties) ([]*BeanDefinition, error)) {
 	app.Group(fn)
 }
 
