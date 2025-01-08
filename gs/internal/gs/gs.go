@@ -66,10 +66,67 @@ type Refreshable interface {
 	OnRefresh(prop Properties, param conf.BindParam) error
 }
 
+type BeanRegistration struct {
+	B *BeanDefinition
+}
+
+func (d *BeanRegistration) Name(name string) *BeanRegistration {
+	d.B.Name(name)
+	return d
+}
+
+// On 设置 bean 的 Condition。
+func (d *BeanRegistration) On(cond Condition) *BeanRegistration {
+	d.B.On(cond)
+	return d
+}
+
+// DependsOn 设置 bean 的间接依赖项。
+func (d *BeanRegistration) DependsOn(selectors ...BeanSelector) *BeanRegistration {
+	d.B.DependsOn(selectors...)
+	return d
+}
+
+// Primary 设置 bean 为主版本。
+func (d *BeanRegistration) Primary() *BeanRegistration {
+	d.B.Primary()
+	return d
+}
+
+// Init 设置 bean 的初始化函数。
+func (d *BeanRegistration) Init(fn interface{}) *BeanRegistration {
+	d.B.Init(fn)
+	return d
+}
+
+// Destroy 设置 bean 的销毁函数。
+func (d *BeanRegistration) Destroy(fn interface{}) *BeanRegistration {
+	d.B.Destroy(fn)
+	return d
+}
+
+// Export 设置 bean 的导出接口。
+func (d *BeanRegistration) Export(exports ...interface{}) *BeanRegistration {
+	d.B.Export(exports...)
+	return d
+}
+
+// Configuration 设置 bean 为配置类。
+func (d *BeanRegistration) Configuration(includes []string, excludes []string) *BeanRegistration {
+	d.B.Configuration(includes, excludes)
+	return d
+}
+
+// EnableRefresh 设置 bean 为可刷新的。
+func (d *BeanRegistration) EnableRefresh(tag string) *BeanRegistration {
+	d.B.EnableRefresh(tag)
+	return d
+}
+
 type Container interface {
-	Object(i interface{}) *BeanDefinition
-	Provide(ctor interface{}, args ...Arg) *BeanDefinition
-	Accept(b *BeanDefinition) *BeanDefinition
+	Object(i interface{}) *BeanRegistration
+	Provide(ctor interface{}, args ...Arg) *BeanRegistration
+	Accept(b *BeanDefinition)
 	Group(fn func(p Properties) ([]*BeanDefinition, error))
 	RefreshProperties(p Properties) error
 	Refresh() error

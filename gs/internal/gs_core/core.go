@@ -98,21 +98,24 @@ func New() gs.Container {
 }
 
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *Container) Object(i interface{}) *gs.BeanDefinition {
-	return c.Accept(NewBean(reflect.ValueOf(i)))
+func (c *Container) Object(i interface{}) *gs.BeanRegistration {
+	b := NewBean(reflect.ValueOf(i))
+	c.Accept(b)
+	return &gs.BeanRegistration{B: b}
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
-	return c.Accept(NewBean(ctor, args...))
+func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
+	b := NewBean(ctor, args...)
+	c.Accept(b)
+	return &gs.BeanRegistration{B: b}
 }
 
-func (c *Container) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
+func (c *Container) Accept(b *gs.BeanDefinition) {
 	if c.state >= Refreshing {
 		panic(errors.New("should call before Refresh"))
 	}
 	c.beans = append(c.beans, b)
-	return b
 }
 
 func (c *Container) Group(fn GroupFunc) {

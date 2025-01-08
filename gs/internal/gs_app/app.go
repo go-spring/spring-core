@@ -66,18 +66,22 @@ func (app *App) Config() *gs_conf.AppConfig {
 }
 
 // Object 参考 Container.Object 的解释。
-func (app *App) Object(i interface{}) *gs.BeanDefinition {
-	return app.c.Accept(gs_core.NewBean(reflect.ValueOf(i)))
+func (app *App) Object(i interface{}) *gs.BeanRegistration {
+	b := gs_core.NewBean(reflect.ValueOf(i))
+	app.c.Accept(b)
+	return &gs.BeanRegistration{B: b}
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (app *App) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
-	return app.c.Accept(gs_core.NewBean(ctor, args...))
+func (app *App) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
+	b := gs_core.NewBean(ctor, args...)
+	app.c.Accept(b)
+	return &gs.BeanRegistration{B: b}
 }
 
 // Accept 参考 Container.Accept 的解释。
-func (app *App) Accept(b *gs.BeanDefinition) *gs.BeanDefinition {
-	return app.c.Accept(b)
+func (app *App) Accept(b *gs.BeanDefinition) {
+	app.c.Accept(b)
 }
 
 func (app *App) Group(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {

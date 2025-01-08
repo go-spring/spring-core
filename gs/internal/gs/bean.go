@@ -45,8 +45,8 @@ func GetStatusString(status BeanStatus) string {
 	}
 }
 
-// BeanRegistration bean 注册数据。
-type BeanRegistration struct {
+// beanRegistration bean 注册数据。
+type beanRegistration struct {
 	f       Callable       // 构造函数
 	method  bool           // 是否为成员方法
 	cond    Condition      // 判断条件
@@ -68,7 +68,7 @@ type BeanRegistration struct {
 
 // BeanDefinition bean 元数据。
 type BeanDefinition struct {
-	r *BeanRegistration
+	r *beanRegistration
 
 	v reflect.Value // 值
 	t reflect.Type  // 类型
@@ -318,7 +318,7 @@ func (d *BeanDefinition) Configuration(includes []string, excludes []string) *Be
 }
 
 // EnableRefresh 设置 bean 为可刷新的。
-func (d *BeanDefinition) EnableRefresh(tag string) {
+func (d *BeanDefinition) EnableRefresh(tag string) *BeanDefinition {
 	if !d.Type().Implements(refreshableType) {
 		panic(errors.New("must implement dync.Refreshable interface"))
 	}
@@ -327,6 +327,7 @@ func (d *BeanDefinition) EnableRefresh(tag string) {
 	if err != nil {
 		panic(err)
 	}
+	return d
 }
 
 // SimplifyMemory 精简内存
@@ -341,7 +342,7 @@ func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bo
 		v:        v,
 		name:     name,
 		typeName: util.TypeName(t),
-		r: &BeanRegistration{
+		r: &beanRegistration{
 			f:      f,
 			status: Default,
 			method: method,

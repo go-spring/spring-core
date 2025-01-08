@@ -49,18 +49,22 @@ func (b *Boot) Config() *gs_conf.BootConfig {
 }
 
 // Object 参考 Container.Object 的解释。
-func (b *Boot) Object(i interface{}) *gs.BeanDefinition {
-	return b.c.Accept(gs_core.NewBean(reflect.ValueOf(i)))
+func (b *Boot) Object(i interface{}) *gs.BeanRegistration {
+	bd := gs_core.NewBean(reflect.ValueOf(i))
+	b.c.Accept(bd)
+	return &gs.BeanRegistration{B: bd}
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
-	return b.c.Accept(gs_core.NewBean(ctor, args...))
+func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
+	bd := gs_core.NewBean(ctor, args...)
+	b.c.Accept(bd)
+	return &gs.BeanRegistration{B: bd}
 }
 
 // Accept 参考 Container.Accept 的解释。
-func (b *Boot) Accept(bd *gs.BeanDefinition) *gs.BeanDefinition {
-	return b.c.Accept(bd)
+func (b *Boot) Accept(bd *gs.BeanDefinition) {
+	b.c.Accept(bd)
 }
 
 func (b *Boot) Group(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
