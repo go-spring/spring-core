@@ -27,6 +27,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/gs/sysconf"
 )
 
@@ -43,6 +44,7 @@ type (
 	Condition      = gs.Condition
 	Context        = gs.Context
 	ContextAware   = gs_core.ContextAware
+	Dync[T any]    = gs_dync.Value[T]
 )
 
 /************************************ arg ***********************************/

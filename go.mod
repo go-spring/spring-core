@@ -1,6 +1,6 @@
 module github.com/go-spring/spring-core
 
-go 1.22
+go 1.24
 
 require (
 	github.com/expr-lang/expr v1.16.9
