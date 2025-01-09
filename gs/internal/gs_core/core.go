@@ -178,6 +178,7 @@ func (c *Container) Refresh() (err error) {
 		}
 		c.beans = append(c.beans, beans...)
 	}
+	c.groupFuncs = nil
 
 	// 处理 configuration 逻辑
 	for _, bd := range c.beans {
@@ -262,18 +263,27 @@ func (c *Container) Refresh() (err error) {
 		return errors.New("remove the dependency cycle between beans")
 	}
 
-	c.beansByName = make(map[string][]SimpleBean)
-	c.beansByType = make(map[reflect.Type][]SimpleBean)
-	for _, b := range c.beans {
-		if b.GetStatus() == gs.Deleted {
-			continue
+	if c.ContextAware { // 保留核心数据
+		c.beansByName = make(map[string][]SimpleBean)
+		c.beansByType = make(map[reflect.Type][]SimpleBean)
+		for _, b := range c.beans {
+			if b.GetStatus() == gs.Deleted {
+				continue
+			}
+			c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b.BeanRuntimeMeta)
+			c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntimeMeta)
+			for _, t := range b.GetExports() {
+				c.beansByType[t] = append(c.beansByType[t], b.BeanRuntimeMeta)
+			}
 		}
-		c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b.RuntimeMeta())
-		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.RuntimeMeta())
-		for _, t := range b.GetExports() {
-			c.beansByType[t] = append(c.beansByType[t], b.RuntimeMeta())
+	} else { // 清空全部数据
+		if c.p.ObjectsCount() == 0 {
+			c.p = nil
 		}
+		c.beansByName = nil
+		c.beansByType = nil
 	}
+	c.beans = nil
 
 	c.destroyers = stack.sortDestroyers()
 	c.state = Refreshed
@@ -286,18 +296,7 @@ func (c *Container) Refresh() (err error) {
 
 // SimplifyMemory 清理运行时不需要的空间。
 func (c *Container) SimplifyMemory() {
-	for _, bd := range c.beans {
-		bd.SimplifyMemory()
-	}
-	c.beans = nil
-	c.groupFuncs = nil
-	if !c.ContextAware {
-		if c.p.ObjectsCount() == 0 {
-			c.p = nil
-		}
-		c.beansByName = nil
-		c.beansByType = nil
-	}
+
 }
 
 func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefinition, error) {
@@ -545,7 +544,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 	case Refreshing:
 		err = c.wireBeanInRefreshing(b, stack)
 	case Refreshed:
-		err = c.wireBeanAfterRefreshed(b.RuntimeMeta(), stack)
+		err = c.wireBeanAfterRefreshed(b, stack)
 	default:
 		err = errors.New("state is error for wiring")
 	}
