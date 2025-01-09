@@ -46,6 +46,14 @@ func GetStatusString(status BeanStatus) string {
 	}
 }
 
+type BeanInit interface {
+	OnInit(ctx Context) error
+}
+
+type BeanDestroy interface {
+	OnDestroy()
+}
+
 // beanRegistration bean 注册数据。
 type beanRegistration struct {
 	method  bool           // 是否为成员方法
@@ -119,19 +127,22 @@ func (d *BeanRuntimeMeta) Match(typeName string, beanName string) bool {
 	return typeIsSame && nameIsSame
 }
 
+// GetClass 返回 bean 的类型描述。
+func (d *BeanRuntimeMeta) GetClass() string {
+	if d.f == nil {
+		return "object bean"
+	}
+	return "constructor bean"
+}
+
 func (d *BeanRuntimeMeta) String() string {
-	return ""
-	//return fmt.Sprintf("%s name:%q %s", d.GetClass(), d.name, d.FileLine())
+	return fmt.Sprintf("%s name:%q", d.GetClass(), d.name)
 }
 
 // BeanDefinition bean 元数据。
 type BeanDefinition struct {
 	*beanRegistration
 	*BeanRuntimeMeta
-}
-
-func (d *BeanDefinition) BeanRegistration() *BeanRegistration {
-	return &BeanRegistration{d}
 }
 
 func (d *BeanDefinition) GetTypeName() string {
@@ -224,12 +235,8 @@ func (d *BeanDefinition) FileLine() string {
 	return fmt.Sprintf("%s:%d", d.file, d.line)
 }
 
-// GetClass 返回 bean 的类型描述。
-func (d *BeanDefinition) GetClass() string {
-	if d.f == nil {
-		return "object bean"
-	}
-	return "constructor bean"
+func (d *BeanDefinition) String() string {
+	return fmt.Sprintf("%s name:%q %s", d.GetClass(), d.name, d.FileLine())
 }
 
 // Name 设置 bean 的名称。

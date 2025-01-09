@@ -39,6 +39,8 @@ const (
 type (
 	Arg              = gs.Arg
 	BeanDefinition   = gs.BeanDefinition
+	BeanInit         = gs.BeanInit
+	BeanDestroy      = gs.BeanDestroy
 	BeanRegistration = gs.BeanRegistration
 	BeanSelector     = gs.BeanSelector
 	CondContext      = gs.CondContext

@@ -36,14 +36,6 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
-type BeanInit interface {
-	OnInit(ctx gs.Context) error
-}
-
-type BeanDestroy interface {
-	OnDestroy()
-}
-
 type refreshState int
 
 const (
@@ -111,12 +103,14 @@ func New() gs.Container {
 
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
 func (c *Container) Object(i interface{}) *gs.BeanRegistration {
-	return c.Accept(NewBean(reflect.ValueOf(i)))
+	b := NewBean(reflect.ValueOf(i))
+	return c.Accept(b)
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
 func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
-	return c.Accept(NewBean(ctor, args...))
+	b := NewBean(ctor, args...)
+	return c.Accept(b)
 }
 
 func (c *Container) Accept(b *gs.BeanDefinition) *gs.BeanRegistration {
@@ -124,7 +118,7 @@ func (c *Container) Accept(b *gs.BeanDefinition) *gs.BeanRegistration {
 		panic(errors.New("should call before Refresh"))
 	}
 	c.beans = append(c.beans, b)
-	return b.BeanRegistration()
+	return gs.NewBeanRegistration(b)
 }
 
 func (c *Container) Group(fn GroupFunc) {

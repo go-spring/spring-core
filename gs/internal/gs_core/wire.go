@@ -114,7 +114,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 	destroy := func(v reflect.Value, fn interface{}) func() {
 		return func() {
 			if fn == nil {
-				v.Interface().(BeanDestroy).OnDestroy()
+				v.Interface().(gs.BeanDestroy).OnDestroy()
 			} else {
 				fnValue := reflect.ValueOf(fn)
 				out := fnValue.Call([]reflect.Value{v})
@@ -495,7 +495,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 			return err
 		}
 	case Refreshed:
-		if err := c.wireBeanAfterRefreshed(result.(*gs.BeanRuntimeMeta), stack); err != nil {
+		if err := c.wireBeanAfterRefreshed(result, stack); err != nil {
 			return err
 		}
 	default:
@@ -529,7 +529,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	}()
 
 	// 记录注入路径上的销毁函数及其执行的先后顺序。
-	if _, ok := b.Interface().(BeanDestroy); ok || b.GetDestroy() != nil {
+	if _, ok := b.Interface().(gs.BeanDestroy); ok || b.GetDestroy() != nil {
 		haveDestroy = true
 		d := stack.saveDestroyer(b)
 		if i := stack.destroyers.Back(); i != nil {
@@ -597,7 +597,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	}
 
 	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(BeanInit); ok {
+	if f, ok := b.Interface().(gs.BeanInit); ok {
 		if err = f.OnInit(c); err != nil {
 			return err
 		}
@@ -632,7 +632,7 @@ func (c *Container) wireBeanAfterRefreshed(b SimpleBean, stack *wiringStack) err
 	}
 
 	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(BeanInit); ok {
+	if f, ok := b.Interface().(gs.BeanInit); ok {
 		if err = f.OnInit(c); err != nil {
 			return err
 		}
@@ -658,15 +658,8 @@ func (a *argContext) Wire(v reflect.Value, tag string) error {
 	return a.c.wireByTag(v, tag, a.stack)
 }
 
-type SimpleBeanDefinition interface {
-	Callable() gs.Callable
-	Value() reflect.Value
-	Type() reflect.Type
-	String() string
-}
-
 // getBeanValue 获取 bean 的值，如果是构造函数 bean 则执行其构造函数然后返回执行结果。
-func (c *Container) getBeanValue(b SimpleBeanDefinition, stack *wiringStack) (reflect.Value, error) {
+func (c *Container) getBeanValue(b SimpleBean, stack *wiringStack) (reflect.Value, error) {
 
 	if b.Callable() == nil {
 		return b.Value(), nil

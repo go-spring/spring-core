@@ -70,6 +70,10 @@ type BeanRegistration struct {
 	b *BeanDefinition
 }
 
+func NewBeanRegistration(d *BeanDefinition) *BeanRegistration {
+	return &BeanRegistration{d}
+}
+
 func (d *BeanRegistration) Name(name string) *BeanRegistration {
 	d.b.Name(name)
 	return d
