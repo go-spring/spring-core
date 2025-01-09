@@ -46,6 +46,8 @@ type (
 	Context          = gs.Context
 	ContextAware     = gs_core.ContextAware
 	Dync[T any]      = gs_dync.Value[T]
+	Runner           = gs_app.Runner
+	Server           = gs_app.Server
 )
 
 /************************************ arg ***********************************/
@@ -196,10 +198,6 @@ func Boot() *gs_app.Boot {
 
 /*********************************** app *************************************/
 
-type AppConfigAware struct {
-	AppConfig *gs_conf.AppConfig `autowire:""`
-}
-
 var app = gs_app.NewApp()
 
 // Start 启动程序。
@@ -232,13 +230,13 @@ func AppConfig() *gs_conf.AppConfig {
 
 func AppRunner(objOrCtor interface{}, ctorArgs ...gs.Arg) *BeanRegistration {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*gs_app.AppRunner)(nil))
+	b.Export((*gs_app.Runner)(nil))
 	return app.C.Accept(b)
 }
 
 func AppServer(objOrCtor interface{}, ctorArgs ...gs.Arg) *BeanRegistration {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*gs_app.AppServer)(nil))
+	b.Export((*gs_app.Server)(nil))
 	return app.C.Accept(b)
 }
 

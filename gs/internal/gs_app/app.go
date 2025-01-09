@@ -28,11 +28,11 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
-type AppRunner interface {
+type Runner interface {
 	Run(ctx gs.Context)
 }
 
-type AppServer interface {
+type Server interface {
 	OnAppStart(ctx gs.Context)     // 应用启动的事件
 	OnAppStop(ctx context.Context) // 应用停止的事件
 }
@@ -44,8 +44,8 @@ type App struct {
 
 	exitChan chan struct{}
 
-	Runners []AppRunner `autowire:"${spring.app.runners:=*?}"`
-	Servers []AppServer `autowire:"${spring.app.servers:=*?}"`
+	Runners []Runner `autowire:"${spring.app.runners:=*?}"`
+	Servers []Server `autowire:"${spring.app.servers:=*?}"`
 }
 
 // NewApp application 的构造函数

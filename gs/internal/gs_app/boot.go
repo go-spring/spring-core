@@ -24,15 +24,11 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
-type BootRunner interface {
-	Run(ctx gs.Context)
-}
-
 type Boot struct {
 	c gs.Container
 	p *gs_conf.BootConfig
 
-	Runners []BootRunner `autowire:"${spring.boot.runners:=*?}"`
+	Runners []Runner `autowire:"${spring.boot.runners:=*?}"`
 }
 
 func NewBoot() *Boot {
@@ -50,7 +46,7 @@ func (b *Boot) Config() *gs_conf.BootConfig {
 
 func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanRegistration {
 	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
-	bd.Export((*BootRunner)(nil))
+	bd.Export((*Runner)(nil))
 	return b.c.Accept(bd)
 }
 
