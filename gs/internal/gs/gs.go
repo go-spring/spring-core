@@ -67,59 +67,71 @@ type Refreshable interface {
 }
 
 type BeanRegistration struct {
-	B *BeanDefinition
+	b *BeanDefinition
 }
 
 func (d *BeanRegistration) Name(name string) *BeanRegistration {
-	d.B.Name(name)
+	d.b.Name(name)
 	return d
+}
+
+func (d *BeanRegistration) BeanName() string {
+	return d.b.BeanName()
+}
+
+func (d *BeanRegistration) ID() string {
+	return d.b.ID()
+}
+
+func (d *BeanRegistration) Interface() interface{} {
+	return d.b.Interface()
 }
 
 // On 设置 bean 的 Condition。
 func (d *BeanRegistration) On(cond Condition) *BeanRegistration {
-	d.B.On(cond)
+	d.b.On(cond)
 	return d
 }
 
 // DependsOn 设置 bean 的间接依赖项。
 func (d *BeanRegistration) DependsOn(selectors ...BeanSelector) *BeanRegistration {
-	d.B.DependsOn(selectors...)
+	d.b.DependsOn(selectors...)
 	return d
 }
 
 // Primary 设置 bean 为主版本。
 func (d *BeanRegistration) Primary() *BeanRegistration {
-	d.B.Primary()
+	d.b.Primary()
 	return d
 }
 
 // Init 设置 bean 的初始化函数。
 func (d *BeanRegistration) Init(fn interface{}) *BeanRegistration {
-	d.B.Init(fn)
+	d.b.Init(fn)
 	return d
 }
 
 // Destroy 设置 bean 的销毁函数。
 func (d *BeanRegistration) Destroy(fn interface{}) *BeanRegistration {
-	d.B.Destroy(fn)
+	d.b.Destroy(fn)
 	return d
 }
 
 // Export 设置 bean 的导出接口。
 func (d *BeanRegistration) Export(exports ...interface{}) *BeanRegistration {
-	d.B.Export(exports...)
+	d.b.Export(exports...)
 	return d
 }
 
 // Configuration 设置 bean 为配置类。
 func (d *BeanRegistration) Configuration(includes []string, excludes []string) *BeanRegistration {
-	d.B.Configuration(includes, excludes)
+	d.b.Configuration(includes, excludes)
 	return d
 }
 
 // EnableRefresh 设置 bean 为可刷新的。
 func (d *BeanRegistration) EnableRefresh(tag string) *BeanRegistration {
-	d.B.EnableRefresh(tag)
+	d.b.EnableRefresh(tag)
 	return d
 }
 
@@ -144,7 +156,6 @@ type Container interface {
 // App 对象，从而实现使用方式的统一。
 type Context interface {
 	Context() context.Context
-	RefreshProperties(p Properties) error
 	Keys() []string
 	Has(key string) bool
 	Prop(key string, opts ...conf.GetOption) string

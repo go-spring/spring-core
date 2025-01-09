@@ -101,14 +101,14 @@ func New() gs.Container {
 func (c *Container) Object(i interface{}) *gs.BeanRegistration {
 	b := NewBean(reflect.ValueOf(i))
 	c.Accept(b)
-	return &gs.BeanRegistration{B: b}
+	return b.BeanRegistration()
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
 func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
 	b := NewBean(ctor, args...)
 	c.Accept(b)
-	return &gs.BeanRegistration{B: b}
+	return b.BeanRegistration()
 }
 
 func (c *Container) Accept(b *gs.BeanDefinition) {

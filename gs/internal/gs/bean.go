@@ -78,6 +78,10 @@ type BeanDefinition struct {
 	status   BeanStatus     // 状态
 }
 
+func (d *BeanDefinition) BeanRegistration() *BeanRegistration {
+	return &BeanRegistration{d}
+}
+
 func (d *BeanDefinition) GetName() string {
 	return d.name
 }

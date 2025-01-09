@@ -226,27 +226,35 @@ func ShutDown(msg ...string) {
 	app.ShutDown(msg...)
 }
 
+func AppConfig() *gs_conf.AppConfig {
+	return app.P
+}
+
+func RefreshProperties(p gs.Properties) error {
+	return app.C.RefreshProperties(p)
+}
+
 // Object 参考 Container.Object 的解释。
 func Object(i interface{}) *BeanRegistration {
 	b := gs_core.NewBean(reflect.ValueOf(i))
-	app.Accept(b)
-	return &BeanRegistration{B: b}
+	app.C.Accept(b)
+	return b.BeanRegistration()
 }
 
 // Provide 参考 Container.Provide 的解释。
 func Provide(ctor interface{}, args ...Arg) *BeanRegistration {
 	b := gs_core.NewBean(ctor, args...)
-	app.Accept(b)
-	return &BeanRegistration{B: b}
+	app.C.Accept(b)
+	return b.BeanRegistration()
 }
 
 // Accept 参考 Container.Accept 的解释。
 func Accept(b *BeanDefinition) {
-	app.Accept(b)
+	app.C.Accept(b)
 }
 
 func Group(fn func(p gs.Properties) ([]*BeanDefinition, error)) {
-	app.Group(fn)
+	app.C.Group(fn)
 }
 
 /********************************** banner ***********************************/

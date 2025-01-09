@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"reflect"
 	"syscall"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -40,8 +39,8 @@ type AppServer interface {
 
 // App 应用
 type App struct {
-	c gs.Container
-	p *gs_conf.AppConfig
+	C gs.Container
+	P *gs_conf.AppConfig
 
 	exitChan chan struct{}
 
@@ -52,40 +51,12 @@ type App struct {
 // NewApp application 的构造函数
 func NewApp() *App {
 	app := &App{
-		c:        gs_core.New(),
-		p:        gs_conf.NewAppConfig(),
+		C:        gs_core.New(),
+		P:        gs_conf.NewAppConfig(),
 		exitChan: make(chan struct{}),
 	}
-	app.Object(app)
-	app.Object(app.p)
+	app.C.Object(app)
 	return app
-}
-
-func (app *App) Config() *gs_conf.AppConfig {
-	return app.p
-}
-
-// Object 参考 Container.Object 的解释。
-func (app *App) Object(i interface{}) *gs.BeanRegistration {
-	b := gs_core.NewBean(reflect.ValueOf(i))
-	app.c.Accept(b)
-	return &gs.BeanRegistration{B: b}
-}
-
-// Provide 参考 Container.Provide 的解释。
-func (app *App) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
-	b := gs_core.NewBean(ctor, args...)
-	app.c.Accept(b)
-	return &gs.BeanRegistration{B: b}
-}
-
-// Accept 参考 Container.Accept 的解释。
-func (app *App) Accept(b *gs.BeanDefinition) {
-	app.c.Accept(b)
-}
-
-func (app *App) Group(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
-	app.c.Group(fn)
 }
 
 func (app *App) Run() error {
@@ -105,22 +76,22 @@ func (app *App) Run() error {
 
 func (app *App) Start() error {
 
-	p, err := app.p.Refresh()
+	p, err := app.P.Refresh()
 	if err != nil {
 		return err
 	}
 
-	err = app.c.RefreshProperties(p)
+	err = app.C.RefreshProperties(p)
 	if err != nil {
 		return err
 	}
 
-	err = app.c.Refresh()
+	err = app.C.Refresh()
 	if err != nil {
 		return err
 	}
 
-	ctx := app.c.(gs.Context)
+	ctx := app.C.(gs.Context)
 
 	// 执行命令行启动器
 	for _, r := range app.Runners {
@@ -132,7 +103,7 @@ func (app *App) Start() error {
 		svr.OnAppStart(ctx)
 	}
 
-	app.c.SimplifyMemory()
+	app.C.SimplifyMemory()
 	return nil
 }
 
@@ -140,7 +111,7 @@ func (app *App) Stop() {
 	for _, svr := range app.Servers {
 		svr.OnAppStop(context.Background())
 	}
-	app.c.Close()
+	app.C.Close()
 }
 
 // ShutDown 关闭执行器

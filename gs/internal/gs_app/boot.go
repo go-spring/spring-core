@@ -52,14 +52,14 @@ func (b *Boot) Config() *gs_conf.BootConfig {
 func (b *Boot) Object(i interface{}) *gs.BeanRegistration {
 	bd := gs_core.NewBean(reflect.ValueOf(i))
 	b.c.Accept(bd)
-	return &gs.BeanRegistration{B: bd}
+	return bd.BeanRegistration()
 }
 
 // Provide 参考 Container.Provide 的解释。
 func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
 	bd := gs_core.NewBean(ctor, args...)
 	b.c.Accept(bd)
-	return &gs.BeanRegistration{B: bd}
+	return bd.BeanRegistration()
 }
 
 // Accept 参考 Container.Accept 的解释。
