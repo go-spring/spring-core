@@ -62,6 +62,42 @@ type ContextAware struct {
 	GSContext gs.Context `autowire:""`
 }
 
+type beanWrapper struct {
+	b *gs.BeanDefinition
+}
+
+func (d beanWrapper) Bean() *gs.BeanDefinition {
+	return d.b
+}
+
+func (d beanWrapper) GetName() string {
+	return d.b.GetName()
+}
+
+func (d beanWrapper) IsPrimary() bool {
+	return d.b.IsPrimary()
+}
+
+func (d beanWrapper) Type() reflect.Type {
+	return d.b.Type()
+}
+
+func (d beanWrapper) Value() reflect.Value {
+	return d.b.Value()
+}
+
+func (d beanWrapper) GetStatus() gs.BeanStatus {
+	return d.b.GetStatus()
+}
+
+func (d beanWrapper) Match(typeName string, beanName string) bool {
+	return d.b.Match(typeName, beanName)
+}
+
+func (d beanWrapper) String() string {
+	return d.b.String()
+}
+
 // Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
 // of Control Containers and the Dependency Injection pattern >> 一文中
 // 提及的依赖注入的概念。但原文的依赖注入仅仅是指对象之间的依赖关系处理，而有些 IoC
@@ -71,8 +107,8 @@ type ContextAware struct {
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
 	beans        []*gs.BeanDefinition
-	beansByName  map[string][]*gs.BeanDefinition
-	beansByType  map[reflect.Type][]*gs.BeanDefinition
+	beansByName  map[string][]beanWrapper
+	beansByType  map[reflect.Type][]beanWrapper
 	groupFuncs   []GroupFunc
 	p            *gs_dync.Properties
 	ctx          context.Context
@@ -90,8 +126,8 @@ func New() gs.Container {
 		ctx:         ctx,
 		cancel:      cancel,
 		p:           gs_dync.New(),
-		beansByName: make(map[string][]*gs.BeanDefinition),
-		beansByType: make(map[reflect.Type][]*gs.BeanDefinition),
+		beansByName: make(map[string][]beanWrapper),
+		beansByType: make(map[reflect.Type][]beanWrapper),
 	}
 	c.Object(c).Export((*gs.Context)(nil))
 	return c
@@ -357,11 +393,11 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 
 func (c *Container) registerBean(b *gs.BeanDefinition) {
 	syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.BeanName(), b.Type(), b.FileLine())
-	c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b)
-	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
+	c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], beanWrapper{b})
+	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], beanWrapper{b})
 	for _, t := range b.GetExports() {
 		syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.BeanName(), t, b.FileLine())
-		c.beansByType[t] = append(c.beansByType[t], b)
+		c.beansByType[t] = append(c.beansByType[t], beanWrapper{b})
 	}
 }
 

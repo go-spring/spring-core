@@ -136,9 +136,9 @@ type TestObject struct {
 	// 指定名称时使用精确匹配模式，不对数组元素进行转换，即便能做到似乎也无意义
 	InterfaceSliceByName []fmt.Stringer `autowire:"struct_ptr_slice?"`
 
-	MapTyType map[string]interface{} `inject:"?"`
-	MapByName map[string]interface{} `autowire:"map?"`
-	MapByNam2 map[string]interface{} `autowire:"struct_ptr?"`
+	MapTyType map[string]fmt.Stringer `inject:"?"`
+	MapByName map[string]fmt.Stringer `autowire:"map?"`
+	MapByNam2 map[string]fmt.Stringer `autowire:"struct_ptr?"`
 }
 
 func TestApplicationContext_AutoWireBeans(t *testing.T) {
@@ -154,7 +154,7 @@ func TestApplicationContext_AutoWireBeans(t *testing.T) {
 	err := runTest(c, func(p gs.Context) {})
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(obj.MapTyType), 4)
+	assert.Equal(t, len(obj.MapTyType), 1)
 	assert.Equal(t, len(obj.MapByName), 0)
 	assert.Equal(t, len(obj.MapByNam2), 1)
 	fmt.Printf("%+v\n", obj)
