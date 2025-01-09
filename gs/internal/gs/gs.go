@@ -138,7 +138,7 @@ func (d *BeanRegistration) EnableRefresh(tag string) *BeanRegistration {
 type Container interface {
 	Object(i interface{}) *BeanRegistration
 	Provide(ctor interface{}, args ...Arg) *BeanRegistration
-	Accept(b *BeanDefinition)
+	Accept(b *BeanDefinition) *BeanRegistration
 	Group(fn func(p Properties) ([]*BeanDefinition, error))
 	RefreshProperties(p Properties) error
 	Refresh() error

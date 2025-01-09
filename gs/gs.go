@@ -236,21 +236,17 @@ func RefreshProperties(p gs.Properties) error {
 
 // Object 参考 Container.Object 的解释。
 func Object(i interface{}) *BeanRegistration {
-	b := gs_core.NewBean(reflect.ValueOf(i))
-	app.C.Accept(b)
-	return b.BeanRegistration()
+	return app.C.Accept(gs_core.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
 func Provide(ctor interface{}, args ...Arg) *BeanRegistration {
-	b := gs_core.NewBean(ctor, args...)
-	app.C.Accept(b)
-	return b.BeanRegistration()
+	return app.C.Accept(gs_core.NewBean(ctor, args...))
 }
 
 // Accept 参考 Container.Accept 的解释。
-func Accept(b *BeanDefinition) {
-	app.C.Accept(b)
+func Accept(b *BeanDefinition) *BeanRegistration {
+	return app.C.Accept(b)
 }
 
 func Group(fn func(p gs.Properties) ([]*BeanDefinition, error)) {
