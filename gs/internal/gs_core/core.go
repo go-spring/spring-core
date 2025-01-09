@@ -85,6 +85,9 @@ type Container struct {
 	state        refreshState
 	destroyers   []func()
 	ContextAware bool
+
+	AllowCircularReferences bool `value:"${spring.allow-circular-references:=false}"`
+	ForceAutowireIsNullable bool `value:"${spring.force-autowire-is-nullable:=false}"`
 }
 
 // New 创建 IoC 容器。
@@ -240,12 +243,7 @@ func (c *Container) Refresh() (err error) {
 		}
 	}
 
-	var AllowCircularReferences bool
-	err = c.Bind(&AllowCircularReferences, conf.Tag("${spring.allow-circular-references:=false}"))
-	if err != nil {
-		return err
-	}
-	if AllowCircularReferences {
+	if c.AllowCircularReferences {
 		// 处理被标记为延迟注入的那些 bean 字段
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")

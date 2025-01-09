@@ -317,7 +317,16 @@ func printBanner() {
 
 /********************************** utility **********************************/
 
-func AllowCircularReferences(allow bool) {
-	err := sysconf.Set("spring.allow-circular-references", allow)
-	_ = err // ignore error
+func AllowCircularReferences(enable bool) {
+	err := sysconf.Set("spring.allow-circular-references", enable)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ForceAutowireIsNullable(enable bool) {
+	err := sysconf.Set("spring.force-autowire-is-nullable", enable)
+	if err != nil {
+		panic(err)
+	}
 }

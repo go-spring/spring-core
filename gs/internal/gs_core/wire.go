@@ -224,6 +224,11 @@ func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
 }
 
 func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, stack *wiringStack) error {
+	if c.ForceAutowireIsNullable {
+		for i := 0; i < len(tags); i++ {
+			tags[i].nullable = true
+		}
+	}
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		return c.collectBeans(v, tags, nullable, stack)
