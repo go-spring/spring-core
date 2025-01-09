@@ -238,14 +238,14 @@ func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, sta
 	}
 }
 
-type byBeanName []beanWrapper
+type byBeanName []*gs.BeanRuntimeMeta
 
 func (b byBeanName) Len() int           { return len(b) }
 func (b byBeanName) Less(i, j int) bool { return b[i].GetName() < b[j].GetName() }
 func (b byBeanName) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // filterBean 返回 tag 对应的 bean 在数组中的索引，找不到返回 -1。
-func filterBean(beans []beanWrapper, tag wireTag, t reflect.Type) (int, error) {
+func filterBean(beans []*gs.BeanRuntimeMeta, tag wireTag, t reflect.Type) (int, error) {
 
 	var found []int
 	for i, b := range beans {
@@ -287,11 +287,11 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
-	var beans []beanWrapper
+	var beans []*gs.BeanRuntimeMeta
 	beans = c.beansByType[et]
 
 	{
-		var arr []beanWrapper
+		var arr []*gs.BeanRuntimeMeta
 		for _, b := range beans {
 			if b.GetStatus() == gs.Deleted {
 				continue
@@ -304,9 +304,9 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	if len(tags) > 0 {
 
 		var (
-			anyBeans  []beanWrapper
-			afterAny  []beanWrapper
-			beforeAny []beanWrapper
+			anyBeans  []*gs.BeanRuntimeMeta
+			afterAny  []*gs.BeanRuntimeMeta
+			beforeAny []*gs.BeanRuntimeMeta
 		)
 
 		foundAny := false
@@ -335,7 +335,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 				beforeAny = append(beforeAny, beans[index])
 			}
 
-			tmpBeans := append([]beanWrapper{}, beans[:index]...)
+			tmpBeans := append([]*gs.BeanRuntimeMeta{}, beans[:index]...)
 			beans = append(tmpBeans, beans[index+1:]...)
 		}
 
@@ -344,7 +344,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		}
 
 		n := len(beforeAny) + len(anyBeans) + len(afterAny)
-		arr := make([]beanWrapper, 0, n)
+		arr := make([]*gs.BeanRuntimeMeta, 0, n)
 		arr = append(arr, beforeAny...)
 		arr = append(arr, anyBeans...)
 		arr = append(arr, afterAny...)
@@ -364,8 +364,17 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	}
 
 	for _, b := range beans {
-		if err := c.wireBean(b.Bean(), stack); err != nil {
-			return err
+		switch c.state {
+		case Refreshing:
+			if err := c.wireBeanInRefreshing(b.Bean(), stack); err != nil {
+				return err
+			}
+		case Refreshed:
+			if err := c.wireBeanAfterRefreshed(b, stack); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("state is error for wiring")
 		}
 	}
 
@@ -400,7 +409,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
-	var foundBeans []beanWrapper
+	var foundBeans []*gs.BeanRuntimeMeta
 	for _, b := range c.beansByType[t] {
 		if b.GetStatus() == gs.Deleted {
 			continue
@@ -446,7 +455,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	}
 
 	// 优先使用设置成主版本的 bean
-	var primaryBeans []beanWrapper
+	var primaryBeans []*gs.BeanRuntimeMeta
 
 	for _, b := range foundBeans {
 		if b.IsPrimary() {
@@ -472,7 +481,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return errors.New(msg)
 	}
 
-	var result beanWrapper
+	var result *gs.BeanRuntimeMeta
 	if len(primaryBeans) == 1 {
 		result = primaryBeans[0]
 	} else {
@@ -480,9 +489,17 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	}
 
 	// 确保找到的 bean 已经完成依赖注入。
-	err := c.wireBean(result.Bean(), stack)
-	if err != nil {
-		return err
+	switch c.state {
+	case Refreshing:
+		if err := c.wireBeanInRefreshing(result.Bean(), stack); err != nil {
+			return err
+		}
+	case Refreshed:
+		if err := c.wireBeanAfterRefreshed(result, stack); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("state is error for wiring")
 	}
 
 	v.Set(result.Value())
@@ -492,7 +509,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 // wireBean 对 bean 进行属性绑定和依赖注入，同时追踪其注入路径。如果 bean 有初始
 // 化函数，则在注入完成之后执行其初始化函数。如果 bean 依赖了其他 bean，则首先尝试
 // 实例化被依赖的 bean 然后对它们进行注入。
-func (c *Container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
+func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStack) error {
 
 	if b.GetStatus() == gs.Deleted {
 		return fmt.Errorf("bean:%q have been deleted", b.ID())
@@ -544,7 +561,7 @@ func (c *Container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
 			return err
 		}
 		for _, d := range beans {
-			err = c.wireBean(d, stack)
+			err = c.wireBeanInRefreshing(d, stack)
 			if err != nil {
 				return err
 			}
@@ -601,6 +618,29 @@ func (c *Container) wireBean(b *gs.BeanDefinition, stack *wiringStack) error {
 	return nil
 }
 
+func (c *Container) wireBeanAfterRefreshed(b *gs.BeanRuntimeMeta, stack *wiringStack) error {
+
+	v, err := c.getBeanValue(b, stack)
+	if err != nil {
+		return err
+	}
+
+	t := v.Type()
+	err = c.wireBeanValue(v, t, stack)
+	if err != nil {
+		return err
+	}
+
+	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
+	if f, ok := b.Interface().(BeanInit); ok {
+		if err = f.OnInit(c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 type argContext struct {
 	c     *Container
 	stack *wiringStack
@@ -618,8 +658,15 @@ func (a *argContext) Wire(v reflect.Value, tag string) error {
 	return a.c.wireByTag(v, tag, a.stack)
 }
 
+type SimpleBeanDefinition interface {
+	Callable() gs.Callable
+	Value() reflect.Value
+	Type() reflect.Type
+	String() string
+}
+
 // getBeanValue 获取 bean 的值，如果是构造函数 bean 则执行其构造函数然后返回执行结果。
-func (c *Container) getBeanValue(b *gs.BeanDefinition, stack *wiringStack) (reflect.Value, error) {
+func (c *Container) getBeanValue(b SimpleBeanDefinition, stack *wiringStack) (reflect.Value, error) {
 
 	if b.Callable() == nil {
 		return b.Value(), nil
@@ -645,7 +692,7 @@ func (c *Container) getBeanValue(b *gs.BeanDefinition, stack *wiringStack) (refl
 	}
 
 	if b.Value().IsNil() {
-		return reflect.Value{}, fmt.Errorf("%s:%q return nil", b.GetClass(), b.FileLine())
+		return reflect.Value{}, fmt.Errorf("%s return nil", b.String()) // b.GetClass(), b.FileLine())
 	}
 
 	v := b.Value()

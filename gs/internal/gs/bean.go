@@ -48,7 +48,6 @@ func GetStatusString(status BeanStatus) string {
 
 // beanRegistration bean 注册数据。
 type beanRegistration struct {
-	f       Callable       // 构造函数
 	method  bool           // 是否为成员方法
 	cond    Condition      // 判断条件
 	init    interface{}    // 初始化函数
@@ -65,13 +64,10 @@ type beanRegistration struct {
 	refreshParam  conf.BindParam
 }
 
-// BeanDefinition bean 元数据。
-type BeanDefinition struct {
-	r *beanRegistration
-
-	v reflect.Value // 值
-	t reflect.Type  // 类型
-
+type BeanRuntimeMeta struct {
+	f        Callable       // 构造函数
+	v        reflect.Value  // 值
+	t        reflect.Type   // 类型
 	name     string         // 名称
 	typeName string         // 原始类型的全限定名
 	primary  bool           // 是否为主版本
@@ -79,28 +75,87 @@ type BeanDefinition struct {
 	status   BeanStatus     // 状态
 }
 
+func (d *BeanRuntimeMeta) Callable() Callable {
+	return d.f
+}
+
+// Interface 返回 bean 的真实值。
+func (d *BeanRuntimeMeta) Interface() interface{} {
+	return d.v.Interface()
+}
+
+func (d *BeanRuntimeMeta) GetName() string {
+	return d.name
+}
+
+func (d *BeanRuntimeMeta) IsPrimary() bool {
+	return d.primary
+}
+
+func (d *BeanRuntimeMeta) Type() reflect.Type {
+	return d.t
+}
+
+func (d *BeanRuntimeMeta) Value() reflect.Value {
+	return d.v
+}
+
+func (d *BeanRuntimeMeta) GetStatus() BeanStatus {
+	return d.status
+}
+
+func (d *BeanRuntimeMeta) Match(typeName string, beanName string) bool {
+
+	typeIsSame := false
+	if typeName == "" || d.typeName == typeName {
+		typeIsSame = true
+	}
+
+	nameIsSame := false
+	if beanName == "" || d.name == beanName {
+		nameIsSame = true
+	}
+
+	return typeIsSame && nameIsSame
+}
+
+func (d *BeanRuntimeMeta) String() string {
+	return ""
+	//return fmt.Sprintf("%s name:%q %s", d.GetClass(), d.name, d.FileLine())
+}
+
+// BeanDefinition bean 元数据。
+type BeanDefinition struct {
+	r *beanRegistration
+	m *BeanRuntimeMeta
+}
+
 func (d *BeanDefinition) BeanRegistration() *BeanRegistration {
 	return &BeanRegistration{d}
 }
 
+func (d *BeanDefinition) RuntimeMeta() *BeanRuntimeMeta {
+	return d.m
+}
+
 func (d *BeanDefinition) GetName() string {
-	return d.name
+	return d.m.name
 }
 
 func (d *BeanDefinition) GetTypeName() string {
-	return d.typeName
+	return d.m.typeName
 }
 
 func (d *BeanDefinition) GetStatus() BeanStatus {
-	return d.status
+	return d.m.status
 }
 
 func (d *BeanDefinition) SetStatus(status BeanStatus) {
-	d.status = status
+	d.m.status = status
 }
 
 func (d *BeanDefinition) IsPrimary() bool {
-	return d.primary
+	return d.m.primary
 }
 
 func (d *BeanDefinition) IsMethod() bool {
@@ -124,7 +179,7 @@ func (d *BeanDefinition) GetDepends() []BeanSelector {
 }
 
 func (d *BeanDefinition) GetExports() []reflect.Type {
-	return d.exports
+	return d.m.exports
 }
 
 func (d *BeanDefinition) IsConfiguration() bool {
@@ -148,47 +203,47 @@ func (d *BeanDefinition) GetRefreshParam() conf.BindParam {
 }
 
 func (d *BeanDefinition) Callable() Callable {
-	return d.r.f
+	return d.m.f
 }
 
 // Type 返回 bean 的类型。
 func (d *BeanDefinition) Type() reflect.Type {
-	return d.t
+	return d.m.t
 }
 
 // Value 返回 bean 的值。
 func (d *BeanDefinition) Value() reflect.Value {
-	return d.v
+	return d.m.v
 }
 
 // Interface 返回 bean 的真实值。
 func (d *BeanDefinition) Interface() interface{} {
-	return d.v.Interface()
+	return d.m.v.Interface()
 }
 
 // ID 返回 bean 的 ID 。
 func (d *BeanDefinition) ID() string {
-	return d.typeName + ":" + d.name
+	return d.m.typeName + ":" + d.m.name
 }
 
 // BeanName 返回 bean 的名称。
 func (d *BeanDefinition) BeanName() string {
-	return d.name
+	return d.m.name
 }
 
 // TypeName 返回 bean 的原始类型的全限定名。
 func (d *BeanDefinition) TypeName() string {
-	return d.typeName
+	return d.m.typeName
 }
 
 // Created 返回是否已创建。
 func (d *BeanDefinition) Created() bool {
-	return d.status >= Created
+	return d.m.status >= Created
 }
 
 // Wired 返回 bean 是否已经注入。
 func (d *BeanDefinition) Wired() bool {
-	return d.status == Wired
+	return d.m.status == Wired
 }
 
 func (d *BeanDefinition) File() string {
@@ -206,35 +261,24 @@ func (d *BeanDefinition) FileLine() string {
 
 // GetClass 返回 bean 的类型描述。
 func (d *BeanDefinition) GetClass() string {
-	if d.r.f == nil {
+	if d.m.f == nil {
 		return "object bean"
 	}
 	return "constructor bean"
 }
 
 func (d *BeanDefinition) String() string {
-	return fmt.Sprintf("%s name:%q %s", d.GetClass(), d.name, d.FileLine())
+	return d.m.String()
 }
 
 // Match 测试 bean 的类型全限定名和 bean 的名称是否都匹配。
 func (d *BeanDefinition) Match(typeName string, beanName string) bool {
-
-	typeIsSame := false
-	if typeName == "" || d.typeName == typeName {
-		typeIsSame = true
-	}
-
-	nameIsSame := false
-	if beanName == "" || d.name == beanName {
-		nameIsSame = true
-	}
-
-	return typeIsSame && nameIsSame
+	return d.m.Match(typeName, beanName)
 }
 
 // Name 设置 bean 的名称。
 func (d *BeanDefinition) Name(name string) *BeanDefinition {
-	d.name = name
+	d.m.name = name
 	return d
 }
 
@@ -257,7 +301,7 @@ func (d *BeanDefinition) DependsOn(selectors ...BeanSelector) *BeanDefinition {
 
 // Primary 设置 bean 为主版本。
 func (d *BeanDefinition) Primary() *BeanDefinition {
-	d.primary = true
+	d.m.primary = true
 	return d
 }
 
@@ -305,7 +349,7 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 			panic(errors.New("only interface type can be exported"))
 		}
 		exported := false
-		for _, export := range d.exports {
+		for _, export := range d.m.exports {
 			if t == export {
 				exported = true
 				break
@@ -314,7 +358,7 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 		if exported {
 			continue
 		}
-		d.exports = append(d.exports, t)
+		d.m.exports = append(d.m.exports, t)
 	}
 	return d
 }
@@ -348,16 +392,18 @@ func (d *BeanDefinition) SimplifyMemory() {
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
 func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bool, file string, line int) *BeanDefinition {
 	return &BeanDefinition{
-		t:        t,
-		v:        v,
-		name:     name,
-		typeName: util.TypeName(t),
-		status:   Default,
 		r: &beanRegistration{
-			f:      f,
 			method: method,
 			file:   file,
 			line:   line,
+		},
+		m: &BeanRuntimeMeta{
+			f:        f,
+			t:        t,
+			v:        v,
+			name:     name,
+			typeName: util.TypeName(t),
+			status:   Default,
 		},
 	}
 }
