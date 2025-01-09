@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/util"
@@ -234,6 +235,11 @@ func (d *BeanDefinition) Match(typeName string, beanName string) bool {
 // Name 设置 bean 的名称。
 func (d *BeanDefinition) Name(name string) *BeanDefinition {
 	d.name = name
+	return d
+}
+
+func (d *BeanDefinition) Caller(skip int) *BeanDefinition {
+	_, d.r.file, d.r.line, _ = runtime.Caller(skip)
 	return d
 }
 

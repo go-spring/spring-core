@@ -230,18 +230,28 @@ func AppConfig() *gs_conf.AppConfig {
 	return app.P
 }
 
-func RefreshProperties(p gs.Properties) error {
-	return app.C.RefreshProperties(p)
+func AppRunner(objOrCtor interface{}, ctorArgs ...gs.Arg) *BeanRegistration {
+	b := gs_core.NewBean(objOrCtor, ctorArgs...)
+	b.Export((*gs_app.AppRunner)(nil))
+	return app.C.Accept(b)
+}
+
+func AppServer(objOrCtor interface{}, ctorArgs ...gs.Arg) *BeanRegistration {
+	b := gs_core.NewBean(objOrCtor, ctorArgs...)
+	b.Export((*gs_app.AppServer)(nil))
+	return app.C.Accept(b)
 }
 
 // Object 参考 Container.Object 的解释。
 func Object(i interface{}) *BeanRegistration {
-	return app.C.Accept(gs_core.NewBean(reflect.ValueOf(i)))
+	b := gs_core.NewBean(reflect.ValueOf(i))
+	return app.C.Accept(b)
 }
 
 // Provide 参考 Container.Provide 的解释。
 func Provide(ctor interface{}, args ...Arg) *BeanRegistration {
-	return app.C.Accept(gs_core.NewBean(ctor, args...))
+	b := gs_core.NewBean(ctor, args...)
+	return app.C.Accept(b)
 }
 
 // Accept 参考 Container.Accept 的解释。
@@ -251,6 +261,10 @@ func Accept(b *BeanDefinition) *BeanRegistration {
 
 func Group(fn func(p gs.Properties) ([]*BeanDefinition, error)) {
 	app.C.Group(fn)
+}
+
+func RefreshProperties(p gs.Properties) error {
+	return app.C.RefreshProperties(p)
 }
 
 /********************************** banner ***********************************/

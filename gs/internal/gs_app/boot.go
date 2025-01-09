@@ -32,7 +32,7 @@ type Boot struct {
 	c gs.Container
 	p *gs_conf.BootConfig
 
-	Runners []AppRunner `autowire:"${spring.boot.runners:=*?}"`
+	Runners []BootRunner `autowire:"${spring.boot.runners:=*?}"`
 }
 
 func NewBoot() *Boot {
@@ -46,6 +46,12 @@ func NewBoot() *Boot {
 
 func (b *Boot) Config() *gs_conf.BootConfig {
 	return b.p
+}
+
+func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanRegistration {
+	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
+	bd.Export((*BootRunner)(nil))
+	return b.c.Accept(bd)
 }
 
 // Object 参考 Container.Object 的解释。
