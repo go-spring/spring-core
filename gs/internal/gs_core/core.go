@@ -62,6 +62,18 @@ type ContextAware struct {
 	GSContext gs.Context `autowire:""`
 }
 
+type SimpleBean interface {
+	Callable() gs.Callable
+	GetName() string
+	GetStatus() gs.BeanStatus
+	Interface() interface{}
+	IsPrimary() bool
+	Match(typeName string, beanName string) bool
+	String() string
+	Type() reflect.Type
+	Value() reflect.Value
+}
+
 // Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
 // of Control Containers and the Dependency Injection pattern >> 一文中
 // 提及的依赖注入的概念。但原文的依赖注入仅仅是指对象之间的依赖关系处理，而有些 IoC
@@ -71,8 +83,8 @@ type ContextAware struct {
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
 	beans        []*gs.BeanDefinition
-	beansByName  map[string][]*gs.BeanRuntimeMeta
-	beansByType  map[reflect.Type][]*gs.BeanRuntimeMeta
+	beansByName  map[string][]SimpleBean
+	beansByType  map[reflect.Type][]SimpleBean
 	groupFuncs   []GroupFunc
 	p            *gs_dync.Properties
 	ctx          context.Context
@@ -90,8 +102,8 @@ func New() gs.Container {
 		ctx:         ctx,
 		cancel:      cancel,
 		p:           gs_dync.New(),
-		beansByName: make(map[string][]*gs.BeanRuntimeMeta),
-		beansByType: make(map[reflect.Type][]*gs.BeanRuntimeMeta),
+		beansByName: make(map[string][]SimpleBean),
+		beansByType: make(map[reflect.Type][]SimpleBean),
 	}
 	c.Object(c).Export((*gs.Context)(nil))
 	return c
@@ -250,6 +262,19 @@ func (c *Container) Refresh() (err error) {
 		return errors.New("remove the dependency cycle between beans")
 	}
 
+	c.beansByName = make(map[string][]SimpleBean)
+	c.beansByType = make(map[reflect.Type][]SimpleBean)
+	for _, b := range c.beans {
+		if b.GetStatus() == gs.Deleted {
+			continue
+		}
+		c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b.RuntimeMeta())
+		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.RuntimeMeta())
+		for _, t := range b.GetExports() {
+			c.beansByType[t] = append(c.beansByType[t], b.RuntimeMeta())
+		}
+	}
+
 	c.destroyers = stack.sortDestroyers()
 	c.state = Refreshed
 
@@ -357,11 +382,11 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 
 func (c *Container) registerBean(b *gs.BeanDefinition) {
 	syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.BeanName(), b.Type(), b.FileLine())
-	c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b.RuntimeMeta())
-	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.RuntimeMeta())
+	c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b)
+	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 	for _, t := range b.GetExports() {
 		syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.BeanName(), t, b.FileLine())
-		c.beansByType[t] = append(c.beansByType[t], b.RuntimeMeta())
+		c.beansByType[t] = append(c.beansByType[t], b)
 	}
 }
 
@@ -457,11 +482,6 @@ func (c *Container) Find(selector gs.BeanSelector) ([]*gs.BeanDefinition, error)
 	return finder(func(b *gs.BeanDefinition) bool {
 		if b.Type() == t {
 			return true
-		}
-		for _, typ := range b.GetExports() {
-			if typ == t {
-				return true
-			}
 		}
 		return false
 	})

@@ -53,6 +53,7 @@ type beanRegistration struct {
 	init    interface{}    // 初始化函数
 	destroy interface{}    // 销毁函数
 	depends []BeanSelector // 间接依赖项
+	exports []reflect.Type // 导出的接口
 	file    string         // 注册点所在文件
 	line    int            // 注册点所在行数
 
@@ -65,14 +66,13 @@ type beanRegistration struct {
 }
 
 type BeanRuntimeMeta struct {
-	f        Callable       // 构造函数
-	v        reflect.Value  // 值
-	t        reflect.Type   // 类型
-	name     string         // 名称
-	typeName string         // 原始类型的全限定名
-	primary  bool           // 是否为主版本
-	exports  []reflect.Type // 导出的接口
-	status   BeanStatus     // 状态
+	f        Callable      // 构造函数
+	v        reflect.Value // 值
+	t        reflect.Type  // 类型
+	name     string        // 名称
+	typeName string        // 原始类型的全限定名
+	primary  bool          // 是否为主版本
+	status   BeanStatus    // 状态
 }
 
 func (d *BeanRuntimeMeta) Callable() Callable {
@@ -179,7 +179,7 @@ func (d *BeanDefinition) GetDepends() []BeanSelector {
 }
 
 func (d *BeanDefinition) GetExports() []reflect.Type {
-	return d.m.exports
+	return d.r.exports
 }
 
 func (d *BeanDefinition) IsConfiguration() bool {
@@ -349,7 +349,7 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 			panic(errors.New("only interface type can be exported"))
 		}
 		exported := false
-		for _, export := range d.m.exports {
+		for _, export := range d.r.exports {
 			if t == export {
 				exported = true
 				break
@@ -358,7 +358,7 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 		if exported {
 			continue
 		}
-		d.m.exports = append(d.m.exports, t)
+		d.r.exports = append(d.r.exports, t)
 	}
 	return d
 }
