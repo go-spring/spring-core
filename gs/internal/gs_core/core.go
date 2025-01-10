@@ -45,9 +45,9 @@ const (
 	Refreshed                        // 已刷新
 )
 
-var BeanDefinitionPtrType = reflect.TypeOf((*gs.BeanDefinition)(nil))
+var ToBeRegisteredBeanType = reflect.TypeOf((*gs.ToBeRegisteredBean)(nil))
 
-type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
+type GroupFunc = func(p gs.Properties) ([]*gs.ToBeRegisteredBean, error)
 
 // ContextAware injects the Context into a struct as the field GSContext.
 type ContextAware struct {
@@ -105,23 +105,23 @@ func New() gs.Container {
 }
 
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *Container) Object(i interface{}) *gs.BeanRegistration {
+func (c *Container) Object(i interface{}) *gs.RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
 	return c.Accept(b)
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
+func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	b := NewBean(ctor, args...)
 	return c.Accept(b)
 }
 
-func (c *Container) Accept(b *gs.BeanDefinition) *gs.BeanRegistration {
+func (c *Container) Accept(b *gs.ToBeRegisteredBean) *gs.RegisteredBean {
 	if c.state >= Refreshing {
 		panic(errors.New("should call before Refresh"))
 	}
-	c.beans = append(c.beans, b)
-	return gs.NewBeanRegistration(b)
+	c.beans = append(c.beans, b.BeanDefinition())
+	return gs.NewRegisteredBean(b.BeanDefinition())
 }
 
 func (c *Container) Group(fn GroupFunc) {
@@ -168,12 +168,14 @@ func (c *Container) Refresh() (err error) {
 
 	// 处理 group 逻辑
 	for _, fn := range c.groupFuncs {
-		var beans []*gs.BeanDefinition
+		var beans []*gs.ToBeRegisteredBean
 		beans, err = fn(c.p.Data())
 		if err != nil {
 			return err
 		}
-		c.beans = append(c.beans, beans...)
+		for _, b := range beans {
+			c.beans = append(c.beans, b.BeanDefinition())
+		}
 	}
 	c.groupFuncs = nil
 
@@ -337,16 +339,16 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 			}
 			fnType := m.Func.Type()
 			out0 := fnType.Out(0)
-			if out0 == BeanDefinitionPtrType {
+			if out0 == ToBeRegisteredBeanType {
 				ret := m.Func.Call([]reflect.Value{bd.Value()})
 				if len(ret) > 1 {
 					if err := ret[1].Interface().(error); err != nil {
 						return nil, err
 					}
 				}
-				b := ret[0].Interface().(*gs.BeanDefinition)
-				newBeans = append(newBeans, b)
-				retBeans, err := c.scanConfiguration(b)
+				b := ret[0].Interface().(*gs.ToBeRegisteredBean)
+				newBeans = append(newBeans, b.BeanDefinition())
+				retBeans, err := c.scanConfiguration(b.BeanDefinition())
 				if err != nil {
 					return nil, err
 				}
@@ -362,7 +364,8 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 					v = v.Elem()
 				}
 				name := bd.GetName() + "_" + m.Name
-				b := gs.NewBean(v.Type(), v, f, name, true, bd.File(), bd.Line()).On(gs_cond.OnBean(bd))
+				b := gs.NewBean(v.Type(), v, f, name, true, bd.File(), bd.Line())
+				gs.NewToBeRegisteredBean(b).On(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}
 			break
@@ -534,16 +537,16 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 	var err error
 	switch c.state {
 	case Refreshing:
-		err = c.wireBeanInRefreshing(b, stack)
+		err = c.wireBeanInRefreshing(b.BeanDefinition(), stack)
 	case Refreshed:
-		err = c.wireBeanAfterRefreshed(b, stack)
+		err = c.wireBeanAfterRefreshed(b.BeanDefinition(), stack)
 	default:
 		err = errors.New("state is error for wiring")
 	}
 	if err != nil {
 		return nil, err
 	}
-	return b.Interface(), nil
+	return b.BeanDefinition().Interface(), nil
 }
 
 // Invoke 调用函数，函数的参数会自动注入，函数的返回值也会自动注入。

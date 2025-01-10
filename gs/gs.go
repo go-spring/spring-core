@@ -37,19 +37,21 @@ const (
 )
 
 type (
-	Arg              = gs.Arg
-	BeanDefinition   = gs.BeanDefinition
-	BeanInit         = gs.BeanInit
-	BeanDestroy      = gs.BeanDestroy
-	BeanRegistration = gs.BeanRegistration
-	BeanSelector     = gs.BeanSelector
-	CondContext      = gs.CondContext
-	Condition        = gs.Condition
-	Context          = gs.Context
-	ContextAware     = gs_core.ContextAware
-	Dync[T any]      = gs_dync.Value[T]
-	Runner           = gs_app.Runner
-	Server           = gs_app.Server
+	Arg                = gs.Arg
+	BeanDefinition     = gs.BeanDefinition
+	BeanInit           = gs.BeanInit
+	BeanDestroy        = gs.BeanDestroy
+	RegisteredBean     = gs.RegisteredBean
+	ToBeRegisteredBean = gs.ToBeRegisteredBean
+	BeanSelector       = gs.BeanSelector
+	CondContext        = gs.CondContext
+	Condition          = gs.Condition
+	Properties         = gs.Properties
+	Context            = gs.Context
+	ContextAware       = gs_core.ContextAware
+	Dync[T any]        = gs_dync.Value[T]
+	Runner             = gs_app.Runner
+	Server             = gs_app.Server
 )
 
 /************************************ arg ***********************************/
@@ -230,40 +232,40 @@ func AppConfig() *gs_conf.AppConfig {
 	return app.P
 }
 
-func AppRunner(objOrCtor interface{}, ctorArgs ...gs.Arg) *BeanRegistration {
+func AppRunner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
 	b.Export((*gs_app.Runner)(nil))
 	return app.C.Accept(b)
 }
 
-func AppServer(objOrCtor interface{}, ctorArgs ...gs.Arg) *BeanRegistration {
+func AppServer(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
 	b.Export((*gs_app.Server)(nil))
 	return app.C.Accept(b)
 }
 
 // Object 参考 Container.Object 的解释。
-func Object(i interface{}) *BeanRegistration {
+func Object(i interface{}) *RegisteredBean {
 	b := gs_core.NewBean(reflect.ValueOf(i))
 	return app.C.Accept(b)
 }
 
 // Provide 参考 Container.Provide 的解释。
-func Provide(ctor interface{}, args ...Arg) *BeanRegistration {
+func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(ctor, args...)
 	return app.C.Accept(b)
 }
 
 // Accept 参考 Container.Accept 的解释。
-func Accept(b *BeanDefinition) *BeanRegistration {
+func Accept(b *ToBeRegisteredBean) *RegisteredBean {
 	return app.C.Accept(b)
 }
 
-func Group(fn func(p gs.Properties) ([]*BeanDefinition, error)) {
+func Group(fn func(p Properties) ([]*ToBeRegisteredBean, error)) {
 	app.C.Group(fn)
 }
 
-func RefreshProperties(p gs.Properties) error {
+func RefreshProperties(p Properties) error {
 	return app.C.RefreshProperties(p)
 }
 

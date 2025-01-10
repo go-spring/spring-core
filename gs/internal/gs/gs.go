@@ -3,6 +3,7 @@ package gs
 import (
 	"context"
 	"reflect"
+	"unsafe"
 
 	"github.com/go-spring/spring-core/conf"
 )
@@ -66,84 +67,92 @@ type Refreshable interface {
 	OnRefresh(prop Properties, param conf.BindParam) error
 }
 
-type BeanRegistration struct {
+type beanRegistrationImpl[T RegisteredBean | ToBeRegisteredBean] struct {
 	b *BeanDefinition
 }
 
-func NewBeanRegistration(d *BeanDefinition) *BeanRegistration {
-	return &BeanRegistration{d}
+func (d *beanRegistrationImpl[T]) BeanDefinition() *BeanDefinition {
+	return d.b
 }
 
-func (d *BeanRegistration) Name(name string) *BeanRegistration {
-	d.b.Name(name)
-	return d
-}
-
-func (d *BeanRegistration) BeanName() string {
-	return d.b.BeanName()
-}
-
-func (d *BeanRegistration) ID() string {
-	return d.b.ID()
-}
-
-func (d *BeanRegistration) Interface() interface{} {
-	return d.b.Interface()
+func (d *beanRegistrationImpl[T]) Name(name string) *T {
+	d.b.setName(name)
+	return *(**T)(unsafe.Pointer(&d))
 }
 
 // On 设置 bean 的 Condition。
-func (d *BeanRegistration) On(cond Condition) *BeanRegistration {
-	d.b.On(cond)
-	return d
+func (d *beanRegistrationImpl[T]) On(cond Condition) *T {
+	d.b.setOn(cond)
+	return *(**T)(unsafe.Pointer(&d))
 }
 
 // DependsOn 设置 bean 的间接依赖项。
-func (d *BeanRegistration) DependsOn(selectors ...BeanSelector) *BeanRegistration {
-	d.b.DependsOn(selectors...)
-	return d
+func (d *beanRegistrationImpl[T]) DependsOn(selectors ...BeanSelector) *T {
+	d.b.setDependsOn(selectors...)
+	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Primary 设置 bean 为主版本。
-func (d *BeanRegistration) Primary() *BeanRegistration {
-	d.b.Primary()
-	return d
+func (d *beanRegistrationImpl[T]) Primary() *T {
+	d.b.setPrimary()
+	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Init 设置 bean 的初始化函数。
-func (d *BeanRegistration) Init(fn interface{}) *BeanRegistration {
-	d.b.Init(fn)
-	return d
+func (d *beanRegistrationImpl[T]) Init(fn interface{}) *T {
+	d.b.setInit(fn)
+	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Destroy 设置 bean 的销毁函数。
-func (d *BeanRegistration) Destroy(fn interface{}) *BeanRegistration {
-	d.b.Destroy(fn)
-	return d
+func (d *beanRegistrationImpl[T]) Destroy(fn interface{}) *T {
+	d.b.setDestroy(fn)
+	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Export 设置 bean 的导出接口。
-func (d *BeanRegistration) Export(exports ...interface{}) *BeanRegistration {
-	d.b.Export(exports...)
-	return d
+func (d *beanRegistrationImpl[T]) Export(exports ...interface{}) *T {
+	d.b.setExport(exports...)
+	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Configuration 设置 bean 为配置类。
-func (d *BeanRegistration) Configuration(includes []string, excludes []string) *BeanRegistration {
-	d.b.Configuration(includes, excludes)
-	return d
+func (d *beanRegistrationImpl[T]) Configuration(includes []string, excludes []string) *T {
+	d.b.setConfiguration(includes, excludes)
+	return *(**T)(unsafe.Pointer(&d))
 }
 
 // EnableRefresh 设置 bean 为可刷新的。
-func (d *BeanRegistration) EnableRefresh(tag string) *BeanRegistration {
-	d.b.EnableRefresh(tag)
-	return d
+func (d *beanRegistrationImpl[T]) EnableRefresh(tag string) *T {
+	d.b.setEnableRefresh(tag)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+type RegisteredBean struct {
+	beanRegistrationImpl[RegisteredBean]
+}
+
+func NewRegisteredBean(d *BeanDefinition) *RegisteredBean {
+	return &RegisteredBean{
+		beanRegistrationImpl: beanRegistrationImpl[RegisteredBean]{d},
+	}
+}
+
+type ToBeRegisteredBean struct {
+	beanRegistrationImpl[ToBeRegisteredBean]
+}
+
+func NewToBeRegisteredBean(d *BeanDefinition) *ToBeRegisteredBean {
+	return &ToBeRegisteredBean{
+		beanRegistrationImpl: beanRegistrationImpl[ToBeRegisteredBean]{d},
+	}
 }
 
 type Container interface {
-	Object(i interface{}) *BeanRegistration
-	Provide(ctor interface{}, args ...Arg) *BeanRegistration
-	Accept(b *BeanDefinition) *BeanRegistration
-	Group(fn func(p Properties) ([]*BeanDefinition, error))
+	Object(i interface{}) *RegisteredBean
+	Provide(ctor interface{}, args ...Arg) *RegisteredBean
+	Accept(b *ToBeRegisteredBean) *RegisteredBean
+	Group(fn func(p Properties) ([]*ToBeRegisteredBean, error))
 	RefreshProperties(p Properties) error
 	Refresh() error
 	SimplifyMemory()

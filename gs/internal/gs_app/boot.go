@@ -44,28 +44,28 @@ func (b *Boot) Config() *gs_conf.BootConfig {
 	return b.p
 }
 
-func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanRegistration {
+func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
 	bd.Export((*Runner)(nil))
 	return b.c.Accept(bd)
 }
 
 // Object 参考 Container.Object 的解释。
-func (b *Boot) Object(i interface{}) *gs.BeanRegistration {
+func (b *Boot) Object(i interface{}) *gs.RegisteredBean {
 	return b.c.Accept(gs_core.NewBean(reflect.ValueOf(i)))
 }
 
 // Provide 参考 Container.Provide 的解释。
-func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.BeanRegistration {
+func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	return b.c.Accept(gs_core.NewBean(ctor, args...))
 }
 
 // Accept 参考 Container.Accept 的解释。
-func (b *Boot) Accept(bd *gs.BeanDefinition) *gs.BeanRegistration {
+func (b *Boot) Accept(bd *gs.ToBeRegisteredBean) *gs.RegisteredBean {
 	return b.c.Accept(bd)
 }
 
-func (b *Boot) Group(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
+func (b *Boot) Group(fn func(p gs.Properties) ([]*gs.ToBeRegisteredBean, error)) {
 	b.c.Group(fn)
 }
 

@@ -248,30 +248,30 @@ func (d *BeanDefinition) String() string {
 }
 
 // Name 设置 bean 的名称。
-func (d *BeanDefinition) Name(name string) *BeanDefinition {
+func (d *BeanDefinition) setName(name string) *BeanDefinition {
 	d.name = name
 	return d
 }
 
-func (d *BeanDefinition) Caller(skip int) *BeanDefinition {
+func (d *BeanDefinition) setCaller(skip int) *BeanDefinition {
 	_, d.file, d.line, _ = runtime.Caller(skip)
 	return d
 }
 
 // On 设置 bean 的 Condition。
-func (d *BeanDefinition) On(cond Condition) *BeanDefinition {
+func (d *BeanDefinition) setOn(cond Condition) *BeanDefinition {
 	d.cond = cond
 	return d
 }
 
 // DependsOn 设置 bean 的间接依赖项。
-func (d *BeanDefinition) DependsOn(selectors ...BeanSelector) *BeanDefinition {
+func (d *BeanDefinition) setDependsOn(selectors ...BeanSelector) *BeanDefinition {
 	d.depends = append(d.depends, selectors...)
 	return d
 }
 
 // Primary 设置 bean 为主版本。
-func (d *BeanDefinition) Primary() *BeanDefinition {
+func (d *BeanDefinition) setPrimary() *BeanDefinition {
 	d.primary = true
 	return d
 }
@@ -289,7 +289,7 @@ func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
 }
 
 // Init 设置 bean 的初始化函数。
-func (d *BeanDefinition) Init(fn interface{}) *BeanDefinition {
+func (d *BeanDefinition) setInit(fn interface{}) *BeanDefinition {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
 		d.init = fn
 		return d
@@ -298,7 +298,7 @@ func (d *BeanDefinition) Init(fn interface{}) *BeanDefinition {
 }
 
 // Destroy 设置 bean 的销毁函数。
-func (d *BeanDefinition) Destroy(fn interface{}) *BeanDefinition {
+func (d *BeanDefinition) setDestroy(fn interface{}) *BeanDefinition {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
 		d.destroy = fn
 		return d
@@ -307,7 +307,7 @@ func (d *BeanDefinition) Destroy(fn interface{}) *BeanDefinition {
 }
 
 // Export 设置 bean 的导出接口。
-func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
+func (d *BeanDefinition) setExport(exports ...interface{}) *BeanDefinition {
 	for _, o := range exports {
 		t, ok := o.(reflect.Type)
 		if !ok {
@@ -335,7 +335,7 @@ func (d *BeanDefinition) Export(exports ...interface{}) *BeanDefinition {
 }
 
 // Configuration 设置 bean 为配置类。
-func (d *BeanDefinition) Configuration(includes []string, excludes []string) *BeanDefinition {
+func (d *BeanDefinition) setConfiguration(includes []string, excludes []string) *BeanDefinition {
 	d.configuration = true
 	d.includeMethod = includes
 	d.excludeMethod = excludes
@@ -343,7 +343,7 @@ func (d *BeanDefinition) Configuration(includes []string, excludes []string) *Be
 }
 
 // EnableRefresh 设置 bean 为可刷新的。
-func (d *BeanDefinition) EnableRefresh(tag string) *BeanDefinition {
+func (d *BeanDefinition) setEnableRefresh(tag string) *BeanDefinition {
 	if !d.Type().Implements(refreshableType) {
 		panic(errors.New("must implement dync.Refreshable interface"))
 	}
