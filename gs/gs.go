@@ -50,8 +50,8 @@ type (
 	Context          = gs.Context
 	ContextAware     = gs_core.ContextAware
 	Dync[T any]      = gs_dync.Value[T]
-	Runner           = gs_app.Runner
-	Server           = gs_app.Server
+	IRunner          = gs_app.IRunner
+	IServer          = gs_app.IServer
 )
 
 /************************************ arg ***********************************/
@@ -192,12 +192,39 @@ func bootRun() error {
 	return nil
 }
 
-// Boot 参考 App.Boot 的解释。
-func Boot() *gs_app.Boot {
+func getBoot() *gs_app.Boot {
 	if boot == nil {
 		boot = gs_app.NewBoot()
 	}
 	return boot
+}
+
+func BootConfig() *gs_conf.BootConfig {
+	return getBoot().P
+}
+
+func BootObject(i interface{}) *gs.RegisteredBean {
+	b := gs_core.NewBean(reflect.ValueOf(i))
+	return getBoot().C.Accept(b)
+}
+
+func BootProvide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+	b := gs_core.NewBean(ctor, args...)
+	return getBoot().C.Accept(b)
+}
+
+func BootAccept(bd *gs.UnregisteredBean) *gs.RegisteredBean {
+	return getBoot().C.Accept(bd)
+}
+
+func BootGroup(fn func(p gs.Properties) ([]*gs.UnregisteredBean, error)) {
+	getBoot().C.Group(fn)
+}
+
+func BootRunner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
+	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
+	bd.Export((*IRunner)(nil))
+	return getBoot().C.Accept(bd)
 }
 
 /*********************************** app *************************************/
@@ -228,20 +255,8 @@ func ShutDown(msg ...string) {
 	app.ShutDown(msg...)
 }
 
-func AppConfig() *gs_conf.AppConfig {
+func Config() *gs_conf.AppConfig {
 	return app.P
-}
-
-func AppRunner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*gs_app.Runner)(nil))
-	return app.C.Accept(b)
-}
-
-func AppServer(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*gs_app.Server)(nil))
-	return app.C.Accept(b)
 }
 
 // Object 参考 Container.Object 的解释。
@@ -263,6 +278,18 @@ func Accept(b *UnregisteredBean) *RegisteredBean {
 
 func Group(fn func(p Properties) ([]*UnregisteredBean, error)) {
 	app.C.Group(fn)
+}
+
+func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
+	b := gs_core.NewBean(objOrCtor, ctorArgs...)
+	b.Export((*IRunner)(nil))
+	return app.C.Accept(b)
+}
+
+func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
+	b := gs_core.NewBean(objOrCtor, ctorArgs...)
+	b.Export((*IServer)(nil))
+	return app.C.Accept(b)
 }
 
 func RefreshProperties(p Properties) error {
