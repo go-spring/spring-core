@@ -56,6 +56,7 @@ type BeanDestroy interface {
 
 // beanRegistration bean 注册数据。
 type beanRegistration struct {
+	f       Callable       // 构造函数
 	method  bool           // 是否为成员方法
 	cond    Condition      // 判断条件
 	init    interface{}    // 初始化函数
@@ -64,6 +65,7 @@ type beanRegistration struct {
 	exports []reflect.Type // 导出的接口
 	file    string         // 注册点所在文件
 	line    int            // 注册点所在行数
+	status  BeanStatus     // 状态
 
 	configuration bool     // 是否扫描成员方法
 	includeMethod []string // 包含哪些成员方法
@@ -74,17 +76,15 @@ type beanRegistration struct {
 }
 
 type BeanRuntimeMeta struct {
-	f        Callable      // 构造函数
 	v        reflect.Value // 值
 	t        reflect.Type  // 类型
 	name     string        // 名称
 	typeName string        // 原始类型的全限定名
 	primary  bool          // 是否为主版本
-	status   BeanStatus    // 状态
 }
 
 func (d *BeanRuntimeMeta) Callable() Callable {
-	return d.f
+	return nil
 }
 
 // Interface 返回 bean 的真实值。
@@ -109,7 +109,7 @@ func (d *BeanRuntimeMeta) Value() reflect.Value {
 }
 
 func (d *BeanRuntimeMeta) GetStatus() BeanStatus {
-	return d.status
+	return Wired
 }
 
 func (d *BeanRuntimeMeta) Match(typeName string, beanName string) bool {
@@ -127,16 +127,8 @@ func (d *BeanRuntimeMeta) Match(typeName string, beanName string) bool {
 	return typeIsSame && nameIsSame
 }
 
-// GetClass 返回 bean 的类型描述。
-func (d *BeanRuntimeMeta) GetClass() string {
-	if d.f == nil {
-		return "object bean"
-	}
-	return "constructor bean"
-}
-
 func (d *BeanRuntimeMeta) String() string {
-	return fmt.Sprintf("%s name:%q", d.GetClass(), d.name)
+	return d.name
 }
 
 // BeanDefinition bean 元数据。
@@ -145,8 +137,16 @@ type BeanDefinition struct {
 	*BeanRuntimeMeta
 }
 
+func (d *BeanDefinition) Callable() Callable {
+	return d.f
+}
+
 func (d *BeanDefinition) GetTypeName() string {
 	return d.typeName
+}
+
+func (d *BeanDefinition) GetStatus() BeanStatus {
+	return d.status
 }
 
 func (d *BeanDefinition) SetStatus(status BeanStatus) {
@@ -233,6 +233,14 @@ func (d *BeanDefinition) Line() int {
 // FileLine 返回 bean 的注册点。
 func (d *BeanDefinition) FileLine() string {
 	return fmt.Sprintf("%s:%d", d.file, d.line)
+}
+
+// GetClass 返回 bean 的类型描述。
+func (d *BeanDefinition) GetClass() string {
+	if d.f == nil {
+		return "object bean"
+	}
+	return "constructor bean"
 }
 
 func (d *BeanDefinition) String() string {
@@ -351,17 +359,17 @@ func (d *BeanDefinition) EnableRefresh(tag string) *BeanDefinition {
 func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bool, file string, line int) *BeanDefinition {
 	return &BeanDefinition{
 		beanRegistration: &beanRegistration{
+			f:      f,
 			method: method,
 			file:   file,
 			line:   line,
+			status: Default,
 		},
 		BeanRuntimeMeta: &BeanRuntimeMeta{
-			f:        f,
 			t:        t,
 			v:        v,
 			name:     name,
 			typeName: util.TypeName(t),
-			status:   Default,
 		},
 	}
 }
