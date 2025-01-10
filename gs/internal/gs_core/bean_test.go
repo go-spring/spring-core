@@ -32,7 +32,7 @@ import (
 )
 
 // newBean 该方法是为了平衡调用栈的深度，一般情况下 gs.NewBean 不应该被直接使用。
-func newBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.ToBeRegisteredBean {
+func newBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.UnregisteredBean {
 	return gs_core.NewBean(objOrCtor, ctorArgs...)
 }
 
@@ -108,7 +108,7 @@ func TestIsFuncBeanType(t *testing.T) {
 func TestBeanDefinition_Match(t *testing.T) {
 
 	data := []struct {
-		bd       *gs.ToBeRegisteredBean
+		bd       *gs.UnregisteredBean
 		typeName string
 		beanName string
 		expect   bool
@@ -160,7 +160,7 @@ func TestObjectBean(t *testing.T) {
 
 	t.Run("check name && typename", func(t *testing.T) {
 
-		data := map[*gs.ToBeRegisteredBean]struct {
+		data := map[*gs.UnregisteredBean]struct {
 			name     string
 			typeName string
 		}{
@@ -185,7 +185,7 @@ func TestObjectBean(t *testing.T) {
 		}
 
 		for bd, v := range data {
-			assert.Equal(t, bd.BeanDefinition().BeanName(), v.name)
+			assert.Equal(t, bd.BeanDefinition().Name(), v.name)
 			assert.Equal(t, bd.BeanDefinition().TypeName(), v.typeName)
 		}
 	})

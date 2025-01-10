@@ -29,7 +29,7 @@ import (
 )
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.ToBeRegisteredBean {
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.UnregisteredBean {
 
 	var v reflect.Value
 	var fromValue bool
@@ -107,5 +107,5 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.ToBeRegisteredBean {
 	}
 
 	d := gs.NewBean(t, v, f, name, method, file, line)
-	return gs.NewToBeRegisteredBean(d)
+	return gs.NewUnregisteredBean(d)
 }

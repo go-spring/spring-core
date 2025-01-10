@@ -889,7 +889,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.RefreshProperties(prop)
 
 		bd := c.Provide(NewManager)
-		assert.Equal(t, bd.BeanDefinition().BeanName(), "NewManager")
+		assert.Equal(t, bd.BeanDefinition().Name(), "NewManager")
 
 		err := runTest(c, func(p gs.Context) {
 
@@ -1186,7 +1186,7 @@ func TestApplicationContext_Collect(t *testing.T) {
 
 			return func() {}
 		})
-		assert.Equal(t, intBean.BeanDefinition().BeanName(), "TestApplicationContext_Collect.func6.1")
+		assert.Equal(t, intBean.BeanDefinition().Name(), "TestApplicationContext_Collect.func6.1")
 
 		c.RefreshProperties(prop)
 		err := c.Refresh()
@@ -1454,7 +1454,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 			assert.Equal(t, consumer.s.Version, "2.0.0")
 		})
 		assert.Nil(t, err)
-		assert.Equal(t, bd.BeanDefinition().BeanName(), "Consumer")
+		assert.Equal(t, bd.BeanDefinition().Name(), "Consumer")
 	})
 
 	t.Run("method bean condition", func(t *testing.T) {
@@ -1477,7 +1477,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 			assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Consumer\"")
 		})
 		assert.Nil(t, err)
-		assert.Equal(t, bd.BeanDefinition().BeanName(), "Consumer")
+		assert.Equal(t, bd.BeanDefinition().Name(), "Consumer")
 	})
 
 	t.Run("method bean arg", func(t *testing.T) {
@@ -3036,7 +3036,7 @@ func (c *ConfigurationBean) NewChild() *ChildBean {
 	return &ChildBean{c.s}
 }
 
-func (c *ConfigurationBean) NewBean() *gs.ToBeRegisteredBean {
+func (c *ConfigurationBean) NewBean() *gs.UnregisteredBean {
 	return gs_core.NewBean(&ChildBean{"100"}).Name("100")
 }
 

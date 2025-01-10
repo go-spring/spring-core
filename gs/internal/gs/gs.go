@@ -67,92 +67,92 @@ type Refreshable interface {
 	OnRefresh(prop Properties, param conf.BindParam) error
 }
 
-type beanRegistrationImpl[T RegisteredBean | ToBeRegisteredBean] struct {
+type beanBuilder[T RegisteredBean | UnregisteredBean] struct {
 	b *BeanDefinition
 }
 
-func (d *beanRegistrationImpl[T]) BeanDefinition() *BeanDefinition {
+func (d *beanBuilder[T]) BeanDefinition() *BeanDefinition {
 	return d.b
 }
 
-func (d *beanRegistrationImpl[T]) Name(name string) *T {
+func (d *beanBuilder[T]) Name(name string) *T {
 	d.b.setName(name)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // On 设置 bean 的 Condition。
-func (d *beanRegistrationImpl[T]) On(cond Condition) *T {
+func (d *beanBuilder[T]) On(cond Condition) *T {
 	d.b.setOn(cond)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // DependsOn 设置 bean 的间接依赖项。
-func (d *beanRegistrationImpl[T]) DependsOn(selectors ...BeanSelector) *T {
+func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
 	d.b.setDependsOn(selectors...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Primary 设置 bean 为主版本。
-func (d *beanRegistrationImpl[T]) Primary() *T {
+func (d *beanBuilder[T]) Primary() *T {
 	d.b.setPrimary()
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Init 设置 bean 的初始化函数。
-func (d *beanRegistrationImpl[T]) Init(fn interface{}) *T {
+func (d *beanBuilder[T]) Init(fn interface{}) *T {
 	d.b.setInit(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Destroy 设置 bean 的销毁函数。
-func (d *beanRegistrationImpl[T]) Destroy(fn interface{}) *T {
+func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
 	d.b.setDestroy(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Export 设置 bean 的导出接口。
-func (d *beanRegistrationImpl[T]) Export(exports ...interface{}) *T {
+func (d *beanBuilder[T]) Export(exports ...interface{}) *T {
 	d.b.setExport(exports...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Configuration 设置 bean 为配置类。
-func (d *beanRegistrationImpl[T]) Configuration(includes []string, excludes []string) *T {
+func (d *beanBuilder[T]) Configuration(includes []string, excludes []string) *T {
 	d.b.setConfiguration(includes, excludes)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // EnableRefresh 设置 bean 为可刷新的。
-func (d *beanRegistrationImpl[T]) EnableRefresh(tag string) *T {
+func (d *beanBuilder[T]) EnableRefresh(tag string) *T {
 	d.b.setEnableRefresh(tag)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 type RegisteredBean struct {
-	beanRegistrationImpl[RegisteredBean]
+	beanBuilder[RegisteredBean]
 }
 
 func NewRegisteredBean(d *BeanDefinition) *RegisteredBean {
 	return &RegisteredBean{
-		beanRegistrationImpl: beanRegistrationImpl[RegisteredBean]{d},
+		beanBuilder: beanBuilder[RegisteredBean]{d},
 	}
 }
 
-type ToBeRegisteredBean struct {
-	beanRegistrationImpl[ToBeRegisteredBean]
+type UnregisteredBean struct {
+	beanBuilder[UnregisteredBean]
 }
 
-func NewToBeRegisteredBean(d *BeanDefinition) *ToBeRegisteredBean {
-	return &ToBeRegisteredBean{
-		beanRegistrationImpl: beanRegistrationImpl[ToBeRegisteredBean]{d},
+func NewUnregisteredBean(d *BeanDefinition) *UnregisteredBean {
+	return &UnregisteredBean{
+		beanBuilder: beanBuilder[UnregisteredBean]{d},
 	}
 }
 
 type Container interface {
 	Object(i interface{}) *RegisteredBean
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
-	Accept(b *ToBeRegisteredBean) *RegisteredBean
-	Group(fn func(p Properties) ([]*ToBeRegisteredBean, error))
+	Accept(b *UnregisteredBean) *RegisteredBean
+	Group(fn func(p Properties) ([]*UnregisteredBean, error))
 	RefreshProperties(p Properties) error
 	Refresh() error
 	SimplifyMemory()

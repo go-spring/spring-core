@@ -78,7 +78,7 @@ func newWiringStack() *wiringStack {
 
 // pushBack 添加一个即将注入的 bean 。
 func (s *wiringStack) pushBack(b *gs.BeanDefinition) {
-	syslog.Debug("push %s %s", b, gs.GetStatusString(b.GetStatus()))
+	syslog.Debug("push %s %s", b, gs.GetStatusString(b.Status()))
 	s.beans = append(s.beans, b)
 }
 
@@ -87,7 +87,7 @@ func (s *wiringStack) popBack() {
 	n := len(s.beans)
 	b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
-	syslog.Debug("pop %s %s", b, gs.GetStatusString(b.GetStatus()))
+	syslog.Debug("pop %s %s", b, gs.GetStatusString(b.Status()))
 }
 
 // path 返回 bean 的注入路径。
@@ -246,7 +246,7 @@ func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, sta
 type byBeanName []SimpleBean
 
 func (b byBeanName) Len() int           { return len(b) }
-func (b byBeanName) Less(i, j int) bool { return b[i].GetName() < b[j].GetName() }
+func (b byBeanName) Less(i, j int) bool { return b[i].Name() < b[j].Name() }
 func (b byBeanName) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // filterBean 返回 tag 对应的 bean 在数组中的索引，找不到返回 -1。
@@ -298,7 +298,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	{
 		var arr []SimpleBean
 		for _, b := range beans {
-			if b.GetStatus() == gs.Deleted {
+			if b.Status() == gs.Deleted {
 				continue
 			}
 			arr = append(arr, b)
@@ -375,7 +375,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 				return err
 			}
 		case Refreshed:
-			if err := c.wireBeanAfterRefreshed(b.(*gs.BeanRuntimeMeta), stack); err != nil {
+			if err := c.wireBeanAfterRefreshed(b.(*gs.BeanRuntime), stack); err != nil {
 				return err
 			}
 		default:
@@ -394,7 +394,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	case reflect.Map:
 		ret = reflect.MakeMap(t)
 		for _, b := range beans {
-			ret.SetMapIndex(reflect.ValueOf(b.GetName()), b.Value())
+			ret.SetMapIndex(reflect.ValueOf(b.Name()), b.Value())
 		}
 	default:
 	}
@@ -416,7 +416,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 
 	var foundBeans []SimpleBean
 	for _, b := range c.beansByType[t] {
-		if b.GetStatus() == gs.Deleted {
+		if b.Status() == gs.Deleted {
 			continue
 		}
 		if !b.Match(tag.typeName, tag.beanName) {
@@ -428,7 +428,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
 	if t.Kind() == reflect.Interface && tag.beanName != "" {
 		for _, b := range c.beansByName[tag.beanName] {
-			if b.GetStatus() == gs.Deleted {
+			if b.Status() == gs.Deleted {
 				continue
 			}
 			if !b.Type().AssignableTo(t) {
@@ -516,12 +516,12 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 // 实例化被依赖的 bean 然后对它们进行注入。
 func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStack) error {
 
-	if b.GetStatus() == gs.Deleted {
+	if b.Status() == gs.Deleted {
 		return fmt.Errorf("bean:%q have been deleted", b.ID())
 	}
 
 	// 运行时 Get 或者 Wire 会出现下面这种情况。
-	if c.state == Refreshed && b.GetStatus() == gs.Wired {
+	if c.state == Refreshed && b.Status() == gs.Wired {
 		return nil
 	}
 
@@ -545,14 +545,14 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 
 	stack.pushBack(b)
 
-	if b.GetStatus() == gs.Creating && b.Callable() != nil {
+	if b.Status() == gs.Creating && b.Callable() != nil {
 		prev := stack.beans[len(stack.beans)-2]
-		if prev.GetStatus() == gs.Creating {
+		if prev.Status() == gs.Creating {
 			return errors.New("found circle autowire")
 		}
 	}
 
-	if b.GetStatus() >= gs.Creating {
+	if b.Status() >= gs.Creating {
 		stack.popBack()
 		return nil
 	}

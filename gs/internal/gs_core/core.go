@@ -45,9 +45,9 @@ const (
 	Refreshed                        // 已刷新
 )
 
-var ToBeRegisteredBeanType = reflect.TypeOf((*gs.ToBeRegisteredBean)(nil))
+var UnregisteredBeanType = reflect.TypeOf((*gs.UnregisteredBean)(nil))
 
-type GroupFunc = func(p gs.Properties) ([]*gs.ToBeRegisteredBean, error)
+type GroupFunc = func(p gs.Properties) ([]*gs.UnregisteredBean, error)
 
 // ContextAware injects the Context into a struct as the field GSContext.
 type ContextAware struct {
@@ -56,8 +56,8 @@ type ContextAware struct {
 
 type SimpleBean interface {
 	Callable() gs.Callable
-	GetName() string
-	GetStatus() gs.BeanStatus
+	Name() string
+	Status() gs.BeanStatus
 	Interface() interface{}
 	IsPrimary() bool
 	Match(typeName string, beanName string) bool
@@ -116,7 +116,7 @@ func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
 	return c.Accept(b)
 }
 
-func (c *Container) Accept(b *gs.ToBeRegisteredBean) *gs.RegisteredBean {
+func (c *Container) Accept(b *gs.UnregisteredBean) *gs.RegisteredBean {
 	if c.state >= Refreshing {
 		panic(errors.New("should call before Refresh"))
 	}
@@ -168,7 +168,7 @@ func (c *Container) Refresh() (err error) {
 
 	// 处理 group 逻辑
 	for _, fn := range c.groupFuncs {
-		var beans []*gs.ToBeRegisteredBean
+		var beans []*gs.UnregisteredBean
 		beans, err = fn(c.p.Data())
 		if err != nil {
 			return err
@@ -207,11 +207,11 @@ func (c *Container) Refresh() (err error) {
 	beansById := make(map[string]*gs.BeanDefinition)
 	{
 		for _, b := range c.beans {
-			if b.GetStatus() == gs.Deleted {
+			if b.Status() == gs.Deleted {
 				continue
 			}
-			if b.GetStatus() != gs.Resolved {
-				return fmt.Errorf("unexpected status %d", b.GetStatus())
+			if b.Status() != gs.Resolved {
+				return fmt.Errorf("unexpected status %d", b.Status())
 			}
 			beanID := b.ID()
 			if d, ok := beansById[beanID]; ok {
@@ -261,13 +261,13 @@ func (c *Container) Refresh() (err error) {
 		c.beansByName = make(map[string][]SimpleBean)
 		c.beansByType = make(map[reflect.Type][]SimpleBean)
 		for _, b := range c.beans {
-			if b.GetStatus() == gs.Deleted {
+			if b.Status() == gs.Deleted {
 				continue
 			}
-			c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b.BeanRuntimeMeta)
-			c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntimeMeta)
+			c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
+			c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
 			for _, t := range b.GetExports() {
-				c.beansByType[t] = append(c.beansByType[t], b.BeanRuntimeMeta)
+				c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
 			}
 		}
 	} else { // 清空全部数据
@@ -339,14 +339,14 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 			}
 			fnType := m.Func.Type()
 			out0 := fnType.Out(0)
-			if out0 == ToBeRegisteredBeanType {
+			if out0 == UnregisteredBeanType {
 				ret := m.Func.Call([]reflect.Value{bd.Value()})
 				if len(ret) > 1 {
 					if err := ret[1].Interface().(error); err != nil {
 						return nil, err
 					}
 				}
-				b := ret[0].Interface().(*gs.ToBeRegisteredBean)
+				b := ret[0].Interface().(*gs.UnregisteredBean)
 				newBeans = append(newBeans, b.BeanDefinition())
 				retBeans, err := c.scanConfiguration(b.BeanDefinition())
 				if err != nil {
@@ -363,9 +363,9 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 				if util.IsBeanType(out0) {
 					v = v.Elem()
 				}
-				name := bd.GetName() + "_" + m.Name
+				name := bd.Name() + "_" + m.Name
 				b := gs.NewBean(v.Type(), v, f, name, true, bd.File(), bd.Line())
-				gs.NewToBeRegisteredBean(b).On(gs_cond.OnBean(bd))
+				gs.NewUnregisteredBean(b).On(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}
 			break
@@ -375,11 +375,11 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 }
 
 func (c *Container) registerBean(b *gs.BeanDefinition) {
-	syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.BeanName(), b.Type(), b.FileLine())
-	c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b)
+	syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.Name(), b.Type(), b.FileLine())
+	c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 	for _, t := range b.GetExports() {
-		syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.BeanName(), t, b.FileLine())
+		syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.Name(), t, b.FileLine())
 		c.beansByType[t] = append(c.beansByType[t], b)
 	}
 }
@@ -387,7 +387,7 @@ func (c *Container) registerBean(b *gs.BeanDefinition) {
 // resolveBean 判断 bean 的有效性，如果 bean 是无效的则被标记为已删除。
 func (c *Container) resolveBean(b *gs.BeanDefinition) error {
 
-	if b.GetStatus() >= gs.Resolving {
+	if b.Status() >= gs.Resolving {
 		return nil
 	}
 
@@ -437,13 +437,13 @@ func (c *Container) Find(selector gs.BeanSelector) ([]*gs.BeanDefinition, error)
 	finder := func(fn func(*gs.BeanDefinition) bool) ([]*gs.BeanDefinition, error) {
 		var result []*gs.BeanDefinition
 		for _, b := range c.beans {
-			if b.GetStatus() == gs.Resolving || b.GetStatus() == gs.Deleted || !fn(b) {
+			if b.Status() == gs.Resolving || b.Status() == gs.Deleted || !fn(b) {
 				continue
 			}
 			if err := c.resolveBean(b); err != nil {
 				return nil, err
 			}
-			if b.GetStatus() == gs.Deleted {
+			if b.Status() == gs.Deleted {
 				continue
 			}
 			result = append(result, b)

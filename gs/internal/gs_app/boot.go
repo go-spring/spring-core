@@ -61,11 +61,11 @@ func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 }
 
 // Accept 参考 Container.Accept 的解释。
-func (b *Boot) Accept(bd *gs.ToBeRegisteredBean) *gs.RegisteredBean {
+func (b *Boot) Accept(bd *gs.UnregisteredBean) *gs.RegisteredBean {
 	return b.c.Accept(bd)
 }
 
-func (b *Boot) Group(fn func(p gs.Properties) ([]*gs.ToBeRegisteredBean, error)) {
+func (b *Boot) Group(fn func(p gs.Properties) ([]*gs.UnregisteredBean, error)) {
 	b.c.Group(fn)
 }
 

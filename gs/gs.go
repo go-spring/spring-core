@@ -37,21 +37,21 @@ const (
 )
 
 type (
-	Arg                = gs.Arg
-	BeanDefinition     = gs.BeanDefinition
-	BeanInit           = gs.BeanInit
-	BeanDestroy        = gs.BeanDestroy
-	RegisteredBean     = gs.RegisteredBean
-	ToBeRegisteredBean = gs.ToBeRegisteredBean
-	BeanSelector       = gs.BeanSelector
-	CondContext        = gs.CondContext
-	Condition          = gs.Condition
-	Properties         = gs.Properties
-	Context            = gs.Context
-	ContextAware       = gs_core.ContextAware
-	Dync[T any]        = gs_dync.Value[T]
-	Runner             = gs_app.Runner
-	Server             = gs_app.Server
+	Arg              = gs.Arg
+	BeanDefinition   = gs.BeanDefinition
+	BeanInit         = gs.BeanInit
+	BeanDestroy      = gs.BeanDestroy
+	RegisteredBean   = gs.RegisteredBean
+	UnregisteredBean = gs.UnregisteredBean
+	BeanSelector     = gs.BeanSelector
+	CondContext      = gs.CondContext
+	Condition        = gs.Condition
+	Properties       = gs.Properties
+	Context          = gs.Context
+	ContextAware     = gs_core.ContextAware
+	Dync[T any]      = gs_dync.Value[T]
+	Runner           = gs_app.Runner
+	Server           = gs_app.Server
 )
 
 /************************************ arg ***********************************/
@@ -257,11 +257,11 @@ func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
 }
 
 // Accept 参考 Container.Accept 的解释。
-func Accept(b *ToBeRegisteredBean) *RegisteredBean {
+func Accept(b *UnregisteredBean) *RegisteredBean {
 	return app.C.Accept(b)
 }
 
-func Group(fn func(p Properties) ([]*ToBeRegisteredBean, error)) {
+func Group(fn func(p Properties) ([]*UnregisteredBean, error)) {
 	app.C.Group(fn)
 }
 
