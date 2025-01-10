@@ -134,7 +134,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
 		d := e.Value.(*destroyer).current
-		ret = append(ret, destroy(d.Value(), d.GetDestroy()))
+		ret = append(ret, destroy(d.Value(), d.Destroy()))
 	}
 	return ret
 }
@@ -534,7 +534,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	}()
 
 	// 记录注入路径上的销毁函数及其执行的先后顺序。
-	if _, ok := b.Interface().(gs.BeanDestroy); ok || b.GetDestroy() != nil {
+	if _, ok := b.Interface().(gs.BeanDestroy); ok || b.Destroy() != nil {
 		haveDestroy = true
 		d := stack.saveDestroyer(b)
 		if i := stack.destroyers.Back(); i != nil {
@@ -560,7 +560,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	b.SetStatus(gs.Creating)
 
 	// 对当前 bean 的间接依赖项进行注入。
-	for _, s := range b.GetDepends() {
+	for _, s := range b.Depends() {
 		beans, err := c.Find(s)
 		if err != nil {
 			return err
@@ -581,7 +581,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	b.SetStatus(gs.Created)
 
 	t := v.Type()
-	for _, typ := range b.GetExports() {
+	for _, typ := range b.Exports() {
 		if !t.Implements(typ) {
 			return fmt.Errorf("%s doesn't implement interface %s", b, typ)
 		}
@@ -593,8 +593,8 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	}
 
 	// 如果 bean 有初始化函数，则执行其初始化函数。
-	if b.GetInit() != nil {
-		fnValue := reflect.ValueOf(b.GetInit())
+	if b.Init() != nil {
+		fnValue := reflect.ValueOf(b.Init())
 		out := fnValue.Call([]reflect.Value{b.Value()})
 		if len(out) > 0 && !out[0].IsNil() {
 			return out[0].Interface().(error)
@@ -609,9 +609,9 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	}
 
 	// 如果 bean 实现了 dync.Refreshable 接口，则将 bean 添加到可刷新对象列表中。
-	if b.IsRefreshEnable() {
+	if b.EnableRefresh() {
 		i := b.Interface().(gs.Refreshable)
-		refreshParam := b.GetRefreshParam()
+		refreshParam := b.RefreshParam()
 		watch := c.state == Refreshing
 		if err = c.p.RefreshBean(i, refreshParam, watch); err != nil {
 			return err

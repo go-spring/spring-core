@@ -3042,8 +3042,8 @@ func (c *ConfigurationBean) NewBean() *gs.UnregisteredBean {
 
 func TestConfiguration(t *testing.T) {
 	c := gs_core.New()
-	c.Object(&ConfigurationBean{"123"}).Configuration(nil, []string{"NewBean"}).Name("123")
-	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration(nil, nil).Name("456")
+	c.Object(&ConfigurationBean{"123"}).Configuration(gs.ConfigurationParam{Exclude: []string{"NewBean"}}).Name("123")
+	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration().Name("456")
 	ctx := &gs_core.ContextAware{}
 	c.Object(ctx)
 	if err := c.Refresh(); err != nil {

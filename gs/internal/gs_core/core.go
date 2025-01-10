@@ -266,7 +266,7 @@ func (c *Container) Refresh() (err error) {
 			}
 			c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
 			c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
-			for _, t := range b.GetExports() {
+			for _, t := range b.Exports() {
 				c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
 			}
 		}
@@ -375,11 +375,11 @@ func (c *Container) scanConfiguration(bd *gs.BeanDefinition) ([]*gs.BeanDefiniti
 }
 
 func (c *Container) registerBean(b *gs.BeanDefinition) {
-	syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.Name(), b.Type(), b.FileLine())
+	syslog.Debug("register %s name:%q type:%q %s", b.Class(), b.Name(), b.Type(), b.FileLine())
 	c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
-	for _, t := range b.GetExports() {
-		syslog.Debug("register %s name:%q type:%q %s", b.GetClass(), b.Name(), t, b.FileLine())
+	for _, t := range b.Exports() {
+		syslog.Debug("register %s name:%q type:%q %s", b.Class(), b.Name(), t, b.FileLine())
 		c.beansByType[t] = append(c.beansByType[t], b)
 	}
 }
@@ -417,8 +417,8 @@ func (c *Container) resolveBean(b *gs.BeanDefinition) error {
 		}
 	}
 
-	if b.GetCond() != nil {
-		if ok, err := b.GetCond().Matches(c); err != nil {
+	if b.Cond() != nil {
+		if ok, err := b.Cond().Matches(c); err != nil {
 			return err
 		} else if !ok {
 			b.SetStatus(gs.Deleted)

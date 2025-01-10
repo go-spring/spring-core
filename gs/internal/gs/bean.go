@@ -66,9 +66,7 @@ type BeanMetadata struct {
 	line    int            // 注册点所在行数
 	status  BeanStatus     // 状态
 
-	configuration bool     // 是否扫描成员方法
-	includeMethod []string // 包含哪些成员方法
-	excludeMethod []string // 排除那些成员方法
+	configuration ConfigurationParam
 
 	enableRefresh bool
 	refreshParam  conf.BindParam
@@ -82,43 +80,43 @@ func (d *BeanMetadata) IsMethod() bool {
 	return d.method
 }
 
-func (d *BeanMetadata) GetCond() Condition {
+func (d *BeanMetadata) Cond() Condition {
 	return d.cond
 }
 
-func (d *BeanMetadata) GetInit() interface{} {
+func (d *BeanMetadata) Init() interface{} {
 	return d.init
 }
 
-func (d *BeanMetadata) GetDestroy() interface{} {
+func (d *BeanMetadata) Destroy() interface{} {
 	return d.destroy
 }
 
-func (d *BeanMetadata) GetDepends() []BeanSelector {
+func (d *BeanMetadata) Depends() []BeanSelector {
 	return d.depends
 }
 
-func (d *BeanMetadata) GetExports() []reflect.Type {
+func (d *BeanMetadata) Exports() []reflect.Type {
 	return d.exports
 }
 
 func (d *BeanMetadata) IsConfiguration() bool {
-	return d.configuration
+	return d.configuration.Enable
 }
 
 func (d *BeanMetadata) GetIncludeMethod() []string {
-	return d.includeMethod
+	return d.configuration.Include
 }
 
 func (d *BeanMetadata) GetExcludeMethod() []string {
-	return d.excludeMethod
+	return d.configuration.Exclude
 }
 
-func (d *BeanMetadata) IsRefreshEnable() bool {
+func (d *BeanMetadata) EnableRefresh() bool {
 	return d.enableRefresh
 }
 
-func (d *BeanMetadata) GetRefreshParam() conf.BindParam {
+func (d *BeanMetadata) RefreshParam() conf.BindParam {
 	return d.refreshParam
 }
 
@@ -135,8 +133,8 @@ func (d *BeanMetadata) FileLine() string {
 	return fmt.Sprintf("%s:%d", d.file, d.line)
 }
 
-// GetClass 返回 bean 的类型描述。
-func (d *BeanMetadata) GetClass() string {
+// Class 返回 bean 的类型描述。
+func (d *BeanMetadata) Class() string {
 	if d.f == nil {
 		return "object bean"
 	}
@@ -225,7 +223,7 @@ func (d *BeanDefinition) Status() BeanStatus {
 }
 
 func (d *BeanDefinition) String() string {
-	return fmt.Sprintf("%s name:%q %s", d.GetClass(), d.name, d.FileLine())
+	return fmt.Sprintf("%s name:%q %s", d.Class(), d.name, d.FileLine())
 }
 
 // Name 设置 bean 的名称。
@@ -309,11 +307,18 @@ func (d *BeanDefinition) setExport(exports ...interface{}) {
 	}
 }
 
+type ConfigurationParam struct {
+	Enable  bool     // 是否扫描成员方法
+	Include []string // 包含哪些成员方法
+	Exclude []string // 排除那些成员方法
+}
+
 // Configuration 设置 bean 为配置类。
-func (d *BeanDefinition) setConfiguration(includes []string, excludes []string) {
-	d.configuration = true
-	d.includeMethod = includes
-	d.excludeMethod = excludes
+func (d *BeanDefinition) setConfiguration(param ...ConfigurationParam) {
+	if len(param) > 0 {
+		d.configuration = param[0]
+	}
+	d.configuration.Enable = true
 }
 
 // EnableRefresh 设置 bean 为可刷新的。

@@ -117,8 +117,8 @@ func (d *beanBuilder[T]) Export(exports ...interface{}) *T {
 }
 
 // Configuration 设置 bean 为配置类。
-func (d *beanBuilder[T]) Configuration(includes []string, excludes []string) *T {
-	d.b.setConfiguration(includes, excludes)
+func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T {
+	d.b.setConfiguration(param...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
