@@ -24,6 +24,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
@@ -38,20 +39,19 @@ const (
 
 type (
 	Arg              = gs.Arg
-	BeanDefinition   = gs.BeanDefinition
-	BeanInit         = gs.BeanInit
-	BeanDestroy      = gs.BeanDestroy
+	BeanSelector     = gs.BeanSelector
+	BeanInit         = gs_bean.BeanInit
+	BeanDestroy      = gs_bean.BeanDestroy
 	RegisteredBean   = gs.RegisteredBean
 	UnregisteredBean = gs.UnregisteredBean
-	BeanSelector     = gs.BeanSelector
 	CondContext      = gs.CondContext
 	Condition        = gs.Condition
 	Properties       = gs.Properties
 	Context          = gs.Context
 	ContextAware     = gs_core.ContextAware
 	Dync[T any]      = gs_dync.Value[T]
-	IRunner          = gs_app.IRunner
-	IServer          = gs_app.IServer
+	AppRunner        = gs_app.AppRunner
+	AppServer        = gs_app.AppServer
 )
 
 /************************************ arg ***********************************/
@@ -223,7 +223,7 @@ func BootGroup(fn func(p gs.Properties) ([]*gs.UnregisteredBean, error)) {
 
 func BootRunner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
-	bd.Export((*IRunner)(nil))
+	bd.Export((*AppRunner)(nil))
 	return getBoot().C.Accept(bd)
 }
 
@@ -282,13 +282,13 @@ func Group(fn func(p Properties) ([]*UnregisteredBean, error)) {
 
 func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*IRunner)(nil))
+	b.Export((*AppRunner)(nil))
 	return app.C.Accept(b)
 }
 
 func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*IServer)(nil))
+	b.Export((*AppServer)(nil))
 	return app.C.Accept(b)
 }
 

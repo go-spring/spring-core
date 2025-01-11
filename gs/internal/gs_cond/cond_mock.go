@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"go.uber.org/mock/gomock"
 )
 
@@ -42,10 +43,10 @@ func (m *MockContext) EXPECT() *MockContextMockRecorder {
 }
 
 // Find mocks base method.
-func (m *MockContext) Find(selector gs.BeanSelector) ([]*gs.BeanDefinition, error) {
+func (m *MockContext) Find(selector gs.BeanSelector) ([]*gs_bean.BeanDefinition, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Find", selector)
-	ret0, _ := ret[0].([]*gs.BeanDefinition)
+	ret0, _ := ret[0].([]*gs_bean.BeanDefinition)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

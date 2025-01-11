@@ -1,4 +1,4 @@
-package gs
+package gs_bean
 
 import (
 	"errors"
@@ -7,10 +7,11 @@ import (
 	"runtime"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
 )
 
-var refreshableType = reflect.TypeFor[Refreshable]()
+var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
 type BeanStatus int8
 
@@ -47,7 +48,7 @@ func GetStatusString(status BeanStatus) string {
 }
 
 type BeanInit interface {
-	OnInit(ctx Context) error
+	OnInit(ctx gs.Context) error
 }
 
 type BeanDestroy interface {
@@ -55,18 +56,18 @@ type BeanDestroy interface {
 }
 
 type BeanMetadata struct {
-	f       Callable       // 构造函数
-	method  bool           // 是否为成员方法
-	cond    Condition      // 判断条件
-	init    interface{}    // 初始化函数
-	destroy interface{}    // 销毁函数
-	depends []BeanSelector // 间接依赖项
-	exports []reflect.Type // 导出的接口
-	file    string         // 注册点所在文件
-	line    int            // 注册点所在行数
-	status  BeanStatus     // 状态
+	f       gs.Callable       // 构造函数
+	method  bool              // 是否为成员方法
+	cond    gs.Condition      // 判断条件
+	init    interface{}       // 初始化函数
+	destroy interface{}       // 销毁函数
+	depends []gs.BeanSelector // 间接依赖项
+	exports []reflect.Type    // 导出的接口
+	file    string            // 注册点所在文件
+	line    int               // 注册点所在行数
+	status  BeanStatus        // 状态
 
-	configuration ConfigurationParam
+	configuration gs.ConfigurationParam
 
 	enableRefresh bool
 	refreshParam  conf.BindParam
@@ -80,7 +81,7 @@ func (d *BeanMetadata) IsMethod() bool {
 	return d.method
 }
 
-func (d *BeanMetadata) Cond() Condition {
+func (d *BeanMetadata) Cond() gs.Condition {
 	return d.cond
 }
 
@@ -92,7 +93,7 @@ func (d *BeanMetadata) Destroy() interface{} {
 	return d.destroy
 }
 
-func (d *BeanMetadata) Depends() []BeanSelector {
+func (d *BeanMetadata) Depends() []gs.BeanSelector {
 	return d.depends
 }
 
@@ -164,7 +165,7 @@ func (d *BeanRuntime) TypeName() string {
 	return d.typeName
 }
 
-func (d *BeanRuntime) Callable() Callable {
+func (d *BeanRuntime) Callable() gs.Callable {
 	return nil
 }
 
@@ -214,7 +215,7 @@ type BeanDefinition struct {
 	*BeanRuntime
 }
 
-func (d *BeanDefinition) Callable() Callable {
+func (d *BeanDefinition) Callable() gs.Callable {
 	return d.f
 }
 
@@ -227,26 +228,26 @@ func (d *BeanDefinition) String() string {
 }
 
 // Name 设置 bean 的名称。
-func (d *BeanDefinition) setName(name string) {
+func (d *BeanDefinition) SetName(name string) {
 	d.name = name
 }
 
-func (d *BeanDefinition) setCaller(skip int) {
+func (d *BeanDefinition) SetCaller(skip int) {
 	_, d.file, d.line, _ = runtime.Caller(skip)
 }
 
 // On 设置 bean 的 Condition。
-func (d *BeanDefinition) setOn(cond Condition) {
+func (d *BeanDefinition) SetOn(cond gs.Condition) {
 	d.cond = cond
 }
 
 // DependsOn 设置 bean 的间接依赖项。
-func (d *BeanDefinition) setDependsOn(selectors ...BeanSelector) {
+func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
 	d.depends = append(d.depends, selectors...)
 }
 
 // Primary 设置 bean 为主版本。
-func (d *BeanDefinition) setPrimary() {
+func (d *BeanDefinition) SetPrimary() {
 	d.primary = true
 }
 
@@ -263,7 +264,7 @@ func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
 }
 
 // Init 设置 bean 的初始化函数。
-func (d *BeanDefinition) setInit(fn interface{}) {
+func (d *BeanDefinition) SetInit(fn interface{}) {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
 		d.init = fn
 		return
@@ -272,7 +273,7 @@ func (d *BeanDefinition) setInit(fn interface{}) {
 }
 
 // Destroy 设置 bean 的销毁函数。
-func (d *BeanDefinition) setDestroy(fn interface{}) {
+func (d *BeanDefinition) SetDestroy(fn interface{}) {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
 		d.destroy = fn
 		return
@@ -281,7 +282,7 @@ func (d *BeanDefinition) setDestroy(fn interface{}) {
 }
 
 // Export 设置 bean 的导出接口。
-func (d *BeanDefinition) setExport(exports ...interface{}) {
+func (d *BeanDefinition) SetExport(exports ...interface{}) {
 	for _, o := range exports {
 		t, ok := o.(reflect.Type)
 		if !ok {
@@ -307,22 +308,14 @@ func (d *BeanDefinition) setExport(exports ...interface{}) {
 	}
 }
 
-type ConfigurationParam struct {
-	Enable  bool     // 是否扫描成员方法
-	Include []string // 包含哪些成员方法
-	Exclude []string // 排除那些成员方法
-}
-
-// Configuration 设置 bean 为配置类。
-func (d *BeanDefinition) setConfiguration(param ...ConfigurationParam) {
+func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
 	if len(param) > 0 {
 		d.configuration = param[0]
 	}
 	d.configuration.Enable = true
 }
 
-// EnableRefresh 设置 bean 为可刷新的。
-func (d *BeanDefinition) setEnableRefresh(tag string) {
+func (d *BeanDefinition) SetEnableRefresh(tag string) {
 	if !d.Type().Implements(refreshableType) {
 		panic(errors.New("must implement dync.Refreshable interface"))
 	}
@@ -334,7 +327,7 @@ func (d *BeanDefinition) setEnableRefresh(tag string) {
 }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(t reflect.Type, v reflect.Value, f Callable, name string, method bool, file string, line int) *BeanDefinition {
+func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string, method bool, file string, line int) *BeanDefinition {
 	return &BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			f:      f,

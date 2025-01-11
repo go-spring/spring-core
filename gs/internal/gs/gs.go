@@ -20,7 +20,7 @@ type CondContext interface {
 	// returns empty string when the IoC container doesn't have it.
 	Prop(key string, opts ...conf.GetOption) string
 	// Find returns bean definitions that matched with the bean selector.
-	Find(selector BeanSelector) ([]*BeanDefinition, error)
+	Find(selector BeanSelector) ([]BeanDefinition, error)
 }
 
 // Condition is used when registering a bean to determine whether it's valid.
@@ -67,64 +67,82 @@ type Refreshable interface {
 	OnRefresh(prop Properties, param conf.BindParam) error
 }
 
-type beanBuilder[T RegisteredBean | UnregisteredBean] struct {
-	b *BeanDefinition
+type ConfigurationParam struct {
+	Enable  bool     // 是否扫描成员方法
+	Include []string // 包含哪些成员方法
+	Exclude []string // 排除那些成员方法
 }
 
-func (d *beanBuilder[T]) BeanDefinition() *BeanDefinition {
+type BeanDefinition interface {
+	SetName(name string)
+	SetOn(cond Condition)
+	SetDependsOn(selectors ...BeanSelector)
+	SetPrimary()
+	SetInit(fn interface{})
+	SetDestroy(fn interface{})
+	SetExport(exports ...interface{})
+	SetConfiguration(param ...ConfigurationParam)
+	SetEnableRefresh(tag string)
+}
+
+type beanBuilder[T any] struct {
+	b BeanDefinition
+}
+
+func (d *beanBuilder[T]) BeanDefinition() BeanDefinition {
 	return d.b
 }
 
 func (d *beanBuilder[T]) Name(name string) *T {
-	d.b.setName(name)
+	d.b.SetName(name)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // On 设置 bean 的 Condition。
 func (d *beanBuilder[T]) On(cond Condition) *T {
-	d.b.setOn(cond)
+	d.b.SetOn(cond)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // DependsOn 设置 bean 的间接依赖项。
 func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
-	d.b.setDependsOn(selectors...)
+	d.b.SetDependsOn(selectors...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Primary 设置 bean 为主版本。
 func (d *beanBuilder[T]) Primary() *T {
-	d.b.setPrimary()
+	d.b.SetPrimary()
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Init 设置 bean 的初始化函数。
 func (d *beanBuilder[T]) Init(fn interface{}) *T {
-	d.b.setInit(fn)
+	d.b.SetInit(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Destroy 设置 bean 的销毁函数。
 func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
-	d.b.setDestroy(fn)
+	d.b.SetDestroy(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Export 设置 bean 的导出接口。
 func (d *beanBuilder[T]) Export(exports ...interface{}) *T {
-	d.b.setExport(exports...)
+	d.b.SetExport(exports...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Configuration 设置 bean 为配置类。
 func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T {
-	d.b.setConfiguration(param...)
+	d.b.SetConfiguration(param...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // EnableRefresh 设置 bean 为可刷新的。
 func (d *beanBuilder[T]) EnableRefresh(tag string) *T {
-	d.b.setEnableRefresh(tag)
+	d.b.SetEnableRefresh(tag)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
@@ -132,7 +150,7 @@ type RegisteredBean struct {
 	beanBuilder[RegisteredBean]
 }
 
-func NewRegisteredBean(d *BeanDefinition) *RegisteredBean {
+func NewRegisteredBean(d BeanDefinition) *RegisteredBean {
 	return &RegisteredBean{
 		beanBuilder: beanBuilder[RegisteredBean]{d},
 	}
@@ -142,7 +160,7 @@ type UnregisteredBean struct {
 	beanBuilder[UnregisteredBean]
 }
 
-func NewUnregisteredBean(d *BeanDefinition) *UnregisteredBean {
+func NewUnregisteredBean(d BeanDefinition) *UnregisteredBean {
 	return &UnregisteredBean{
 		beanBuilder: beanBuilder[UnregisteredBean]{d},
 	}

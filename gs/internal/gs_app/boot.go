@@ -26,7 +26,7 @@ type Boot struct {
 	C gs.Container
 	P *gs_conf.BootConfig
 
-	Runners []IRunner `autowire:"${spring.boot.runners:=*?}"`
+	Runners []AppRunner `autowire:"${spring.boot.runners:=*?}"`
 }
 
 func NewBoot() *Boot {

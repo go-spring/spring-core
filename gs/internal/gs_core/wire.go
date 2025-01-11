@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
 )
@@ -27,11 +28,11 @@ type lazyField struct {
 
 // destroyer 保存具有销毁函数的 bean 以及销毁函数的调用顺序。
 type destroyer struct {
-	current *gs.BeanDefinition
-	earlier []*gs.BeanDefinition
+	current *gs_bean.BeanDefinition
+	earlier []*gs_bean.BeanDefinition
 }
 
-func (d *destroyer) foundEarlier(b *gs.BeanDefinition) bool {
+func (d *destroyer) foundEarlier(b *gs_bean.BeanDefinition) bool {
 	for _, c := range d.earlier {
 		if c == b {
 			return true
@@ -41,7 +42,7 @@ func (d *destroyer) foundEarlier(b *gs.BeanDefinition) bool {
 }
 
 // after 添加一个需要在该 bean 的销毁函数执行之前调用销毁函数的 bean 。
-func (d *destroyer) after(b *gs.BeanDefinition) {
+func (d *destroyer) after(b *gs_bean.BeanDefinition) {
 	if d.foundEarlier(b) {
 		return
 	}
@@ -65,7 +66,7 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
 type wiringStack struct {
 	destroyers   *list.List
 	destroyerMap map[string]*destroyer
-	beans        []*gs.BeanDefinition
+	beans        []*gs_bean.BeanDefinition
 	lazyFields   []lazyField
 }
 
@@ -77,8 +78,8 @@ func newWiringStack() *wiringStack {
 }
 
 // pushBack 添加一个即将注入的 bean 。
-func (s *wiringStack) pushBack(b *gs.BeanDefinition) {
-	syslog.Debug("push %s %s", b, gs.GetStatusString(b.Status()))
+func (s *wiringStack) pushBack(b *gs_bean.BeanDefinition) {
+	syslog.Debug("push %s %s", b, gs_bean.GetStatusString(b.Status()))
 	s.beans = append(s.beans, b)
 }
 
@@ -87,7 +88,7 @@ func (s *wiringStack) popBack() {
 	n := len(s.beans)
 	b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
-	syslog.Debug("pop %s %s", b, gs.GetStatusString(b.Status()))
+	syslog.Debug("pop %s %s", b, gs_bean.GetStatusString(b.Status()))
 }
 
 // path 返回 bean 的注入路径。
@@ -99,7 +100,7 @@ func (s *wiringStack) path() (path string) {
 }
 
 // saveDestroyer 记录具有销毁函数的 bean ，因为可能有多个依赖，因此需要排重处理。
-func (s *wiringStack) saveDestroyer(b *gs.BeanDefinition) *destroyer {
+func (s *wiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
 	d, ok := s.destroyerMap[b.ID()]
 	if !ok {
 		d = &destroyer{current: b}
@@ -114,7 +115,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 	destroy := func(v reflect.Value, fn interface{}) func() {
 		return func() {
 			if fn == nil {
-				v.Interface().(gs.BeanDestroy).OnDestroy()
+				v.Interface().(gs_bean.BeanDestroy).OnDestroy()
 			} else {
 				fnValue := reflect.ValueOf(fn)
 				out := fnValue.Call([]reflect.Value{v})
@@ -214,9 +215,9 @@ func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
 			return wireTag{}, err
 		}
 		return parseWireTag(s), nil
-	case gs.BeanDefinition:
+	case gs_bean.BeanDefinition:
 		return parseWireTag(s.ID()), nil
-	case *gs.BeanDefinition:
+	case *gs_bean.BeanDefinition:
 		return parseWireTag(s.ID()), nil
 	default:
 		return parseWireTag(util.TypeName(s) + ":"), nil
@@ -298,7 +299,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	{
 		var arr []SimpleBean
 		for _, b := range beans {
-			if b.Status() == gs.Deleted {
+			if b.Status() == gs_bean.Deleted {
 				continue
 			}
 			arr = append(arr, b)
@@ -371,11 +372,11 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	for _, b := range beans {
 		switch c.state {
 		case Refreshing:
-			if err := c.wireBeanInRefreshing(b.(*gs.BeanDefinition), stack); err != nil {
+			if err := c.wireBeanInRefreshing(b.(*gs_bean.BeanDefinition), stack); err != nil {
 				return err
 			}
 		case Refreshed:
-			if err := c.wireBeanAfterRefreshed(b.(*gs.BeanRuntime), stack); err != nil {
+			if err := c.wireBeanAfterRefreshed(b.(*gs_bean.BeanRuntime), stack); err != nil {
 				return err
 			}
 		default:
@@ -416,7 +417,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 
 	var foundBeans []SimpleBean
 	for _, b := range c.beansByType[t] {
-		if b.Status() == gs.Deleted {
+		if b.Status() == gs_bean.Deleted {
 			continue
 		}
 		if !b.Match(tag.typeName, tag.beanName) {
@@ -428,7 +429,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
 	if t.Kind() == reflect.Interface && tag.beanName != "" {
 		for _, b := range c.beansByName[tag.beanName] {
-			if b.Status() == gs.Deleted {
+			if b.Status() == gs_bean.Deleted {
 				continue
 			}
 			if !b.Type().AssignableTo(t) {
@@ -496,7 +497,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	// 确保找到的 bean 已经完成依赖注入。
 	switch c.state {
 	case Refreshing:
-		if err := c.wireBeanInRefreshing(result.(*gs.BeanDefinition), stack); err != nil {
+		if err := c.wireBeanInRefreshing(result.(*gs_bean.BeanDefinition), stack); err != nil {
 			return err
 		}
 	case Refreshed:
@@ -514,14 +515,14 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 // wireBean 对 bean 进行属性绑定和依赖注入，同时追踪其注入路径。如果 bean 有初始
 // 化函数，则在注入完成之后执行其初始化函数。如果 bean 依赖了其他 bean，则首先尝试
 // 实例化被依赖的 bean 然后对它们进行注入。
-func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStack) error {
+func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wiringStack) error {
 
-	if b.Status() == gs.Deleted {
+	if b.Status() == gs_bean.Deleted {
 		return fmt.Errorf("bean:%q have been deleted", b.ID())
 	}
 
 	// 运行时 Get 或者 Wire 会出现下面这种情况。
-	if c.state == Refreshed && b.Status() == gs.Wired {
+	if c.state == Refreshed && b.Status() == gs_bean.Wired {
 		return nil
 	}
 
@@ -534,30 +535,30 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	}()
 
 	// 记录注入路径上的销毁函数及其执行的先后顺序。
-	if _, ok := b.Interface().(gs.BeanDestroy); ok || b.Destroy() != nil {
+	if _, ok := b.Interface().(gs_bean.BeanDestroy); ok || b.Destroy() != nil {
 		haveDestroy = true
 		d := stack.saveDestroyer(b)
 		if i := stack.destroyers.Back(); i != nil {
-			d.after(i.Value.(*gs.BeanDefinition))
+			d.after(i.Value.(*gs_bean.BeanDefinition))
 		}
 		stack.destroyers.PushBack(b)
 	}
 
 	stack.pushBack(b)
 
-	if b.Status() == gs.Creating && b.Callable() != nil {
+	if b.Status() == gs_bean.Creating && b.Callable() != nil {
 		prev := stack.beans[len(stack.beans)-2]
-		if prev.Status() == gs.Creating {
+		if prev.Status() == gs_bean.Creating {
 			return errors.New("found circle autowire")
 		}
 	}
 
-	if b.Status() >= gs.Creating {
+	if b.Status() >= gs_bean.Creating {
 		stack.popBack()
 		return nil
 	}
 
-	b.SetStatus(gs.Creating)
+	b.SetStatus(gs_bean.Creating)
 
 	// 对当前 bean 的间接依赖项进行注入。
 	for _, s := range b.Depends() {
@@ -566,7 +567,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 			return err
 		}
 		for _, d := range beans {
-			err = c.wireBeanInRefreshing(d, stack)
+			err = c.wireBeanInRefreshing(d.(*gs_bean.BeanDefinition), stack)
 			if err != nil {
 				return err
 			}
@@ -578,7 +579,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 		return err
 	}
 
-	b.SetStatus(gs.Created)
+	b.SetStatus(gs_bean.Created)
 
 	t := v.Type()
 	for _, typ := range b.Exports() {
@@ -602,7 +603,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 	}
 
 	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(gs.BeanInit); ok {
+	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
 		if err = f.OnInit(c); err != nil {
 			return err
 		}
@@ -618,7 +619,7 @@ func (c *Container) wireBeanInRefreshing(b *gs.BeanDefinition, stack *wiringStac
 		}
 	}
 
-	b.SetStatus(gs.Wired)
+	b.SetStatus(gs_bean.Wired)
 	stack.popBack()
 	return nil
 }
@@ -637,7 +638,7 @@ func (c *Container) wireBeanAfterRefreshed(b SimpleBean, stack *wiringStack) err
 	}
 
 	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(gs.BeanInit); ok {
+	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
 		if err = f.OnInit(c); err != nil {
 			return err
 		}

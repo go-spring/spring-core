@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -106,6 +107,6 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.UnregisteredBean {
 		name = strings.TrimPrefix(s[len(s)-1], "*")
 	}
 
-	d := gs.NewBean(t, v, f, name, method, file, line)
+	d := gs_bean.NewBean(t, v, f, name, method, file, line)
 	return gs.NewUnregisteredBean(d)
 }
