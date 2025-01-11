@@ -12,6 +12,13 @@ import (
 // `(*error)(nil)`, or a BeanDefinition value.
 type BeanSelector interface{}
 
+type CondBean interface {
+	ID() string
+	Name() string
+	TypeName() string
+	Type() reflect.Type
+}
+
 // CondContext defines some methods of IoC container that conditions use.
 type CondContext interface {
 	// Has returns whether the IoC container has a property.
@@ -20,7 +27,7 @@ type CondContext interface {
 	// returns empty string when the IoC container doesn't have it.
 	Prop(key string, opts ...conf.GetOption) string
 	// Find returns bean definitions that matched with the bean selector.
-	Find(selector BeanSelector) ([]BeanDefinition, error)
+	Find(selector BeanSelector) ([]CondBean, error)
 }
 
 // Condition is used when registering a bean to determine whether it's valid.
@@ -45,12 +52,6 @@ type ArgContext interface {
 	Wire(v reflect.Value, tag string) error
 }
 
-type Callable interface {
-	Arg(i int) (Arg, bool)
-	In(i int) (reflect.Type, bool)
-	Call(ctx ArgContext) ([]reflect.Value, error)
-}
-
 type Properties interface {
 	Data() map[string]string
 	Keys() []string
@@ -67,13 +68,19 @@ type Refreshable interface {
 	OnRefresh(prop Properties, param conf.BindParam) error
 }
 
+type Callable interface {
+	Arg(i int) (Arg, bool)
+	In(i int) (reflect.Type, bool)
+	Call(ctx ArgContext) ([]reflect.Value, error)
+}
+
 type ConfigurationParam struct {
 	Enable  bool     // 是否扫描成员方法
 	Include []string // 包含哪些成员方法
 	Exclude []string // 排除那些成员方法
 }
 
-type BeanDefinition interface {
+type BeanRegistration interface {
 	SetName(name string)
 	SetOn(cond Condition)
 	SetDependsOn(selectors ...BeanSelector)
@@ -86,10 +93,10 @@ type BeanDefinition interface {
 }
 
 type beanBuilder[T any] struct {
-	b BeanDefinition
+	b BeanRegistration
 }
 
-func (d *beanBuilder[T]) BeanDefinition() BeanDefinition {
+func (d *beanBuilder[T]) BeanRegistration() BeanRegistration {
 	return d.b
 }
 
@@ -150,7 +157,7 @@ type RegisteredBean struct {
 	beanBuilder[RegisteredBean]
 }
 
-func NewRegisteredBean(d BeanDefinition) *RegisteredBean {
+func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 	return &RegisteredBean{
 		beanBuilder: beanBuilder[RegisteredBean]{d},
 	}
@@ -160,7 +167,7 @@ type UnregisteredBean struct {
 	beanBuilder[UnregisteredBean]
 }
 
-func NewUnregisteredBean(d BeanDefinition) *UnregisteredBean {
+func NewUnregisteredBean(d BeanRegistration) *UnregisteredBean {
 	return &UnregisteredBean{
 		beanBuilder: beanBuilder[UnregisteredBean]{d},
 	}

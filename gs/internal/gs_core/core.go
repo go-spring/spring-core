@@ -121,8 +121,8 @@ func (c *Container) Accept(b *gs.UnregisteredBean) *gs.RegisteredBean {
 	if c.state >= Refreshing {
 		panic(errors.New("should call before Refresh"))
 	}
-	c.beans = append(c.beans, b.BeanDefinition().(*gs_bean.BeanDefinition))
-	return gs.NewRegisteredBean(b.BeanDefinition())
+	c.beans = append(c.beans, b.BeanRegistration().(*gs_bean.BeanDefinition))
+	return gs.NewRegisteredBean(b.BeanRegistration())
 }
 
 func (c *Container) Group(fn GroupFunc) {
@@ -175,7 +175,7 @@ func (c *Container) Refresh() (err error) {
 			return err
 		}
 		for _, b := range beans {
-			c.beans = append(c.beans, b.BeanDefinition().(*gs_bean.BeanDefinition))
+			c.beans = append(c.beans, b.BeanRegistration().(*gs_bean.BeanDefinition))
 		}
 	}
 	c.groupFuncs = nil
@@ -348,15 +348,15 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 					}
 				}
 				b := ret[0].Interface().(*gs.UnregisteredBean)
-				newBeans = append(newBeans, b.BeanDefinition().(*gs_bean.BeanDefinition))
-				retBeans, err := c.scanConfiguration(b.BeanDefinition().(*gs_bean.BeanDefinition))
+				newBeans = append(newBeans, b.BeanRegistration().(*gs_bean.BeanDefinition))
+				retBeans, err := c.scanConfiguration(b.BeanRegistration().(*gs_bean.BeanDefinition))
 				if err != nil {
 					return nil, err
 				}
 				newBeans = append(newBeans, retBeans...)
 			} else {
 				var f gs.Callable
-				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd}, 0)
+				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd.ID()}, 0)
 				if err != nil {
 					return nil, err
 				}
@@ -433,10 +433,10 @@ func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
 
 // Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
 // 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *Container) Find(selector gs.BeanSelector) ([]gs.BeanDefinition, error) {
+func (c *Container) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
 
-	finder := func(fn func(*gs_bean.BeanDefinition) bool) ([]gs.BeanDefinition, error) {
-		var result []gs.BeanDefinition
+	finder := func(fn func(*gs_bean.BeanDefinition) bool) ([]gs.CondBean, error) {
+		var result []gs.CondBean
 		for _, b := range c.beans {
 			if b.Status() == gs_bean.Resolving || b.Status() == gs_bean.Deleted || !fn(b) {
 				continue
@@ -538,16 +538,16 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 	var err error
 	switch c.state {
 	case Refreshing:
-		err = c.wireBeanInRefreshing(b.BeanDefinition().(*gs_bean.BeanDefinition), stack)
+		err = c.wireBeanInRefreshing(b.BeanRegistration().(*gs_bean.BeanDefinition), stack)
 	case Refreshed:
-		err = c.wireBeanAfterRefreshed(b.BeanDefinition().(*gs_bean.BeanDefinition), stack)
+		err = c.wireBeanAfterRefreshed(b.BeanRegistration().(*gs_bean.BeanDefinition), stack)
 	default:
 		err = errors.New("state is error for wiring")
 	}
 	if err != nil {
 		return nil, err
 	}
-	return b.BeanDefinition().(*gs_bean.BeanDefinition).Interface(), nil
+	return b.BeanRegistration().(*gs_bean.BeanDefinition).Interface(), nil
 }
 
 // Invoke 调用函数，函数的参数会自动注入，函数的返回值也会自动注入。

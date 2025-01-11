@@ -26,7 +26,6 @@ import (
 	"runtime"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/macro"
@@ -227,8 +226,8 @@ func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 		return reflect.ValueOf(g.v), nil
 	case *OptionArg:
 		return g.call(ctx)
-	case *gs_bean.BeanDefinition:
-		tag = g.ID()
+	// case *gs_bean.BeanDefinition:
+	// 	tag = g.ID()
 	case string:
 		tag = g
 	default:

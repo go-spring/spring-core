@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util/assert"
 	"go.uber.org/mock/gomock"
@@ -239,7 +238,7 @@ func TestOnBean(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		ctx := gs_cond.NewMockContext(ctrl)
-		ctx.EXPECT().Find("a").Return([]*gs_bean.BeanDefinition{
+		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil,
 		}, nil)
 		ok, err := gs_cond.OnBean("a").Matches(ctx)
@@ -250,7 +249,7 @@ func TestOnBean(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		ctx := gs_cond.NewMockContext(ctrl)
-		ctx.EXPECT().Find("a").Return([]*gs_bean.BeanDefinition{
+		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil, nil,
 		}, nil)
 		ok, err := gs_cond.OnBean("a").Matches(ctx)
@@ -282,7 +281,7 @@ func TestOnMissingBean(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		ctx := gs_cond.NewMockContext(ctrl)
-		ctx.EXPECT().Find("a").Return([]*gs_bean.BeanDefinition{
+		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil,
 		}, nil)
 		ok, err := gs_cond.OnMissingBean("a").Matches(ctx)
@@ -293,7 +292,7 @@ func TestOnMissingBean(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		ctx := gs_cond.NewMockContext(ctrl)
-		ctx.EXPECT().Find("a").Return([]*gs_bean.BeanDefinition{
+		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil, nil,
 		}, nil)
 		ok, err := gs_cond.OnMissingBean("a").Matches(ctx)
@@ -325,7 +324,7 @@ func TestOnSingleBean(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		ctx := gs_cond.NewMockContext(ctrl)
-		ctx.EXPECT().Find("a").Return([]*gs_bean.BeanDefinition{
+		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil,
 		}, nil)
 		ok, err := gs_cond.OnSingleBean("a").Matches(ctx)
@@ -336,7 +335,7 @@ func TestOnSingleBean(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		ctx := gs_cond.NewMockContext(ctrl)
-		ctx.EXPECT().Find("a").Return([]*gs_bean.BeanDefinition{
+		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil, nil,
 		}, nil)
 		ok, err := gs_cond.OnSingleBean("a").Matches(ctx)

@@ -890,7 +890,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.RefreshProperties(prop)
 
 		bd := c.Provide(NewManager)
-		assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).Name(), "NewManager")
+		assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Name(), "NewManager")
 
 		err := runTest(c, func(p gs.Context) {
 
@@ -1187,7 +1187,7 @@ func TestApplicationContext_Collect(t *testing.T) {
 
 			return func() {}
 		})
-		assert.Equal(t, intBean.BeanDefinition().(*gs_bean.BeanDefinition).Name(), "TestApplicationContext_Collect.func6.1")
+		assert.Equal(t, intBean.BeanRegistration().(*gs_bean.BeanDefinition).Name(), "TestApplicationContext_Collect.func6.1")
 
 		c.RefreshProperties(prop)
 		err := c.Refresh()
@@ -1437,7 +1437,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		bd := c.Provide((*Server).Consumer, parent.BeanDefinition().(*gs_bean.BeanDefinition).ID())
+		bd := c.Provide((*Server).Consumer, parent.BeanRegistration().(*gs_bean.BeanDefinition).ID())
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1455,7 +1455,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 			assert.Equal(t, consumer.s.Version, "2.0.0")
 		})
 		assert.Nil(t, err)
-		assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).Name(), "Consumer")
+		assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Name(), "Consumer")
 	})
 
 	t.Run("method bean condition", func(t *testing.T) {
@@ -1478,7 +1478,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 			assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Consumer\"")
 		})
 		assert.Nil(t, err)
-		assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).Name(), "Consumer")
+		assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Name(), "Consumer")
 	})
 
 	t.Run("method bean arg", func(t *testing.T) {
@@ -1487,7 +1487,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		c.Provide((*Server).ConsumerArg, parent.BeanDefinition().(*gs_bean.BeanDefinition).ID(), "${i:=9}")
+		c.Provide((*Server).ConsumerArg, parent.BeanRegistration().(*gs_bean.BeanDefinition).ID(), "${i:=9}")
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1513,7 +1513,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Provide(NewServerInterface)
-		c.Provide(ServerInterface.Consumer, parent.BeanDefinition().(*gs_bean.BeanDefinition).ID()).DependsOn("ServerInterface")
+		c.Provide(ServerInterface.Consumer, parent.BeanRegistration().(*gs_bean.BeanDefinition).ID()).DependsOn("ServerInterface")
 		c.Object(new(Service))
 
 		c.RefreshProperties(prop)
@@ -1567,7 +1567,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 				c := gs_core.New()
 				parent := c.Object(new(Server)).DependsOn("Service")
-				c.Provide((*Server).Consumer, parent.BeanDefinition().(*gs_bean.BeanDefinition).ID()).DependsOn("Server")
+				c.Provide((*Server).Consumer, parent.BeanRegistration().(*gs_bean.BeanDefinition).ID()).DependsOn("Server")
 				c.Object(new(Service))
 				c.RefreshProperties(prop)
 				err := c.Refresh()
@@ -2023,7 +2023,7 @@ func TestApplicationContext_Close(t *testing.T) {
 		})
 		assert.Nil(t, err)
 		c.Close()
-		d := bd.BeanDefinition().(*gs_bean.BeanDefinition).Interface().(*callDestroy)
+		d := bd.BeanRegistration().(*gs_bean.BeanDefinition).Interface().(*callDestroy)
 		assert.True(t, d.destroyed)
 	})
 
@@ -2040,7 +2040,7 @@ func TestApplicationContext_Close(t *testing.T) {
 			})
 			assert.Nil(t, err)
 			c.Close()
-			d := bd.BeanDefinition().(*gs_bean.BeanDefinition).Interface()
+			d := bd.BeanRegistration().(*gs_bean.BeanDefinition).Interface()
 			assert.False(t, d.(*callDestroy).destroyed)
 		}
 
@@ -2060,7 +2060,7 @@ func TestApplicationContext_Close(t *testing.T) {
 			})
 			assert.Nil(t, err)
 			c.Close()
-			d := bd.BeanDefinition().(*gs_bean.BeanDefinition).Interface()
+			d := bd.BeanRegistration().(*gs_bean.BeanDefinition).Interface()
 			assert.True(t, d.(*callDestroy).destroyed)
 		}
 	})
@@ -2468,7 +2468,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		c.Provide((*Server).Consumer, parent.BeanDefinition().(*gs_bean.BeanDefinition).ID()).On(gs_cond.OnProperty("consumer.enable"))
+		c.Provide((*Server).Consumer, parent.BeanRegistration().(*gs_bean.BeanDefinition).ID()).On(gs_cond.OnProperty("consumer.enable"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -2899,7 +2899,7 @@ func TestContextAware(t *testing.T) {
 	c.RefreshProperties(prop)
 	err := c.Refresh()
 	assert.Nil(t, err)
-	a := b.BeanDefinition().(*gs_bean.BeanDefinition).Interface().(*ContextAware)
+	a := b.BeanRegistration().(*gs_bean.BeanDefinition).Interface().(*ContextAware)
 	assert.Equal(t, a.Echo("gopher"), "hello gopher!")
 }
 

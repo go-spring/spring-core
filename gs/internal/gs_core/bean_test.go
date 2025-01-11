@@ -129,7 +129,7 @@ func TestBeanDefinition_Match(t *testing.T) {
 	}
 
 	for i, s := range data {
-		if ok := s.bd.BeanDefinition().(*gs_bean.BeanDefinition).Match(s.typeName, s.beanName); ok != s.expect {
+		if ok := s.bd.BeanRegistration().(*gs_bean.BeanDefinition).Match(s.typeName, s.beanName); ok != s.expect {
 			t.Errorf("%d expect %v but %v", i, s.expect, ok)
 		}
 	}
@@ -186,8 +186,8 @@ func TestObjectBean(t *testing.T) {
 		}
 
 		for bd, v := range data {
-			assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).Name(), v.name)
-			assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).TypeName(), v.typeName)
+			assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Name(), v.name)
+			assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).TypeName(), v.typeName)
 		}
 	})
 }
@@ -195,10 +195,10 @@ func TestObjectBean(t *testing.T) {
 func TestConstructorBean(t *testing.T) {
 
 	bd := newBean(NewStudent)
-	assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).Type().String(), "*gs_core_test.Student")
+	assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Type().String(), "*gs_core_test.Student")
 
 	bd = newBean(NewPtrStudent)
-	assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).Type().String(), "*gs_core_test.Student")
+	assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Type().String(), "*gs_core_test.Student")
 
 	// mapFn := func() map[int]string { return make(map[int]string) }
 	// bd = newBean(mapFn)
@@ -210,11 +210,11 @@ func TestConstructorBean(t *testing.T) {
 
 	funcFn := func() func(int) { return nil }
 	bd = newBean(funcFn)
-	assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).Type().String(), "func(int)")
+	assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Type().String(), "func(int)")
 
 	interfaceFn := func(name string) Teacher { return newHistoryTeacher(name) }
 	bd = newBean(interfaceFn)
-	assert.Equal(t, bd.BeanDefinition().(*gs_bean.BeanDefinition).Type().String(), "gs_core_test.Teacher")
+	assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Type().String(), "gs_core_test.Teacher")
 
 	// assert.Panic(t, func() {
 	// 	_ = newBean(func() (*int, *int) { return nil, nil })
