@@ -194,31 +194,32 @@ func (c *Container) Refresh() (err error) {
 
 	c.state = Refreshing
 
+	// registers all beans by name and type.
 	for _, b := range c.beans {
 		c.registerBean(b)
 	}
 
+	// resolves all beans on their condition.
 	for _, b := range c.beans {
 		if err = c.resolveBean(b); err != nil {
 			return err
 		}
 	}
 
+	// caches all beans by id and checks for duplicates.
 	beansById := make(map[string]*gs_bean.BeanDefinition)
-	{
-		for _, b := range c.beans {
-			if b.Status() == gs_bean.Deleted {
-				continue
-			}
-			if b.Status() != gs_bean.Resolved {
-				return fmt.Errorf("unexpected status %d", b.Status())
-			}
-			beanID := b.ID()
-			if d, ok := beansById[beanID]; ok {
-				return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
-			}
-			beansById[beanID] = b
+	for _, b := range c.beans {
+		if b.Status() == gs_bean.Deleted {
+			continue
 		}
+		if b.Status() != gs_bean.Resolved {
+			return fmt.Errorf("unexpected status %d", b.Status())
+		}
+		beanID := b.ID()
+		if d, ok := beansById[beanID]; ok {
+			return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
+		}
+		beansById[beanID] = b
 	}
 
 	stack := newWiringStack()
@@ -376,25 +377,21 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 	return newBeans, nil
 }
 
+// registerBean registers a bean by name and type.
 func (c *Container) registerBean(b *gs_bean.BeanDefinition) {
-	syslog.Debug("register %s name:%q type:%q %s", b.Class(), b.Name(), b.Type(), b.FileLine())
 	c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 	for _, t := range b.Exports() {
-		syslog.Debug("register %s name:%q type:%q %s", b.Class(), b.Name(), t, b.FileLine())
 		c.beansByType[t] = append(c.beansByType[t], b)
 	}
 }
 
-// resolveBean 判断 bean 的有效性，如果 bean 是无效的则被标记为已删除。
+// resolveBean determines the validity of the bean.
 func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
-
 	if b.Status() >= gs_bean.Resolving {
 		return nil
 	}
-
 	b.SetStatus(gs_bean.Resolving)
-
 	if len(b.Cond()) > 0 {
 		cond := gs_cond.And(b.Cond()...)
 		if ok, err := cond.Matches(c); err != nil {
@@ -404,7 +401,6 @@ func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
 			return nil
 		}
 	}
-
 	b.SetStatus(gs_bean.Resolved)
 	return nil
 }
