@@ -81,6 +81,8 @@ type ConfigurationParam struct {
 }
 
 type BeanRegistration interface {
+	ID() string
+	Type() reflect.Type
 	SetName(name string)
 	SetOn(cond Condition)
 	SetDependsOn(selectors ...BeanSelector)
@@ -98,6 +100,14 @@ type beanBuilder[T any] struct {
 
 func (d *beanBuilder[T]) BeanRegistration() BeanRegistration {
 	return d.b
+}
+
+func (d *beanBuilder[T]) ID() string {
+	return d.b.ID()
+}
+
+func (d *beanBuilder[T]) Type() reflect.Type {
+	return d.b.Type()
 }
 
 func (d *beanBuilder[T]) Name(name string) *T {
