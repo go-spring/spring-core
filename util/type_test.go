@@ -17,7 +17,6 @@
 package util_test
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -495,26 +494,11 @@ func TestIsBeanType(t *testing.T) {
 	}
 }
 
-func TestIsConverter(t *testing.T) {
-	assert.False(t, util.IsConverter(reflect.TypeOf(3)))
-	assert.False(t, util.IsConverter(reflect.TypeOf(func() {})))
-	assert.False(t, util.IsConverter(reflect.TypeOf(func(key string) {})))
-	assert.False(t, util.IsConverter(reflect.TypeOf(func(key string) string { return "" })))
-	assert.True(t, util.IsConverter(reflect.TypeOf(func(key string) (string, error) { return "", nil })))
-}
-
 func TestIsErrorType(t *testing.T) {
 	err := fmt.Errorf("error")
 	assert.True(t, util.IsErrorType(reflect.TypeOf(err)))
 	err = os.ErrClosed
 	assert.True(t, util.IsErrorType(reflect.TypeOf(err)))
-}
-
-func TestIsContextType(t *testing.T) {
-	ctx := context.TODO()
-	assert.True(t, util.IsContextType(reflect.TypeOf(ctx)))
-	ctx = context.WithValue(context.TODO(), "a", "3")
-	assert.True(t, util.IsContextType(reflect.TypeOf(ctx)))
 }
 
 func TestReturnNothing(t *testing.T) {

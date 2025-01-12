@@ -14,21 +14,15 @@
  * limitations under the License.
  */
 
-//go:generate mockgen -build_flags="-mod=mod" -package=util -source=type.go -destination=type_mock.go
-
 package util
 
 import (
-	"context"
 	"reflect"
 	"strings"
 )
 
 // errorType the reflection type of error.
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
-
-// contextType the reflection type of context.Context.
-var contextType = reflect.TypeOf((*context.Context)(nil)).Elem()
 
 // TypeName returns a fully qualified name consisting of package path and type name.
 func TypeName(i interface{}) string {
@@ -58,35 +52,6 @@ func TypeName(i interface{}) string {
 	return typ.String() // the path of built-in type is empty
 }
 
-// A BeanSelector can be the ID of a bean, a `reflect.Type`, a pointer such as
-// `(*error)(nil)`, or a BeanDefinition value.
-type BeanSelector interface{}
-
-// A BeanDefinition describes a bean whose lifecycle is managed by IoC container.
-type BeanDefinition interface {
-	Type() reflect.Type
-	Value() reflect.Value
-	Interface() interface{}
-	ID() string
-	BeanName() string
-	TypeName() string
-	Created() bool
-	Wired() bool
-}
-
-// Converter converts string value into user-defined value. It should be function
-// type, and its prototype is func(string)(type,error).
-type Converter interface{}
-
-// IsConverter returns whether `t` is a converter type.
-func IsConverter(t reflect.Type) bool {
-	return IsFuncType(t) &&
-		t.NumIn() == 1 &&
-		t.In(0).Kind() == reflect.String &&
-		t.NumOut() == 2 &&
-		(IsValueType(t.Out(0)) || IsFuncType(t.Out(0))) && IsErrorType(t.Out(1))
-}
-
 // IsFuncType returns whether `t` is func type.
 func IsFuncType(t reflect.Type) bool {
 	return t.Kind() == reflect.Func
@@ -95,11 +60,6 @@ func IsFuncType(t reflect.Type) bool {
 // IsErrorType returns whether `t` is error type.
 func IsErrorType(t reflect.Type) bool {
 	return t == errorType || t.Implements(errorType)
-}
-
-// IsContextType returns whether `t` is context.Context type.
-func IsContextType(t reflect.Type) bool {
-	return t == contextType || t.Implements(contextType)
 }
 
 // ReturnNothing returns whether the function has no return value.
@@ -153,8 +113,9 @@ func IsPrimitiveValueType(t reflect.Type) bool {
 		return true
 	case reflect.Bool:
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 // IsValueType returns whether the input type is the primitive value type and their
