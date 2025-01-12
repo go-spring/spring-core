@@ -12,6 +12,8 @@ import (
 // `(*error)(nil)`, or a BeanDefinition value.
 type BeanSelector interface{}
 
+/********************************** condition ********************************/
+
 type CondBean interface {
 	ID() string
 	Name() string
@@ -35,6 +37,8 @@ type Condition interface {
 	Matches(ctx CondContext) (bool, error)
 }
 
+/************************************* arg ***********************************/
+
 // Arg 用于为函数参数提供绑定值。可以是 bean.Selector 类型，表示注入 bean ；
 // 可以是 ${X:=Y} 形式的字符串，表示属性绑定或者注入 bean ；可以是 ValueArg
 // 类型，表示不从 IoC 容器获取而是用户传入的普通值；可以是 IndexArg 类型，表示
@@ -52,6 +56,8 @@ type ArgContext interface {
 	Wire(v reflect.Value, tag string) error
 }
 
+/*********************************** conf ************************************/
+
 type Properties interface {
 	Data() map[string]string
 	Keys() []string
@@ -67,6 +73,8 @@ type Properties interface {
 type Refreshable interface {
 	OnRefresh(prop Properties, param conf.BindParam) error
 }
+
+/*********************************** bean ************************************/
 
 type Callable interface {
 	Arg(i int) (Arg, bool)
@@ -183,6 +191,8 @@ func NewUnregisteredBean(d BeanRegistration) *UnregisteredBean {
 	}
 }
 
+/*********************************** ioc ************************************/
+
 type Container interface {
 	Object(i interface{}) *RegisteredBean
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
@@ -213,4 +223,9 @@ type Context interface {
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 	Go(fn func(ctx context.Context))
+}
+
+// ContextAware injects the Context into a struct as the field GSContext.
+type ContextAware struct {
+	GSContext Context `autowire:""`
 }

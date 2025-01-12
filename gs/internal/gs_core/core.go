@@ -40,20 +40,15 @@ import (
 type refreshState int
 
 const (
-	Unrefreshed = refreshState(iota) // 未刷新
-	RefreshInit                      // 准备刷新
-	Refreshing                       // 正在刷新
-	Refreshed                        // 已刷新
+	RefreshDefault = refreshState(iota) // 未刷新
+	RefreshInit                         // 准备刷新
+	Refreshing                          // 正在刷新
+	Refreshed                           // 已刷新
 )
 
 var UnregisteredBeanType = reflect.TypeOf((*gs.UnregisteredBean)(nil))
 
 type GroupFunc = func(p gs.Properties) ([]*gs.UnregisteredBean, error)
-
-// ContextAware injects the Context into a struct as the field GSContext.
-type ContextAware struct {
-	GSContext gs.Context `autowire:""`
-}
 
 type SimpleBean interface {
 	Callable() gs.Callable
@@ -160,7 +155,7 @@ func (c *Container) RefreshProperties(p gs.Properties) error {
 
 func (c *Container) Refresh() (err error) {
 
-	if c.state != Unrefreshed {
+	if c.state != RefreshDefault {
 		return errors.New("Container already refreshed")
 	}
 	c.state = RefreshInit

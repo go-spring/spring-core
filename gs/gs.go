@@ -48,7 +48,7 @@ type (
 	Condition        = gs.Condition
 	Properties       = gs.Properties
 	Context          = gs.Context
-	ContextAware     = gs_core.ContextAware
+	ContextAware     = gs.ContextAware
 	Dync[T any]      = gs_dync.Value[T]
 	AppRunner        = gs_app.AppRunner
 	AppServer        = gs_app.AppServer
