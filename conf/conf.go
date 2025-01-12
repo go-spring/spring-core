@@ -186,15 +186,11 @@ func (p *Properties) Merge(m map[string]interface{}) error {
 
 func (p *Properties) merge(m map[string]string) error {
 	for key, val := range m {
-		if err := p.store(key, val); err != nil {
+		if err := p.storage.Set(key, val); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (p *Properties) store(key, val string) error {
-	return p.storage.Set(key, val)
 }
 
 func (p *Properties) Data() map[string]string {

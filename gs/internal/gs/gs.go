@@ -216,6 +216,7 @@ type Context interface {
 	Context() context.Context
 	Keys() []string
 	Has(key string) bool
+	SubKeys(key string) ([]string, error)
 	Prop(key string, opts ...conf.GetOption) string
 	Resolve(s string) (string, error)
 	Bind(i interface{}, opts ...conf.BindArg) error

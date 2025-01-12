@@ -137,6 +137,10 @@ func (c *Container) Has(key string) bool {
 	return c.p.Data().Has(key)
 }
 
+func (c *Container) SubKeys(key string) ([]string, error) {
+	return c.p.Data().SubKeys(key)
+}
+
 func (c *Container) Prop(key string, opts ...conf.GetOption) string {
 	return c.p.Data().Get(key, opts...)
 }

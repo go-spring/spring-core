@@ -295,7 +295,7 @@ func getSlice(p readOnlyProperties, et reflect.Type, param BindParam) (readOnlyP
 	r := New()
 	for i, s := range arrVal {
 		k := fmt.Sprintf("%s[%d]", param.Key, i)
-		_ = r.store(k, s)
+		_ = r.storage.Set(k, s)
 	}
 	return r, nil
 }
