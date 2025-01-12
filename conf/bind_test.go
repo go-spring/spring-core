@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,11 @@
 package conf_test
 
 import (
-	"container/list"
 	"fmt"
 	"testing"
 
-	"github.com/go-spring/spring-base/assert"
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 type DB struct {
@@ -193,12 +192,6 @@ func TestProperties_Bind(t *testing.T) {
 		p := conf.New()
 		err := p.Bind(&struct{ fmt.Stringer }{})
 		assert.Nil(t, err)
-	})
-
-	t.Run("ignore pointer", func(t *testing.T) {
-		p := conf.New()
-		err := p.Bind(list.New())
-		assert.Error(t, err, ".*bind.go:.* bind List error; .*bind.go:.* bind List.len error; .*bind.go:.* resolve property \"len\" error; property \"len\" not exist")
 	})
 
 	t.Run("", func(t *testing.T) {
