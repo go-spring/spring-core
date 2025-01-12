@@ -116,5 +116,5 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.UnregisteredBean {
 	}
 
 	d := gs_bean.NewBean(t, v, f, name, file, line)
-	return gs.NewUnregisteredBean(d).On(cond)
+	return gs.NewUnregisteredBean(d).Condition(cond)
 }

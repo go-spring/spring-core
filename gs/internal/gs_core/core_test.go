@@ -1463,7 +1463,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_core.New()
-		parent := c.Object(new(Server)).On(gs_cond.Not(gs_cond.OK()))
+		parent := c.Object(new(Server)).Condition(gs_cond.Not(gs_cond.OK()))
 		bd := c.Provide((*Server).Consumer, parent)
 
 		c.RefreshProperties(prop)
@@ -2363,7 +2363,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		c := gs_core.New()
 
-		c.Object(&BeanZero{5}).On(gs_cond.
+		c.Object(&BeanZero{5}).Condition(gs_cond.
 			OnProfile("test").
 			And().
 			OnMissingBean("null").
@@ -2384,7 +2384,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		prop.Set("spring.profiles.active", "test")
 
 		c := gs_core.New()
-		c.Object(&BeanZero{5}).On(gs_cond.OnProfile("test"))
+		c.Object(&BeanZero{5}).Condition(gs_cond.OnProfile("test"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -2400,7 +2400,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		prop.Set("spring.profiles.active", "stable")
 
 		c := gs_core.New()
-		c.Object(&BeanZero{5}).On(gs_cond.OnProfile("test"))
+		c.Object(&BeanZero{5}).Condition(gs_cond.OnProfile("test"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -2421,7 +2421,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		c.Provide(NewClassRoom, gs_arg.Option(withClassName,
 			"${class_name:=二年级03班}",
 			"${class_floor:=3}",
-		).On(gs_cond.OnProperty("class_name_enable")))
+		).Condition(gs_cond.OnProperty("class_name_enable")))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -2446,7 +2446,7 @@ func TestDefaultSpringContext(t *testing.T) {
 			gs_arg.Option(withClassName,
 				"${class_name:=二年级03班}",
 				"${class_floor:=3}",
-			).On(onProperty),
+			).Condition(onProperty),
 		)
 
 		c.RefreshProperties(prop)
@@ -2468,7 +2468,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		c.Provide((*Server).Consumer, parent.ID()).On(gs_cond.OnProperty("consumer.enable"))
+		c.Provide((*Server).Consumer, parent.ID()).Condition(gs_cond.OnProperty("consumer.enable"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -2490,7 +2490,7 @@ func TestDefaultSpringContext(t *testing.T) {
 // func TestDefaultSpringContext_ParentNotRegister(t *testing.T) {
 //
 //	c := gs.New()
-//	parent := c.Provide(NewServerInterface).On(cond.OnProperty("server.is.nil"))
+//	parent := c.Provide(NewServerInterface).Condition(cond.OnProperty("server.is.nil"))
 //	c.Provide(ServerInterface.Consumer, parent.ID())
 //
 //	c.Refresh()
@@ -2509,11 +2509,11 @@ func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 
 	c1 := gs_cond.OnProperty("null", gs_cond.MatchIfMissing()).Or().OnProfile("test")
 
-	c.Object(&BeanZero{5}).On(gs_cond.On(c1).And().OnMissingBean("null"))
-	c.Object(new(BeanOne)).On(gs_cond.On(c1).And().OnMissingBean("null"))
+	c.Object(&BeanZero{5}).Condition(gs_cond.On(c1).And().OnMissingBean("null"))
+	c.Object(new(BeanOne)).Condition(gs_cond.On(c1).And().OnMissingBean("null"))
 
-	c.Object(new(BeanTwo)).On(gs_cond.OnBean("BeanOne"))
-	c.Object(new(BeanTwo)).Name("another_two").On(gs_cond.OnBean("Null"))
+	c.Object(new(BeanTwo)).Condition(gs_cond.OnBean("BeanOne"))
+	c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnBean("Null"))
 
 	err := runTest(c, func(p gs.Context) {
 
@@ -2532,8 +2532,8 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
-		c.Object(new(BeanTwo)).On(gs_cond.OnMissingBean("BeanOne"))
-		c.Object(new(BeanTwo)).Name("another_two").On(gs_cond.OnMissingBean("Null"))
+		c.Object(new(BeanTwo)).Condition(gs_cond.OnMissingBean("BeanOne"))
+		c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnMissingBean("Null"))
 		err := runTest(c, func(p gs.Context) {
 
 			var two *BeanTwo
@@ -2793,7 +2793,7 @@ func TestMapCollection(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&mapValue{"a"}).Name("a")
 		c.Object(&mapValue{"b"}).Name("b")
-		c.Object(&mapValue{"c"}).Name("c").On(gs_cond.Not(gs_cond.OK()))
+		c.Object(&mapValue{"c"}).Name("c").Condition(gs_cond.Not(gs_cond.OK()))
 		err := runTest(c, func(p gs.Context) {
 
 			var vSlice []*mapValue

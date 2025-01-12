@@ -24,7 +24,6 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -74,7 +73,7 @@ type BeanDestroy interface {
 
 type BeanMetadata struct {
 	f       gs.Callable       // 构造函数
-	cond    gs.Condition      // 判断条件
+	cond    []gs.Condition    // 判断条件
 	init    interface{}       // 初始化函数
 	destroy interface{}       // 销毁函数
 	depends []gs.BeanSelector // 间接依赖项
@@ -93,7 +92,7 @@ func (d *BeanMetadata) SetStatus(status BeanStatus) {
 	d.status = status
 }
 
-func (d *BeanMetadata) Cond() gs.Condition {
+func (d *BeanMetadata) Cond() []gs.Condition {
 	return d.cond
 }
 
@@ -248,12 +247,10 @@ func (d *BeanDefinition) SetCaller(skip int) {
 	_, d.file, d.line, _ = runtime.Caller(skip)
 }
 
-// SetOn 设置 bean 的 Condition。
-func (d *BeanDefinition) SetOn(cond gs.Condition) {
-	if d.cond == nil {
-		d.cond = cond
-	} else {
-		d.cond = gs_cond.And(d.cond, cond)
+// SetCondition 设置 bean 的 Condition。
+func (d *BeanDefinition) SetCondition(cond gs.Condition) {
+	if cond != nil {
+		d.cond = append(d.cond, cond)
 	}
 }
 

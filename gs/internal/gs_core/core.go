@@ -367,7 +367,7 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 				}
 				name := bd.Name() + "_" + m.Name
 				b := gs_bean.NewBean(v.Type(), v, f, name, bd.File(), bd.Line())
-				gs.NewUnregisteredBean(b).On(gs_cond.OnBean(bd))
+				gs.NewUnregisteredBean(b).Condition(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}
 			break
@@ -395,8 +395,9 @@ func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
 
 	b.SetStatus(gs_bean.Resolving)
 
-	if b.Cond() != nil {
-		if ok, err := b.Cond().Matches(c); err != nil {
+	if len(b.Cond()) > 0 {
+		cond := gs_cond.And(b.Cond()...)
+		if ok, err := cond.Matches(c); err != nil {
 			return err
 		} else if !ok {
 			b.SetStatus(gs_bean.Deleted)

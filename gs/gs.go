@@ -104,6 +104,10 @@ func None(cond ...Condition) Condition {
 	return gs_cond.None(cond...)
 }
 
+func On(cond gs.Condition) *Conditional {
+	return gs_cond.On(cond)
+}
+
 func MatchIfMissing() PropertyOption {
 	return gs_cond.MatchIfMissing()
 }

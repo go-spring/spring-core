@@ -109,7 +109,7 @@ type BeanRegistration interface {
 	Type() reflect.Type
 	SetCaller(skip int)
 	SetName(name string)
-	SetOn(cond Condition)
+	SetCondition(cond Condition)
 	SetDependsOn(selectors ...BeanSelector)
 	SetPrimary()
 	SetInit(fn interface{})
@@ -140,9 +140,9 @@ func (d *beanBuilder[T]) Name(name string) *T {
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// On 设置 bean 的 Condition。
-func (d *beanBuilder[T]) On(cond Condition) *T {
-	d.b.SetOn(cond)
+// Condition 设置 bean 的 Condition。
+func (d *beanBuilder[T]) Condition(cond Condition) *T {
+	d.b.SetCondition(cond)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-//go:generate mockgen -build_flags="-mod=mod" -package=cond -source=cond.go -destination=cond_mock.go
-
 // Package gs_cond provides many conditions used when registering bean.
 package gs_cond
 
@@ -161,14 +159,29 @@ type group struct {
 }
 
 func Or(cond ...gs.Condition) gs.Condition {
+	if n := len(cond); n == 0 {
+		return OK()
+	} else if n == 1 {
+		return cond[0]
+	}
 	return &group{op: opOr, cond: cond}
 }
 
 func And(cond ...gs.Condition) gs.Condition {
+	if n := len(cond); n == 0 {
+		return OK()
+	} else if n == 1 {
+		return cond[0]
+	}
 	return &group{op: opAnd, cond: cond}
 }
 
 func None(cond ...gs.Condition) gs.Condition {
+	if n := len(cond); n == 0 {
+		return OK()
+	} else if n == 1 {
+		return Not(cond[0])
+	}
 	return &group{op: opNone, cond: cond}
 }
 

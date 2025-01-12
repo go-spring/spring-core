@@ -258,8 +258,8 @@ func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 	return &OptionArg{r: r}
 }
 
-// On 设置一个 gs_cond.Condition 对象。
-func (arg *OptionArg) On(c gs.Condition) *OptionArg {
+// Condition 设置一个 gs_cond.Condition 对象。
+func (arg *OptionArg) Condition(c gs.Condition) *OptionArg {
 	arg.c = c
 	return arg
 }
