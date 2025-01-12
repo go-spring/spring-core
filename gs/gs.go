@@ -37,25 +37,9 @@ const (
 	Website = "https://go-spring.com/"
 )
 
-type (
-	Arg              = gs.Arg
-	BeanSelector     = gs.BeanSelector
-	BeanInit         = gs_bean.BeanInit
-	BeanDestroy      = gs_bean.BeanDestroy
-	RegisteredBean   = gs.RegisteredBean
-	UnregisteredBean = gs.UnregisteredBean
-	CondContext      = gs.CondContext
-	Condition        = gs.Condition
-	Properties       = gs.Properties
-	Context          = gs.Context
-	ContextAware     = gs.ContextAware
-	Dync[T any]      = gs_dync.Value[T]
-	AppContext       = gs_app.AppContext
-	AppRunner        = gs_app.AppRunner
-	AppServer        = gs_app.AppServer
-)
-
 /************************************ arg ***********************************/
+
+type Arg = gs.Arg
 
 // NilArg return a ValueArg with a value of nil.
 func NilArg() gs_arg.ValueArg {
@@ -89,6 +73,8 @@ func MustBindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
 /************************************ cond ***********************************/
 
 type (
+	Condition      = gs.Condition
+	CondContext    = gs.CondContext
 	Conditional    = gs_cond.Conditional
 	PropertyOption = gs_cond.PropertyOption
 )
@@ -208,6 +194,33 @@ func BootRunner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
 }
 
 /*********************************** app *************************************/
+
+type (
+	AppRunner  = gs_app.AppRunner
+	AppServer  = gs_app.AppServer
+	AppContext = gs_app.AppContext
+)
+
+type (
+	BeanInit     = gs_bean.BeanInit
+	BeanDestroy  = gs_bean.BeanDestroy
+	BeanSelector = gs.BeanSelector
+)
+
+type (
+	Context      = gs.Context
+	ContextAware = gs.ContextAware
+)
+
+type (
+	Properties  = gs.Properties
+	Dync[T any] = gs_dync.Value[T]
+)
+
+type (
+	RegisteredBean   = gs.RegisteredBean
+	UnregisteredBean = gs.UnregisteredBean
+)
 
 var app = gs_app.NewApp()
 
