@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -57,7 +58,6 @@ type BeanDestroy interface {
 
 type BeanMetadata struct {
 	f       gs.Callable       // 构造函数
-	method  bool              // 是否为成员方法
 	cond    gs.Condition      // 判断条件
 	init    interface{}       // 初始化函数
 	destroy interface{}       // 销毁函数
@@ -75,10 +75,6 @@ type BeanMetadata struct {
 
 func (d *BeanMetadata) SetStatus(status BeanStatus) {
 	d.status = status
-}
-
-func (d *BeanMetadata) IsMethod() bool {
-	return d.method
 }
 
 func (d *BeanMetadata) Cond() gs.Condition {
@@ -238,7 +234,11 @@ func (d *BeanDefinition) SetCaller(skip int) {
 
 // On 设置 bean 的 Condition。
 func (d *BeanDefinition) SetOn(cond gs.Condition) {
-	d.cond = cond
+	if d.cond == nil {
+		d.cond = cond
+	} else {
+		d.cond = gs_cond.And(d.cond, cond)
+	}
 }
 
 // DependsOn 设置 bean 的间接依赖项。
@@ -327,11 +327,10 @@ func (d *BeanDefinition) SetEnableRefresh(tag string) {
 }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string, method bool, file string, line int) *BeanDefinition {
+func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string, file string, line int) *BeanDefinition {
 	return &BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			f:      f,
-			method: method,
 			file:   file,
 			line:   line,
 			status: Default,

@@ -26,6 +26,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -34,8 +35,8 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.UnregisteredBean {
 
 	var v reflect.Value
 	var fromValue bool
-	var method bool
 	var name string
+	var cond gs.Condition
 
 	switch i := objOrCtor.(type) {
 	case reflect.Value:
@@ -93,7 +94,14 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.UnregisteredBean {
 		if name[0] == '(' {
 			name = name[strings.Index(name, ".")+1:]
 		}
-		method = strings.LastIndexByte(fnInfo.Name(), ')') > 0
+		method := strings.LastIndexByte(fnInfo.Name(), ')') > 0
+		if method {
+			selector, ok := f.Arg(0)
+			if !ok || selector == "" {
+				selector, _ = f.In(0)
+			}
+			cond = gs_cond.OnBean(selector)
+		}
 	}
 
 	if t.Kind() == reflect.Ptr && !util.IsValueType(t.Elem()) {
@@ -107,6 +115,6 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.UnregisteredBean {
 		name = strings.TrimPrefix(s[len(s)-1], "*")
 	}
 
-	d := gs_bean.NewBean(t, v, f, name, method, file, line)
-	return gs.NewUnregisteredBean(d)
+	d := gs_bean.NewBean(t, v, f, name, file, line)
+	return gs.NewUnregisteredBean(d).On(cond)
 }

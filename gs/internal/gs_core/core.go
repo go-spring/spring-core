@@ -365,7 +365,7 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 					v = v.Elem()
 				}
 				name := bd.Name() + "_" + m.Name
-				b := gs_bean.NewBean(v.Type(), v, f, name, true, bd.File(), bd.Line())
+				b := gs_bean.NewBean(v.Type(), v, f, name, bd.File(), bd.Line())
 				gs.NewUnregisteredBean(b).On(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}
@@ -393,30 +393,6 @@ func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
 	}
 
 	b.SetStatus(gs_bean.Resolving)
-
-	// method bean 先确定 parent bean 是否存在
-	if b.IsMethod() {
-		selector, ok := b.Callable().Arg(0)
-		if !ok || selector == "" {
-			selector, _ = b.Callable().In(0)
-		}
-		parents, err := c.Find(selector)
-		if err != nil {
-			return err
-		}
-		n := len(parents)
-		if n > 1 {
-			msg := fmt.Sprintf("found %d parent beans, bean:%q type:%q [", n, selector, b.Type().In(0))
-			for _, b := range parents {
-				msg += "( " + b.(*gs_bean.BeanDefinition).String() + " ), "
-			}
-			msg = msg[:len(msg)-2] + "]"
-			return errors.New(msg)
-		} else if n == 0 {
-			b.SetStatus(gs_bean.Deleted)
-			return nil
-		}
-	}
 
 	if b.Cond() != nil {
 		if ok, err := b.Cond().Matches(c); err != nil {
