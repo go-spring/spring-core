@@ -157,16 +157,15 @@ func (c *Container) RefreshProperties(p gs.Properties) error {
 	return c.p.Refresh(p)
 }
 
+// Refresh refreshes the container, registering, resolving and injecting beans.
 func (c *Container) Refresh() (err error) {
-
 	if c.state != RefreshDefault {
-		return errors.New("Container already refreshed")
+		return errors.New("container is refreshing or refreshed")
 	}
 	c.state = RefreshInit
-
 	start := time.Now()
 
-	// 处理 group 逻辑
+	// processes all group functions to register beans.
 	for _, fn := range c.groupFuncs {
 		var beans []*gs.UnregisteredBean
 		beans, err = fn(c.p.Data())
@@ -174,18 +173,19 @@ func (c *Container) Refresh() (err error) {
 			return err
 		}
 		for _, b := range beans {
-			c.beans = append(c.beans, b.BeanRegistration().(*gs_bean.BeanDefinition))
+			d := b.BeanRegistration().(*gs_bean.BeanDefinition)
+			c.beans = append(c.beans, d)
 		}
 	}
 	c.groupFuncs = nil
 
-	// 处理 configuration 逻辑
-	for _, bd := range c.beans {
-		if !bd.IsConfiguration() {
+	// processes configuration beans to register beans.
+	for _, b := range c.beans {
+		if !b.IsConfiguration() {
 			continue
 		}
 		var newBeans []*gs_bean.BeanDefinition
-		newBeans, err = c.scanConfiguration(bd)
+		newBeans, err = c.scanConfiguration(b)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,6 @@ func (c *Container) Refresh() (err error) {
 	}
 
 	stack := newWiringStack()
-
 	defer func() {
 		if err != nil || len(stack.beans) > 0 {
 			err = fmt.Errorf("%s ↩\n%s", err, stack.path())
@@ -231,7 +230,7 @@ func (c *Container) Refresh() (err error) {
 		}
 	}()
 
-	// 按照 bean id 升序注入，保证注入过程始终一致。
+	// injects all beans in ascending order of their IDs
 	{
 		var keys []string
 		for s := range beansById {
@@ -239,48 +238,36 @@ func (c *Container) Refresh() (err error) {
 		}
 		sort.Strings(keys)
 		for _, s := range keys {
-			b := beansById[s]
-			if err = c.wireBeanInRefreshing(b, stack); err != nil {
+			if err = c.wireBeanInRefreshing(beansById[s], stack); err != nil {
 				return err
 			}
 		}
 	}
 
 	if c.AllowCircularReferences {
-		// 处理被标记为延迟注入的那些 bean 字段
+		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
-			if err := c.wireByTag(f.v, tag, stack); err != nil {
+			if err = c.wireByTag(f.v, tag, stack); err != nil {
 				return fmt.Errorf("%q wired error: %s", f.path, err.Error())
 			}
 		}
 	} else if len(stack.lazyFields) > 0 {
-		return errors.New("remove the dependency cycle between beans")
+		return errors.New("found circular references in beans")
 	}
 
 	c.destroyers = stack.sortDestroyers()
 
-	// 精简内存
-	{
-		c.beansByName = make(map[string][]BeanRuntime)
-		c.beansByType = make(map[reflect.Type][]BeanRuntime)
-		for _, b := range c.beans {
-			if b.Status() == gs_bean.Deleted {
-				continue
-			}
-			c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
-			c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
-			for _, t := range b.Exports() {
-				c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
-			}
-		}
+	// retains only the runtime essential content to simplify memory.
+	c.beansByName = make(map[string][]BeanRuntime)
+	c.beansByType = make(map[reflect.Type][]BeanRuntime)
+	for _, b := range c.beans {
+		c.registerBean(b)
 	}
 
 	c.state = Refreshed
-
-	cost := time.Now().Sub(start)
-	syslog.Info("refresh %d beans cost %v", len(beansById), cost)
-	syslog.Info("refreshed successfully")
+	syslog.Info("container is refreshed successfully, %d beans cost %v",
+		len(beansById), time.Now().Sub(start))
 	return nil
 }
 
@@ -379,6 +366,9 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 
 // registerBean registers a bean by name and type.
 func (c *Container) registerBean(b *gs_bean.BeanDefinition) {
+	if b.Status() == gs_bean.Deleted {
+		return
+	}
 	c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 	for _, t := range b.Exports() {
