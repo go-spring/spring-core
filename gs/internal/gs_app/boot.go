@@ -57,7 +57,7 @@ func (b *Boot) Run() error {
 
 	// 执行命令行启动器
 	for _, r := range b.Runners {
-		r.Run(b.C.(gs.Context))
+		r.Run(&AppContext{b.C.(gs.Context)})
 	}
 
 	b.C.Close()

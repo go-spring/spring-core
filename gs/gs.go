@@ -50,6 +50,7 @@ type (
 	Context          = gs.Context
 	ContextAware     = gs.ContextAware
 	Dync[T any]      = gs_dync.Value[T]
+	AppContext       = gs_app.AppContext
 	AppRunner        = gs_app.AppRunner
 	AppServer        = gs_app.AppServer
 )

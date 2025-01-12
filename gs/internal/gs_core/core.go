@@ -50,16 +50,16 @@ var UnregisteredBeanType = reflect.TypeOf((*gs.UnregisteredBean)(nil))
 
 type GroupFunc = func(p gs.Properties) ([]*gs.UnregisteredBean, error)
 
-type SimpleBean interface {
-	Callable() gs.Callable
+type BeanRuntime interface {
 	Name() string
-	Status() gs_bean.BeanStatus
-	Interface() interface{}
-	IsPrimary() bool
-	Match(typeName string, beanName string) bool
-	String() string
 	Type() reflect.Type
 	Value() reflect.Value
+	Interface() interface{}
+	Callable() gs.Callable
+	Match(typeName string, beanName string) bool
+	Status() gs_bean.BeanStatus
+	IsPrimary() bool
+	String() string
 }
 
 // Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
@@ -71,8 +71,8 @@ type SimpleBean interface {
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
 	beans        []*gs_bean.BeanDefinition
-	beansByName  map[string][]SimpleBean
-	beansByType  map[reflect.Type][]SimpleBean
+	beansByName  map[string][]BeanRuntime
+	beansByType  map[reflect.Type][]BeanRuntime
 	groupFuncs   []GroupFunc
 	p            *gs_dync.Properties
 	ctx          context.Context
@@ -93,8 +93,8 @@ func New() gs.Container {
 		ctx:         ctx,
 		cancel:      cancel,
 		p:           gs_dync.New(),
-		beansByName: make(map[string][]SimpleBean),
-		beansByType: make(map[reflect.Type][]SimpleBean),
+		beansByName: make(map[string][]BeanRuntime),
+		beansByType: make(map[reflect.Type][]BeanRuntime),
 	}
 	c.Object(c).Export((*gs.Context)(nil))
 	return c
@@ -253,9 +253,12 @@ func (c *Container) Refresh() (err error) {
 		return errors.New("remove the dependency cycle between beans")
 	}
 
-	if c.ContextAware { // 保留核心数据
-		c.beansByName = make(map[string][]SimpleBean)
-		c.beansByType = make(map[reflect.Type][]SimpleBean)
+	c.destroyers = stack.sortDestroyers()
+
+	// 精简内存
+	{
+		c.beansByName = make(map[string][]BeanRuntime)
+		c.beansByType = make(map[reflect.Type][]BeanRuntime)
 		for _, b := range c.beans {
 			if b.Status() == gs_bean.Deleted {
 				continue
@@ -266,16 +269,8 @@ func (c *Container) Refresh() (err error) {
 				c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
 			}
 		}
-	} else { // 清空全部数据
-		if c.p.ObjectsCount() == 0 {
-			c.p = nil
-		}
-		c.beansByName = nil
-		c.beansByType = nil
 	}
-	c.beans = nil
 
-	c.destroyers = stack.sortDestroyers()
 	c.state = Refreshed
 
 	cost := time.Now().Sub(start)
@@ -286,7 +281,14 @@ func (c *Container) Refresh() (err error) {
 
 // SimplifyMemory 清理运行时不需要的空间。
 func (c *Container) SimplifyMemory() {
-
+	if !c.ContextAware { // 保留核心数据
+		if c.p.ObjectsCount() == 0 {
+			c.p = nil
+		}
+		c.beansByName = nil
+		c.beansByType = nil
+	}
+	c.beans = nil
 }
 
 func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {

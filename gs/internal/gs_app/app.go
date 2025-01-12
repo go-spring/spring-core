@@ -29,12 +29,24 @@ import (
 )
 
 type AppRunner interface {
-	Run(ctx gs.Context)
+	Run(ctx *AppContext)
 }
 
 type AppServer interface {
-	OnAppStart(ctx gs.Context)     // 应用启动的事件
+	OnAppStart(ctx *AppContext)    // 应用启动的事件
 	OnAppStop(ctx context.Context) // 应用停止的事件
+}
+
+type AppContext struct {
+	c gs.Context
+}
+
+func (p *AppContext) Unsafe() gs.Context {
+	return p.c
+}
+
+func (p *AppContext) Go(fn func(ctx context.Context)) {
+	p.c.Go(fn)
 }
 
 // App 应用
@@ -95,12 +107,12 @@ func (app *App) Start() error {
 
 	// 执行命令行启动器
 	for _, r := range app.Runners {
-		r.Run(ctx)
+		r.Run(&AppContext{ctx})
 	}
 
 	// 通知应用启动事件
 	for _, svr := range app.Servers {
-		svr.OnAppStart(ctx)
+		svr.OnAppStart(&AppContext{ctx})
 	}
 
 	app.C.SimplifyMemory()

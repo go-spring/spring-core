@@ -244,14 +244,14 @@ func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, sta
 	}
 }
 
-type byBeanName []SimpleBean
+type byBeanName []BeanRuntime
 
 func (b byBeanName) Len() int           { return len(b) }
 func (b byBeanName) Less(i, j int) bool { return b[i].Name() < b[j].Name() }
 func (b byBeanName) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // filterBean 返回 tag 对应的 bean 在数组中的索引，找不到返回 -1。
-func filterBean(beans []SimpleBean, tag wireTag, t reflect.Type) (int, error) {
+func filterBean(beans []BeanRuntime, tag wireTag, t reflect.Type) (int, error) {
 
 	var found []int
 	for i, b := range beans {
@@ -293,11 +293,11 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
-	var beans []SimpleBean
+	var beans []BeanRuntime
 	beans = c.beansByType[et]
 
 	{
-		var arr []SimpleBean
+		var arr []BeanRuntime
 		for _, b := range beans {
 			if b.Status() == gs_bean.Deleted {
 				continue
@@ -310,9 +310,9 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	if len(tags) > 0 {
 
 		var (
-			anyBeans  []SimpleBean
-			afterAny  []SimpleBean
-			beforeAny []SimpleBean
+			anyBeans  []BeanRuntime
+			afterAny  []BeanRuntime
+			beforeAny []BeanRuntime
 		)
 
 		foundAny := false
@@ -341,7 +341,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 				beforeAny = append(beforeAny, beans[index])
 			}
 
-			tmpBeans := append([]SimpleBean{}, beans[:index]...)
+			tmpBeans := append([]BeanRuntime{}, beans[:index]...)
 			beans = append(tmpBeans, beans[index+1:]...)
 		}
 
@@ -350,7 +350,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		}
 
 		n := len(beforeAny) + len(anyBeans) + len(afterAny)
-		arr := make([]SimpleBean, 0, n)
+		arr := make([]BeanRuntime, 0, n)
 		arr = append(arr, beforeAny...)
 		arr = append(arr, anyBeans...)
 		arr = append(arr, afterAny...)
@@ -415,7 +415,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return fmt.Errorf("%s is not valid receiver type", t.String())
 	}
 
-	var foundBeans []SimpleBean
+	var foundBeans []BeanRuntime
 	for _, b := range c.beansByType[t] {
 		if b.Status() == gs_bean.Deleted {
 			continue
@@ -461,7 +461,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 	}
 
 	// 优先使用设置成主版本的 bean
-	var primaryBeans []SimpleBean
+	var primaryBeans []BeanRuntime
 
 	for _, b := range foundBeans {
 		if b.IsPrimary() {
@@ -487,7 +487,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 		return errors.New(msg)
 	}
 
-	var result SimpleBean
+	var result BeanRuntime
 	if len(primaryBeans) == 1 {
 		result = primaryBeans[0]
 	} else {
@@ -624,7 +624,7 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wirin
 	return nil
 }
 
-func (c *Container) wireBeanAfterRefreshed(b SimpleBean, stack *wiringStack) error {
+func (c *Container) wireBeanAfterRefreshed(b BeanRuntime, stack *wiringStack) error {
 
 	v, err := c.getBeanValue(b, stack)
 	if err != nil {
@@ -665,7 +665,7 @@ func (a *argContext) Wire(v reflect.Value, tag string) error {
 }
 
 // getBeanValue 获取 bean 的值，如果是构造函数 bean 则执行其构造函数然后返回执行结果。
-func (c *Container) getBeanValue(b SimpleBean, stack *wiringStack) (reflect.Value, error) {
+func (c *Container) getBeanValue(b BeanRuntime, stack *wiringStack) (reflect.Value, error) {
 
 	if b.Callable() == nil {
 		return b.Value(), nil
