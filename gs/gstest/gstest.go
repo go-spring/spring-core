@@ -17,6 +17,7 @@
 package gstest
 
 import (
+	"context"
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
@@ -37,13 +38,25 @@ func Run(m *testing.M) (code int) {
 	return m.Run()
 }
 
-// HasProperty 判断属性是否存在
-func HasProperty(key string) bool {
+func Context() context.Context {
+	return ctx.GSContext.Context()
+}
+
+func Keys() []string {
+	return ctx.GSContext.Keys()
+}
+
+// Has 判断属性是否存在
+func Has(key string) bool {
 	return ctx.GSContext.Has(key)
 }
 
-// GetProperty 获取属性值
-func GetProperty(key string, opts ...conf.GetOption) string {
+func SubKeys(key string) ([]string, error) {
+	return ctx.GSContext.SubKeys(key)
+}
+
+// Prop 获取属性值
+func Prop(key string, opts ...conf.GetOption) string {
 	return ctx.GSContext.Prop(key, opts...)
 }
 
@@ -70,4 +83,8 @@ func Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 // Invoke 调用函数
 func Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 	return ctx.GSContext.Invoke(fn, args...)
+}
+
+func RefreshProperties(p gs.Properties) error {
+	return gs.RefreshProperties(p)
 }

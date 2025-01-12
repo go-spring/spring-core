@@ -57,32 +57,6 @@ type (
 
 /************************************ arg ***********************************/
 
-// IndexArg returns an IndexArg.
-func IndexArg(n int, arg Arg) gs_arg.IndexArg {
-	return gs_arg.Index(n, arg)
-}
-
-// R0 returns an IndexArg with index 0.
-func R0(arg Arg) gs_arg.IndexArg { return gs_arg.R0(arg) }
-
-// R1 returns an IndexArg with index 1.
-func R1(arg Arg) gs_arg.IndexArg { return gs_arg.R1(arg) }
-
-// R2 returns an IndexArg with index 2.
-func R2(arg Arg) gs_arg.IndexArg { return gs_arg.R2(arg) }
-
-// R3 returns an IndexArg with index 3.
-func R3(arg Arg) gs_arg.IndexArg { return gs_arg.R3(arg) }
-
-// R4 returns an IndexArg with index 4.
-func R4(arg Arg) gs_arg.IndexArg { return gs_arg.R4(arg) }
-
-// R5 returns an IndexArg with index 5.
-func R5(arg Arg) gs_arg.IndexArg { return gs_arg.R5(arg) }
-
-// R6 returns an IndexArg with index 6.
-func R6(arg Arg) gs_arg.IndexArg { return gs_arg.R6(arg) }
-
 // NilArg return a ValueArg with a value of nil.
 func NilArg() gs_arg.ValueArg {
 	return gs_arg.Nil()
@@ -93,18 +67,23 @@ func ValueArg(v interface{}) gs_arg.ValueArg {
 	return gs_arg.Value(v)
 }
 
+// IndexArg returns an IndexArg.
+func IndexArg(n int, arg Arg) gs_arg.IndexArg {
+	return gs_arg.Index(n, arg)
+}
+
 // OptionArg 返回 Option 函数的参数绑定。
 func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
 	return gs_arg.Option(fn, args...)
 }
 
+func BindArg(fn interface{}, args []Arg, skip int) (*gs_arg.Callable, error) {
+	return gs_arg.Bind(fn, args, skip)
+}
+
 // MustBindArg 为 Option 方法绑定运行时参数。
 func MustBindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
 	return gs_arg.MustBind(fn, args...)
-}
-
-func BindArg(fn interface{}, args []Arg, skip int) (*gs_arg.Callable, error) {
-	return gs_arg.Bind(fn, args, skip)
 }
 
 /************************************ cond ***********************************/

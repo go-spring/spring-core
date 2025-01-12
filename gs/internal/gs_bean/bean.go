@@ -1,3 +1,19 @@
+/*
+ * Copyright 2012-2024 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gs_bean
 
 import (
@@ -223,7 +239,7 @@ func (d *BeanDefinition) String() string {
 	return fmt.Sprintf("%s name:%q %s", d.Class(), d.name, d.FileLine())
 }
 
-// Name 设置 bean 的名称。
+// SetName 设置 bean 的名称。
 func (d *BeanDefinition) SetName(name string) {
 	d.name = name
 }
@@ -232,7 +248,7 @@ func (d *BeanDefinition) SetCaller(skip int) {
 	_, d.file, d.line, _ = runtime.Caller(skip)
 }
 
-// On 设置 bean 的 Condition。
+// SetOn 设置 bean 的 Condition。
 func (d *BeanDefinition) SetOn(cond gs.Condition) {
 	if d.cond == nil {
 		d.cond = cond
@@ -241,12 +257,12 @@ func (d *BeanDefinition) SetOn(cond gs.Condition) {
 	}
 }
 
-// DependsOn 设置 bean 的间接依赖项。
+// SetDependsOn 设置 bean 的间接依赖项。
 func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
 	d.depends = append(d.depends, selectors...)
 }
 
-// Primary 设置 bean 为主版本。
+// SetPrimary 设置 bean 为主版本。
 func (d *BeanDefinition) SetPrimary() {
 	d.primary = true
 }
@@ -263,7 +279,7 @@ func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
 	return util.ReturnNothing(fnType) || util.ReturnOnlyError(fnType)
 }
 
-// Init 设置 bean 的初始化函数。
+// SetInit 设置 bean 的初始化函数。
 func (d *BeanDefinition) SetInit(fn interface{}) {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
 		d.init = fn
@@ -272,7 +288,7 @@ func (d *BeanDefinition) SetInit(fn interface{}) {
 	panic(errors.New("init should be func(bean) or func(bean)error"))
 }
 
-// Destroy 设置 bean 的销毁函数。
+// SetDestroy 设置 bean 的销毁函数。
 func (d *BeanDefinition) SetDestroy(fn interface{}) {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
 		d.destroy = fn
@@ -281,7 +297,7 @@ func (d *BeanDefinition) SetDestroy(fn interface{}) {
 	panic(errors.New("destroy should be func(bean) or func(bean)error"))
 }
 
-// Export 设置 bean 的导出接口。
+// SetExport 设置 bean 的导出接口。
 func (d *BeanDefinition) SetExport(exports ...interface{}) {
 	for _, o := range exports {
 		t, ok := o.(reflect.Type)

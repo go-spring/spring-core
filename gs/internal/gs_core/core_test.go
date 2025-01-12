@@ -2351,7 +2351,7 @@ func TestApplicationContext_CreateBean(t *testing.T) {
 	c := gs_core.New()
 	c.Object(&ObjFactory{})
 	err := runTest(c, func(p gs.Context) {
-		b, err := p.Wire((*ObjFactory).NewObj, gs_arg.R1("${i:=5}"))
+		b, err := p.Wire((*ObjFactory).NewObj, gs_arg.Index(1, "${i:=5}"))
 		fmt.Println(b, err)
 	})
 	assert.Nil(t, err)

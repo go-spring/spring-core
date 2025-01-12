@@ -35,5 +35,5 @@ func TestMain(m *testing.M) {
 func TestConfig(t *testing.T) {
 	os.Clearenv()
 	os.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev")
-	assert.Equal(t, gstest.GetProperty("spring.profiles.active"), "dev")
+	assert.Equal(t, gstest.Prop("spring.profiles.active"), "dev")
 }

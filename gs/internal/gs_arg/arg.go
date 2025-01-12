@@ -42,27 +42,6 @@ func Index(n int, arg gs.Arg) IndexArg {
 	return IndexArg{n: n, arg: arg}
 }
 
-// R0 returns an IndexArg with index 0.
-func R0(arg gs.Arg) IndexArg { return Index(0, arg) }
-
-// R1 returns an IndexArg with index 1.
-func R1(arg gs.Arg) IndexArg { return Index(1, arg) }
-
-// R2 returns an IndexArg with index 2.
-func R2(arg gs.Arg) IndexArg { return Index(2, arg) }
-
-// R3 returns an IndexArg with index 3.
-func R3(arg gs.Arg) IndexArg { return Index(3, arg) }
-
-// R4 returns an IndexArg with index 4.
-func R4(arg gs.Arg) IndexArg { return Index(4, arg) }
-
-// R5 returns an IndexArg with index 5.
-func R5(arg gs.Arg) IndexArg { return Index(5, arg) }
-
-// R6 returns an IndexArg with index 6.
-func R6(arg gs.Arg) IndexArg { return Index(6, arg) }
-
 // ValueArg is an Arg that has a value.
 type ValueArg struct {
 	v interface{}
@@ -78,14 +57,14 @@ func Value(v interface{}) ValueArg {
 	return ValueArg{v: v}
 }
 
-// argList stores the arguments of a function.
-type argList struct {
+// ArgList stores the arguments of a function.
+type ArgList struct {
 	fnType reflect.Type
 	args   []gs.Arg
 }
 
-// newArgList returns a new argList.
-func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
+// NewArgList returns a new ArgList.
+func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 
 	fixedArgCount := fnType.NumIn()
 	if fnType.IsVariadic() {
@@ -160,11 +139,11 @@ func newArgList(fnType reflect.Type, args []gs.Arg) (*argList, error) {
 		}
 	}
 
-	return &argList{fnType: fnType, args: fnArgs}, nil
+	return &ArgList{fnType: fnType, args: fnArgs}, nil
 }
 
 // get returns all processed Args value. fileLine is the binding position of Callable.
-func (r *argList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, error) {
+func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, error) {
 
 	fnType := r.fnType
 	numIn := fnType.NumIn()
@@ -193,7 +172,7 @@ func (r *argList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, erro
 	return result, nil
 }
 
-func (r *argList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine string) (reflect.Value, error) {
+func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine string) (reflect.Value, error) {
 
 	var (
 		err error
@@ -322,7 +301,7 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 type Callable struct {
 	fn       interface{}
 	fnType   reflect.Type
-	argList  *argList
+	argList  *ArgList
 	fileLine string
 }
 
@@ -340,7 +319,7 @@ func MustBind(fn interface{}, args ...gs.Arg) *Callable {
 func Bind(fn interface{}, args []gs.Arg, skip int) (*Callable, error) {
 
 	fnType := reflect.TypeOf(fn)
-	argList, err := newArgList(fnType, args)
+	argList, err := NewArgList(fnType, args)
 	if err != nil {
 		return nil, err
 	}
