@@ -192,39 +192,12 @@ func bootRun() error {
 	return nil
 }
 
-func getBoot() *gs_app.Boot {
+// Boot returns a [gs_app.Boot] instance.
+func Boot() *gs_app.Boot {
 	if boot == nil {
 		boot = gs_app.NewBoot()
 	}
 	return boot
-}
-
-func BootConfig() *gs_conf.BootConfig {
-	return getBoot().P
-}
-
-func BootObject(i interface{}) *gs.RegisteredBean {
-	b := gs_core.NewBean(reflect.ValueOf(i))
-	return getBoot().C.Register(b)
-}
-
-func BootProvide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
-	b := gs_core.NewBean(ctor, args...)
-	return getBoot().C.Register(b)
-}
-
-func BootRegister(bd *gs.BeanDefinition) *gs.RegisteredBean {
-	return getBoot().C.Register(bd)
-}
-
-func BootGroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
-	getBoot().C.GroupRegister(fn)
-}
-
-func BootRunner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
-	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
-	bd.Export((*AppRunner)(nil))
-	return getBoot().C.Register(bd)
 }
 
 /*********************************** app *************************************/
@@ -237,17 +210,17 @@ type (
 
 var app = gs_app.NewApp()
 
-// Start 启动程序。
+// Start starts the app, usually used in test mode.
 func Start() error {
 	return app.Start()
 }
 
-// Stop 停止程序。
+// Stop stops the app, usually used in test mode.
 func Stop() {
 	app.Stop()
 }
 
-// Run 启动程序。
+// Run runs the app, and waits to exit by watching the interrupt signal.
 func Run() error {
 	printBanner()
 	if err := bootRun(); err != nil {
@@ -256,48 +229,53 @@ func Run() error {
 	return app.Run()
 }
 
-// ShutDown 停止程序。
+// ShutDown shuts down the app.
 func ShutDown(msg ...string) {
 	app.ShutDown(msg...)
 }
 
+// Config returns the app configuration.
 func Config() *gs_conf.AppConfig {
 	return app.P
 }
 
-// Object 参考 Container.Object 的解释。
+// Object returns a bean definition for the given object.
 func Object(i interface{}) *RegisteredBean {
 	b := gs_core.NewBean(reflect.ValueOf(i))
 	return app.C.Register(b)
 }
 
-// Provide 参考 Container.Provide 的解释。
+// Provide returns a bean definition for the given constructor.
 func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(ctor, args...)
 	return app.C.Register(b)
 }
 
-// Register 参考 Container.Register 的解释。
+// Register registers a bean definition.
 func Register(b *BeanDefinition) *RegisteredBean {
 	return app.C.Register(b)
 }
 
-func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
-	app.C.GroupRegister(fn)
+// Group registers a group of bean definitions.
+func Group(fn func(p Properties) ([]*BeanDefinition, error)) {
+	app.C.Group(fn)
 }
 
+// Runner registers a bean definition for the given runner.
 func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
 	b.Export((*AppRunner)(nil))
 	return app.C.Register(b)
 }
 
+// Server registers a bean definition for the given server.
 func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
 	b.Export((*AppServer)(nil))
 	return app.C.Register(b)
 }
 
+// RefreshProperties refreshes the app configuration.
 func RefreshProperties(p Properties) error {
 	return app.C.RefreshProperties(p)
 }
@@ -314,11 +292,12 @@ var appBanner = `
  |___/                         |_|                         |___/ 
 `
 
-// Banner 自定义 banner 字符串。
+// Banner sets the banner of the app.
 func Banner(banner string) {
 	appBanner = banner
 }
 
+// printBanner prints the banner of the app.
 func printBanner() {
 	if len(appBanner) == 0 {
 		return
@@ -352,6 +331,7 @@ func printBanner() {
 
 /********************************** utility **********************************/
 
+// AllowCircularReferences allows circular references between beans.
 func AllowCircularReferences(enable bool) {
 	err := sysconf.Set("spring.allow-circular-references", enable)
 	if err != nil {
@@ -359,6 +339,7 @@ func AllowCircularReferences(enable bool) {
 	}
 }
 
+// ForceAutowireIsNullable forces autowire is nullable.
 func ForceAutowireIsNullable(enable bool) {
 	err := sysconf.Set("spring.force-autowire-is-nullable", enable)
 	if err != nil {

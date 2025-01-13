@@ -347,12 +347,10 @@ func (d *BeanDefinition) SetEnableRefresh(tag string) {
 }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string, file string, line int) *BeanDefinition {
+func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string) *BeanDefinition {
 	return &BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			f:      f,
-			file:   file,
-			line:   line,
 			status: Default,
 		},
 		BeanRuntime: &BeanRuntime{

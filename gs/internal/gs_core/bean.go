@@ -55,9 +55,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		panic(errors.New("bean can't be nil"))
 	}
 
-	const skip = 2
 	var f gs.Callable
-	_, file, line, _ := runtime.Caller(skip)
 
 	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
 	if !fromValue && t.Kind() == reflect.Func {
@@ -69,7 +67,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		}
 
 		var err error
-		f, err = gs_arg.Bind(objOrCtor, ctorArgs, skip)
+		f, err = gs_arg.Bind(objOrCtor, ctorArgs, 2)
 		if err != nil {
 			panic(err)
 		}
@@ -115,6 +113,6 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		name = strings.TrimPrefix(s[len(s)-1], "*")
 	}
 
-	d := gs_bean.NewBean(t, v, f, name, file, line)
-	return gs.NewBeanDefinition(d).Condition(cond)
+	d := gs_bean.NewBean(t, v, f, name)
+	return gs.NewBeanDefinition(d).Condition(cond).Caller(2)
 }

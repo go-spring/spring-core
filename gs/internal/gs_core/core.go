@@ -120,7 +120,7 @@ func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	return gs.NewRegisteredBean(b.BeanRegistration())
 }
 
-func (c *Container) GroupRegister(fn GroupFunc) {
+func (c *Container) Group(fn GroupFunc) {
 	c.groupFuncs = append(c.groupFuncs, fn)
 }
 

@@ -104,6 +104,7 @@ type ConfigurationParam struct {
 	Exclude []string // 排除那些成员方法
 }
 
+// BeanRegistration is used to register the metadata of a bean.
 type BeanRegistration interface {
 	ID() string
 	Type() reflect.Type
@@ -119,6 +120,7 @@ type BeanRegistration interface {
 	SetEnableRefresh(tag string)
 }
 
+// beanBuilder is used to build a bean.
 type beanBuilder[T any] struct {
 	b BeanRegistration
 }
@@ -137,6 +139,11 @@ func (d *beanBuilder[T]) Type() reflect.Type {
 
 func (d *beanBuilder[T]) Name(name string) *T {
 	d.b.SetName(name)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+func (d *beanBuilder[T]) Caller(skip int) *T {
+	d.b.SetCaller(skip)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
@@ -215,7 +222,7 @@ type Container interface {
 	Object(i interface{}) *RegisteredBean
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
 	Register(b *BeanDefinition) *RegisteredBean
-	GroupRegister(fn func(p Properties) ([]*BeanDefinition, error))
+	Group(fn func(p Properties) ([]*BeanDefinition, error))
 	RefreshProperties(p Properties) error
 	Refresh() error
 	SimplifyMemory()
