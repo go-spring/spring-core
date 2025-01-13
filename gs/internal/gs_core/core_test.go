@@ -3037,7 +3037,7 @@ func (c *ConfigurationBean) NewChild() *ChildBean {
 	return &ChildBean{c.s}
 }
 
-func (c *ConfigurationBean) NewBean() *gs.UnregisteredBean {
+func (c *ConfigurationBean) NewBean() *gs.BeanDefinition {
 	return gs_core.NewBean(&ChildBean{"100"}).Name("100")
 }
 

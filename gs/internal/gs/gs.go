@@ -198,13 +198,13 @@ func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 	}
 }
 
-type UnregisteredBean struct {
-	beanBuilder[UnregisteredBean]
+type BeanDefinition struct {
+	beanBuilder[BeanDefinition]
 }
 
-func NewUnregisteredBean(d BeanRegistration) *UnregisteredBean {
-	return &UnregisteredBean{
-		beanBuilder: beanBuilder[UnregisteredBean]{d},
+func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
+	return &BeanDefinition{
+		beanBuilder: beanBuilder[BeanDefinition]{d},
 	}
 }
 
@@ -214,8 +214,8 @@ func NewUnregisteredBean(d BeanRegistration) *UnregisteredBean {
 type Container interface {
 	Object(i interface{}) *RegisteredBean
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
-	Accept(b *UnregisteredBean) *RegisteredBean
-	Group(fn func(p Properties) ([]*UnregisteredBean, error))
+	Register(b *BeanDefinition) *RegisteredBean
+	GroupRegister(fn func(p Properties) ([]*BeanDefinition, error))
 	RefreshProperties(p Properties) error
 	Refresh() error
 	SimplifyMemory()

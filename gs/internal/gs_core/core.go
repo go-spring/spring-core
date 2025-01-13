@@ -46,9 +46,9 @@ const (
 	Refreshed                           // 已刷新
 )
 
-var UnregisteredBeanType = reflect.TypeOf((*gs.UnregisteredBean)(nil))
+var BeanDefinitionType = reflect.TypeOf((*gs.BeanDefinition)(nil))
 
-type GroupFunc = func(p gs.Properties) ([]*gs.UnregisteredBean, error)
+type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
 
 type BeanRuntime interface {
 	Name() string
@@ -103,16 +103,16 @@ func New() gs.Container {
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
 func (c *Container) Object(i interface{}) *gs.RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
-	return c.Accept(b)
+	return c.Register(b)
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
 func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	b := NewBean(ctor, args...)
-	return c.Accept(b)
+	return c.Register(b)
 }
 
-func (c *Container) Accept(b *gs.UnregisteredBean) *gs.RegisteredBean {
+func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	if c.state >= Refreshing {
 		panic(errors.New("should call before Refresh"))
 	}
@@ -120,7 +120,7 @@ func (c *Container) Accept(b *gs.UnregisteredBean) *gs.RegisteredBean {
 	return gs.NewRegisteredBean(b.BeanRegistration())
 }
 
-func (c *Container) Group(fn GroupFunc) {
+func (c *Container) GroupRegister(fn GroupFunc) {
 	c.groupFuncs = append(c.groupFuncs, fn)
 }
 
@@ -167,7 +167,7 @@ func (c *Container) Refresh() (err error) {
 
 	// processes all group functions to register beans.
 	for _, fn := range c.groupFuncs {
-		var beans []*gs.UnregisteredBean
+		var beans []*gs.BeanDefinition
 		beans, err = fn(c.p.Data())
 		if err != nil {
 			return err
@@ -329,14 +329,14 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 			}
 			fnType := m.Func.Type()
 			out0 := fnType.Out(0)
-			if out0 == UnregisteredBeanType {
+			if out0 == BeanDefinitionType {
 				ret := m.Func.Call([]reflect.Value{bd.Value()})
 				if len(ret) > 1 {
 					if err := ret[1].Interface().(error); err != nil {
 						return nil, err
 					}
 				}
-				b := ret[0].Interface().(*gs.UnregisteredBean)
+				b := ret[0].Interface().(*gs.BeanDefinition)
 				newBeans = append(newBeans, b.BeanRegistration().(*gs_bean.BeanDefinition))
 				retBeans, err := c.scanConfiguration(b.BeanRegistration().(*gs_bean.BeanDefinition))
 				if err != nil {
@@ -355,7 +355,7 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 				}
 				name := bd.Name() + "_" + m.Name
 				b := gs_bean.NewBean(v.Type(), v, f, name, bd.File(), bd.Line())
-				gs.NewUnregisteredBean(b).Condition(gs_cond.OnBean(bd))
+				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}
 			break
