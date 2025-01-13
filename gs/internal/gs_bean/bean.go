@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -88,12 +89,14 @@ type BeanMetadata struct {
 	refreshParam  conf.BindParam
 }
 
-func (d *BeanMetadata) SetStatus(status BeanStatus) {
-	d.status = status
-}
-
-func (d *BeanMetadata) Cond() []gs.Condition {
-	return d.cond
+func (d *BeanMetadata) Condition() gs.Condition {
+	if n := len(d.cond); n == 0 {
+		return nil
+	} else if n == 1 {
+		return d.cond[0]
+	} else {
+		return gs_cond.And(d.cond...)
+	}
 }
 
 func (d *BeanMetadata) Init() interface{} {
@@ -232,6 +235,10 @@ func (d *BeanDefinition) Callable() gs.Callable {
 
 func (d *BeanDefinition) Status() BeanStatus {
 	return d.status
+}
+
+func (d *BeanMetadata) SetStatus(status BeanStatus) {
+	d.status = status
 }
 
 func (d *BeanDefinition) String() string {
