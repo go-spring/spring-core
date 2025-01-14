@@ -271,8 +271,8 @@ func (c *Container) Refresh() (err error) {
 	return nil
 }
 
-// SimplifyMemory 清理运行时不需要的空间。
-func (c *Container) SimplifyMemory() {
+// ReleaseUnusedMemory releases unused memory.
+func (c *Container) ReleaseUnusedMemory() {
 	if !c.ContextAware { // 保留核心数据
 		if c.p.ObjectsCount() == 0 {
 			c.p = nil

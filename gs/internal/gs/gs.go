@@ -221,58 +221,143 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 	}
 }
 
-/*********************************** ioc ************************************/
+/************************************ ioc ************************************/
 
 // Container represents the modifiable aspects of an IoC container.
 type Container interface {
+
+	// Object registers a bean with the given object instance.
+	// Parameters:
+	//   - i: The object instance to register as a bean.
+	// Returns:
+	//   - *RegisteredBean: A pointer to the registered bean.
 	Object(i interface{}) *RegisteredBean
+
+	// Provide registers a bean using the given constructor function.
+	// Parameters:
+	//   - ctor: The constructor function.
+	//   - args: Arguments for the constructor function.
+	// Returns:
+	//   - *RegisteredBean: A pointer to the registered bean.
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
+
+	// Register registers a bean using the given bean definition.
+	// Parameters:
+	//   - b: The bean definition.
+	// Returns:
+	//   - *RegisteredBean: A pointer to the registered bean.
 	Register(b *BeanDefinition) *RegisteredBean
+
+	// GroupRegister registers multiple beans by executing the given function.
+	// Parameters:
+	//   - fn: A function that returns a slice of bean definitions and an error.
 	GroupRegister(fn func(p Properties) ([]*BeanDefinition, error))
+
+	// RefreshProperties updates the properties of the container.
+	// Parameters:
+	//   - p: The new properties to refresh.
+	// Returns:
+	//   - error: An error if refreshing properties fails.
 	RefreshProperties(p Properties) error
+
+	// Refresh initializes and wires all beans in the container.
+	// Returns:
+	//   - error: An error if refreshing the container fails.
 	Refresh() error
-	SimplifyMemory()
+
+	// ReleaseUnusedMemory releases unused memory by cleaning up unnecessary resources.
+	ReleaseUnusedMemory()
+
+	// Close closes the container and cleans up resources.
 	Close()
 }
 
-// Context represents the unmodifiable aspects of an IoC container.
+// Context represents the unmodifiable (or runtime) aspects of an IoC container.
 type Context interface {
 
-	// Context returns the root [context.Context] of the container.
+	// Context returns the root context.Context of the container.
+	// Returns:
+	//   - context.Context: The root context.
 	Context() context.Context
 
-	// Keys returns the keys of the properties of the container.
+	// Keys returns all keys present in the container's properties.
+	// Returns:
+	//   - []string: A slice of property keys.
 	Keys() []string
 
-	// Has returns whether the key exists in the properties of the container.
+	// Has checks if a key exists in the container's properties.
+	// Parameters:
+	//   - key: The key to check.
+	// Returns:
+	//   - bool: True if the key exists, false otherwise.
 	Has(key string) bool
 
-	// SubKeys returns the sub keys of the key in the properties of the container.
+	// SubKeys returns sub-keys under the specified key in the container's properties.
+	// Parameters:
+	//   - key: The parent key.
+	// Returns:
+	//   - []string: A slice of sub-keys.
+	//   - error: An error if retrieving sub-keys fails.
 	SubKeys(key string) ([]string, error)
 
-	// Prop returns the value of the key in the properties of the container.
+	// Prop retrieves the value of the specified key from the container's properties.
+	// Parameters:
+	//   - key: The key to retrieve.
+	//   - opts: Optional conf.GetOption.
+	// Returns:
+	//   - string: The value of the key.
 	Prop(key string, opts ...conf.GetOption) string
 
+	// Resolve resolves placeholders or references in the given string.
+	// Parameters:
+	//   - s: The string to resolve.
+	// Returns:
+	//   - string: The resolved string.
+	//   - error: An error if resolution fails.
 	Resolve(s string) (string, error)
 
-	// Bind binds the value of the key in the properties of the container.
+	// Bind binds the value of the specified key to the provided struct or variable.
+	// Parameters:
+	//   - i: The target struct or variable.
+	//   - opts: Optional conf.BindArg.
+	// Returns:
+	//   - error: An error if binding fails.
 	Bind(i interface{}, opts ...conf.BindArg) error
 
-	// Get returns the bean of the type (i) using the selectors.
+	// Get retrieves a bean of the specified type using the provided selectors.
+	// Parameters:
+	//   - i: The type of the bean to retrieve.
+	//   - selectors: Bean selection criteria.
+	// Returns:
+	//   - error: An error if retrieval fails.
 	Get(i interface{}, selectors ...BeanSelector) error
 
-	// Wire returns a wired bean using the given object or constructor function.
+	// Wire creates and returns a wired bean using the provided object or constructor function.
+	// Parameters:
+	//   - objOrCtor: The object or constructor function.
+	//   - ctorArgs: Constructor arguments.
+	// Returns:
+	//   - interface{}: The wired bean.
+	//   - error: An error if wiring fails.
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
 
-	// Invoke calls the function (fn) with the arguments.
+	// Invoke calls the provided function with the specified arguments.
+	// Parameters:
+	//   - fn: The function to invoke.
+	//   - args: Function arguments.
+	// Returns:
+	//   - []interface{}: The results of the function call.
+	//   - error: An error if invocation fails.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 
-	// Go runs the function in a new goroutine. When the container is closed,
-	// the [context.Context] (ctx) will be canceled.
+	// Go runs the provided function in a new goroutine. When the container is closed,
+	// the context.Context will be canceled.
+	// Parameters:
+	//   - fn: The function to run in a goroutine.
 	Go(fn func(ctx context.Context))
 }
 
-// ContextAware injects the Context into a struct as the field GSContext.
+// ContextAware is used to inject the gs.Context into a bean.
 type ContextAware struct {
 	GSContext Context `autowire:""`
 }

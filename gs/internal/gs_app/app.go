@@ -115,7 +115,7 @@ func (app *App) Start() error {
 		svr.OnAppStart(&AppContext{ctx})
 	}
 
-	app.C.SimplifyMemory()
+	app.C.ReleaseUnusedMemory()
 	return nil
 }
 
