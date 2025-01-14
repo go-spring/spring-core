@@ -577,7 +577,7 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wirin
 	b.SetStatus(gs_bean.Creating)
 
 	// 对当前 bean 的间接依赖项进行注入。
-	for _, s := range b.Depends() {
+	for _, s := range b.DependsOn() {
 		beans, err := c.Find(s)
 		if err != nil {
 			return err

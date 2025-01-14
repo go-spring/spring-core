@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-//go:generate mockgen -build_flags="-mod=mod" -package=arg -source=arg.go -destination=arg_mock.go
-
-// Package gs_arg 用于实现函数参数绑定。
 package gs_arg
 
 import (
@@ -31,46 +28,48 @@ import (
 	"github.com/go-spring/spring-core/util/macro"
 )
 
-// IndexArg is an Arg that has an index.
+// IndexArg represents an argument that has an index.
 type IndexArg struct {
 	n   int
 	arg gs.Arg
 }
 
-// Index returns an IndexArg.
+// Index creates an IndexArg with the given index and argument.
 func Index(n int, arg gs.Arg) IndexArg {
 	return IndexArg{n: n, arg: arg}
 }
 
-// ValueArg is an Arg that has a value.
+// ValueArg represents an argument with a fixed value.
 type ValueArg struct {
 	v interface{}
 }
 
-// Nil return a ValueArg with a value of nil.
+// Nil returns a ValueArg with a value of nil.
 func Nil() ValueArg {
 	return ValueArg{v: nil}
 }
 
-// Value return a ValueArg with a value of v.
+// Value returns a ValueArg with the specified value.
 func Value(v interface{}) ValueArg {
 	return ValueArg{v: v}
 }
 
-// ArgList stores the arguments of a function.
+// ArgList represents a list of arguments for a function.
 type ArgList struct {
 	fnType reflect.Type
 	args   []gs.Arg
 }
 
-// NewArgList returns a new ArgList.
+// NewArgList creates and validates an ArgList for the specified function.
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 
+	// calculates the number of fixed arguments in the function.
 	fixedArgCount := fnType.NumIn()
 	if fnType.IsVariadic() {
 		fixedArgCount--
 	}
 
+	// determines if the arguments use indexing.
 	shouldIndex := func() bool {
 		if len(args) == 0 {
 			return false
@@ -80,6 +79,8 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	}()
 
 	fnArgs := make([]gs.Arg, fixedArgCount)
+
+	// processes the first argument separately to determine its type.
 	if len(args) > 0 {
 		if args[0] == nil {
 			return nil, util.Errorf(macro.FileLine(), "the first arg must not be nil")
@@ -104,6 +105,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		}
 	}
 
+	// processes the remaining arguments.
 	for i := 1; i < len(args); i++ {
 		switch arg := args[i].(type) {
 		case *OptionArg:
@@ -133,6 +135,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		}
 	}
 
+	// fills any unassigned fixed arguments with default values.
 	for i := 0; i < fixedArgCount; i++ {
 		if fnArgs[i] == nil {
 			fnArgs[i] = ""
@@ -142,7 +145,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	return &ArgList{fnType: fnType, args: fnArgs}, nil
 }
 
-// get returns all processed Args value. fileLine is the binding position of Callable.
+// get returns the processed argument values for the function call.
 func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, error) {
 
 	fnType := r.fnType
@@ -150,6 +153,7 @@ func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, erro
 	variadic := fnType.IsVariadic()
 	result := make([]reflect.Value, 0)
 
+	// processes each argument and convert it to a [reflect.Value].
 	for idx, arg := range r.args {
 
 		var t reflect.Type
@@ -159,7 +163,6 @@ func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, erro
 			t = fnType.In(idx)
 		}
 
-		// option arg may not return a value when the condition is not met.
 		v, err := r.getArg(ctx, arg, t, fileLine)
 		if err != nil {
 			return nil, util.Wrapf(err, macro.FileLine(), "returns error when getting %d arg", idx)
@@ -172,6 +175,7 @@ func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, erro
 	return result, nil
 }
 
+// getArg processes an individual argument and returns its [reflect.Value] representation.
 func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine string) (reflect.Value, error) {
 
 	var (
@@ -205,15 +209,13 @@ func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 		return reflect.ValueOf(g.v), nil
 	case *OptionArg:
 		return g.call(ctx)
-	// case *gs_bean.BeanDefinition:
-	// 	tag = g.ID()
 	case string:
 		tag = g
 	default:
 		tag = util.TypeName(g) + ":"
 	}
 
-	// binds properties value by the "value" tag.
+	// binds property values based on the argument type.
 	if util.IsValueType(t) {
 		if tag == "" {
 			tag = "${}"
@@ -225,7 +227,7 @@ func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 		return v, nil
 	}
 
-	// wires dependent beans by the "autowire" tag.
+	// wires dependent beans based on the argument type.
 	if util.IsBeanReceiver(t) {
 		v := reflect.New(t).Elem()
 		if err = ctx.Wire(v, tag); err != nil {
@@ -237,13 +239,13 @@ func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	return reflect.Value{}, util.Errorf(macro.FileLine(), "error type %s", t.String())
 }
 
-// OptionArg Option 函数的参数绑定。
+// OptionArg represents a binding for an option function argument.
 type OptionArg struct {
 	r *Callable
 	c gs.Condition
 }
 
-// Option 返回 Option 函数的参数绑定。
+// Option creates a binding for an option function argument.
 func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 
 	t := reflect.TypeOf(fn)
@@ -258,12 +260,13 @@ func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 	return &OptionArg{r: r}
 }
 
-// Condition 设置一个 gs_cond.Condition 对象。
+// Condition sets a condition for invoking the option function.
 func (arg *OptionArg) Condition(c gs.Condition) *OptionArg {
 	arg.c = c
 	return arg
 }
 
+// call invokes the option function if its condition is met.
 func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 
 	var (
@@ -280,6 +283,7 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 		}
 	}()
 
+	// checks if the condition is met.
 	if arg.c != nil {
 		ok, err = ctx.Matches(arg.c)
 		if err != nil {
@@ -289,6 +293,7 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 		}
 	}
 
+	// invokes the function and return its result.
 	out, err := arg.r.Call(ctx)
 	if err != nil {
 		return reflect.Value{}, err
@@ -296,8 +301,7 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 	return out[0], nil
 }
 
-// Callable wrappers a function and its binding arguments, then you can invoke
-// the Call method of Callable to get the function's result.
+// Callable wraps a function and its binding arguments.
 type Callable struct {
 	fn       interface{}
 	fnType   reflect.Type
@@ -305,7 +309,7 @@ type Callable struct {
 	fileLine string
 }
 
-// MustBind 为 Option 方法绑定运行时参数。
+// MustBind binds arguments to a function and panics if an error occurs.
 func MustBind(fn interface{}, args ...gs.Arg) *Callable {
 	r, err := Bind(fn, args, 1)
 	if err != nil {
@@ -314,8 +318,7 @@ func MustBind(fn interface{}, args ...gs.Arg) *Callable {
 	return r
 }
 
-// Bind returns a Callable that wrappers a function and its binding arguments.
-// The argument skip is the number of frames to skip over.
+// Bind creates a Callable by binding arguments to a function.
 func Bind(fn interface{}, args []gs.Arg, skip int) (*Callable, error) {
 
 	fnType := reflect.TypeOf(fn)
@@ -334,7 +337,7 @@ func Bind(fn interface{}, args []gs.Arg, skip int) (*Callable, error) {
 	return r, nil
 }
 
-// Arg returns the ith binding argument.
+// Arg retrieves the i-th binding argument.
 func (r *Callable) Arg(i int) (gs.Arg, bool) {
 	if i >= len(r.argList.args) {
 		return nil, false
@@ -342,6 +345,7 @@ func (r *Callable) Arg(i int) (gs.Arg, bool) {
 	return r.argList.args[i], true
 }
 
+// In retrieves the i-th input parameter type of the function.
 func (r *Callable) In(i int) (reflect.Type, bool) {
 	if i >= r.fnType.NumIn() {
 		return nil, false
@@ -349,8 +353,7 @@ func (r *Callable) In(i int) (reflect.Type, bool) {
 	return r.fnType.In(i), true
 }
 
-// Call invokes the function with its binding arguments processed in the IoC
-// container. If the function returns an error, then the Call returns it.
+// Call invokes the function with its bound arguments processed in the IoC container.
 func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 
 	in, err := r.argList.get(ctx, r.fileLine)

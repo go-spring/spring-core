@@ -124,40 +124,47 @@ func (c *Container) GroupRegister(fn GroupFunc) {
 	c.groupFuncs = append(c.groupFuncs, fn)
 }
 
-// Context 返回 IoC 容器的 ctx 对象。
+// Context returns the root context.Context of the container.
 func (c *Container) Context() context.Context {
 	return c.ctx
 }
 
+// Keys returns all keys present in the container's properties.
 func (c *Container) Keys() []string {
 	return c.p.Data().Keys()
 }
 
+// Has checks if a key exists in the container's properties.
 func (c *Container) Has(key string) bool {
 	return c.p.Data().Has(key)
 }
 
+// SubKeys returns sub-keys under the specified key in the container's properties.
 func (c *Container) SubKeys(key string) ([]string, error) {
 	return c.p.Data().SubKeys(key)
 }
 
+// Prop retrieves the value of the specified key from the container's properties.
 func (c *Container) Prop(key string, opts ...conf.GetOption) string {
 	return c.p.Data().Get(key, opts...)
 }
 
+// Resolve resolves placeholders or references in the given string.
 func (c *Container) Resolve(s string) (string, error) {
 	return c.p.Data().Resolve(s)
 }
 
+// Bind binds the value of the specified key to the provided struct or variable.
 func (c *Container) Bind(i interface{}, opts ...conf.BindArg) error {
 	return c.p.Data().Bind(i, opts...)
 }
 
+// RefreshProperties updates the properties of the container.
 func (c *Container) RefreshProperties(p gs.Properties) error {
 	return c.p.Refresh(p)
 }
 
-// Refresh refreshes the container, registering, resolving and injecting beans.
+// Refresh initializes and wires all beans in the container.
 func (c *Container) Refresh() (err error) {
 	if c.state != RefreshDefault {
 		return errors.New("container is refreshing or refreshed")
@@ -271,7 +278,7 @@ func (c *Container) Refresh() (err error) {
 	return nil
 }
 
-// ReleaseUnusedMemory releases unused memory.
+// ReleaseUnusedMemory releases unused memory by cleaning up unnecessary resources.
 func (c *Container) ReleaseUnusedMemory() {
 	if !c.ContextAware { // 保留核心数据
 		if c.p.ObjectsCount() == 0 {
@@ -445,15 +452,7 @@ func (c *Container) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
 	})
 }
 
-// Get 根据类型和选择器获取符合条件的 bean 对象。当 i 是一个基础类型的 bean 接收
-// 者时，表示符合条件的 bean 对象只能有一个，没有找到或者多于一个时会返回 error。
-// 当 i 是一个 map 类型的 bean 接收者时，表示获取任意数量的 bean 对象，map 的
-// key 是 bean 的名称，map 的 value 是 bean 的地址。当 i 是一个 array 或者
-// slice 时，也表示获取任意数量的 bean 对象，但是它会对获取到的 bean 对象进行排序，
-// 如果没有传入选择器或者传入的选择器是 * ，则根据 bean 的 order 值进行排序，这种
-// 工作模式称为自动模式，否则根据传入的选择器列表进行排序，这种工作模式成为指派模式。
-// 该方法和 Find 方法的区别是该方法保证返回的所有 bean 对象都已经完成属性绑定和依
-// 赖注入，而 Find 方法只能保证返回的 bean 对象是有效的，即未被标记为删除的。
+// Get retrieves a bean of the specified type using the provided selectors.
 func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 
 	if i == nil {
@@ -484,9 +483,7 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 	return c.autowire(v.Elem(), tags, false, stack)
 }
 
-// Wire 如果传入的是 bean 对象，则对 bean 对象进行属性绑定和依赖注入，如果传入的
-// 是构造函数，则立即执行该构造函数，然后对返回的结果进行属性绑定和依赖注入。无论哪
-// 种方式，该函数执行完后都会返回 bean 对象的真实值。
+// Wire creates and returns a wired bean using the provided object or constructor function.
 func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 
 	stack := newWiringStack()
@@ -513,7 +510,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 	return b.BeanRegistration().(*gs_bean.BeanDefinition).Interface(), nil
 }
 
-// Invoke 调用函数，函数的参数会自动注入，函数的返回值也会自动注入。
+// Invoke calls the provided function with the specified arguments.
 func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 
 	if !util.IsFuncType(reflect.TypeOf(fn)) {
@@ -545,8 +542,8 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 	return a, nil
 }
 
-// Go 创建安全可等待的 goroutine，fn 要求的 ctx 对象由 IoC 容器提供，当 IoC 容
-// 器关闭时 ctx会 发出 Done 信号， fn 在接收到此信号后应当立即退出。
+// Go runs the provided function in a new goroutine. When the container is closed,
+// the context.Context will be canceled.
 func (c *Container) Go(fn func(ctx context.Context)) {
 	c.wg.Add(1)
 	go func() {
@@ -560,8 +557,7 @@ func (c *Container) Go(fn func(ctx context.Context)) {
 	}()
 }
 
-// Close 关闭容器，此方法必须在 Refresh 之后调用。该方法会触发 ctx 的 Done 信
-// 号，然后等待所有 goroutine 结束，最后按照被依赖先销毁的原则执行所有的销毁函数。
+// Close closes the container and cleans up resources.
 func (c *Container) Close() {
 
 	c.cancel()
