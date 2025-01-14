@@ -256,9 +256,9 @@ func Register(b *BeanDefinition) *RegisteredBean {
 	return app.C.Register(b)
 }
 
-// Group registers a group of bean definitions.
-func Group(fn func(p Properties) ([]*BeanDefinition, error)) {
-	app.C.Group(fn)
+// GroupRegister registers a group of bean definitions.
+func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
+	app.C.GroupRegister(fn)
 }
 
 // Runner registers a bean definition for the given runner.

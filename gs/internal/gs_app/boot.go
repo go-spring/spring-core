@@ -64,9 +64,9 @@ func (b *Boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 	return b.c.Register(bd)
 }
 
-// Group registers a group of [gs.BeanDefinition].
-func (b *Boot) Group(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
-	b.c.Group(fn)
+// GroupRegister registers a group of [gs.BeanDefinition].
+func (b *Boot) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
+	b.c.GroupRegister(fn)
 }
 
 // Runner registers an [AppRunner] by instance or constructor.

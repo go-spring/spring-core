@@ -120,7 +120,7 @@ func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	return gs.NewRegisteredBean(b.BeanRegistration())
 }
 
-func (c *Container) Group(fn GroupFunc) {
+func (c *Container) GroupRegister(fn GroupFunc) {
 	c.groupFuncs = append(c.groupFuncs, fn)
 }
 
@@ -354,7 +354,7 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 					v = v.Elem()
 				}
 				name := bd.Name() + "_" + m.Name
-				b := gs_bean.NewBean(v.Type(), v, f, name, bd.File(), bd.Line())
+				b := gs_bean.NewBean(v.Type(), v, f, name) // todo
 				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}

@@ -28,21 +28,23 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
+// refreshableType is the [reflect.Type] of [gs.Refreshable].
 var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
+// BeanStatus is the status of a bean.
 type BeanStatus int8
 
 const (
-	Deleted   = BeanStatus(-1)   // 已删除
-	Default   = BeanStatus(iota) // 未处理
-	Resolving                    // 正在决议
-	Resolved                     // 已决议
-	Creating                     // 正在创建
-	Created                      // 已创建
-	Wired                        // 注入完成
+	Deleted = BeanStatus(-1)
+	Default = BeanStatus(iota)
+	Resolving
+	Resolved
+	Creating
+	Created
+	Wired
 )
 
-// GetStatusString 获取 bean 状态的字符串表示。
+// GetStatusString returns the string of the given status.
 func GetStatusString(status BeanStatus) string {
 	switch status {
 	case Deleted:
@@ -60,28 +62,31 @@ func GetStatusString(status BeanStatus) string {
 	case Wired:
 		return "Wired"
 	default:
-		return ""
+		panic("unknown bean status")
 	}
 }
 
+// BeanInit is used for init of a bean.
 type BeanInit interface {
 	OnInit(ctx gs.Context) error
 }
 
+// BeanDestroy is used for destroy of a bean.
 type BeanDestroy interface {
 	OnDestroy()
 }
 
+// BeanMetadata stores the metadata of a bean.
 type BeanMetadata struct {
-	f       gs.Callable       // 构造函数
-	cond    []gs.Condition    // 判断条件
-	init    interface{}       // 初始化函数
-	destroy interface{}       // 销毁函数
-	depends []gs.BeanSelector // 间接依赖项
-	exports []reflect.Type    // 导出的接口
-	file    string            // 注册点所在文件
-	line    int               // 注册点所在行数
-	status  BeanStatus        // 状态
+	f       gs.Callable
+	cond    []gs.Condition
+	init    interface{}
+	destroy interface{}
+	depends []gs.BeanSelector
+	exports []reflect.Type
+	file    string
+	line    int
+	status  BeanStatus
 
 	configuration gs.ConfigurationParam
 
@@ -89,6 +94,7 @@ type BeanMetadata struct {
 	refreshParam  conf.BindParam
 }
 
+// Condition returns the condition of a bean.
 func (d *BeanMetadata) Condition() gs.Condition {
 	if n := len(d.cond); n == 0 {
 		return nil

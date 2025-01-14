@@ -129,86 +129,92 @@ func (d *beanBuilder[T]) BeanRegistration() BeanRegistration {
 	return d.b
 }
 
+// ID returns the id of the bean.
 func (d *beanBuilder[T]) ID() string {
 	return d.b.ID()
 }
 
+// Type returns the type of the bean.
 func (d *beanBuilder[T]) Type() reflect.Type {
 	return d.b.Type()
 }
 
+// Name sets the name of the bean.
 func (d *beanBuilder[T]) Name(name string) *T {
 	d.b.SetName(name)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
+// Caller sets the caller of the bean.
 func (d *beanBuilder[T]) Caller(skip int) *T {
 	d.b.SetCaller(skip)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Condition 设置 bean 的 Condition。
+// Condition sets the condition of the bean.
 func (d *beanBuilder[T]) Condition(cond Condition) *T {
 	d.b.SetCondition(cond)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// DependsOn 设置 bean 的间接依赖项。
+// DependsOn sets the dependencies of the bean.
 func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
 	d.b.SetDependsOn(selectors...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Primary 设置 bean 为主版本。
+// Primary sets the bean as primary.
 func (d *beanBuilder[T]) Primary() *T {
 	d.b.SetPrimary()
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Init 设置 bean 的初始化函数。
+// Init sets the bean's init function.
 func (d *beanBuilder[T]) Init(fn interface{}) *T {
 	d.b.SetInit(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Destroy 设置 bean 的销毁函数。
+// Destroy sets the bean's destroy function.
 func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
 	d.b.SetDestroy(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Export 设置 bean 的导出接口。
+// Export sets the bean's exported interface.
 func (d *beanBuilder[T]) Export(exports ...interface{}) *T {
 	d.b.SetExport(exports...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Configuration 设置 bean 为配置类。
 func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T {
 	d.b.SetConfiguration(param...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// EnableRefresh 设置 bean 为可刷新的。
 func (d *beanBuilder[T]) EnableRefresh(tag string) *T {
 	d.b.SetEnableRefresh(tag)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
+// RegisteredBean represents a bean that has been registered.
 type RegisteredBean struct {
 	beanBuilder[RegisteredBean]
 }
 
+// NewRegisteredBean returns a new RegisteredBean.
 func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 	return &RegisteredBean{
 		beanBuilder: beanBuilder[RegisteredBean]{d},
 	}
 }
 
+// BeanDefinition represents a bean that has not been registered.
 type BeanDefinition struct {
 	beanBuilder[BeanDefinition]
 }
 
+// NewBeanDefinition returns a new BeanDefinition.
 func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 	return &BeanDefinition{
 		beanBuilder: beanBuilder[BeanDefinition]{d},
@@ -217,30 +223,52 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 
 /*********************************** ioc ************************************/
 
-// Container ...
+// Container represents the modifiable aspects of an IoC container.
 type Container interface {
 	Object(i interface{}) *RegisteredBean
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
 	Register(b *BeanDefinition) *RegisteredBean
-	Group(fn func(p Properties) ([]*BeanDefinition, error))
+	GroupRegister(fn func(p Properties) ([]*BeanDefinition, error))
 	RefreshProperties(p Properties) error
 	Refresh() error
 	SimplifyMemory()
 	Close()
 }
 
-// Context ...
+// Context represents the unmodifiable aspects of an IoC container.
 type Context interface {
+
+	// Context returns the root [context.Context] of the container.
 	Context() context.Context
+
+	// Keys returns the keys of the properties of the container.
 	Keys() []string
+
+	// Has returns whether the key exists in the properties of the container.
 	Has(key string) bool
+
+	// SubKeys returns the sub keys of the key in the properties of the container.
 	SubKeys(key string) ([]string, error)
+
+	// Prop returns the value of the key in the properties of the container.
 	Prop(key string, opts ...conf.GetOption) string
+
 	Resolve(s string) (string, error)
+
+	// Bind binds the value of the key in the properties of the container.
 	Bind(i interface{}, opts ...conf.BindArg) error
+
+	// Get returns the bean of the type (i) using the selectors.
 	Get(i interface{}, selectors ...BeanSelector) error
+
+	// Wire returns a wired bean using the given object or constructor function.
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
+
+	// Invoke calls the function (fn) with the arguments.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
+
+	// Go runs the function in a new goroutine. When the container is closed,
+	// the [context.Context] (ctx) will be canceled.
 	Go(fn func(ctx context.Context))
 }
 
