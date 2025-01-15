@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_cond_test
+package gs_core_test
 
 import (
 	"errors"
@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/util/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -29,7 +30,7 @@ import (
 func TestOK(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	ctx := gs_cond.NewMockContext(ctrl)
+	ctx := gs_core.NewCondMockContext(ctrl)
 	ok, err := gs_cond.OK().Matches(ctx)
 	assert.Nil(t, err)
 	assert.True(t, ok)
@@ -38,7 +39,7 @@ func TestOK(t *testing.T) {
 func TestNot(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	ctx := gs_cond.NewMockContext(ctrl)
+	ctx := gs_core.NewCondMockContext(ctrl)
 	ok, err := gs_cond.Not(gs_cond.OK()).Matches(ctx)
 	assert.Nil(t, err)
 	assert.False(t, ok)
@@ -48,7 +49,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("no property & no HavingValue & no MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(false)
 		ok, err := gs_cond.OnProperty("a").Matches(ctx)
 		assert.Nil(t, err)
@@ -57,7 +58,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("has property & no HavingValue & no MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(true)
 		ok, err := gs_cond.OnProperty("a").Matches(ctx)
 		assert.Nil(t, err)
@@ -66,7 +67,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("no property & has HavingValue & no MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(false)
 		ok, err := gs_cond.OnProperty("a", gs_cond.HavingValue("a")).Matches(ctx)
 		assert.Nil(t, err)
@@ -75,7 +76,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("diff property & has HavingValue & no MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(true)
 		ctx.EXPECT().Prop("a").Return("b")
 		ok, err := gs_cond.OnProperty("a", gs_cond.HavingValue("a")).Matches(ctx)
@@ -85,7 +86,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("same property & has HavingValue & no MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(true)
 		ctx.EXPECT().Prop("a").Return("a")
 		ok, err := gs_cond.OnProperty("a", gs_cond.HavingValue("a")).Matches(ctx)
@@ -95,7 +96,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("no property & no HavingValue & has MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(false)
 		ok, err := gs_cond.OnProperty("a", gs_cond.MatchIfMissing()).Matches(ctx)
 		assert.Nil(t, err)
@@ -104,7 +105,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("has property & no HavingValue & has MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(true)
 		ok, err := gs_cond.OnProperty("a", gs_cond.MatchIfMissing()).Matches(ctx)
 		assert.Nil(t, err)
@@ -113,7 +114,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("no property & has HavingValue & has MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(false)
 		ok, err := gs_cond.OnProperty("a", gs_cond.HavingValue("a"), gs_cond.MatchIfMissing()).Matches(ctx)
 		assert.Nil(t, err)
@@ -122,7 +123,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("diff property & has HavingValue & has MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(true)
 		ctx.EXPECT().Prop("a").Return("b")
 		ok, err := gs_cond.OnProperty("a", gs_cond.HavingValue("a"), gs_cond.MatchIfMissing()).Matches(ctx)
@@ -132,7 +133,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("same property & has HavingValue & has MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(true)
 		ctx.EXPECT().Prop("a").Return("a")
 		ok, err := gs_cond.OnProperty("a", gs_cond.HavingValue("a"), gs_cond.MatchIfMissing()).Matches(ctx)
@@ -183,7 +184,7 @@ func TestOnProperty(t *testing.T) {
 		}
 		for _, testcase := range testcases {
 			ctrl := gomock.NewController(t)
-			ctx := gs_cond.NewMockContext(ctrl)
+			ctx := gs_core.NewCondMockContext(ctrl)
 			ctx.EXPECT().Has("a").Return(true)
 			ctx.EXPECT().Prop("a").Return(testcase.propValue)
 			ok, err := gs_cond.OnProperty("a", gs_cond.HavingValue(testcase.expression)).Matches(ctx)
@@ -198,7 +199,7 @@ func TestOnMissingProperty(t *testing.T) {
 	t.Run("no property", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(false)
 		ok, err := gs_cond.OnMissingProperty("a").Matches(ctx)
 		assert.Nil(t, err)
@@ -207,7 +208,7 @@ func TestOnMissingProperty(t *testing.T) {
 	t.Run("has property", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("a").Return(true)
 		ok, err := gs_cond.OnMissingProperty("a").Matches(ctx)
 		assert.Nil(t, err)
@@ -219,7 +220,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return(nil, errors.New("error"))
 		ok, err := gs_cond.OnBean("a").Matches(ctx)
 		assert.Error(t, err, "error")
@@ -228,7 +229,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("no bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return(nil, nil)
 		ok, err := gs_cond.OnBean("a").Matches(ctx)
 		assert.Nil(t, err)
@@ -237,7 +238,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("one bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil,
 		}, nil)
@@ -248,7 +249,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("more than one beans", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil, nil,
 		}, nil)
@@ -262,7 +263,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return(nil, errors.New("error"))
 		ok, err := gs_cond.OnMissingBean("a").Matches(ctx)
 		assert.Error(t, err, "error")
@@ -271,7 +272,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("no bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return(nil, nil)
 		ok, err := gs_cond.OnMissingBean("a").Matches(ctx)
 		assert.Nil(t, err)
@@ -280,7 +281,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("one bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil,
 		}, nil)
@@ -291,7 +292,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("more than one beans", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil, nil,
 		}, nil)
@@ -305,7 +306,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return(nil, errors.New("error"))
 		ok, err := gs_cond.OnSingleBean("a").Matches(ctx)
 		assert.Error(t, err, "error")
@@ -314,7 +315,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("no bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return(nil, nil)
 		ok, err := gs_cond.OnSingleBean("a").Matches(ctx)
 		assert.Nil(t, err)
@@ -323,7 +324,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("one bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil,
 		}, nil)
@@ -334,7 +335,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("more than one beans", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Find("a").Return([]gs.CondBean{
 			nil, nil,
 		}, nil)
@@ -347,7 +348,7 @@ func TestOnSingleBean(t *testing.T) {
 func TestOnExpression(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	ctx := gs_cond.NewMockContext(ctrl)
+	ctx := gs_core.NewCondMockContext(ctrl)
 	ok, err := gs_cond.OnExpression("").Matches(ctx)
 	assert.Error(t, err, "unimplemented method")
 	assert.False(t, ok)
@@ -356,7 +357,7 @@ func TestOnExpression(t *testing.T) {
 func TestOnMatches(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	ctx := gs_cond.NewMockContext(ctrl)
+	ctx := gs_core.NewCondMockContext(ctrl)
 	ok, err := gs_cond.OnMatches(func(ctx gs.CondContext) (bool, error) {
 		return false, nil
 	}).Matches(ctx)
@@ -368,7 +369,7 @@ func TestOnProfile(t *testing.T) {
 	t.Run("no property", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("spring.profiles.active").Return(false)
 		ok, err := gs_cond.OnProfile("test").Matches(ctx)
 		assert.Nil(t, err)
@@ -377,7 +378,7 @@ func TestOnProfile(t *testing.T) {
 	t.Run("diff property", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("spring.profiles.active").Return(true)
 		ctx.EXPECT().Prop("spring.profiles.active").Return("dev")
 		ok, err := gs_cond.OnProfile("test").Matches(ctx)
@@ -387,7 +388,7 @@ func TestOnProfile(t *testing.T) {
 	t.Run("same property", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ctx.EXPECT().Has("spring.profiles.active").Return(true)
 		ctx.EXPECT().Prop("spring.profiles.active").Return("test")
 		ok, err := gs_cond.OnProfile("test").Matches(ctx)
@@ -400,7 +401,7 @@ func TestConditional(t *testing.T) {
 	t.Run("ok && ", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ok, err := gs_cond.On(gs_cond.OK()).And().Matches(ctx)
 		assert.Error(t, err, "no condition in last node")
 		assert.False(t, ok)
@@ -408,7 +409,7 @@ func TestConditional(t *testing.T) {
 	t.Run("ok && !ok", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ok, err := gs_cond.On(gs_cond.OK()).And().On(gs_cond.Not(gs_cond.OK())).Matches(ctx)
 		assert.Nil(t, err)
 		assert.False(t, ok)
@@ -416,7 +417,7 @@ func TestConditional(t *testing.T) {
 	t.Run("ok || ", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ok, err := gs_cond.On(gs_cond.OK()).Or().Matches(ctx)
 		assert.Error(t, err, "no condition in last node")
 		assert.False(t, ok)
@@ -424,7 +425,7 @@ func TestConditional(t *testing.T) {
 	t.Run("ok || !ok", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ok, err := gs_cond.On(gs_cond.OK()).Or().On(gs_cond.Not(gs_cond.OK())).Matches(ctx)
 		assert.Nil(t, err)
 		assert.True(t, ok)
@@ -435,7 +436,7 @@ func TestGroup(t *testing.T) {
 	t.Run("ok && ", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ok, err := gs_cond.And(gs_cond.OK()).Matches(ctx)
 		assert.Nil(t, err)
 		assert.True(t, ok)
@@ -443,7 +444,7 @@ func TestGroup(t *testing.T) {
 	t.Run("ok && !ok", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ok, err := gs_cond.And(gs_cond.OK(), gs_cond.Not(gs_cond.OK())).Matches(ctx)
 		assert.Nil(t, err)
 		assert.False(t, ok)
@@ -451,7 +452,7 @@ func TestGroup(t *testing.T) {
 	t.Run("ok || ", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ok, err := gs_cond.Or(gs_cond.OK()).Matches(ctx)
 		assert.Nil(t, err)
 		assert.True(t, ok)
@@ -459,7 +460,7 @@ func TestGroup(t *testing.T) {
 	t.Run("ok || !ok", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_cond.NewMockContext(ctrl)
+		ctx := gs_core.NewCondMockContext(ctrl)
 		ok, err := gs_cond.Or(gs_cond.OK(), gs_cond.Not(gs_cond.OK())).Matches(ctx)
 		assert.Nil(t, err)
 		assert.True(t, ok)

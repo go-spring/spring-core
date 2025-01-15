@@ -7,7 +7,7 @@
 //
 
 // Package arg is a generated GoMock package.
-package gs_arg
+package gs_core
 
 import (
 	"reflect"
@@ -16,32 +16,32 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// MockContext is a mock of Context interface.
-type MockContext struct {
+// ArgMockContext is a mock of Context interface.
+type ArgMockContext struct {
 	ctrl     *gomock.Controller
-	recorder *MockContextMockRecorder
+	recorder *ArgMockContextMockRecorder
 	isgomock struct{}
 }
 
-// MockContextMockRecorder is the mock recorder for MockContext.
-type MockContextMockRecorder struct {
-	mock *MockContext
+// ArgMockContextMockRecorder is the mock recorder for ArgMockContext.
+type ArgMockContextMockRecorder struct {
+	mock *ArgMockContext
 }
 
-// NewMockContext creates a new mock instance.
-func NewMockContext(ctrl *gomock.Controller) *MockContext {
-	mock := &MockContext{ctrl: ctrl}
-	mock.recorder = &MockContextMockRecorder{mock}
+// NewArgMockContext creates a new mock instance.
+func NewArgMockContext(ctrl *gomock.Controller) *ArgMockContext {
+	mock := &ArgMockContext{ctrl: ctrl}
+	mock.recorder = &ArgMockContextMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockContext) EXPECT() *MockContextMockRecorder {
+func (m *ArgMockContext) EXPECT() *ArgMockContextMockRecorder {
 	return m.recorder
 }
 
 // Bind mocks base method.
-func (m *MockContext) Bind(v reflect.Value, tag string) error {
+func (m *ArgMockContext) Bind(v reflect.Value, tag string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Bind", v, tag)
 	ret0, _ := ret[0].(error)
@@ -49,13 +49,13 @@ func (m *MockContext) Bind(v reflect.Value, tag string) error {
 }
 
 // Bind indicates an expected call of Bind.
-func (mr *MockContextMockRecorder) Bind(v, tag any) *gomock.Call {
+func (mr *ArgMockContextMockRecorder) Bind(v, tag any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Bind", reflect.TypeOf((*MockContext)(nil).Bind), v, tag)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Bind", reflect.TypeOf((*ArgMockContext)(nil).Bind), v, tag)
 }
 
 // Matches mocks base method.
-func (m *MockContext) Matches(c gs.Condition) (bool, error) {
+func (m *ArgMockContext) Matches(c gs.Condition) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Matches", c)
 	ret0, _ := ret[0].(bool)
@@ -64,13 +64,13 @@ func (m *MockContext) Matches(c gs.Condition) (bool, error) {
 }
 
 // Matches indicates an expected call of Matches.
-func (mr *MockContextMockRecorder) Matches(c any) *gomock.Call {
+func (mr *ArgMockContextMockRecorder) Matches(c any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Matches", reflect.TypeOf((*MockContext)(nil).Matches), c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Matches", reflect.TypeOf((*ArgMockContext)(nil).Matches), c)
 }
 
 // Wire mocks base method.
-func (m *MockContext) Wire(v reflect.Value, tag string) error {
+func (m *ArgMockContext) Wire(v reflect.Value, tag string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Wire", v, tag)
 	ret0, _ := ret[0].(error)
@@ -78,9 +78,9 @@ func (m *MockContext) Wire(v reflect.Value, tag string) error {
 }
 
 // Wire indicates an expected call of Wire.
-func (mr *MockContextMockRecorder) Wire(v, tag any) *gomock.Call {
+func (mr *ArgMockContextMockRecorder) Wire(v, tag any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Wire", reflect.TypeOf((*MockContext)(nil).Wire), v, tag)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Wire", reflect.TypeOf((*ArgMockContext)(nil).Wire), v, tag)
 }
 
 // MockArg is a mock of Arg interface.

@@ -7,7 +7,7 @@
 //
 
 // Package cond is a generated GoMock package.
-package gs_cond
+package gs_core
 
 import (
 	"reflect"
@@ -17,32 +17,32 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// MockContext is a mock of Context interface.
-type MockContext struct {
+// CondMockContext is a mock of Context interface.
+type CondMockContext struct {
 	ctrl     *gomock.Controller
-	recorder *MockContextMockRecorder
+	recorder *CondMockContextMockRecorder
 	isgomock struct{}
 }
 
-// MockContextMockRecorder is the mock recorder for MockContext.
-type MockContextMockRecorder struct {
-	mock *MockContext
+// CondMockContextMockRecorder is the mock recorder for CondMockContext.
+type CondMockContextMockRecorder struct {
+	mock *CondMockContext
 }
 
-// NewMockContext creates a new mock instance.
-func NewMockContext(ctrl *gomock.Controller) *MockContext {
-	mock := &MockContext{ctrl: ctrl}
-	mock.recorder = &MockContextMockRecorder{mock}
+// NewCondMockContext creates a new mock instance.
+func NewCondMockContext(ctrl *gomock.Controller) *CondMockContext {
+	mock := &CondMockContext{ctrl: ctrl}
+	mock.recorder = &CondMockContextMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockContext) EXPECT() *MockContextMockRecorder {
+func (m *CondMockContext) EXPECT() *CondMockContextMockRecorder {
 	return m.recorder
 }
 
 // Find mocks base method.
-func (m *MockContext) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
+func (m *CondMockContext) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Find", selector)
 	ret0, _ := ret[0].([]gs.CondBean)
@@ -51,13 +51,13 @@ func (m *MockContext) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
 }
 
 // Find indicates an expected call of Find.
-func (mr *MockContextMockRecorder) Find(selector any) *gomock.Call {
+func (mr *CondMockContextMockRecorder) Find(selector any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Find", reflect.TypeOf((*MockContext)(nil).Find), selector)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Find", reflect.TypeOf((*CondMockContext)(nil).Find), selector)
 }
 
 // Has mocks base method.
-func (m *MockContext) Has(key string) bool {
+func (m *CondMockContext) Has(key string) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Has", key)
 	ret0, _ := ret[0].(bool)
@@ -65,13 +65,13 @@ func (m *MockContext) Has(key string) bool {
 }
 
 // Has indicates an expected call of Has.
-func (mr *MockContextMockRecorder) Has(key any) *gomock.Call {
+func (mr *CondMockContextMockRecorder) Has(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Has", reflect.TypeOf((*MockContext)(nil).Has), key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Has", reflect.TypeOf((*CondMockContext)(nil).Has), key)
 }
 
 // Prop mocks base method.
-func (m *MockContext) Prop(key string, opts ...conf.GetOption) string {
+func (m *CondMockContext) Prop(key string, opts ...conf.GetOption) string {
 	m.ctrl.T.Helper()
 	varargs := []any{key}
 	for _, a := range opts {
@@ -83,10 +83,10 @@ func (m *MockContext) Prop(key string, opts ...conf.GetOption) string {
 }
 
 // Prop indicates an expected call of Prop.
-func (mr *MockContextMockRecorder) Prop(key any, opts ...any) *gomock.Call {
+func (mr *CondMockContextMockRecorder) Prop(key any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{key}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Prop", reflect.TypeOf((*MockContext)(nil).Prop), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Prop", reflect.TypeOf((*CondMockContext)(nil).Prop), varargs...)
 }
 
 // MockCondition is a mock of Condition interface.

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gs_arg_test
+package gs_core_test
 
 import (
 	"reflect"
@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/util/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -31,7 +32,7 @@ func TestBind(t *testing.T) {
 	t.Run("zero argument", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_arg.NewMockContext(ctrl)
+		ctx := gs_core.NewArgMockContext(ctrl)
 		fn := func() {}
 		c, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
 		if err != nil {
@@ -47,7 +48,7 @@ func TestBind(t *testing.T) {
 	t.Run("one value argument", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_arg.NewMockContext(ctrl)
+		ctx := gs_core.NewArgMockContext(ctrl)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
@@ -69,7 +70,7 @@ func TestBind(t *testing.T) {
 	t.Run("one ctx value argument", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_arg.NewMockContext(ctrl)
+		ctx := gs_core.NewArgMockContext(ctrl)
 		ctx.EXPECT().Bind(gomock.Any(), "${a.b.c}").DoAndReturn(func(v, tag interface{}) error {
 			v.(reflect.Value).SetInt(3)
 			return nil
@@ -98,7 +99,7 @@ func TestBind(t *testing.T) {
 		}
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_arg.NewMockContext(ctrl)
+		ctx := gs_core.NewArgMockContext(ctrl)
 		ctx.EXPECT().Wire(gomock.Any(), "a").DoAndReturn(func(v, tag interface{}) error {
 			v.(reflect.Value).Set(reflect.ValueOf(&st{3}))
 			return nil
@@ -127,7 +128,7 @@ func TestBind(t *testing.T) {
 		}
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs_arg.NewMockContext(ctrl)
+		ctx := gs_core.NewArgMockContext(ctrl)
 		ctx.EXPECT().Wire(gomock.Any(), "").DoAndReturn(func(v, tag interface{}) error {
 			v.(reflect.Value).Set(reflect.ValueOf(&st{3}))
 			return nil
