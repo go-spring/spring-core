@@ -96,7 +96,7 @@ func newWiringStack() *wiringStack {
 
 // pushBack 添加一个即将注入的 bean 。
 func (s *wiringStack) pushBack(b *gs_bean.BeanDefinition) {
-	syslog.Debug("push %s %s", b, gs_bean.GetStatusString(b.Status()))
+	syslog.Debugf("push %s %s", b, gs_bean.GetStatusString(b.Status()))
 	s.beans = append(s.beans, b)
 }
 
@@ -105,7 +105,7 @@ func (s *wiringStack) popBack() {
 	n := len(s.beans)
 	b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
-	syslog.Debug("pop %s %s", b, gs_bean.GetStatusString(b.Status()))
+	syslog.Debugf("pop %s %s", b, gs_bean.GetStatusString(b.Status()))
 }
 
 // path 返回 bean 的注入路径。
@@ -137,7 +137,7 @@ func (s *wiringStack) sortDestroyers() []func() {
 				fnValue := reflect.ValueOf(fn)
 				out := fnValue.Call([]reflect.Value{v})
 				if len(out) > 0 && !out[0].IsNil() {
-					syslog.Error(out[0].Interface().(error).Error())
+					syslog.Errorf("%s", out[0].Interface().(error).Error())
 				}
 			}
 		}
@@ -465,7 +465,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 			}
 			if !found {
 				foundBeans = append(foundBeans, b)
-				syslog.Warn("you should call Export() on %s", b)
+				syslog.Warnf("you should call Export() on %s", b)
 			}
 		}
 	}

@@ -18,6 +18,7 @@ package syslog
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 )
@@ -27,22 +28,22 @@ func init() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 }
 
-// Debug calls [Logger.Debug] on the default logger.
-func Debug(msg string, args ...any) {
-	slog.Default().Log(context.Background(), slog.LevelDebug, msg, args...)
+// Debugf logs at [slog.LevelDebug].
+func Debugf(msg string, args ...any) {
+	slog.Default().Log(context.Background(), slog.LevelDebug, fmt.Sprintf(msg, args...))
 }
 
-// Info calls [Logger.Info] on the default logger.
-func Info(msg string, args ...any) {
-	slog.Default().Log(context.Background(), slog.LevelInfo, msg, args...)
+// Infof logs at [slog.LevelInfo].
+func Infof(msg string, args ...any) {
+	slog.Default().Log(context.Background(), slog.LevelInfo, fmt.Sprintf(msg, args...))
 }
 
-// Warn calls [Logger.Warn] on the default logger.
-func Warn(msg string, args ...any) {
-	slog.Default().Log(context.Background(), slog.LevelWarn, msg, args...)
+// Warnf logs at [slog.LevelWarn].
+func Warnf(msg string, args ...any) {
+	slog.Default().Log(context.Background(), slog.LevelWarn, fmt.Sprintf(msg, args...))
 }
 
-// Error calls [Logger.Error] on the default logger.
-func Error(msg string, args ...any) {
-	slog.Default().Log(context.Background(), slog.LevelError, msg, args...)
+// Errorf logs at [slog.LevelError].
+func Errorf(msg string, args ...any) {
+	slog.Default().Log(context.Background(), slog.LevelError, fmt.Sprintf(msg, args...))
 }

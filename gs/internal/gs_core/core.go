@@ -233,7 +233,7 @@ func (c *Container) Refresh() (err error) {
 	defer func() {
 		if err != nil || len(stack.beans) > 0 {
 			err = fmt.Errorf("%s ↩\n%s", err, stack.path())
-			syslog.Error("%s", err.Error())
+			syslog.Errorf("%s", err.Error())
 		}
 	}()
 
@@ -273,7 +273,7 @@ func (c *Container) Refresh() (err error) {
 	}
 
 	c.state = Refreshed
-	syslog.Info("container is refreshed successfully, %d beans cost %v",
+	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
 		len(beansById), time.Now().Sub(start))
 	return nil
 }
@@ -468,7 +468,7 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 
 	defer func() {
 		if len(stack.beans) > 0 {
-			syslog.Info("wiring path %s", stack.path())
+			syslog.Infof("wiring path %s", stack.path())
 		}
 	}()
 
@@ -490,7 +490,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 
 	defer func() {
 		if len(stack.beans) > 0 {
-			syslog.Info("wiring path %s", stack.path())
+			syslog.Infof("wiring path %s", stack.path())
 		}
 	}()
 
@@ -521,7 +521,7 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 
 	defer func() {
 		if len(stack.beans) > 0 {
-			syslog.Info("wiring path %s", stack.path())
+			syslog.Infof("wiring path %s", stack.path())
 		}
 	}()
 
@@ -550,7 +550,7 @@ func (c *Container) Go(fn func(ctx context.Context)) {
 		defer c.wg.Done()
 		defer func() {
 			if r := recover(); r != nil {
-				syslog.Error("%v", r)
+				syslog.Errorf("%v", r)
 			}
 		}()
 		fn(c.ctx)
@@ -563,11 +563,11 @@ func (c *Container) Close() {
 	c.cancel()
 	c.wg.Wait()
 
-	syslog.Info("goroutines exited")
+	syslog.Infof("goroutines exited")
 
 	for _, f := range c.destroyers {
 		f()
 	}
 
-	syslog.Info("container closed")
+	syslog.Infof("container closed")
 }

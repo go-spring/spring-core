@@ -184,12 +184,12 @@ func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	)
 
 	description := fmt.Sprintf("arg:\"%v\" %s", arg, fileLine)
-	syslog.Debug("get value %s", description)
+	syslog.Debugf("get value %s", description)
 	defer func() {
 		if err == nil {
-			syslog.Debug("get value %s success", description)
+			syslog.Debugf("get value %s success", description)
 		} else {
-			syslog.Debug("get value %s error:%s", err.Error(), description)
+			syslog.Debugf("get value %s error:%s", err.Error(), description)
 		}
 	}()
 
@@ -274,12 +274,12 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 		err error
 	)
 
-	syslog.Debug("call option func %s", arg.r.fileLine)
+	syslog.Debugf("call option func %s", arg.r.fileLine)
 	defer func() {
 		if err == nil {
-			syslog.Debug("call option func success %s", arg.r.fileLine)
+			syslog.Debugf("call option func success %s", arg.r.fileLine)
 		} else {
-			syslog.Debug("call option func error %s %s", err.Error(), arg.r.fileLine)
+			syslog.Debugf("call option func error %s %s", err.Error(), arg.r.fileLine)
 		}
 	}()
 

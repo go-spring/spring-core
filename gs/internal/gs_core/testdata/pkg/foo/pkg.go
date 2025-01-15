@@ -20,9 +20,9 @@ import (
 	"fmt"
 )
 
-// golang 允许不同的路径下存在相同的包，而且允许存在相同的包。
+// SamePkg go 允许不同的路径下存在相同的包，而且允许存在相同的包。
 type SamePkg struct{}
 
 func (p *SamePkg) Package() {
-	fmt.Println("github.com/go-spring/spring-core/gs/testdata/pkg/foo/pkg.SamePkg")
+	fmt.Println("github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo/pkg.SamePkg")
 }

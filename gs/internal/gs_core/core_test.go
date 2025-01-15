@@ -34,14 +34,31 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	pkg1 "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/bar"
+	pkg2 "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	pkg1 "github.com/go-spring/spring-core/gs/testdata/pkg/bar"
-	pkg2 "github.com/go-spring/spring-core/gs/testdata/pkg/foo"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
 	"github.com/go-spring/spring-core/util/macro"
 	"github.com/spf13/cast"
 )
+
+func container(t *testing.T, fn func(p *conf.Properties, c *gs_core.Container) error) gs.Context {
+	p := conf.New()
+	c := gs_core.New().(*gs_core.Container)
+	if fn != nil {
+		if err := fn(p, c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := c.RefreshProperties(p); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
 
 func runTest(c gs.Container, fn func(gs.Context)) error {
 	type PandoraAware struct{}
@@ -331,7 +348,7 @@ type DbConfig struct {
 }
 
 func TestApplicationContext_TypeConverter(t *testing.T) {
-	prop, _ := conf.Load("../../testdata/config/application.yaml")
+	prop, _ := conf.Load("testdata/config/application.yaml")
 
 	c := gs_core.New()
 
@@ -392,7 +409,7 @@ type Pkg interface {
 
 type SamePkgHolder struct {
 	// Pkg `autowire:""` // 这种方式会找到多个符合条件的 Object
-	Pkg `autowire:"github.com/go-spring/spring-core/gs/testdata/pkg/bar/pkg.SamePkg:SamePkg"`
+	Pkg `autowire:"github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/bar/pkg.SamePkg:SamePkg"`
 }
 
 func TestApplicationContext_SameNameBean(t *testing.T) {
@@ -436,8 +453,8 @@ func TestApplicationContext_LoadProperties(t *testing.T) {
 
 	c := gs_core.New()
 
-	prop, _ := conf.Load("../../testdata/config/application.yaml")
-	p, _ := conf.Load("../../testdata/config/application.properties")
+	prop, _ := conf.Load("testdata/config/application.yaml")
+	p, _ := conf.Load("testdata/config/application.properties")
 	for _, key := range p.Keys() {
 		prop.Set(key, p.Get(key))
 	}

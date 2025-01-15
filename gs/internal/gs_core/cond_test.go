@@ -28,21 +28,20 @@ import (
 )
 
 func TestOK(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	ctx := gs_core.NewCondMockContext(ctrl)
-	ok, err := gs_cond.OK().Matches(ctx)
+	ctx := container(t, nil)
+	ok, err := gs_cond.OK().Matches(ctx.(gs.CondContext))
 	assert.Nil(t, err)
 	assert.True(t, ok)
 }
 
 func TestNot(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	ctx := gs_core.NewCondMockContext(ctrl)
-	ok, err := gs_cond.Not(gs_cond.OK()).Matches(ctx)
+	ctx := container(t, nil)
+	ok, err := gs_cond.Not(gs_cond.OK()).Matches(ctx.(gs.CondContext))
 	assert.Nil(t, err)
 	assert.False(t, ok)
+	ok, err = gs_cond.Not(gs_cond.Not(gs_cond.OK())).Matches(ctx.(gs.CondContext))
+	assert.Nil(t, err)
+	assert.True(t, ok)
 }
 
 func TestOnProperty(t *testing.T) {
