@@ -79,29 +79,29 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
 	return result
 }
 
-// wiringStack 记录 bean 的注入路径。
-type wiringStack struct {
+// WiringStack 记录 bean 的注入路径。
+type WiringStack struct {
 	destroyers   *list.List
 	destroyerMap map[string]*destroyer
 	beans        []*gs_bean.BeanDefinition
 	lazyFields   []lazyField
 }
 
-func newWiringStack() *wiringStack {
-	return &wiringStack{
+func NewWiringStack() *WiringStack {
+	return &WiringStack{
 		destroyers:   list.New(),
 		destroyerMap: make(map[string]*destroyer),
 	}
 }
 
 // pushBack 添加一个即将注入的 bean 。
-func (s *wiringStack) pushBack(b *gs_bean.BeanDefinition) {
+func (s *WiringStack) pushBack(b *gs_bean.BeanDefinition) {
 	syslog.Debugf("push %s %s", b, gs_bean.GetStatusString(b.Status()))
 	s.beans = append(s.beans, b)
 }
 
 // popBack 删除一个已经注入的 bean 。
-func (s *wiringStack) popBack() {
+func (s *WiringStack) popBack() {
 	n := len(s.beans)
 	b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
@@ -109,7 +109,7 @@ func (s *wiringStack) popBack() {
 }
 
 // path 返回 bean 的注入路径。
-func (s *wiringStack) path() (path string) {
+func (s *WiringStack) path() (path string) {
 	for _, b := range s.beans {
 		path += fmt.Sprintf("=> %s ↩\n", b)
 	}
@@ -117,7 +117,7 @@ func (s *wiringStack) path() (path string) {
 }
 
 // saveDestroyer 记录具有销毁函数的 bean ，因为可能有多个依赖，因此需要排重处理。
-func (s *wiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
+func (s *WiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
 	d, ok := s.destroyerMap[b.ID()]
 	if !ok {
 		d = &destroyer{current: b}
@@ -127,7 +127,7 @@ func (s *wiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
 }
 
 // sortDestroyers 对具有销毁函数的 bean 按照销毁函数的依赖顺序进行排序。
-func (s *wiringStack) sortDestroyers() []func() {
+func (s *WiringStack) sortDestroyers() []func() {
 
 	destroy := func(v reflect.Value, fn interface{}) func() {
 		return func() {
@@ -241,7 +241,7 @@ func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
 	}
 }
 
-func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, stack *wiringStack) error {
+func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, stack *WiringStack) error {
 	if c.ForceAutowireIsNullable {
 		for i := 0; i < len(tags); i++ {
 			tags[i].nullable = true
@@ -298,7 +298,7 @@ func filterBean(beans []BeanRuntime, tag wireTag, t reflect.Type) (int, error) {
 	return -1, fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
 }
 
-func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool, stack *wiringStack) error {
+func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool, stack *WiringStack) error {
 
 	t := v.Type()
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Map {
@@ -421,7 +421,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 }
 
 // getBean 获取 tag 对应的 bean 然后赋值给 v，因此 v 应该是一个未初始化的值。
-func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) error {
+func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) error {
 
 	if !v.IsValid() {
 		return fmt.Errorf("receiver must be ref type, bean:%q", tag)
@@ -532,7 +532,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) er
 // wireBean 对 bean 进行属性绑定和依赖注入，同时追踪其注入路径。如果 bean 有初始
 // 化函数，则在注入完成之后执行其初始化函数。如果 bean 依赖了其他 bean，则首先尝试
 // 实例化被依赖的 bean 然后对它们进行注入。
-func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wiringStack) error {
+func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *WiringStack) error {
 
 	if b.Status() == gs_bean.Deleted {
 		return fmt.Errorf("bean:%q have been deleted", b.ID())
@@ -641,7 +641,7 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wirin
 	return nil
 }
 
-func (c *Container) wireBeanAfterRefreshed(b BeanRuntime, stack *wiringStack) error {
+func (c *Container) wireBeanAfterRefreshed(b BeanRuntime, stack *WiringStack) error {
 
 	v, err := c.getBeanValue(b, stack)
 	if err != nil {
@@ -664,31 +664,35 @@ func (c *Container) wireBeanAfterRefreshed(b BeanRuntime, stack *wiringStack) er
 	return nil
 }
 
-type argContext struct {
+type ArgContext struct {
 	c     *Container
-	stack *wiringStack
+	stack *WiringStack
 }
 
-func (a *argContext) Matches(c gs.Condition) (bool, error) {
+func NewArgContext(c *Container, stack *WiringStack) *ArgContext {
+	return &ArgContext{c: c, stack: stack}
+}
+
+func (a *ArgContext) Matches(c gs.Condition) (bool, error) {
 	return c.Matches(a.c)
 }
 
-func (a *argContext) Bind(v reflect.Value, tag string) error {
+func (a *ArgContext) Bind(v reflect.Value, tag string) error {
 	return a.c.p.Data().Bind(v, conf.Tag(tag))
 }
 
-func (a *argContext) Wire(v reflect.Value, tag string) error {
+func (a *ArgContext) Wire(v reflect.Value, tag string) error {
 	return a.c.wireByTag(v, tag, a.stack)
 }
 
 // getBeanValue 获取 bean 的值，如果是构造函数 bean 则执行其构造函数然后返回执行结果。
-func (c *Container) getBeanValue(b BeanRuntime, stack *wiringStack) (reflect.Value, error) {
+func (c *Container) getBeanValue(b BeanRuntime, stack *WiringStack) (reflect.Value, error) {
 
 	if b.Callable() == nil {
 		return b.Value(), nil
 	}
 
-	out, err := b.Callable().Call(&argContext{c: c, stack: stack})
+	out, err := b.Callable().Call(NewArgContext(c, stack))
 	if err != nil {
 		return reflect.Value{}, err /* fmt.Errorf("%s:%s return error: %v", b.getClass(), b.ID(), err) */
 	}
@@ -720,7 +724,7 @@ func (c *Container) getBeanValue(b BeanRuntime, stack *wiringStack) (reflect.Val
 }
 
 // wireBeanValue 对 v 进行属性绑定和依赖注入，v 在传入时应该是一个已经初始化的值。
-func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, stack *wiringStack) error {
+func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, stack *WiringStack) error {
 
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -742,7 +746,7 @@ func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, stack *wiring
 }
 
 // wireStruct 对结构体进行依赖注入，需要注意的是这里不需要进行属性绑定。
-func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *wiringStack) error {
+func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *WiringStack) error {
 
 	for i := 0; i < t.NumField(); i++ {
 		ft := t.Field(i)
@@ -810,7 +814,7 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 	return nil
 }
 
-func (c *Container) wireByTag(v reflect.Value, tag string, stack *wiringStack) error {
+func (c *Container) wireByTag(v reflect.Value, tag string, stack *WiringStack) error {
 
 	tag, err := c.resolveTag(tag)
 	if err != nil {

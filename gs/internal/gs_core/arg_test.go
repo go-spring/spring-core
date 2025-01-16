@@ -30,15 +30,15 @@ import (
 func TestBind(t *testing.T) {
 
 	t.Run("zero argument", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs_core.NewArgMockContext(ctrl)
+		c := container(t, nil)
+		stack := gs_core.NewWiringStack()
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
 		fn := func() {}
-		c, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
+		p, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		values, err := c.Call(ctx)
+		values, err := p.Call(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -229,7 +229,7 @@ func (c *Container) Refresh() (err error) {
 		beansById[beanID] = b
 	}
 
-	stack := newWiringStack()
+	stack := NewWiringStack()
 	defer func() {
 		if err != nil || len(stack.beans) > 0 {
 			err = fmt.Errorf("%s ↩\n%s", err, stack.path())
@@ -464,7 +464,7 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 		return errors.New("i must be pointer")
 	}
 
-	stack := newWiringStack()
+	stack := NewWiringStack()
 
 	defer func() {
 		if len(stack.beans) > 0 {
@@ -486,7 +486,7 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 // Wire creates and returns a wired bean using the provided object or constructor function.
 func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 
-	stack := newWiringStack()
+	stack := NewWiringStack()
 
 	defer func() {
 		if len(stack.beans) > 0 {
@@ -517,7 +517,7 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 		return nil, errors.New("fn should be func type")
 	}
 
-	stack := newWiringStack()
+	stack := NewWiringStack()
 
 	defer func() {
 		if len(stack.beans) > 0 {
@@ -530,7 +530,7 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 		return nil, err
 	}
 
-	ret, err := r.Call(&argContext{c: c, stack: stack})
+	ret, err := r.Call(NewArgContext(c, stack))
 	if err != nil {
 		return nil, err
 	}
