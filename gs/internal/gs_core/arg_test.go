@@ -17,14 +17,13 @@
 package gs_core_test
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/util/assert"
-	"go.uber.org/mock/gomock"
 )
 
 func TestBind(t *testing.T) {
@@ -46,20 +45,20 @@ func TestBind(t *testing.T) {
 	})
 
 	t.Run("one value argument", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs_core.NewArgMockContext(ctrl)
+		c := container(t, nil)
+		stack := gs_core.NewWiringStack()
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
 		}
-		c, err := gs_arg.Bind(fn, []gs.Arg{
+		p, err := gs_arg.Bind(fn, []gs.Arg{
 			gs_arg.Value(3),
 		}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		values, err := c.Call(ctx)
+		values, err := p.Call(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -68,24 +67,22 @@ func TestBind(t *testing.T) {
 	})
 
 	t.Run("one ctx value argument", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs_core.NewArgMockContext(ctrl)
-		ctx.EXPECT().Bind(gomock.Any(), "${a.b.c}").DoAndReturn(func(v, tag interface{}) error {
-			v.(reflect.Value).SetInt(3)
-			return nil
+		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
+			return p.Set("a.b.c", 3)
 		})
+		stack := gs_core.NewWiringStack()
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
 		}
-		c, err := gs_arg.Bind(fn, []gs.Arg{
+		p, err := gs_arg.Bind(fn, []gs.Arg{
 			"${a.b.c}",
 		}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		values, err := c.Call(ctx)
+		values, err := p.Call(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -97,24 +94,23 @@ func TestBind(t *testing.T) {
 		type st struct {
 			i int
 		}
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs_core.NewArgMockContext(ctrl)
-		ctx.EXPECT().Wire(gomock.Any(), "a").DoAndReturn(func(v, tag interface{}) error {
-			v.(reflect.Value).Set(reflect.ValueOf(&st{3}))
+		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
+			c.Object(&st{3}).Name("a")
 			return nil
 		})
+		stack := gs_core.NewWiringStack()
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
 		expectInt := 0
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		c, err := gs_arg.Bind(fn, []gs.Arg{
+		p, err := gs_arg.Bind(fn, []gs.Arg{
 			"a",
 		}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		values, err := c.Call(ctx)
+		values, err := p.Call(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -126,22 +122,21 @@ func TestBind(t *testing.T) {
 		type st struct {
 			i int
 		}
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs_core.NewArgMockContext(ctrl)
-		ctx.EXPECT().Wire(gomock.Any(), "").DoAndReturn(func(v, tag interface{}) error {
-			v.(reflect.Value).Set(reflect.ValueOf(&st{3}))
+		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
+			c.Object(&st{3}).Name("a")
 			return nil
 		})
+		stack := gs_core.NewWiringStack()
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
 		expectInt := 0
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		c, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
+		p, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		values, err := c.Call(ctx)
+		values, err := p.Call(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
