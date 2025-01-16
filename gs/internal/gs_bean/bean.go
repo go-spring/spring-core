@@ -358,10 +358,6 @@ func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
 	d.configuration.Enable = true
 }
 
-func (d *BeanDefinition) String() string {
-	return fmt.Sprintf("%s name:%q %s", d.Class(), d.name, d.FileLine())
-}
-
 func (d *BeanDefinition) SetEnableRefresh(tag string) {
 	if !d.Type().Implements(refreshableType) {
 		panic(errors.New("must implement dync.Refreshable interface"))
@@ -371,6 +367,10 @@ func (d *BeanDefinition) SetEnableRefresh(tag string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (d *BeanDefinition) String() string {
+	return fmt.Sprintf("%s name:%q %s", d.Class(), d.name, d.FileLine())
 }
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。

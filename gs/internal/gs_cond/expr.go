@@ -28,8 +28,8 @@ func RegisterExprFunc(name string, fn interface{}) {
 	exprFuncs[name] = fn
 }
 
-// evalExpr returns the value for the expression expr.
-func evalExpr(input string, val interface{}) (bool, error) {
+// EvalExpr returns the value for the expression expr.
+func EvalExpr(input string, val interface{}) (bool, error) {
 	env := map[string]interface{}{"$": val}
 	for k, v := range exprFuncs {
 		env[k] = v
