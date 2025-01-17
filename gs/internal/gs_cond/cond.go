@@ -38,7 +38,11 @@ import (
 type FuncCond func(ctx gs.CondContext) (bool, error)
 
 func (c FuncCond) Matches(ctx gs.CondContext) (bool, error) {
-	return c(ctx)
+	ret, err := c(ctx)
+	if err != nil {
+		return false, gs.NewCondError(c, err)
+	}
+	return ret, nil
 }
 
 // OK returns a [gs.Condition] that always evaluates to true.
@@ -46,6 +50,14 @@ func OK() gs.Condition {
 	return FuncCond(func(ctx gs.CondContext) (bool, error) {
 		return true, nil
 	})
+}
+
+func matches(c gs.Condition, ctx gs.CondContext) (bool, error) {
+	ret, err := c.Matches(ctx)
+	if err != nil {
+		return false, gs.NewCondError(c, err)
+	}
+	return ret, nil
 }
 
 // not is an implementation of [gs.Condition] that negates another condition.
@@ -59,7 +71,7 @@ func Not(c gs.Condition) gs.Condition {
 }
 
 func (c *not) Matches(ctx gs.CondContext) (bool, error) {
-	ok, err := c.c.Matches(ctx)
+	ok, err := matches(c.c, ctx)
 	return !ok, err
 }
 
@@ -212,7 +224,7 @@ func None(cond ...gs.Condition) gs.Condition {
 
 func (g *group) matchesOr(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
-		if ok, err := c.Matches(ctx); err != nil {
+		if ok, err := matches(c, ctx); err != nil {
 			return false, err
 		} else if ok {
 			return true, nil
@@ -223,7 +235,7 @@ func (g *group) matchesOr(ctx gs.CondContext) (bool, error) {
 
 func (g *group) matchesAnd(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
-		if ok, err := c.Matches(ctx); err != nil {
+		if ok, err := matches(c, ctx); err != nil {
 			return false, err
 		} else if !ok {
 			return false, nil
@@ -234,7 +246,7 @@ func (g *group) matchesAnd(ctx gs.CondContext) (bool, error) {
 
 func (g *group) matchesNone(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
-		if ok, err := c.Matches(ctx); err != nil {
+		if ok, err := matches(c, ctx); err != nil {
 			return false, err
 		} else if ok {
 			return false, nil
@@ -275,7 +287,7 @@ func (n *node) Matches(ctx gs.CondContext) (bool, error) {
 		return true, nil
 	}
 
-	ok, err := n.cond.Matches(ctx)
+	ok, err := matches(n.cond, ctx)
 	if err != nil {
 		return false, err
 	}
@@ -291,17 +303,17 @@ func (n *node) Matches(ctx gs.CondContext) (bool, error) {
 		if ok {
 			return ok, nil
 		} else {
-			return n.next.Matches(ctx)
+			return matches(n.next, ctx)
 		}
 	case opAnd:
 		if ok {
-			return n.next.Matches(ctx)
+			return matches(n.next, ctx)
 		} else {
 			return false, nil
 		}
+	default:
+		return false, fmt.Errorf("error condition operator %d", n.op)
 	}
-
-	return false, fmt.Errorf("error condition operator %d", n.op)
 }
 
 // Conditional provides a chainable structure for combining conditions
@@ -318,7 +330,7 @@ func New() *Conditional {
 }
 
 func (c *Conditional) Matches(ctx gs.CondContext) (bool, error) {
-	return c.head.Matches(ctx)
+	return matches(c.head, ctx)
 }
 
 // Or sets the logical operator to OR for the current node and creates a new node.

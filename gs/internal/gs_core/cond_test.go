@@ -332,7 +332,7 @@ func TestOnProfile(t *testing.T) {
 func TestConditional(t *testing.T) {
 	t.Run("ok && ", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OK()).And().Matches(c.(gs.CondContext))
+		ok, err := gs_cond.On(gs_cond.OK()).And().On(gs_cond.OK()).And().Matches(c.(gs.CondContext))
 		assert.Error(t, err, "no condition in last node")
 		assert.False(t, ok)
 	})

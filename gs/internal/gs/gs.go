@@ -18,6 +18,8 @@ package gs
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"reflect"
 	"unsafe"
 
@@ -52,6 +54,25 @@ type CondContext interface {
 type Condition interface {
 	Matches(ctx CondContext) (bool, error)
 }
+
+type ConditionError struct {
+	c Condition
+	e error
+}
+
+func NewCondError(c Condition, e error) error {
+	var err *ConditionError
+	if errors.As(e, &err) {
+		return err
+	}
+	return &ConditionError{c: c, e: e}
+}
+
+func (e *ConditionError) Error() string {
+	return fmt.Sprintf("condition error: %s", e.e)
+}
+
+func (e *ConditionError) Unwrap() error { return e.e }
 
 /************************************* arg ***********************************/
 
