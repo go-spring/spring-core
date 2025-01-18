@@ -1480,7 +1480,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		prop.Set("server.version", "1.0.0")
 
 		c := gs_core.New()
-		parent := c.Object(new(Server)).Condition(gs_cond.Not(gs_cond.OK()))
+		parent := c.Object(new(Server)).Condition(gs_cond.Not(gs_cond.OnMissingProperty("a")))
 		bd := c.Provide((*Server).Consumer, parent)
 
 		c.RefreshProperties(prop)
@@ -2385,7 +2385,7 @@ func TestDefaultSpringContext(t *testing.T) {
 			And().
 			OnMissingBean("null").
 			And().
-			On(gs_cond.OK()),
+			On(gs_cond.OnMissingProperty("a")),
 		)
 
 		err := runTest(c, func(p gs.Context) {
@@ -2810,7 +2810,7 @@ func TestMapCollection(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&mapValue{"a"}).Name("a")
 		c.Object(&mapValue{"b"}).Name("b")
-		c.Object(&mapValue{"c"}).Name("c").Condition(gs_cond.Not(gs_cond.OK()))
+		c.Object(&mapValue{"c"}).Name("c").Condition(gs_cond.Not(gs_cond.OnMissingProperty("a")))
 		err := runTest(c, func(p gs.Context) {
 
 			var vSlice []*mapValue

@@ -28,17 +28,17 @@ import (
 
 func TestOK(t *testing.T) {
 	c := container(t, nil)
-	ok, err := gs_cond.OK().Matches(c.(gs.CondContext))
+	ok, err := gs_cond.OnMissingProperty("a").Matches(c.(gs.CondContext))
 	assert.Nil(t, err)
 	assert.True(t, ok)
 }
 
 func TestNot(t *testing.T) {
 	c := container(t, nil)
-	ok, err := gs_cond.Not(gs_cond.OK()).Matches(c.(gs.CondContext))
+	ok, err := gs_cond.Not(gs_cond.OnMissingProperty("a")).Matches(c.(gs.CondContext))
 	assert.Nil(t, err)
 	assert.False(t, ok)
-	ok, err = gs_cond.Not(gs_cond.Not(gs_cond.OK())).Matches(c.(gs.CondContext))
+	ok, err = gs_cond.Not(gs_cond.Not(gs_cond.OnMissingProperty("a"))).Matches(c.(gs.CondContext))
 	assert.Nil(t, err)
 	assert.True(t, ok)
 }
@@ -332,25 +332,25 @@ func TestOnProfile(t *testing.T) {
 func TestConditional(t *testing.T) {
 	t.Run("ok && ", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OK()).And().On(gs_cond.OK()).And().Matches(c.(gs.CondContext))
+		ok, err := gs_cond.On(gs_cond.OnMissingProperty("a")).And().On(gs_cond.OnMissingProperty("a")).And().Matches(c.(gs.CondContext))
 		assert.Error(t, err, "no condition in last node")
 		assert.False(t, ok)
 	})
 	t.Run("ok && !ok", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OK()).And().On(gs_cond.Not(gs_cond.OK())).Matches(c.(gs.CondContext))
+		ok, err := gs_cond.On(gs_cond.OnMissingProperty("a")).And().On(gs_cond.Not(gs_cond.OnMissingProperty("a"))).Matches(c.(gs.CondContext))
 		assert.Nil(t, err)
 		assert.False(t, ok)
 	})
 	t.Run("ok || ", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OK()).Or().Matches(c.(gs.CondContext))
+		ok, err := gs_cond.On(gs_cond.OnMissingProperty("a")).Or().Matches(c.(gs.CondContext))
 		assert.Error(t, err, "no condition in last node")
 		assert.False(t, ok)
 	})
 	t.Run("ok || !ok", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OK()).Or().On(gs_cond.Not(gs_cond.OK())).Matches(c.(gs.CondContext))
+		ok, err := gs_cond.On(gs_cond.OnMissingProperty("a")).Or().On(gs_cond.Not(gs_cond.OnMissingProperty("a"))).Matches(c.(gs.CondContext))
 		assert.Nil(t, err)
 		assert.True(t, ok)
 	})
@@ -359,25 +359,25 @@ func TestConditional(t *testing.T) {
 func TestGroup(t *testing.T) {
 	t.Run("ok && ", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.And(gs_cond.OK()).Matches(c.(gs.CondContext))
+		ok, err := gs_cond.And(gs_cond.OnMissingProperty("a")).Matches(c.(gs.CondContext))
 		assert.Nil(t, err)
 		assert.True(t, ok)
 	})
 	t.Run("ok && !ok", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.And(gs_cond.OK(), gs_cond.Not(gs_cond.OK())).Matches(c.(gs.CondContext))
+		ok, err := gs_cond.And(gs_cond.OnMissingProperty("a"), gs_cond.Not(gs_cond.OnMissingProperty("a"))).Matches(c.(gs.CondContext))
 		assert.Nil(t, err)
 		assert.False(t, ok)
 	})
 	t.Run("ok || ", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.Or(gs_cond.OK()).Matches(c.(gs.CondContext))
+		ok, err := gs_cond.Or(gs_cond.OnMissingProperty("a")).Matches(c.(gs.CondContext))
 		assert.Nil(t, err)
 		assert.True(t, ok)
 	})
 	t.Run("ok || !ok", func(t *testing.T) {
 		c := container(t, nil)
-		ok, err := gs_cond.Or(gs_cond.OK(), gs_cond.Not(gs_cond.OK())).Matches(c.(gs.CondContext))
+		ok, err := gs_cond.Or(gs_cond.OnMissingProperty("a"), gs_cond.Not(gs_cond.OnMissingProperty("a"))).Matches(c.(gs.CondContext))
 		assert.Nil(t, err)
 		assert.True(t, ok)
 	})

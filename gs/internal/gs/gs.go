@@ -18,17 +18,27 @@ package gs
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"unsafe"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/util"
 )
 
 // A BeanSelector can be the ID of a bean, a `reflect.Type`, an interface{}
 // pointer such as `(*error)(nil)`, or `new(error)`.
 type BeanSelector interface{}
+
+// BeanSelectorToString returns the string representation of the bean selector.
+func BeanSelectorToString(s BeanSelector) string {
+	switch v := s.(type) {
+	case string:
+		return v
+	default:
+		return util.TypeName(s) + ":"
+	}
+}
 
 /********************************** condition ********************************/
 
@@ -38,6 +48,9 @@ type CondBean interface {
 	TypeName() string
 	Type() reflect.Type
 }
+
+// CondFunc is a function that returns true when the condition is met.
+type CondFunc func(ctx CondContext) (bool, error)
 
 // CondContext defines some methods of IoC container that conditions use.
 type CondContext interface {
@@ -55,23 +68,23 @@ type Condition interface {
 	Matches(ctx CondContext) (bool, error)
 }
 
+// ConditionError is a wrapper of Condition and error.
 type ConditionError struct {
 	c Condition
 	e error
 }
 
+// NewCondError returns a new ConditionError.
 func NewCondError(c Condition, e error) error {
-	var err *ConditionError
-	if errors.As(e, &err) {
-		return err
-	}
 	return &ConditionError{c: c, e: e}
 }
 
+// Error returns the error message.
 func (e *ConditionError) Error() string {
-	return fmt.Sprintf("condition error: %s", e.e)
+	return fmt.Sprintf("condition error: %s %s", e.c, e.e)
 }
 
+// Unwrap returns the error wrapped by ConditionError.
 func (e *ConditionError) Unwrap() error { return e.e }
 
 /************************************* arg ***********************************/

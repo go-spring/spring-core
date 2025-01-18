@@ -54,9 +54,8 @@ func FileLine(fn interface{}) (file string, line int, fnName string) {
 	file, line = fnInfo.FileLine(fnPtr)
 
 	s := fnInfo.Name()
-	if ss := strings.Split(s, "/"); len(ss) > 0 {
-		s = ss[len(ss)-1]
-		i := strings.Index(s, ".")
+	i := strings.LastIndex(s, "/")
+	if i > 0 {
 		s = s[i+1:]
 	}
 

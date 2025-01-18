@@ -15,12 +15,20 @@
  */
 
 // Package gs_cond provides utilities for evaluating contextual conditions
-// in a flexible, modular, and reusable manner. The core concept revolves
-// around the [gs.Condition] interface, which determines whether a given
-// context satisfies specific criteria. Various implementations of
-// [gs.Condition] allow combining basic and complex logic operations, such
-// as `And`, `Or`, and `Not`. These are further enhanced with support for
-// property-based conditions, bean existence checks, and custom evaluation logic.
+// in a flexible, modular, and reusable manner.
+//
+// The core concept revolves around the [gs.Condition] interface, which
+// determines whether a given context satisfies specific criteria.
+// Various implementations of [gs.Condition] enable the combination of
+// basic and complex logical operations such as `And`, `Or`, and `Not`.
+//
+// These utilities are further enhanced with support for:
+// - Property-based conditions
+// - Bean existence checks
+// - Custom evaluation logic
+//
+// When implementing custom conditions, note that only terminal conditions
+// should return [gs.ConditionError].
 package gs_cond
 
 import (
@@ -33,47 +41,7 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
-// FuncCond is a functional implementation of the [gs.Condition] interface.
-// It evaluates a condition using the provided function.
-type FuncCond func(ctx gs.CondContext) (bool, error)
-
-func (c FuncCond) Matches(ctx gs.CondContext) (bool, error) {
-	ret, err := c(ctx)
-	if err != nil {
-		return false, gs.NewCondError(c, err)
-	}
-	return ret, nil
-}
-
-// OK returns a [gs.Condition] that always evaluates to true.
-func OK() gs.Condition {
-	return FuncCond(func(ctx gs.CondContext) (bool, error) {
-		return true, nil
-	})
-}
-
-func matches(c gs.Condition, ctx gs.CondContext) (bool, error) {
-	ret, err := c.Matches(ctx)
-	if err != nil {
-		return false, gs.NewCondError(c, err)
-	}
-	return ret, nil
-}
-
-// not is an implementation of [gs.Condition] that negates another condition.
-type not struct {
-	c gs.Condition
-}
-
-// Not creates a [gs.Condition] that inverts the result of another condition.
-func Not(c gs.Condition) gs.Condition {
-	return &not{c: c}
-}
-
-func (c *not) Matches(ctx gs.CondContext) (bool, error) {
-	ok, err := matches(c.c, ctx)
-	return !ok, err
-}
+/******************************* onProperty **********************************/
 
 // onProperty evaluates a condition based on the existence and value of a property.
 // - If the property is missing, the result is determined by `matchIfMissing`.
@@ -115,8 +83,19 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 		}
 		return val
 	}
-	return EvalExpr(c.havingValue[5:], getValue(val))
+	ok, err := EvalExpr(c.havingValue[5:], getValue(val))
+	if err != nil {
+		return false, gs.NewCondError(c, err)
+	}
+	return ok, nil
 }
+
+func (c *onProperty) String() string {
+	return fmt.Sprintf("OnProperty(name=%s, havingValue=%s, matchIfMissing=%v)",
+		c.name, c.havingValue, c.matchIfMissing)
+}
+
+/*************************** onMissingProperty *******************************/
 
 // onMissingProperty evaluates to true when a specified property is absent in the context.
 type onMissingProperty struct {
@@ -127,6 +106,12 @@ func (c *onMissingProperty) Matches(ctx gs.CondContext) (bool, error) {
 	return !ctx.Has(c.name), nil
 }
 
+func (c *onMissingProperty) String() string {
+	return fmt.Sprintf("OnMissingProperty(name=%s)", c.name)
+}
+
+/********************************* onBean ************************************/
+
 // onBean checks for the existence of beans matching a selector.
 // It evaluates to true if at least one bean matches.
 type onBean struct {
@@ -135,8 +120,17 @@ type onBean struct {
 
 func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
-	return len(beans) > 0, err
+	if err != nil {
+		return false, gs.NewCondError(c, err)
+	}
+	return len(beans) > 0, nil
 }
+
+func (c *onBean) String() string {
+	return fmt.Sprintf("OnBean(selector=%s)", gs.BeanSelectorToString(c.selector))
+}
+
+/***************************** onMissingBean *********************************/
 
 // onMissingBean evaluates to true if no beans match the selector.
 type onMissingBean struct {
@@ -145,8 +139,17 @@ type onMissingBean struct {
 
 func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
-	return len(beans) == 0, err
+	if err != nil {
+		return false, gs.NewCondError(c, err)
+	}
+	return len(beans) == 0, nil
 }
+
+func (c *onMissingBean) String() string {
+	return fmt.Sprintf("OnMissingBean(selector=%s)", gs.BeanSelectorToString(c.selector))
+}
+
+/***************************** onSingleBean **********************************/
 
 // onSingleBean checks for exactly one matching bean.
 type onSingleBean struct {
@@ -155,8 +158,17 @@ type onSingleBean struct {
 
 func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
-	return len(beans) == 1, err
+	if err != nil {
+		return false, gs.NewCondError(c, err)
+	}
+	return len(beans) == 1, nil
 }
+
+func (c *onSingleBean) String() string {
+	return fmt.Sprintf("OnSingleBean(selector=%s)", gs.BeanSelectorToString(c.selector))
+}
+
+/***************************** onExpression **********************************/
 
 // onExpression evaluates a custom expression within the context.
 type onExpression struct {
@@ -164,7 +176,52 @@ type onExpression struct {
 }
 
 func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
-	return false, util.UnimplementedMethod
+	return false, gs.NewCondError(c, util.UnimplementedMethod)
+}
+
+func (c *onExpression) String() string {
+	return fmt.Sprintf("OnExpression(expression=%s)", c.expression)
+}
+
+/********************************* onFunc ************************************/
+
+// onFunc is an implementation of [gs.Condition] that wraps a function.
+type onFunc struct {
+	fn gs.CondFunc
+}
+
+func (c *onFunc) Matches(ctx gs.CondContext) (bool, error) {
+	ok, err := c.fn(ctx)
+	if err != nil {
+		return false, gs.NewCondError(c, err)
+	}
+	return ok, nil
+}
+
+func (c *onFunc) String() string {
+	_, _, fnName := util.FileLine(c.fn)
+	return fmt.Sprintf("OnFunc(fn=%s)", fnName)
+}
+
+/********************************** not **************************************/
+
+// not is an implementation of [gs.Condition] that negates another condition.
+type not struct {
+	c gs.Condition
+}
+
+// Not creates a [gs.Condition] that inverts the result of another condition.
+func Not(c gs.Condition) gs.Condition {
+	return &not{c: c}
+}
+
+func (c *not) Matches(ctx gs.CondContext) (bool, error) {
+	ok, err := c.c.Matches(ctx)
+	return !ok, err
+}
+
+func (c *not) String() string {
+	return fmt.Sprintf("Not(%s)", c.c)
 }
 
 /******************************** group **************************************/
@@ -173,58 +230,35 @@ func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
 // Supported operators include:
 // - opOr: At least one condition must be satisfied.
 // - opAnd: All conditions must be satisfied.
-// - opNone: No condition must be satisfied.
-type Operator int
+type Operator string
 
 const (
-	opOr   = Operator(iota) // Logical OR operation.
-	opAnd                   // Logical AND operation.
-	opNone                  // Logical NONE (NOT ANY) operation.
+	opOr  = Operator("or")  // Logical OR operation.
+	opAnd = Operator("and") // Logical AND operation.
+	// opNone = Operator("none") // Logical NONE (NOT ANY) operation.
 )
 
-// group represents a composite condition formed by combining multiple conditions
-// using a specified logical operator.
-type group struct {
-	op   Operator       // Logical operator (Or, And, None).
-	cond []gs.Condition // List of conditions to evaluate.
-}
-
-// Or combines conditions with an OR operator. Returns a condition that
-// evaluates to true if at least one condition is satisfied.
-func Or(cond ...gs.Condition) gs.Condition {
-	if n := len(cond); n == 0 {
-		return OK()
-	} else if n == 1 {
-		return cond[0]
+func formatGroup(op string, cond []gs.Condition) string {
+	var sb strings.Builder
+	sb.WriteString(op)
+	sb.WriteString("(")
+	for i, c := range cond {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(fmt.Sprint(c))
 	}
-	return &group{op: opOr, cond: cond}
+	sb.WriteString(")")
+	return sb.String()
 }
 
-// And combines conditions with an AND operator. Returns a condition that
-// evaluates to true only if all conditions are satisfied.
-func And(cond ...gs.Condition) gs.Condition {
-	if n := len(cond); n == 0 {
-		return OK()
-	} else if n == 1 {
-		return cond[0]
-	}
-	return &group{op: opAnd, cond: cond}
+type onOr struct {
+	cond []gs.Condition
 }
 
-// None combines conditions with a NONE operator. Returns a condition that
-// evaluates to true only if none of the conditions are satisfied.
-func None(cond ...gs.Condition) gs.Condition {
-	if n := len(cond); n == 0 {
-		return OK()
-	} else if n == 1 {
-		return Not(cond[0])
-	}
-	return &group{op: opNone, cond: cond}
-}
-
-func (g *group) matchesOr(ctx gs.CondContext) (bool, error) {
+func (g *onOr) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
-		if ok, err := matches(c, ctx); err != nil {
+		if ok, err := c.Matches(ctx); err != nil {
 			return false, err
 		} else if ok {
 			return true, nil
@@ -233,9 +267,43 @@ func (g *group) matchesOr(ctx gs.CondContext) (bool, error) {
 	return false, nil
 }
 
-func (g *group) matchesAnd(ctx gs.CondContext) (bool, error) {
+func (g *onOr) String() string {
+	return formatGroup("Or", g.cond)
+}
+
+// Or combines conditions with an OR operator. Returns a condition that
+// evaluates to true if at least one condition is satisfied.
+func Or(cond ...gs.Condition) gs.Condition {
+	if n := len(cond); n == 0 {
+		return nil
+	} else if n == 1 {
+		return cond[0]
+	}
+	return &onOr{cond: cond}
+}
+
+type onAnd struct {
+	cond []gs.Condition
+}
+
+// And combines conditions with an AND operator. Returns a condition that
+// evaluates to true only if all conditions are satisfied.
+func And(cond ...gs.Condition) gs.Condition {
+	if n := len(cond); n == 0 {
+		return nil
+	} else if n == 1 {
+		return cond[0]
+	}
+	return &onAnd{cond: cond}
+}
+
+func (g *onAnd) String() string {
+	return formatGroup("And", g.cond)
+}
+
+func (g *onAnd) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
-		if ok, err := matches(c, ctx); err != nil {
+		if ok, err := c.Matches(ctx); err != nil {
 			return false, err
 		} else if !ok {
 			return false, nil
@@ -244,9 +312,24 @@ func (g *group) matchesAnd(ctx gs.CondContext) (bool, error) {
 	return true, nil
 }
 
-func (g *group) matchesNone(ctx gs.CondContext) (bool, error) {
+type onNone struct {
+	cond []gs.Condition
+}
+
+// None combines conditions with a NONE operator. Returns a condition that
+// evaluates to true only if none of the conditions are satisfied.
+func None(cond ...gs.Condition) gs.Condition {
+	if n := len(cond); n == 0 {
+		return nil
+	} else if n == 1 {
+		return Not(cond[0])
+	}
+	return &onNone{cond: cond}
+}
+
+func (g *onNone) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
-		if ok, err := matches(c, ctx); err != nil {
+		if ok, err := c.Matches(ctx); err != nil {
 			return false, err
 		} else if ok {
 			return false, nil
@@ -255,20 +338,8 @@ func (g *group) matchesNone(ctx gs.CondContext) (bool, error) {
 	return true, nil
 }
 
-func (g *group) Matches(ctx gs.CondContext) (bool, error) {
-	if len(g.cond) == 0 {
-		return false, errors.New("no conditions in group")
-	}
-	switch g.op {
-	case opOr:
-		return g.matchesOr(ctx)
-	case opAnd:
-		return g.matchesAnd(ctx)
-	case opNone:
-		return g.matchesNone(ctx)
-	default:
-		return false, fmt.Errorf("error condition operator %d", g.op)
-	}
+func (g *onNone) String() string {
+	return formatGroup("None", g.cond)
 }
 
 /****************************** Conditional **********************************/
@@ -287,7 +358,7 @@ func (n *node) Matches(ctx gs.CondContext) (bool, error) {
 		return true, nil
 	}
 
-	ok, err := matches(n.cond, ctx)
+	ok, err := n.cond.Matches(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -303,17 +374,24 @@ func (n *node) Matches(ctx gs.CondContext) (bool, error) {
 		if ok {
 			return ok, nil
 		} else {
-			return matches(n.next, ctx)
+			return n.next.Matches(ctx)
 		}
 	case opAnd:
 		if ok {
-			return matches(n.next, ctx)
+			return n.next.Matches(ctx)
 		} else {
 			return false, nil
 		}
 	default:
-		return false, fmt.Errorf("error condition operator %d", n.op)
+		return false, errors.New("unknown operator " + string(n.op))
 	}
+}
+
+func (n *node) String() string {
+	if n.next == nil {
+		return fmt.Sprintf("cond=%v", n.cond)
+	}
+	return fmt.Sprintf("cond=%v, op=%s, next=(%v)", n.cond, n.op, n.next)
 }
 
 // Conditional provides a chainable structure for combining conditions
@@ -330,7 +408,11 @@ func New() *Conditional {
 }
 
 func (c *Conditional) Matches(ctx gs.CondContext) (bool, error) {
-	return matches(c.head, ctx)
+	return c.head.Matches(ctx)
+}
+
+func (c *Conditional) String() string {
+	return fmt.Sprintf("Conditional(%v)", c.head)
 }
 
 // Or sets the logical operator to OR for the current node and creates a new node.
@@ -456,12 +538,12 @@ func (c *Conditional) OnExpression(expression string) *Conditional {
 // OnMatches creates a Conditional that starts with a condition to
 // match based on a custom function. The function takes a CondContext
 // and returns a boolean value and an optional error.
-func OnMatches(fn func(ctx gs.CondContext) (bool, error)) *Conditional {
+func OnMatches(fn gs.CondFunc) *Conditional {
 	return New().OnMatches(fn)
 }
 
-func (c *Conditional) OnMatches(fn func(ctx gs.CondContext) (bool, error)) *Conditional {
-	return c.On(FuncCond(fn))
+func (c *Conditional) OnMatches(fn gs.CondFunc) *Conditional {
+	return c.On(&onFunc{fn: fn})
 }
 
 // OnProfile creates a Conditional that starts with a condition
