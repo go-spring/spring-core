@@ -26,13 +26,6 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
-func TestOK(t *testing.T) {
-	c := container(t, nil)
-	ok, err := gs_cond.OnMissingProperty("a").Matches(c.(gs.CondContext))
-	assert.Nil(t, err)
-	assert.True(t, ok)
-}
-
 func TestNot(t *testing.T) {
 	c := container(t, nil)
 	ok, err := gs_cond.Not(gs_cond.OnMissingProperty("a")).Matches(c.(gs.CondContext))

@@ -18,7 +18,6 @@ package gs
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"unsafe"
 
@@ -49,9 +48,6 @@ type CondBean interface {
 	Type() reflect.Type
 }
 
-// CondFunc is a function that returns true when the condition is met.
-type CondFunc func(ctx CondContext) (bool, error)
-
 // CondContext defines some methods of IoC container that conditions use.
 type CondContext interface {
 	// Has returns whether the IoC container has a property.
@@ -63,29 +59,13 @@ type CondContext interface {
 	Find(selector BeanSelector) ([]CondBean, error)
 }
 
+// CondFunc is a function that returns true when the condition is met.
+type CondFunc func(ctx CondContext) (bool, error)
+
 // Condition is used when registering a bean to determine whether it's valid.
 type Condition interface {
 	Matches(ctx CondContext) (bool, error)
 }
-
-// ConditionError is a wrapper of Condition and error.
-type ConditionError struct {
-	c Condition
-	e error
-}
-
-// NewCondError returns a new ConditionError.
-func NewCondError(c Condition, e error) error {
-	return &ConditionError{c: c, e: e}
-}
-
-// Error returns the error message.
-func (e *ConditionError) Error() string {
-	return fmt.Sprintf("condition error: %s %s", e.c, e.e)
-}
-
-// Unwrap returns the error wrapped by ConditionError.
-func (e *ConditionError) Unwrap() error { return e.e }
 
 /************************************* arg ***********************************/
 

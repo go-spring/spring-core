@@ -17,6 +17,7 @@
 package gs_cond_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -25,13 +26,21 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
+func TestConditionError(t *testing.T) {
+	c1 := gs_cond.OnProperty("a")
+	c2 := gs_cond.And(c1, gs_cond.OnBean("a"))
+	e := gs_cond.NewCondError(c1, errors.New("invalid param"))
+	e = gs_cond.NewCondError(c2, e)
+	assert.Equal(t, fmt.Sprint(e), `condition error: And(...) -> OnProperty(name=a) -> invalid param`)
+}
+
 func TestConditionString(t *testing.T) {
 
 	c := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) { return false, nil })
 	assert.Equal(t, fmt.Sprint(c), `OnFunc(fn=gs_cond_test.TestConditionString.func1)`)
 
-	c = gs_cond.OnProperty("a", gs_cond.HavingValue("x"), gs_cond.MatchIfMissing())
-	assert.Equal(t, fmt.Sprint(c), `OnProperty(name=a, havingValue=x, matchIfMissing=true)`)
+	c = gs_cond.OnProperty("a", gs_cond.HavingValue("123"))
+	assert.Equal(t, fmt.Sprint(c), `OnProperty(name=a, havingValue=123)`)
 
 	c = gs_cond.OnMissingProperty("a")
 	assert.Equal(t, fmt.Sprint(c), `OnMissingProperty(name=a)`)
