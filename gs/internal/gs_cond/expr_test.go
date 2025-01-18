@@ -17,9 +17,22 @@
 package gs_cond_test
 
 import (
+	"strconv"
 	"testing"
+
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestEvalExpr(t *testing.T) {
+	ok, err := gs_cond.EvalExpr("$==3", 3)
+	assert.Nil(t, err)
+	assert.True(t, ok)
 
+	gs_cond.CustomFunction("check", func(s string, i int) bool {
+		return s == strconv.Itoa(i)
+	})
+	ok, err = gs_cond.EvalExpr("check($,9)", "9")
+	assert.Nil(t, err)
+	assert.True(t, ok)
 }

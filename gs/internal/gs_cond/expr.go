@@ -22,16 +22,22 @@ import (
 	"github.com/expr-lang/expr"
 )
 
-var exprFuncs = map[string]interface{}{}
+// funcMap is used to store custom functions that can be referenced in expressions.
+var funcMap = map[string]interface{}{}
 
-func RegisterExprFunc(name string, fn interface{}) {
-	exprFuncs[name] = fn
+// CustomFunction registers a custom function with a specified name.
+// The function can later be used in expressions evaluated by EvalExpr.
+func CustomFunction(name string, fn interface{}) {
+	funcMap[name] = fn
 }
 
-// EvalExpr returns the value for the expression expr.
+// EvalExpr evaluates a boolean expression (input) using the provided value (val)
+// and any registered custom functions. The string expression to evaluate (should
+// return a boolean value). The value used in the evaluation (referred to as `$`
+// in the expression context).
 func EvalExpr(input string, val interface{}) (bool, error) {
 	env := map[string]interface{}{"$": val}
-	for k, v := range exprFuncs {
+	for k, v := range funcMap {
 		env[k] = v
 	}
 	r, err := expr.Eval(input, env)

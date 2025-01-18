@@ -76,7 +76,12 @@ type (
 	Condition      = gs.Condition
 	CondContext    = gs.CondContext
 	PropertyOption = gs_cond.PropertyOption
+	ConditionError = gs_cond.ConditionError
 )
+
+func NewCondError(cond gs.Condition, err error) error {
+	return gs_cond.NewCondError(cond, err)
+}
 
 func OnFunc(fn func(ctx CondContext) (bool, error)) Condition {
 	return gs_cond.OnFunc(fn)
@@ -108,6 +113,10 @@ func OnMissingBean(selector BeanSelector) Condition {
 
 func OnSingleBean(selector BeanSelector) Condition {
 	return gs_cond.OnSingleBean(selector)
+}
+
+func CustomFunction(name string, fn interface{}) {
+	gs_cond.CustomFunction(name, fn)
 }
 
 func OnExpression(expression string) Condition {
