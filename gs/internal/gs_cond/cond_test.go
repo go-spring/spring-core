@@ -1,76 +1,89 @@
-package gs_cond
+/*
+ * Copyright 2012-2024 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package gs_cond_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
-func TestCondition(t *testing.T) {
-	var c gs.Condition
+func TestConditionString(t *testing.T) {
 
-	c = &onProperty{name: "a", havingValue: "x", matchIfMissing: true}
+	c := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) { return false, nil })
+	assert.Equal(t, fmt.Sprint(c), `OnFunc(fn=gs_cond_test.TestConditionString.func1)`)
+
+	c = gs_cond.OnProperty("a", gs_cond.HavingValue("x"), gs_cond.MatchIfMissing())
 	assert.Equal(t, fmt.Sprint(c), `OnProperty(name=a, havingValue=x, matchIfMissing=true)`)
 
-	c = &onMissingProperty{name: "a"}
+	c = gs_cond.OnMissingProperty("a")
 	assert.Equal(t, fmt.Sprint(c), `OnMissingProperty(name=a)`)
 
-	c = &onBean{selector: "a"}
+	c = gs_cond.OnBean("a")
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=a)`)
 
-	c = &onBean{selector: new(error)}
+	c = gs_cond.OnBean(new(error))
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=error:)`)
 
-	c = &onMissingBean{selector: "a"}
+	c = gs_cond.OnMissingBean("a")
 	assert.Equal(t, fmt.Sprint(c), `OnMissingBean(selector=a)`)
 
-	c = &onMissingBean{selector: new(error)}
+	c = gs_cond.OnMissingBean(new(error))
 	assert.Equal(t, fmt.Sprint(c), `OnMissingBean(selector=error:)`)
 
-	c = &onSingleBean{selector: "a"}
+	c = gs_cond.OnSingleBean("a")
 	assert.Equal(t, fmt.Sprint(c), `OnSingleBean(selector=a)`)
 
-	c = &onSingleBean{selector: new(error)}
+	c = gs_cond.OnSingleBean(new(error))
 	assert.Equal(t, fmt.Sprint(c), `OnSingleBean(selector=error:)`)
 
-	c = &onExpression{expression: "a"}
+	c = gs_cond.OnExpression("a")
 	assert.Equal(t, fmt.Sprint(c), `OnExpression(expression=a)`)
 
-	c = &onFunc{fn: func(ctx gs.CondContext) (bool, error) { return false, nil }}
-	assert.Equal(t, fmt.Sprint(c), `OnFunc(fn=gs_cond.TestCondition.func1)`)
-
-	c = Not(&onBean{selector: "a"})
+	c = gs_cond.Not(gs_cond.OnBean("a"))
 	assert.Equal(t, fmt.Sprint(c), `Not(OnBean(selector=a))`)
 
-	c = Or(&onBean{selector: "a"})
+	c = gs_cond.Or(gs_cond.OnBean("a"))
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=a)`)
 
-	c = Or(&onBean{selector: "a"}, &onBean{selector: "b"})
+	c = gs_cond.Or(gs_cond.OnBean("a"), gs_cond.OnBean("b"))
 	assert.Equal(t, fmt.Sprint(c), `Or(OnBean(selector=a), OnBean(selector=b))`)
 
-	c = And(&onBean{selector: "a"})
+	c = gs_cond.And(gs_cond.OnBean("a"))
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=a)`)
 
-	c = And(&onBean{selector: "a"}, &onBean{selector: "b"})
+	c = gs_cond.And(gs_cond.OnBean("a"), gs_cond.OnBean("b"))
 	assert.Equal(t, fmt.Sprint(c), `And(OnBean(selector=a), OnBean(selector=b))`)
 
-	c = None(&onBean{selector: "a"})
+	c = gs_cond.None(gs_cond.OnBean("a"))
 	assert.Equal(t, fmt.Sprint(c), `Not(OnBean(selector=a))`)
 
-	c = None(&onBean{selector: "a"}, &onBean{selector: "b"})
+	c = gs_cond.None(gs_cond.OnBean("a"), gs_cond.OnBean("b"))
 	assert.Equal(t, fmt.Sprint(c), `None(OnBean(selector=a), OnBean(selector=b))`)
 
-	c = And(
-		&onBean{selector: "a"},
-		Or(
-			&onBean{selector: "b"},
-			Not(&onBean{selector: "c"}),
+	c = gs_cond.And(
+		gs_cond.OnBean("a"),
+		gs_cond.Or(
+			gs_cond.OnBean("b"),
+			gs_cond.Not(gs_cond.OnBean("c")),
 		),
 	)
 	assert.Equal(t, fmt.Sprint(c), `And(OnBean(selector=a), Or(OnBean(selector=b), Not(OnBean(selector=c))))`)
-
-	c = OnBean("a").And().OnProperty("a")
-	assert.Equal(t, fmt.Sprint(c), `Conditional(cond=OnBean(selector=a), op=and, next=(cond=OnProperty(name=a, havingValue=, matchIfMissing=false)))`)
 }

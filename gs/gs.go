@@ -75,13 +75,43 @@ func MustBindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
 type (
 	Condition      = gs.Condition
 	CondContext    = gs.CondContext
-	Conditional    = gs_cond.Conditional
 	PropertyOption = gs_cond.PropertyOption
 )
 
-// OK returns a Condition that always returns true.
-func OK() Condition {
-	return gs_cond.OK()
+func OnFunc(fn func(ctx CondContext) (bool, error)) Condition {
+	return gs_cond.OnFunc(fn)
+}
+
+func MatchIfMissing() PropertyOption {
+	return gs_cond.MatchIfMissing()
+}
+
+func HavingValue(havingValue string) PropertyOption {
+	return gs_cond.HavingValue(havingValue)
+}
+
+func OnProperty(name string, options ...PropertyOption) Condition {
+	return gs_cond.OnProperty(name, options...)
+}
+
+func OnMissingProperty(name string) Condition {
+	return gs_cond.OnMissingProperty(name)
+}
+
+func OnBean(selector BeanSelector) Condition {
+	return gs_cond.OnBean(selector)
+}
+
+func OnMissingBean(selector BeanSelector) Condition {
+	return gs_cond.OnMissingBean(selector)
+}
+
+func OnSingleBean(selector BeanSelector) Condition {
+	return gs_cond.OnSingleBean(selector)
+}
+
+func OnExpression(expression string) Condition {
+	return gs_cond.OnExpression(expression)
 }
 
 // Not returns a Condition that returns true when the given Condition returns false.
@@ -104,48 +134,8 @@ func None(cond ...Condition) Condition {
 	return gs_cond.None(cond...)
 }
 
-func On(cond gs.Condition) *Conditional {
-	return gs_cond.On(cond)
-}
-
-func MatchIfMissing() PropertyOption {
-	return gs_cond.MatchIfMissing()
-}
-
-func HavingValue(havingValue string) PropertyOption {
-	return gs_cond.HavingValue(havingValue)
-}
-
-func OnProperty(name string, options ...PropertyOption) *Conditional {
-	return gs_cond.OnProperty(name, options...)
-}
-
-func OnMissingProperty(name string) *Conditional {
-	return gs_cond.OnMissingProperty(name)
-}
-
-func OnBean(selector BeanSelector) *Conditional {
-	return gs_cond.OnBean(selector)
-}
-
-func OnMissingBean(selector BeanSelector) *Conditional {
-	return gs_cond.OnMissingBean(selector)
-}
-
-func OnSingleBean(selector BeanSelector) *Conditional {
-	return gs_cond.OnSingleBean(selector)
-}
-
-func OnExpression(expression string) *Conditional {
-	return gs_cond.OnExpression(expression)
-}
-
-func OnMatches(fn func(ctx CondContext) (bool, error)) *Conditional {
-	return gs_cond.OnMatches(fn)
-}
-
-func OnProfile(profile string) *Conditional {
-	return gs_cond.OnProfile(profile)
+func OnProfile(profile string) Condition {
+	return OnProperty("spring.profiles.active", HavingValue(profile))
 }
 
 /************************************ ioc ************************************/

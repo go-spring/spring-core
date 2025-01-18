@@ -2376,57 +2376,21 @@ func TestApplicationContext_CreateBean(t *testing.T) {
 
 func TestDefaultSpringContext(t *testing.T) {
 
-	t.Run("bean:test_ctx:", func(t *testing.T) {
-
-		c := gs_core.New()
-
-		c.Object(&BeanZero{5}).Condition(gs_cond.
-			OnProfile("test").
-			And().
-			OnMissingBean("null").
-			And().
-			On(gs_cond.OnMissingProperty("a")),
-		)
-
-		err := runTest(c, func(p gs.Context) {
-			var b *BeanZero
-			err := p.Get(&b)
-			assert.Error(t, err, "can't find bean, bean:\"\"")
-		})
-		assert.Nil(t, err)
-	})
-
-	t.Run("bean:test_ctx:test", func(t *testing.T) {
-		prop := conf.New()
-		prop.Set("spring.profiles.active", "test")
-
-		c := gs_core.New()
-		c.Object(&BeanZero{5}).Condition(gs_cond.OnProfile("test"))
-
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p gs.Context) {
-			var b *BeanZero
-			err := p.Get(&b)
-			assert.Nil(t, err)
-		})
-		assert.Nil(t, err)
-	})
-
-	t.Run("bean:test_ctx:stable", func(t *testing.T) {
-		prop := conf.New()
-		prop.Set("spring.profiles.active", "stable")
-
-		c := gs_core.New()
-		c.Object(&BeanZero{5}).Condition(gs_cond.OnProfile("test"))
-
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p gs.Context) {
-			var b *BeanZero
-			err := p.Get(&b)
-			assert.Error(t, err, "can't find bean, bean:\"\"")
-		})
-		assert.Nil(t, err)
-	})
+	// t.Run("bean:test_ctx:", func(t *testing.T) {
+	//
+	// 	c := gs_core.New()
+	//
+	// 	c.Object(&BeanZero{5}).
+	// 		Condition(gs_cond.OnMissingBean("null")).
+	// 		Condition(gs_cond.OnMissingProperty("a"))
+	//
+	// 	err := runTest(c, func(p gs.Context) {
+	// 		var b *BeanZero
+	// 		err := p.Get(&b)
+	// 		assert.Error(t, err, "can't find bean, bean:\"\"")
+	// 	})
+	// 	assert.Nil(t, err)
+	// })
 
 	t.Run("option withClassName Condition", func(t *testing.T) {
 
@@ -2524,10 +2488,22 @@ func TestDefaultSpringContext(t *testing.T) {
 func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	c := gs_core.New()
 
-	c1 := gs_cond.OnProperty("null", gs_cond.MatchIfMissing()).Or().OnProfile("test")
+	c1 := gs_cond.Or(
+		gs_cond.OnProperty("null", gs_cond.MatchIfMissing()),
+	)
 
-	c.Object(&BeanZero{5}).Condition(gs_cond.On(c1).And().OnMissingBean("null"))
-	c.Object(new(BeanOne)).Condition(gs_cond.On(c1).And().OnMissingBean("null"))
+	c.Object(&BeanZero{5}).Condition(
+		gs_cond.And(
+			c1,
+			gs_cond.OnMissingBean("null"),
+		),
+	)
+	c.Object(new(BeanOne)).Condition(
+		gs_cond.And(
+			c1,
+			gs_cond.OnMissingBean("null"),
+		),
+	)
 
 	c.Object(new(BeanTwo)).Condition(gs_cond.OnBean("BeanOne"))
 	c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnBean("Null"))

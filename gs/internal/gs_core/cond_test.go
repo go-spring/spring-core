@@ -211,7 +211,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("more than one beans", func(t *testing.T) {
 		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
 			c.Provide(conf.New).Name("a")
-			c.Provide(gs_cond.New).Name("a")
+			c.Provide(NewVarInterfaceObj).Name("a")
 			return nil
 		})
 		ok, err := gs_cond.OnBean("a").Matches(c.(gs.CondContext))
@@ -245,7 +245,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("more than one beans", func(t *testing.T) {
 		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
 			c.Provide(conf.New).Name("a")
-			c.Provide(gs_cond.New).Name("a")
+			c.Provide(NewVarInterfaceObj).Name("a")
 			return nil
 		})
 		ok, err := gs_cond.OnMissingBean("a").Matches(c.(gs.CondContext))
@@ -279,7 +279,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("more than one beans", func(t *testing.T) {
 		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
 			c.Provide(conf.New).Name("a")
-			c.Provide(gs_cond.New).Name("a")
+			c.Provide(NewVarInterfaceObj).Name("a")
 			return nil
 		})
 		ok, err := gs_cond.OnSingleBean("a").Matches(c.(gs.CondContext))
@@ -297,63 +297,11 @@ func TestOnExpression(t *testing.T) {
 
 func TestOnMatches(t *testing.T) {
 	c := container(t, nil)
-	ok, err := gs_cond.OnMatches(func(ctx gs.CondContext) (bool, error) {
+	ok, err := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
 		return false, nil
 	}).Matches(c.(gs.CondContext))
 	assert.Nil(t, err)
 	assert.False(t, ok)
-}
-
-func TestOnProfile(t *testing.T) {
-	t.Run("no property", func(t *testing.T) {
-		c := container(t, nil)
-		ok, err := gs_cond.OnProfile("test").Matches(c.(gs.CondContext))
-		assert.Nil(t, err)
-		assert.False(t, ok)
-	})
-	t.Run("diff property", func(t *testing.T) {
-		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
-			return p.Set("spring.profiles.active", "dev")
-		})
-		ok, err := gs_cond.OnProfile("test").Matches(c.(gs.CondContext))
-		assert.Nil(t, err)
-		assert.False(t, ok)
-	})
-	t.Run("same property", func(t *testing.T) {
-		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
-			return p.Set("spring.profiles.active", "test")
-		})
-		ok, err := gs_cond.OnProfile("test").Matches(c.(gs.CondContext))
-		assert.Nil(t, err)
-		assert.True(t, ok)
-	})
-}
-
-func TestConditional(t *testing.T) {
-	t.Run("ok && ", func(t *testing.T) {
-		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OnMissingProperty("a")).And().On(gs_cond.OnMissingProperty("a")).And().Matches(c.(gs.CondContext))
-		assert.Error(t, err, "no condition in last node")
-		assert.False(t, ok)
-	})
-	t.Run("ok && !ok", func(t *testing.T) {
-		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OnMissingProperty("a")).And().On(gs_cond.Not(gs_cond.OnMissingProperty("a"))).Matches(c.(gs.CondContext))
-		assert.Nil(t, err)
-		assert.False(t, ok)
-	})
-	t.Run("ok || ", func(t *testing.T) {
-		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OnMissingProperty("a")).Or().Matches(c.(gs.CondContext))
-		assert.Error(t, err, "no condition in last node")
-		assert.False(t, ok)
-	})
-	t.Run("ok || !ok", func(t *testing.T) {
-		c := container(t, nil)
-		ok, err := gs_cond.On(gs_cond.OnMissingProperty("a")).Or().On(gs_cond.Not(gs_cond.OnMissingProperty("a"))).Matches(c.(gs.CondContext))
-		assert.Nil(t, err)
-		assert.True(t, ok)
-	})
 }
 
 func TestGroup(t *testing.T) {
