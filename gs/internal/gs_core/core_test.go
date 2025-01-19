@@ -37,9 +37,7 @@ import (
 	pkg1 "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/bar"
 	pkg2 "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
-	"github.com/go-spring/spring-core/util/macro"
 	"github.com/spf13/cast"
 )
 
@@ -851,7 +849,7 @@ func NewManager() Manager {
 }
 
 func NewManagerRetError() (Manager, error) {
-	return localManager{}, util.Error(macro.FileLine(), "error")
+	return localManager{}, errors.New("NewManagerRetError error")
 }
 
 func NewManagerRetErrorNil() (Manager, error) {
@@ -929,7 +927,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.Provide(NewManagerRetError)
 		c.RefreshProperties(prop)
 		err := c.Refresh()
-		assert.Error(t, err, "core_test.go:\\d* error")
+		assert.Error(t, err, "NewManagerRetError error")
 	})
 
 	t.Run("manager return error nil", func(t *testing.T) {
@@ -983,7 +981,7 @@ func (d *callDestroy) InitWithError() error {
 		d.inited = true
 		return nil
 	}
-	return util.Error(macro.FileLine(), "error")
+	return errors.New("InitWithError error")
 }
 
 func (d *callDestroy) DestroyWithError() error {
@@ -991,7 +989,7 @@ func (d *callDestroy) DestroyWithError() error {
 		d.destroyed = true
 		return nil
 	}
-	return util.Error(macro.FileLine(), "error")
+	return errors.New("DestroyWithError error")
 }
 
 type nestedCallDestroy struct {

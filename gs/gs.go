@@ -73,29 +73,25 @@ func MustBindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
 /************************************ cond ***********************************/
 
 type (
-	Condition      = gs.Condition
-	CondContext    = gs.CondContext
-	PropertyOption = gs_cond.PropertyOption
-	ConditionError = gs_cond.ConditionError
+	CondBean    = gs.CondBean
+	CondFunc    = gs.CondFunc
+	Condition   = gs.Condition
+	CondContext = gs.CondContext
 )
 
-func NewCondError(cond gs.Condition, err error) error {
-	return gs_cond.NewCondError(cond, err)
-}
-
-func OnFunc(fn func(ctx CondContext) (bool, error)) Condition {
+func OnFunc(fn CondFunc) Condition {
 	return gs_cond.OnFunc(fn)
 }
 
-func MatchIfMissing() PropertyOption {
+func MatchIfMissing() gs_cond.PropertyOption {
 	return gs_cond.MatchIfMissing()
 }
 
-func HavingValue(havingValue string) PropertyOption {
+func HavingValue(havingValue string) gs_cond.PropertyOption {
 	return gs_cond.HavingValue(havingValue)
 }
 
-func OnProperty(name string, options ...PropertyOption) Condition {
+func OnProperty(name string, options ...gs_cond.PropertyOption) Condition {
 	return gs_cond.OnProperty(name, options...)
 }
 
