@@ -252,7 +252,7 @@ func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 // OptionArg represents a binding for an option function argument.
 type OptionArg struct {
 	r *Callable
-	c gs.Condition
+	c []gs.Condition
 }
 
 // Option creates a binding for an option function argument.
@@ -272,7 +272,7 @@ func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 
 // Condition sets a condition for invoking the option function.
 func (arg *OptionArg) Condition(c gs.Condition) *OptionArg {
-	arg.c = c
+	arg.c = append(arg.c, c)
 	return arg
 }
 
@@ -294,8 +294,8 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 	}()
 
 	// checks if the condition is met.
-	if arg.c != nil {
-		ok, err = ctx.Matches(arg.c)
+	for _, c := range arg.c {
+		ok, err = ctx.Matches(c)
 		if err != nil {
 			return reflect.Value{}, err
 		} else if !ok {
@@ -345,22 +345,6 @@ func Bind(fn interface{}, args []gs.Arg, skip int) (*Callable, error) {
 		fileLine: fmt.Sprintf("%s:%d", file, line),
 	}
 	return r, nil
-}
-
-// Arg retrieves the i-th binding argument.
-func (r *Callable) Arg(i int) (gs.Arg, bool) {
-	if i >= len(r.argList.args) {
-		return nil, false
-	}
-	return r.argList.args[i], true
-}
-
-// In retrieves the i-th input parameter type of the function.
-func (r *Callable) In(i int) (reflect.Type, bool) {
-	if i >= r.fnType.NumIn() {
-		return nil, false
-	}
-	return r.fnType.In(i), true
 }
 
 // Call invokes the function with its bound arguments processed in the IoC container.

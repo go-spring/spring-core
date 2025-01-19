@@ -87,8 +87,6 @@ type ArgContext interface {
 }
 
 type Callable interface {
-	Arg(i int) (Arg, bool)
-	In(i int) (reflect.Type, bool)
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 

@@ -94,9 +94,11 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		}
 		method := strings.LastIndexByte(fnInfo.Name(), ')') > 0
 		if method {
-			selector, ok := f.Arg(0)
-			if !ok || selector == "" {
-				selector, _ = f.In(0)
+			var selector interface{}
+			if len(ctorArgs) > 0 {
+				selector = ctorArgs[0]
+			} else {
+				selector = t.In(0)
 			}
 			cond = gs_cond.OnBean(selector)
 		}
