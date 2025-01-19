@@ -17,7 +17,6 @@
 package gs_cond_test
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -25,14 +24,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util/assert"
 )
-
-func TestConditionError(t *testing.T) {
-	c1 := gs_cond.OnProperty("a")
-	c2 := gs_cond.And(c1, gs_cond.OnBean("a"))
-	e := gs_cond.NewCondError(c1, errors.New("invalid param"))
-	e = gs_cond.NewCondError(c2, e)
-	assert.Equal(t, fmt.Sprint(e), `condition error: And(...) -> OnProperty(name=a) -> invalid param`)
-}
 
 func TestConditionString(t *testing.T) {
 

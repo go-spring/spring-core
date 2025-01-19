@@ -19,65 +19,14 @@
 package gs_cond
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/errutil"
 )
-
-// ConditionError is a wrapper for combining a [gs.Condition] and an error.
-// It maintains a stack of conditions that led to the error for better traceability.
-type ConditionError struct {
-	err   error          // The wrapped error.
-	stack []gs.Condition // Stack of conditions associated with the error.
-}
-
-// NewCondError creates and returns a new ConditionError.
-// If the provided error is already a ConditionError, it appends the new condition
-// to the existing stack; otherwise, it initializes a new ConditionError instance.
-func NewCondError(cond gs.Condition, err error) error {
-	if err == nil || cond == nil {
-		return nil
-	}
-	var e *ConditionError
-	if errors.As(err, &e) {
-		e.stack = append(e.stack, cond)
-		return e
-	}
-	return &ConditionError{err: err, stack: []gs.Condition{cond}}
-}
-
-// Error implements the error interface and returns a detailed error message.
-// It provides a readable trace of conditions and the underlying error.
-func (e *ConditionError) Error() string {
-	var sb strings.Builder
-	sb.WriteString("condition error: ")
-	for i := len(e.stack) - 1; i >= 0; i-- {
-		c := e.stack[i]
-		switch c.(type) {
-		case *onOr:
-			sb.WriteString("Or(...)")
-		case *onAnd:
-			sb.WriteString("And(...)")
-		case *onNone:
-			sb.WriteString("None(...)")
-		default:
-			sb.WriteString(fmt.Sprint(c))
-		}
-		if i > 0 {
-			sb.WriteString(" -> ")
-		}
-	}
-	sb.WriteString(" -> ")
-	sb.WriteString(e.err.Error())
-	return sb.String()
-}
-
-// Unwrap retrieves the underlying error wrapped by the ConditionError.
-func (e *ConditionError) Unwrap() error { return e.err }
 
 /********************************* OnFunc ************************************/
 
@@ -95,7 +44,7 @@ func OnFunc(fn gs.CondFunc) gs.Condition {
 func (c *onFunc) Matches(ctx gs.CondContext) (bool, error) {
 	ok, err := c.fn(ctx)
 	if err != nil {
-		return false, NewCondError(c, err)
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
 	return ok, nil
 }
@@ -179,7 +128,7 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 	// Evaluate the expression and return the result.
 	ok, err := EvalExpr(c.havingValue[5:], getValue(val))
 	if err != nil {
-		return false, NewCondError(c, err)
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
 	return ok, nil
 }
@@ -236,7 +185,7 @@ func OnBean(selector gs.BeanSelector) gs.Condition {
 func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	if err != nil {
-		return false, NewCondError(c, err)
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
 	return len(beans) > 0, nil
 }
@@ -261,7 +210,7 @@ func OnMissingBean(selector gs.BeanSelector) gs.Condition {
 func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	if err != nil {
-		return false, NewCondError(c, err)
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
 	return len(beans) == 0, nil
 }
@@ -286,7 +235,7 @@ func OnSingleBean(selector gs.BeanSelector) gs.Condition {
 func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.selector)
 	if err != nil {
-		return false, NewCondError(c, err)
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
 	return len(beans) == 1, nil
 }
@@ -310,7 +259,8 @@ func OnExpression(expression string) gs.Condition {
 }
 
 func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
-	return false, NewCondError(c, util.UnimplementedMethod)
+	err := util.UnimplementedMethod
+	return false, errutil.WrapError(err, "condition matches error: %s", c)
 }
 
 func (c *onExpression) String() string {
@@ -333,7 +283,7 @@ func Not(c gs.Condition) gs.Condition {
 func (c *not) Matches(ctx gs.CondContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	if err != nil {
-		return false, NewCondError(c, err)
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
 	return !ok, nil
 }
@@ -364,7 +314,7 @@ func Or(cond ...gs.Condition) gs.Condition {
 func (g *onOr) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
 		if ok, err := c.Matches(ctx); err != nil {
-			return false, NewCondError(g, err)
+			return false, errutil.WrapError(err, "condition matches error: %s", g)
 		} else if ok {
 			return true, nil
 		}
@@ -399,7 +349,7 @@ func (g *onAnd) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
 		ok, err := c.Matches(ctx)
 		if err != nil {
-			return false, NewCondError(g, err)
+			return false, errutil.WrapError(err, "condition matches error: %s", g)
 		} else if !ok {
 			return false, nil
 		}
@@ -433,7 +383,7 @@ func None(cond ...gs.Condition) gs.Condition {
 func (g *onNone) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.cond {
 		if ok, err := c.Matches(ctx); err != nil {
-			return false, NewCondError(g, err)
+			return false, errutil.WrapError(err, "condition matches error: %s", g)
 		} else if ok {
 			return false, nil
 		}

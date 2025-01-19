@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package util
+package errutil
 
 import (
-	"errors"
+	"fmt"
 )
 
-// ForbiddenMethod throws this error when calling a method is prohibited.
-var ForbiddenMethod = errors.New("forbidden method")
+// LineBreak defines the separator used between errors with hierarchical relationships.
+var LineBreak = "; "
 
-// UnimplementedMethod throws this error when calling an unimplemented method.
-var UnimplementedMethod = errors.New("unimplemented method")
+// WrapError wraps an existing error, creating a new error with hierarchical relationships.
+func WrapError(err error, format string, args ...interface{}) error {
+	msg := fmt.Sprintf(format, args...)
+	return fmt.Errorf("%w%s%s", err, LineBreak, msg)
+}
