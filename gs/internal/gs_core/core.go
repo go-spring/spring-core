@@ -188,7 +188,7 @@ func (c *Container) Refresh() (err error) {
 
 	// processes configuration beans to register beans.
 	for _, b := range c.beans {
-		if !b.IsConfiguration() {
+		if !b.Configuration() {
 			continue
 		}
 		var newBeans []*gs_bean.BeanDefinition
@@ -295,7 +295,8 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 		includes []*regexp.Regexp
 		excludes []*regexp.Regexp
 	)
-	ss := bd.GetIncludeMethod()
+	param := bd.ConfigurationParam()
+	ss := param.Includes
 	if len(ss) == 0 {
 		ss = []string{"New*"}
 	}
@@ -307,7 +308,7 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 		}
 		includes = append(includes, x)
 	}
-	ss = bd.GetExcludeMethod()
+	ss = param.Excludes
 	for _, s := range ss {
 		var x *regexp.Regexp
 		x, err := regexp.Compile(s)

@@ -111,9 +111,8 @@ type Refreshable interface {
 /*********************************** bean ************************************/
 
 type ConfigurationParam struct {
-	Enable  bool     // 是否扫描成员方法
-	Include []string // 包含哪些成员方法
-	Exclude []string // 排除那些成员方法
+	Includes []string // 包含哪些成员方法
+	Excludes []string // 排除那些成员方法
 }
 
 // BeanRegistration provides methods for configuring bean metadata.
@@ -122,11 +121,11 @@ type BeanRegistration interface {
 	Type() reflect.Type
 	SetCaller(skip int)
 	SetName(name string)
-	AddCondition(cond Condition)
-	SetDependsOn(selectors ...BeanSelector)
-	SetPrimary()
 	SetInit(fn interface{})
 	SetDestroy(fn interface{})
+	SetCondition(cond Condition)
+	SetDependsOn(selectors ...BeanSelector)
+	SetPrimary()
 	SetExport(exports ...interface{})
 	SetConfiguration(param ...ConfigurationParam)
 	SetRefreshable(tag string)
@@ -152,33 +151,15 @@ func (d *beanBuilder[T]) Type() reflect.Type {
 	return d.b.Type()
 }
 
-// Name sets the name of the bean.
-func (d *beanBuilder[T]) Name(name string) *T {
-	d.b.SetName(name)
-	return *(**T)(unsafe.Pointer(&d))
-}
-
 // Caller sets the caller information for the bean.
 func (d *beanBuilder[T]) Caller(skip int) *T {
 	d.b.SetCaller(skip)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Condition sets the condition of the bean.
-func (d *beanBuilder[T]) Condition(cond Condition) *T {
-	d.b.AddCondition(cond)
-	return *(**T)(unsafe.Pointer(&d))
-}
-
-// DependsOn sets the dependencies for the bean.
-func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
-	d.b.SetDependsOn(selectors...)
-	return *(**T)(unsafe.Pointer(&d))
-}
-
-// Primary marks the bean as primary.
-func (d *beanBuilder[T]) Primary() *T {
-	d.b.SetPrimary()
+// Name sets the name of the bean.
+func (d *beanBuilder[T]) Name(name string) *T {
+	d.b.SetName(name)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
@@ -191,6 +172,24 @@ func (d *beanBuilder[T]) Init(fn interface{}) *T {
 // Destroy sets the destroy function.
 func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
 	d.b.SetDestroy(fn)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// Condition sets the condition of the bean.
+func (d *beanBuilder[T]) Condition(cond Condition) *T {
+	d.b.SetCondition(cond)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// DependsOn sets the dependencies for the bean.
+func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
+	d.b.SetDependsOn(selectors...)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// Primary marks the bean as primary.
+func (d *beanBuilder[T]) Primary() *T {
+	d.b.SetPrimary()
 	return *(**T)(unsafe.Pointer(&d))
 }
 

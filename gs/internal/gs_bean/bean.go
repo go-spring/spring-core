@@ -86,7 +86,8 @@ type BeanMetadata struct {
 	line    int
 	status  BeanStatus
 
-	configuration gs.ConfigurationParam
+	isConfiguration    bool
+	configurationParam gs.ConfigurationParam
 
 	refreshable bool
 	refreshTag  string
@@ -117,19 +118,13 @@ func (d *BeanMetadata) Exports() []reflect.Type {
 	return d.exports
 }
 
-// IsConfiguration returns whether the bean is a configuration bean.
-func (d *BeanMetadata) IsConfiguration() bool {
-	return d.configuration.Enable
+// Configuration returns whether the bean is a configuration bean.
+func (d *BeanMetadata) Configuration() bool {
+	return d.isConfiguration
 }
 
-// GetIncludeMethod returns the bean's include method.
-func (d *BeanMetadata) GetIncludeMethod() []string {
-	return d.configuration.Include
-}
-
-// GetExcludeMethod returns the bean's exclude method.
-func (d *BeanMetadata) GetExcludeMethod() []string {
-	return d.configuration.Exclude
+func (d *BeanMetadata) ConfigurationParam() gs.ConfigurationParam {
+	return d.configurationParam
 }
 
 func (d *BeanMetadata) Refreshable() bool {
@@ -269,7 +264,7 @@ func (d *BeanDefinition) SetCaller(skip int) {
 	_, d.file, d.line, _ = runtime.Caller(skip)
 }
 
-func (d *BeanDefinition) AddCondition(cond gs.Condition) {
+func (d *BeanDefinition) SetCondition(cond gs.Condition) {
 	if cond != nil {
 		d.cond = append(d.cond, cond)
 	}
@@ -341,10 +336,17 @@ func (d *BeanDefinition) SetExport(exports ...interface{}) {
 }
 
 func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
-	if len(param) > 0 {
-		d.configuration = param[0]
+	d.isConfiguration = true
+	if len(param) == 0 {
+		return
 	}
-	d.configuration.Enable = true
+	x := param[0]
+	if len(x.Includes) > 0 {
+		d.configurationParam.Includes = x.Includes
+	}
+	if len(x.Excludes) > 0 {
+		d.configurationParam.Excludes = x.Excludes
+	}
 }
 
 func (d *BeanDefinition) SetRefreshable(tag string) {
