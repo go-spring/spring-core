@@ -627,11 +627,15 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *Wirin
 	}
 
 	// 如果 bean 实现了 dync.Refreshable 接口，则将 bean 添加到可刷新对象列表中。
-	if b.EnableRefresh() {
+	if b.Refreshable() {
 		i := b.Interface().(gs.Refreshable)
-		refreshParam := b.RefreshParam()
+		var param conf.BindParam
+		err = param.BindTag(b.RefreshTag(), "")
+		if err != nil {
+			return err
+		}
 		watch := c.state == Refreshing
-		if err = c.p.RefreshBean(i, refreshParam, watch); err != nil {
+		if err = c.p.RefreshBean(i, param, watch); err != nil {
 			return err
 		}
 	}

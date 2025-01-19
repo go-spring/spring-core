@@ -122,14 +122,14 @@ type BeanRegistration interface {
 	Type() reflect.Type
 	SetCaller(skip int)
 	SetName(name string)
-	SetCondition(cond Condition)
+	AddCondition(cond Condition)
 	SetDependsOn(selectors ...BeanSelector)
 	SetPrimary()
 	SetInit(fn interface{})
 	SetDestroy(fn interface{})
 	SetExport(exports ...interface{})
 	SetConfiguration(param ...ConfigurationParam)
-	SetEnableRefresh(tag string)
+	SetRefreshable(tag string)
 }
 
 // beanBuilder helps configure a bean during its creation.
@@ -166,7 +166,7 @@ func (d *beanBuilder[T]) Caller(skip int) *T {
 
 // Condition sets the condition of the bean.
 func (d *beanBuilder[T]) Condition(cond Condition) *T {
-	d.b.SetCondition(cond)
+	d.b.AddCondition(cond)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
@@ -205,8 +205,8 @@ func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T {
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-func (d *beanBuilder[T]) EnableRefresh(tag string) *T {
-	d.b.SetEnableRefresh(tag)
+func (d *beanBuilder[T]) Refreshable(tag string) *T {
+	d.b.SetRefreshable(tag)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

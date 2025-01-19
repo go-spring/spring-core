@@ -22,9 +22,7 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -90,19 +88,13 @@ type BeanMetadata struct {
 
 	configuration gs.ConfigurationParam
 
-	enableRefresh bool
-	refreshParam  conf.BindParam
+	refreshable bool
+	refreshTag  string
 }
 
 // Condition returns the combined conditions for the bean.
-func (d *BeanMetadata) Condition() gs.Condition {
-	if n := len(d.cond); n == 0 {
-		return nil
-	} else if n == 1 {
-		return d.cond[0]
-	} else {
-		return gs_cond.And(d.cond...)
-	}
+func (d *BeanMetadata) Condition() []gs.Condition {
+	return d.cond
 }
 
 // Init returns the bean initialization function.
@@ -140,14 +132,12 @@ func (d *BeanMetadata) GetExcludeMethod() []string {
 	return d.configuration.Exclude
 }
 
-// EnableRefresh returns whether the bean's refresh is enabled.
-func (d *BeanMetadata) EnableRefresh() bool {
-	return d.enableRefresh
+func (d *BeanMetadata) Refreshable() bool {
+	return d.refreshable
 }
 
-// RefreshParam returns the bean's refresh param.
-func (d *BeanMetadata) RefreshParam() conf.BindParam {
-	return d.refreshParam
+func (d *BeanMetadata) RefreshTag() string {
+	return d.refreshTag
 }
 
 // File returns the bean's file.
@@ -279,8 +269,7 @@ func (d *BeanDefinition) SetCaller(skip int) {
 	_, d.file, d.line, _ = runtime.Caller(skip)
 }
 
-// SetCondition sets the bean's condition.
-func (d *BeanDefinition) SetCondition(cond gs.Condition) {
+func (d *BeanDefinition) AddCondition(cond gs.Condition) {
 	if cond != nil {
 		d.cond = append(d.cond, cond)
 	}
@@ -358,15 +347,12 @@ func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
 	d.configuration.Enable = true
 }
 
-func (d *BeanDefinition) SetEnableRefresh(tag string) {
+func (d *BeanDefinition) SetRefreshable(tag string) {
 	if !d.Type().Implements(refreshableType) {
 		panic(errors.New("must implement dync.Refreshable interface"))
 	}
-	d.enableRefresh = true
-	err := d.refreshParam.BindTag(tag, "")
-	if err != nil {
-		panic(err)
-	}
+	d.refreshable = true
+	d.refreshTag = tag
 }
 
 func (d *BeanDefinition) String() string {

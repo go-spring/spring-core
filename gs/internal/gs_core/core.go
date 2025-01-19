@@ -389,7 +389,7 @@ func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
 		return nil
 	}
 	b.SetStatus(gs_bean.Resolving)
-	if cond := b.Condition(); cond != nil {
+	for _, cond := range b.Condition() {
 		if ok, err := cond.Matches(c); err != nil {
 			return err
 		} else if !ok {
