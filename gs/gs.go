@@ -150,8 +150,7 @@ type (
 )
 
 type (
-	BeanInit    = gs_bean.BeanInit
-	BeanDestroy = gs_bean.BeanDestroy
+	Properties = gs.Properties
 )
 
 type (
@@ -160,8 +159,13 @@ type (
 )
 
 type (
-	Properties  = gs.Properties
+	Refreshable = gs.Refreshable
 	Dync[T any] = gs_dync.Value[T]
+)
+
+type (
+	BeanInit    = gs_bean.BeanInit
+	BeanDestroy = gs_bean.BeanDestroy
 )
 
 type (
