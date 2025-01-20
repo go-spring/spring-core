@@ -29,7 +29,7 @@ import (
 // refreshableType is the [reflect.Type] of the interface [gs.Refreshable].
 var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
-// BeanStatus represents the status of a bean.
+// BeanStatus represents the different lifecycle statuses of a bean.
 type BeanStatus int8
 
 const (
@@ -42,8 +42,8 @@ const (
 	StatusWired                        // Bean has been wired.
 )
 
-// GetStatusString returns the string of the given BeanStatus.
-func GetStatusString(status BeanStatus) string {
+// String returns a human-readable string of the bean status.
+func (status BeanStatus) String() string {
 	switch status {
 	case StatusDeleted:
 		return "deleted"
@@ -76,21 +76,21 @@ type BeanDestroy interface {
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f       gs.Callable       // Callable for the bean (ctor or method).
-	init    interface{}       // Initialization function for the bean.
-	destroy interface{}       // Destruction function for the bean.
-	depend  []gs.BeanSelector // List of dependencies for the bean.
-	export  []reflect.Type    // List of exported types for the bean.
-	cond    []gs.Condition    // List of conditions for the bean.
-	status  BeanStatus        // Current status of the bean.
+	f          gs.Callable       // Callable for the bean (ctor or method).
+	init       interface{}       // Initialization function for the bean.
+	destroy    interface{}       // Destruction function for the bean.
+	dependsOn  []gs.BeanSelector // List of dependencies for the bean.
+	exports    []reflect.Type    // List of exported types for the bean.
+	conditions []gs.Condition    // List of conditions for the bean.
+	status     BeanStatus        // Current status of the bean.
 
 	file string // The file where the bean is defined.
 	line int    // The line number in the file where the bean is defined.
 
-	isConfiguration    bool                  // Whether the bean is a configuration bean.
+	configurationBean  bool                  // Whether the bean is a configuration bean.
 	configurationParam gs.ConfigurationParam // Configuration parameters for the bean.
 
-	refreshable bool   // Whether the bean is refreshable.
+	refreshable bool   // Whether the bean can be refreshed.
 	refreshTag  string // Refresh tag for the bean.
 }
 
@@ -106,17 +106,17 @@ func (d *BeanMetadata) Destroy() interface{} {
 
 // DependsOn returns the list of dependencies for the bean.
 func (d *BeanMetadata) DependsOn() []gs.BeanSelector {
-	return d.depend
+	return d.dependsOn
 }
 
-// Export returns the list of exported types for the bean.
-func (d *BeanMetadata) Export() []reflect.Type {
-	return d.export
+// Exports returns the list of exported types for the bean.
+func (d *BeanMetadata) Exports() []reflect.Type {
+	return d.exports
 }
 
-// Configuration returns whether the bean is a configuration bean.
-func (d *BeanMetadata) Configuration() bool {
-	return d.isConfiguration
+// ConfigurationBean returns whether the bean is a configuration bean.
+func (d *BeanMetadata) ConfigurationBean() bool {
+	return d.configurationBean
 }
 
 // ConfigurationParam returns the configuration parameters for the bean.
@@ -134,9 +134,9 @@ func (d *BeanMetadata) RefreshTag() string {
 	return d.refreshTag
 }
 
-// Condition returns the list of conditions for the bean.
-func (d *BeanMetadata) Condition() []gs.Condition {
-	return d.cond
+// Conditions returns the list of conditions for the bean.
+func (d *BeanMetadata) Conditions() []gs.Condition {
+	return d.conditions
 }
 
 // File returns the file where the bean is defined.
@@ -144,7 +144,7 @@ func (d *BeanMetadata) File() string {
 	return d.file
 }
 
-// Line returns the line number in the file where the bean is defined.
+// Line returns the line number where the bean is defined.
 func (d *BeanMetadata) Line() int {
 	return d.line
 }
@@ -288,13 +288,13 @@ func (d *BeanDefinition) SetDestroy(fn interface{}) {
 // AddCondition adds a condition to the list of conditions for the bean.
 func (d *BeanDefinition) AddCondition(cond gs.Condition) {
 	if cond != nil {
-		d.cond = append(d.cond, cond)
+		d.conditions = append(d.conditions, cond)
 	}
 }
 
 // SetDependsOn sets the list of dependencies for the bean.
 func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
-	d.depend = append(d.depend, selectors...)
+	d.dependsOn = append(d.dependsOn, selectors...)
 }
 
 // SetExport sets the exported interfaces for the bean.
@@ -311,7 +311,7 @@ func (d *BeanDefinition) SetExport(exports ...interface{}) {
 			panic(errors.New("only interface type can be exported"))
 		}
 		exported := false
-		for _, export := range d.export {
+		for _, export := range d.exports {
 			if t == export {
 				exported = true
 				break
@@ -320,13 +320,13 @@ func (d *BeanDefinition) SetExport(exports ...interface{}) {
 		if exported {
 			continue
 		}
-		d.export = append(d.export, t)
+		d.exports = append(d.exports, t)
 	}
 }
 
 // SetConfiguration sets the configuration flag and parameters for the bean.
 func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
-	d.isConfiguration = true
+	d.configurationBean = true
 	if len(param) == 0 {
 		return
 	}
@@ -342,7 +342,7 @@ func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
 // SetRefreshable sets the refreshable flag and tag for the bean.
 func (d *BeanDefinition) SetRefreshable(tag string) {
 	if !d.Type().Implements(refreshableType) {
-		panic(errors.New("must implement dync.Refreshable interface"))
+		panic(errors.New("must implement gs.Refreshable interface"))
 	}
 	d.refreshable = true
 	d.refreshTag = tag

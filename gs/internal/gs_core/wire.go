@@ -96,7 +96,7 @@ func NewWiringStack() *WiringStack {
 
 // pushBack 添加一个即将注入的 bean 。
 func (s *WiringStack) pushBack(b *gs_bean.BeanDefinition) {
-	syslog.Debugf("push %s %s", b, gs_bean.GetStatusString(b.Status()))
+	syslog.Debugf("push %s %s", b, b.Status())
 	s.beans = append(s.beans, b)
 }
 
@@ -105,7 +105,7 @@ func (s *WiringStack) popBack() {
 	n := len(s.beans)
 	b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
-	syslog.Debugf("pop %s %s", b, gs_bean.GetStatusString(b.Status()))
+	syslog.Debugf("pop %s %s", b, b.Status())
 }
 
 // path 返回 bean 的注入路径。
@@ -576,7 +576,7 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *Wirin
 	b.SetStatus(gs_bean.StatusCreated)
 
 	t := v.Type()
-	for _, typ := range b.Export() {
+	for _, typ := range b.Exports() {
 		if !t.Implements(typ) {
 			return fmt.Errorf("%s doesn't implement interface %s", b, typ)
 		}

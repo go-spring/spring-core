@@ -187,7 +187,7 @@ func (c *Container) Refresh() (err error) {
 
 	// processes configuration beans to register beans.
 	for _, b := range c.beans {
-		if !b.Configuration() {
+		if !b.ConfigurationBean() {
 			continue
 		}
 		var newBeans []*gs_bean.BeanDefinition
@@ -378,7 +378,7 @@ func (c *Container) registerBean(b *gs_bean.BeanDefinition) {
 	}
 	c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
-	for _, t := range b.Export() {
+	for _, t := range b.Exports() {
 		c.beansByType[t] = append(c.beansByType[t], b)
 	}
 }
@@ -389,7 +389,7 @@ func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
 		return nil
 	}
 	b.SetStatus(gs_bean.StatusResolving)
-	for _, cond := range b.Condition() {
+	for _, cond := range b.Conditions() {
 		if ok, err := cond.Matches(c); err != nil {
 			return err
 		} else if !ok {
