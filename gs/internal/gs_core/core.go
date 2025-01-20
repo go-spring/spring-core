@@ -215,10 +215,10 @@ func (c *Container) Refresh() (err error) {
 	// caches all beans by id and checks for duplicates.
 	beansById := make(map[string]*gs_bean.BeanDefinition)
 	for _, b := range c.beans {
-		if b.Status() == gs_bean.Deleted {
+		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		if b.Status() != gs_bean.Resolved {
+		if b.Status() != gs_bean.StatusResolved {
 			return fmt.Errorf("unexpected status %d", b.Status())
 		}
 		beanID := b.ID()
@@ -373,31 +373,31 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 
 // registerBean registers a bean by name and type.
 func (c *Container) registerBean(b *gs_bean.BeanDefinition) {
-	if b.Status() == gs_bean.Deleted {
+	if b.Status() == gs_bean.StatusDeleted {
 		return
 	}
 	c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
 	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
-	for _, t := range b.Exports() {
+	for _, t := range b.Export() {
 		c.beansByType[t] = append(c.beansByType[t], b)
 	}
 }
 
 // resolveBean determines the validity of the bean.
 func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
-	if b.Status() >= gs_bean.Resolving {
+	if b.Status() >= gs_bean.StatusResolving {
 		return nil
 	}
-	b.SetStatus(gs_bean.Resolving)
+	b.SetStatus(gs_bean.StatusResolving)
 	for _, cond := range b.Condition() {
 		if ok, err := cond.Matches(c); err != nil {
 			return err
 		} else if !ok {
-			b.SetStatus(gs_bean.Deleted)
+			b.SetStatus(gs_bean.StatusDeleted)
 			return nil
 		}
 	}
-	b.SetStatus(gs_bean.Resolved)
+	b.SetStatus(gs_bean.StatusResolved)
 	return nil
 }
 
@@ -408,13 +408,13 @@ func (c *Container) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
 	finder := func(fn func(*gs_bean.BeanDefinition) bool) ([]gs.CondBean, error) {
 		var result []gs.CondBean
 		for _, b := range c.beans {
-			if b.Status() == gs_bean.Resolving || b.Status() == gs_bean.Deleted || !fn(b) {
+			if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted || !fn(b) {
 				continue
 			}
 			if err := c.resolveBean(b); err != nil {
 				return nil, err
 			}
-			if b.Status() == gs_bean.Deleted {
+			if b.Status() == gs_bean.StatusDeleted {
 				continue
 			}
 			result = append(result, b)

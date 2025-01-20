@@ -132,7 +132,7 @@ func (s *WiringStack) sortDestroyers() []func() {
 	destroy := func(v reflect.Value, fn interface{}) func() {
 		return func() {
 			if fn == nil {
-				v.Interface().(gs_bean.BeanDestroy).OnDestroy()
+				v.Interface().(gs_bean.BeanDestroy).OnBeanDestroy()
 			} else {
 				fnValue := reflect.ValueOf(fn)
 				out := fnValue.Call([]reflect.Value{v})
@@ -316,7 +316,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	{
 		var arr []BeanRuntime
 		for _, b := range beans {
-			if b.Status() == gs_bean.Deleted {
+			if b.Status() == gs_bean.StatusDeleted {
 				continue
 			}
 			arr = append(arr, b)
@@ -434,7 +434,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 
 	var foundBeans []BeanRuntime
 	for _, b := range c.beansByType[t] {
-		if b.Status() == gs_bean.Deleted {
+		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
 		if !b.Match(tag.typeName, tag.beanName) {
@@ -446,7 +446,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 	// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
 	if t.Kind() == reflect.Interface && tag.beanName != "" {
 		for _, b := range c.beansByName[tag.beanName] {
-			if b.Status() == gs_bean.Deleted {
+			if b.Status() == gs_bean.StatusDeleted {
 				continue
 			}
 			if !b.Type().AssignableTo(t) {
@@ -511,12 +511,12 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 // 实例化被依赖的 bean 然后对它们进行注入。
 func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *WiringStack) error {
 
-	if b.Status() == gs_bean.Deleted {
+	if b.Status() == gs_bean.StatusDeleted {
 		return fmt.Errorf("bean:%q have been deleted", b.ID())
 	}
 
 	// 运行时 Get 或者 Wire 会出现下面这种情况。
-	if c.state == Refreshed && b.Status() == gs_bean.Wired {
+	if c.state == Refreshed && b.Status() == gs_bean.StatusWired {
 		return nil
 	}
 
@@ -540,19 +540,19 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *Wirin
 
 	stack.pushBack(b)
 
-	if b.Status() == gs_bean.Creating && b.Callable() != nil {
+	if b.Status() == gs_bean.StatusCreating && b.Callable() != nil {
 		prev := stack.beans[len(stack.beans)-2]
-		if prev.Status() == gs_bean.Creating {
+		if prev.Status() == gs_bean.StatusCreating {
 			return errors.New("found circle autowire")
 		}
 	}
 
-	if b.Status() >= gs_bean.Creating {
+	if b.Status() >= gs_bean.StatusCreating {
 		stack.popBack()
 		return nil
 	}
 
-	b.SetStatus(gs_bean.Creating)
+	b.SetStatus(gs_bean.StatusCreating)
 
 	// 对当前 bean 的间接依赖项进行注入。
 	for _, s := range b.DependsOn() {
@@ -573,10 +573,10 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *Wirin
 		return err
 	}
 
-	b.SetStatus(gs_bean.Created)
+	b.SetStatus(gs_bean.StatusCreated)
 
 	t := v.Type()
-	for _, typ := range b.Exports() {
+	for _, typ := range b.Export() {
 		if !t.Implements(typ) {
 			return fmt.Errorf("%s doesn't implement interface %s", b, typ)
 		}
@@ -598,7 +598,7 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *Wirin
 
 	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
 	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
-		if err = f.OnInit(c); err != nil {
+		if err = f.OnBeanInit(c); err != nil {
 			return err
 		}
 	}
@@ -617,7 +617,7 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *Wirin
 		}
 	}
 
-	b.SetStatus(gs_bean.Wired)
+	b.SetStatus(gs_bean.StatusWired)
 	stack.popBack()
 	return nil
 }
@@ -637,7 +637,7 @@ func (c *Container) wireBeanAfterRefreshed(b BeanRuntime, stack *WiringStack) er
 
 	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
 	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
-		if err = f.OnInit(c); err != nil {
+		if err = f.OnBeanInit(c); err != nil {
 			return err
 		}
 	}

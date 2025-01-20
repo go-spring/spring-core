@@ -56,15 +56,14 @@ type CondContext interface {
 	// Prop returns the value of a property from the IoC container,
 	// or an empty string if it doesn't exist.
 	Prop(key string, opts ...conf.GetOption) string
-	// Find searches for bean definitions matching the given bean selector.
+	// Find searches for bean definitions matching the provided BeanSelector.
 	Find(selector BeanSelector) ([]CondBean, error)
 }
 
-// CondFunc is a function that returns true if the condition is met.
+// CondFunc defines a function that determines whether a condition is met.
 type CondFunc func(ctx CondContext) (bool, error)
 
-// Condition is used when registering a bean to determine if it's valid
-// based on certain conditions.
+// Condition is a conditional logic interface used when registering beans.
 type Condition interface {
 	Matches(ctx CondContext) (bool, error)
 }
@@ -76,7 +75,7 @@ type Condition interface {
 // - A string in the form of ${X:=Y} (for property binding or bean injection),
 // - A ValueArg type (for normal user-provided values),
 // - An IndexArg type (for indexed parameter binding),
-// - An *optionArg type (for binding arguments in Option methods).
+// - An *OptionArg type (for binding arguments in Option methods).
 type Arg interface{}
 
 // ArgContext defines methods for the IoC container used by Callable types.
@@ -89,14 +88,14 @@ type ArgContext interface {
 	Wire(v reflect.Value, tag string) error
 }
 
-// Callable represents an entity that can be called with the given ArgContext.
+// Callable represents an entity that can be invoked with an ArgContext.
 type Callable interface {
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 
 /*********************************** conf ************************************/
 
-// Properties defines methods for managing properties in the IoC container.
+// Properties defines methods for managing properties in an IoC container.
 type Properties interface {
 	// Data returns the map of all properties.
 	Data() map[string]string
@@ -104,15 +103,15 @@ type Properties interface {
 	Keys() []string
 	// Has checks if the property exists.
 	Has(key string) bool
-	// SubKeys returns a list of sub-keys for a given key.
+	// SubKeys retrieves the sub-keys for a given key.
 	SubKeys(key string) ([]string, error)
 	// Get retrieves the value of a property.
 	Get(key string, opts ...conf.GetOption) string
 	// Resolve resolves a string value to its final value, possibly involving placeholders.
 	Resolve(s string) (string, error)
-	// Bind binds the properties to the provided struct.
+	// Bind binds the properties to a provided struct or variable.
 	Bind(i interface{}, args ...conf.BindArg) error
-	// CopyTo copies the properties to another [*conf.Properties] object.
+	// CopyTo copies the properties to another [*conf.Properties].
 	CopyTo(out *conf.Properties) error
 }
 
@@ -144,8 +143,8 @@ type BeanRegistration interface {
 	SetInit(fn interface{})
 	// SetDestroy sets the destruction function for the bean.
 	SetDestroy(fn interface{})
-	// SetCondition adds a condition for the bean.
-	SetCondition(cond Condition)
+	// AddCondition adds a condition for the bean.
+	AddCondition(cond Condition)
 	// SetDependsOn sets the beans that this bean depends on.
 	SetDependsOn(selectors ...BeanSelector)
 	// SetExport defines the interfaces to be exported by the bean.
@@ -176,7 +175,7 @@ func (d *beanBuilder[T]) Type() reflect.Type {
 	return d.b.Type()
 }
 
-// Caller sets the caller information for the bean, skipping 'skip' number of callers.
+// Caller sets caller information, skipping 'skip' number of callers.
 func (d *beanBuilder[T]) Caller(skip int) *T {
 	d.b.SetCaller(skip)
 	return *(**T)(unsafe.Pointer(&d))
@@ -200,9 +199,9 @@ func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Condition adds the condition for the bean to be valid.
+// Condition adds a condition to validate the bean.
 func (d *beanBuilder[T]) Condition(cond Condition) *T {
-	d.b.SetCondition(cond)
+	d.b.AddCondition(cond)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
@@ -259,7 +258,6 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 // Container represents the modifiable aspects of an IoC (Inversion of Control) container.
 // It provides methods for registering, refreshing, and managing beans in the container.
 type Container interface {
-
 	// Object registers a bean using the provided object instance.
 	Object(i interface{}) *RegisteredBean
 
@@ -288,7 +286,6 @@ type Container interface {
 // Context represents the unmodifiable (or runtime) aspects of an IoC container.
 // It provides methods for accessing properties, resolving values, and retrieving beans.
 type Context interface {
-
 	// Context returns the root [context.Context] associated with the container.
 	Context() context.Context
 
