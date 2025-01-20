@@ -477,25 +477,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 		return fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
 	}
 
-	// 优先使用设置成主版本的 bean
-	var primaryBeans []BeanRuntime
-
-	for _, b := range foundBeans {
-		if b.IsPrimary() {
-			primaryBeans = append(primaryBeans, b)
-		}
-	}
-
-	if len(primaryBeans) > 1 {
-		msg := fmt.Sprintf("found %d primary beans, bean:%q type:%q [", len(primaryBeans), tag, t)
-		for _, b := range primaryBeans {
-			msg += "( " + b.String() + " ), "
-		}
-		msg = msg[:len(msg)-2] + "]"
-		return errors.New(msg)
-	}
-
-	if len(primaryBeans) == 0 && len(foundBeans) > 1 {
+	if len(foundBeans) > 1 {
 		msg := fmt.Sprintf("found %d beans, bean:%q type:%q [", len(foundBeans), tag, t)
 		for _, b := range foundBeans {
 			msg += "( " + b.String() + " ), "
@@ -504,12 +486,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 		return errors.New(msg)
 	}
 
-	var result BeanRuntime
-	if len(primaryBeans) == 1 {
-		result = primaryBeans[0]
-	} else {
-		result = foundBeans[0]
-	}
+	result := foundBeans[0]
 
 	// 确保找到的 bean 已经完成依赖注入。
 	switch c.state {

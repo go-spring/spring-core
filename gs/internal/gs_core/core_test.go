@@ -772,8 +772,7 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 	})
 }
 
-func TestApplicationContext_Primary(t *testing.T) {
-
+func TestApplicationContext_Duplicate(t *testing.T) {
 	t.Run("duplicate", func(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&BeanZero{5})
@@ -782,46 +781,6 @@ func TestApplicationContext_Primary(t *testing.T) {
 		c.Object(new(BeanTwo))
 		err := c.Refresh()
 		assert.Error(t, err, "duplicate beans ")
-	})
-
-	t.Run("duplicate", func(t *testing.T) {
-		c := gs_core.New()
-		c.Object(&BeanZero{5})
-		// primary 是在多个候选 bean 里面选择，而不是允许同名同类型的两个 bean
-		c.Object(&BeanZero{6}).Primary()
-		c.Object(new(BeanOne))
-		c.Object(new(BeanTwo))
-		err := c.Refresh()
-		assert.Error(t, err, "duplicate beans ")
-	})
-
-	t.Run("not primary", func(t *testing.T) {
-		c := gs_core.New()
-		c.Object(&BeanZero{5})
-		c.Object(new(BeanOne))
-		c.Object(new(BeanTwo))
-		err := runTest(c, func(p gs.Context) {
-			var b *BeanTwo
-			err := p.Get(&b)
-			assert.Nil(t, err)
-			assert.Equal(t, b.One.Zero.Int, 5)
-		})
-		assert.Nil(t, err)
-	})
-
-	t.Run("primary", func(t *testing.T) {
-		c := gs_core.New()
-		c.Object(&BeanZero{5})
-		c.Object(&BeanZero{6}).Name("zero_6").Primary()
-		c.Object(new(BeanOne))
-		c.Object(new(BeanTwo))
-		err := runTest(c, func(p gs.Context) {
-			var b *BeanTwo
-			err := p.Get(&b)
-			assert.Nil(t, err)
-			assert.Equal(t, b.One.Zero.Int, 6)
-		})
-		assert.Nil(t, err)
 	})
 }
 

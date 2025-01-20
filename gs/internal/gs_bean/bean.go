@@ -164,7 +164,6 @@ type BeanRuntime struct {
 	t        reflect.Type
 	name     string
 	typeName string
-	primary  bool
 }
 
 // ID returns the bean's id.
@@ -190,11 +189,6 @@ func (d *BeanRuntime) Callable() gs.Callable {
 // Interface returns the bean's underlying value.
 func (d *BeanRuntime) Interface() interface{} {
 	return d.v.Interface()
-}
-
-// IsPrimary returns whether the bean is primary.
-func (d *BeanRuntime) IsPrimary() bool {
-	return d.primary
 }
 
 // Type returns the bean's type.
@@ -273,11 +267,6 @@ func (d *BeanDefinition) SetCondition(cond gs.Condition) {
 // SetDependsOn sets the bean's dependency.
 func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
 	d.depends = append(d.depends, selectors...)
-}
-
-// SetPrimary sets the bean's primary flag.
-func (d *BeanDefinition) SetPrimary() {
-	d.primary = true
 }
 
 func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {

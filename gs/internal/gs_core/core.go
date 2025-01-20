@@ -58,7 +58,6 @@ type BeanRuntime interface {
 	Callable() gs.Callable
 	Match(typeName string, beanName string) bool
 	Status() gs_bean.BeanStatus
-	IsPrimary() bool
 	String() string
 }
 

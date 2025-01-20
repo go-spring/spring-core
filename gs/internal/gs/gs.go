@@ -148,8 +148,6 @@ type BeanRegistration interface {
 	SetCondition(cond Condition)
 	// SetDependsOn sets the beans that this bean depends on.
 	SetDependsOn(selectors ...BeanSelector)
-	// SetPrimary marks this bean as primary.
-	SetPrimary()
 	// SetExport defines the interfaces to be exported by the bean.
 	SetExport(exports ...interface{})
 	// SetConfiguration applies the bean configuration.
@@ -211,12 +209,6 @@ func (d *beanBuilder[T]) Condition(cond Condition) *T {
 // DependsOn sets the beans this bean depends on.
 func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
 	d.b.SetDependsOn(selectors...)
-	return *(**T)(unsafe.Pointer(&d))
-}
-
-// Primary marks the bean as primary.
-func (d *beanBuilder[T]) Primary() *T {
-	d.b.SetPrimary()
 	return *(**T)(unsafe.Pointer(&d))
 }
 
