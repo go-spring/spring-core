@@ -28,28 +28,38 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
-type AppRunner interface {
-	Run(ctx *AppContext)
-}
-
-type AppServer interface {
-	OnAppStart(ctx *AppContext)    // 应用启动的事件
-	OnAppStop(ctx context.Context) // 应用停止的事件
-}
-
+// AppContext wraps the app's [gs.Context].
 type AppContext struct {
 	c gs.Context
 }
 
+// Unsafe returns the underlying [gs.Context]. It's an unsafe operation using the
+// app's [gs.Context] in new goroutines, because the [gs.Context] may release all
+// the bean definitions, so binding and injection is forbidden.
 func (p *AppContext) Unsafe() gs.Context {
 	return p.c
 }
 
+// Go runs the function in a goroutine. The function will receive the canceled
+// signal when the application is shutting down.
 func (p *AppContext) Go(fn func(ctx context.Context)) {
 	p.c.Go(fn)
 }
 
-// App 应用
+// AppRunner defines an interface using after all bean injections and before runs
+// the servers, you can use it to run some background tasks.
+type AppRunner interface {
+	Run(ctx *AppContext)
+}
+
+// AppServer defines an interface using to start and stop the servers, such as http
+// server, grpc server, thrift server, mq server, etc.
+type AppServer interface {
+	OnAppStart(ctx *AppContext)
+	OnAppStop(ctx context.Context)
+}
+
+// App is the application.
 type App struct {
 	C gs.Container
 	P *gs_conf.AppConfig
@@ -60,7 +70,7 @@ type App struct {
 	Servers []AppServer `autowire:"${spring.app.servers:=*?}"`
 }
 
-// NewApp application 的构造函数
+// NewApp creates a new application.
 func NewApp() *App {
 	app := &App{
 		C:        gs_core.New(),
@@ -71,6 +81,9 @@ func NewApp() *App {
 	return app
 }
 
+// Run runs the application. It will listen the kill signal and the
+// CTRL+C signal, so you can shut down the application gracefully.
+// You can't use Stop but ShutDown to shut down the application.
 func (app *App) Run() error {
 	if err := app.Start(); err != nil {
 		return err
@@ -86,18 +99,23 @@ func (app *App) Run() error {
 	return nil
 }
 
+// Start starts the application, init the properties, the ioc container,
+// all beans injection and runs the runners and servers.
 func (app *App) Start() error {
 
+	// loads the app layered properties
 	p, err := app.P.Refresh()
 	if err != nil {
 		return err
 	}
 
+	// refreshes the container's properties
 	err = app.C.RefreshProperties(p)
 	if err != nil {
 		return err
 	}
 
+	// refreshes the container
 	err = app.C.Refresh()
 	if err != nil {
 		return err
@@ -105,12 +123,12 @@ func (app *App) Start() error {
 
 	ctx := app.C.(gs.Context)
 
-	// 执行命令行启动器
+	// executes the app runners
 	for _, r := range app.Runners {
 		r.Run(&AppContext{ctx})
 	}
 
-	// 通知应用启动事件
+	// executes the app servers
 	for _, svr := range app.Servers {
 		svr.OnAppStart(&AppContext{ctx})
 	}
@@ -119,18 +137,22 @@ func (app *App) Start() error {
 	return nil
 }
 
+// Stop stops the application gracefully. It's used to stop the app
+// started by Start.
 func (app *App) Stop() {
+	ctx := context.Background()
 	for _, svr := range app.Servers {
-		svr.OnAppStop(context.Background())
+		svr.OnAppStop(ctx)
 	}
 	app.C.Close()
 }
 
-// ShutDown 关闭执行器
+// ShutDown shuts down the application gracefully. It's used to shut down
+// the app started by Run.
 func (app *App) ShutDown(msg ...string) {
 	select {
 	case <-app.exitChan:
-		// chan 已关闭，无需再次关闭。
+		// do nothing, the exit chan has closed.
 	default:
 		close(app.exitChan)
 	}
