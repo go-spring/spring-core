@@ -262,7 +262,10 @@ func (c *Container) Refresh() (err error) {
 		return errors.New("found circular references in beans")
 	}
 
-	c.destroyers = stack.sortDestroyers()
+	c.destroyers, err = stack.sortDestroyers()
+	if err != nil {
+		return err
+	}
 
 	// retains only the runtime essential content to simplify memory.
 	c.beansByName = make(map[string][]BeanRuntime)

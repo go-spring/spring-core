@@ -67,7 +67,7 @@ func (d *destroyer) after(b *gs_bean.BeanDefinition) {
 }
 
 // getBeforeDestroyers 获取排在 i 前面的 destroyer，用于 sort.Triple 排序。
-func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
+func getBeforeDestroyers(destroyers *list.List, i interface{}) (*list.List, error) {
 	d := i.(*destroyer)
 	result := list.New()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
@@ -76,7 +76,7 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
 			result.PushBack(c)
 		}
 	}
-	return result
+	return result, nil
 }
 
 // WiringStack 记录 bean 的注入路径。
@@ -127,7 +127,7 @@ func (s *WiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
 }
 
 // sortDestroyers 对具有销毁函数的 bean 按照销毁函数的依赖顺序进行排序。
-func (s *WiringStack) sortDestroyers() []func() {
+func (s *WiringStack) sortDestroyers() ([]func(), error) {
 
 	destroy := func(v reflect.Value, fn interface{}) func() {
 		return func() {
@@ -147,14 +147,17 @@ func (s *WiringStack) sortDestroyers() []func() {
 	for _, d := range s.destroyerMap {
 		destroyers.PushBack(d)
 	}
-	destroyers = gs_util.TripleSort(destroyers, getBeforeDestroyers)
+	destroyers, err := gs_util.TripleSort(destroyers, getBeforeDestroyers)
+	if err != nil {
+		return nil, err
+	}
 
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
 		d := e.Value.(*destroyer).current
 		ret = append(ret, destroy(d.Value(), d.Destroy()))
 	}
-	return ret
+	return ret, nil
 }
 
 // wireTag 注入语法的 tag 分解式，字符串形式的完整格式为 TypeName:BeanName? 。

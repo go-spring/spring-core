@@ -21,25 +21,34 @@ import (
 	"errors"
 )
 
-// GetBeforeItems 获取 sorting 中排在 current 前面的元素
-type GetBeforeItems func(sorting *list.List, current interface{}) *list.List
+// GetBeforeItems is a function type that returns a list of items
+// that must appear before the given current item in the sorting order.
+type GetBeforeItems func(sorting *list.List, current interface{}) (*list.List, error)
 
-// TripleSort 三路排序
-func TripleSort(sorting *list.List, fn GetBeforeItems) *list.List {
+// TripleSort performs a three-way sort (processing, toSort, sorted)
+// to resolve dependencies and return a sorted list.
+// The input `sorting` is a list of all items to be sorted, and `fn` determines dependencies.
+func TripleSort(sorting *list.List, fn GetBeforeItems) (*list.List, error) {
+	toSort := list.New()     // List of items that still need to be sorted.
+	sorted := list.New()     // List of items that have been fully sorted.
+	processing := list.New() // List of items currently being processed.
 
-	toSort := list.New()     // 待排序列表
-	sorted := list.New()     // 已排序列表
-	processing := list.New() // 正在处理列表
-
+	// Initialize the toSort list with all elements from the input sorting list.
 	toSort.PushBackList(sorting)
 
-	for toSort.Len() > 0 { // 递归选出依赖链条最前端的元素
-		tripleSortByAfter(sorting, toSort, sorted, processing, nil, fn)
+	// Process items in the toSort list until all items are sorted.
+	for toSort.Len() > 0 {
+		// Recursively sort the dependency chain starting with the next item in `toSort`.
+		err := tripleSortByAfter(sorting, toSort, sorted, processing, nil, fn)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return sorted
+	return sorted, nil
 }
 
-// searchInList 在列表中查询指定元素，存在则返回列表项指针，不存在返回 nil。
+// searchInList searches for an element `v` in the list `l`.
+// If the element exists, it returns a pointer to the list element. Otherwise, it returns nil.
 func searchInList(l *list.List, v interface{}) *list.Element {
 	for e := l.Front(); e != nil; e = e.Next() {
 		if e.Value == v {
@@ -49,42 +58,64 @@ func searchInList(l *list.List, v interface{}) *list.Element {
 	return nil
 }
 
-// tripleSortByAfter 递归选出依赖链条最前端的元素
+// tripleSortByAfter recursively processes an item's dependency chain and adds it to the sorted list.
+// Parameters:
+// - sorting: The original list of items.
+// - toSort: The list of items to be sorted.
+// - sorted: The list of items that have been sorted.
+// - processing: The list of items currently being processed (to detect cycles).
+// - current: The current item being processed (nil for the first item).
+// - fn: A function that retrieves the list of items that must appear before the current item.
 func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
-	processing *list.List, current interface{}, fn GetBeforeItems) {
+	processing *list.List, current interface{}, fn GetBeforeItems) error {
 
+	// If no current item is specified, remove and process the first item in the `toSort` list.
 	if current == nil {
 		current = toSort.Remove(toSort.Front())
 	}
 
-	// 将当前元素标记为正在处理
+	// Retrieve dependencies for the current item.
+	l, err := fn(sorting, current)
+	if err != nil {
+		return err
+	}
+
+	// Add the current item to the processing list to mark it as being processed.
 	processing.PushBack(current)
 
-	// 获取排在当前元素前面的列表项，然后依次对它们进行排序
-	for e := fn(sorting, current).Front(); e != nil; e = e.Next() {
+	// Process dependencies for the current item.
+	for e := l.Front(); e != nil; e = e.Next() {
 		c := e.Value
 
-		// 自己不可能是自己前面的元素，除非出现了循环依赖，因此抛出 Panic
+		// Detect circular dependencies by checking if `c` is already being processed.
 		if searchInList(processing, c) != nil {
-			panic(errors.New("found sorting cycle"))
+			return errors.New("found sorting cycle") // todo: more details
 		}
 
+		// Check if the dependency `c` is already sorted or still in the toSort list.
 		inSorted := searchInList(sorted, c) != nil
 		inToSort := searchInList(toSort, c) != nil
 
-		if !inSorted && inToSort { // 如果是待排元素则对其进行排序
-			tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
+		// If the dependency is not sorted but still needs sorting, process it recursively.
+		if !inSorted && inToSort {
+			err := tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
+	// Remove the current item from the processing list.
 	if e := searchInList(processing, current); e != nil {
 		processing.Remove(e)
 	}
 
+	// Remove the current item from the toSort list (if it is still there).
 	if e := searchInList(toSort, current); e != nil {
 		toSort.Remove(e)
 	}
 
-	// 将当前元素标记为已完成
+	// Add the current item to the sorted list to mark it as fully processed.
 	sorted.PushBack(current)
+	return nil
 }
