@@ -392,12 +392,12 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	for _, b := range beans {
 		switch c.state {
 		case Refreshing:
-			if err := c.wireBeanInRefreshing(b.(*gs_bean.BeanDefinition), stack); err != nil {
+			if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
 				return err
 			}
 		case Refreshed:
-			if err := c.wireBeanAfterRefreshed(b.(*gs_bean.BeanRuntime), stack); err != nil {
-				return err
+			if b.Status() != gs_bean.StatusWired {
+				return fmt.Errorf("unexpected bean status %d", b.Status())
 			}
 		default:
 			return fmt.Errorf("state is error for wiring")
@@ -489,30 +489,30 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 		return errors.New(msg)
 	}
 
-	result := foundBeans[0]
+	b := foundBeans[0]
 
 	// 确保找到的 bean 已经完成依赖注入。
 	switch c.state {
 	case Refreshing:
-		if err := c.wireBeanInRefreshing(result.(*gs_bean.BeanDefinition), stack); err != nil {
+		if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
 			return err
 		}
 	case Refreshed:
-		if err := c.wireBeanAfterRefreshed(result, stack); err != nil {
-			return err
+		if b.Status() != gs_bean.StatusWired {
+			return fmt.Errorf("unexpected bean status %d", b.Status())
 		}
 	default:
 		return fmt.Errorf("state is error for wiring")
 	}
 
-	v.Set(result.Value())
+	v.Set(b.Value())
 	return nil
 }
 
 // wireBean 对 bean 进行属性绑定和依赖注入，同时追踪其注入路径。如果 bean 有初始
 // 化函数，则在注入完成之后执行其初始化函数。如果 bean 依赖了其他 bean，则首先尝试
 // 实例化被依赖的 bean 然后对它们进行注入。
-func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *WiringStack) error {
+func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) error {
 
 	if b.Status() == gs_bean.StatusDeleted {
 		return fmt.Errorf("bean:%q have been deleted", b.ID())
@@ -564,7 +564,7 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *Wirin
 			return err
 		}
 		for _, d := range beans {
-			err = c.wireBeanInRefreshing(d.(*gs_bean.BeanDefinition), stack)
+			err = c.wireBean(d.(*gs_bean.BeanDefinition), stack)
 			if err != nil {
 				return err
 			}
@@ -622,29 +622,6 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *Wirin
 
 	b.SetStatus(gs_bean.StatusWired)
 	stack.popBack()
-	return nil
-}
-
-func (c *Container) wireBeanAfterRefreshed(b BeanRuntime, stack *WiringStack) error {
-
-	v, err := c.getBeanValue(b, stack)
-	if err != nil {
-		return err
-	}
-
-	t := v.Type()
-	err = c.wireBeanValue(v, t, stack)
-	if err != nil {
-		return err
-	}
-
-	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
-		if err = f.OnBeanInit(c); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 

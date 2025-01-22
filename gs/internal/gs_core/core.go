@@ -244,7 +244,7 @@ func (c *Container) Refresh() (err error) {
 		}
 		sort.Strings(keys)
 		for _, s := range keys {
-			if err = c.wireBeanInRefreshing(beansById[s], stack); err != nil {
+			if err = c.wireBean(beansById[s], stack); err != nil {
 				return err
 			}
 		}
@@ -489,28 +489,35 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 // Wire creates and returns a wired bean using the provided object or constructor function.
 func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 
-	stack := NewWiringStack()
+	x := NewBean(objOrCtor, ctorArgs...)
+	b := x.BeanRegistration().(BeanRuntime)
 
+	stack := NewWiringStack()
 	defer func() {
 		if len(stack.beans) > 0 {
 			syslog.Infof("wiring path %s", stack.path())
 		}
 	}()
 
-	b := NewBean(objOrCtor, ctorArgs...)
-	var err error
-	switch c.state {
-	case Refreshing:
-		err = c.wireBeanInRefreshing(b.BeanRegistration().(*gs_bean.BeanDefinition), stack)
-	case Refreshed:
-		err = c.wireBeanAfterRefreshed(b.BeanRegistration().(*gs_bean.BeanDefinition), stack)
-	default:
-		err = errors.New("state is error for wiring")
-	}
+	v, err := c.getBeanValue(b, stack)
 	if err != nil {
 		return nil, err
 	}
-	return b.BeanRegistration().(*gs_bean.BeanDefinition).Interface(), nil
+
+	t := v.Type()
+	err = c.wireBeanValue(v, t, stack)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
+	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
+		if err = f.OnBeanInit(c); err != nil {
+			return nil, err
+		}
+	}
+
+	return b.Interface(), nil
 }
 
 // Invoke calls the provided function with the specified arguments.
