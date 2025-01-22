@@ -22,17 +22,17 @@ import (
 	"github.com/expr-lang/expr"
 )
 
-// funcMap is used to store custom functions that can be referenced in expressions.
+// funcMap is used to store express functions that can be referenced in expressions.
 var funcMap = map[string]interface{}{}
 
-// CustomFunction registers a custom function with a specified name.
+// RegisterExpressFunc registers an express function with a specified name.
 // The function can later be used in expressions evaluated by EvalExpr.
-func CustomFunction(name string, fn interface{}) {
+func RegisterExpressFunc(name string, fn interface{}) {
 	funcMap[name] = fn
 }
 
 // EvalExpr evaluates a boolean expression (input) using the provided value (val)
-// and any registered custom functions. The string expression to evaluate (should
+// and any registered express functions. The string expression to evaluate (should
 // return a boolean value). The value used in the evaluation (referred to as `$`
 // in the expression context).
 func EvalExpr(input string, val interface{}) (bool, error) {

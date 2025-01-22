@@ -29,7 +29,7 @@ func TestEvalExpr(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, ok)
 
-	gs_cond.CustomFunction("check", func(s string, i int) bool {
+	gs_cond.RegisterExpressFunc("check", func(s string, i int) bool {
 		return s == strconv.Itoa(i)
 	})
 	ok, err = gs_cond.EvalExpr("check($,9)", "9")

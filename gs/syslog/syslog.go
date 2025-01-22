@@ -19,31 +19,44 @@ package syslog
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
-	"os"
+	"runtime"
+	"time"
 )
 
 func init() {
-	slog.SetLogLoggerLevel(slog.LevelInfo)
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+	log.SetFlags(log.Flags() | log.Lshortfile)
 }
 
 // Debugf logs at [slog.LevelDebug].
-func Debugf(msg string, args ...any) {
-	slog.Default().Log(context.Background(), slog.LevelDebug, fmt.Sprintf(msg, args...))
+func Debugf(format string, a ...any) {
+	logMsg(slog.LevelDebug, format, a...)
 }
 
 // Infof logs at [slog.LevelInfo].
-func Infof(msg string, args ...any) {
-	slog.Default().Log(context.Background(), slog.LevelInfo, fmt.Sprintf(msg, args...))
+func Infof(format string, a ...any) {
+	logMsg(slog.LevelInfo, format, a...)
 }
 
 // Warnf logs at [slog.LevelWarn].
-func Warnf(msg string, args ...any) {
-	slog.Default().Log(context.Background(), slog.LevelWarn, fmt.Sprintf(msg, args...))
+func Warnf(format string, a ...any) {
+	logMsg(slog.LevelWarn, format, a...)
 }
 
 // Errorf logs at [slog.LevelError].
-func Errorf(msg string, args ...any) {
-	slog.Default().Log(context.Background(), slog.LevelError, fmt.Sprintf(msg, args...))
+func Errorf(format string, a ...any) {
+	logMsg(slog.LevelError, format, a...)
+}
+
+func logMsg(level slog.Level, format string, a ...any) {
+	ctx := context.Background()
+	if !slog.Default().Enabled(ctx, level) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:])
+	msg := fmt.Sprintf(format, a...)
+	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	_ = slog.Default().Handler().Handle(ctx, r)
 }

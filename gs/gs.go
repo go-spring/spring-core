@@ -111,8 +111,8 @@ func OnSingleBean(selector BeanSelector) Condition {
 	return gs_cond.OnSingleBean(selector)
 }
 
-func CustomFunction(name string, fn interface{}) {
-	gs_cond.CustomFunction(name, fn)
+func RegisterExpressFunc(name string, fn interface{}) {
+	gs_cond.RegisterExpressFunc(name, fn)
 }
 
 func OnExpression(expression string) Condition {
