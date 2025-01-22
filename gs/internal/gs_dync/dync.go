@@ -29,17 +29,23 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 )
 
-// Value 可动态刷新的对象
+// Value represents a thread-safe object that can dynamically refresh its value.
 type Value[T interface{}] struct {
 	v atomic.Value
 }
 
-// Value 获取值
+// Value retrieves the current value stored in the object.
+// If no value is set, it returns the zero value for the type T.
 func (r *Value[T]) Value() T {
-	return r.v.Load().(T)
+	v, ok := r.v.Load().(T)
+	if !ok {
+		var zero T
+		return zero
+	}
+	return v
 }
 
-// OnRefresh 实现 Refreshable 接口
+// OnRefresh refreshes the value of the object by binding new properties.
 func (r *Value[T]) OnRefresh(prop gs.Properties, param conf.BindParam) error {
 	var o T
 	v := reflect.ValueOf(&o).Elem()
@@ -51,49 +57,54 @@ func (r *Value[T]) OnRefresh(prop gs.Properties, param conf.BindParam) error {
 	return nil
 }
 
-// MarshalJSON 实现 json.Marshaler 接口
+// MarshalJSON serializes the stored value as JSON.
 func (r *Value[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.v.Load())
 }
 
-// refreshObject 绑定的可刷新对象
+// refreshObject represents an object bound to dynamic properties that can be refreshed.
 type refreshObject struct {
-	target gs.Refreshable
-	param  conf.BindParam
+	target gs.Refreshable // The refreshable object.
+	param  conf.BindParam // Parameters used for refreshing.
 }
 
-// Properties 动态属性
+// Properties manages dynamic properties and refreshable objects.
 type Properties struct {
-	prop    gs.Properties
-	lock    sync.RWMutex
-	objects []*refreshObject
+	prop    gs.Properties    // The current properties.
+	lock    sync.RWMutex     // A read-write lock for thread-safe access.
+	objects []*refreshObject // List of refreshable objects bound to the properties.
 }
 
-// New 创建一个 Properties 对象
+// New creates and returns a new Properties instance.
 func New() *Properties {
 	return &Properties{
 		prop: conf.New(),
 	}
 }
 
-// Data 获取属性列表
+// Data returns the current properties.
 func (p *Properties) Data() gs.Properties {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.prop
 }
 
-// ObjectsCount 绑定的可刷新对象数量
+// ObjectsCount returns the number of registered refreshable objects.
 func (p *Properties) ObjectsCount() int {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return len(p.objects)
 }
 
-// Refresh 更新属性列表以及绑定的可刷新对象
+// Refresh updates the properties and refreshes all bound objects as necessary.
 func (p *Properties) Refresh(prop gs.Properties) (err error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+
+	if len(p.objects) == 0 {
+		p.prop = prop
+		return nil
+	}
 
 	old := p.prop
 	p.prop = prop
@@ -115,6 +126,7 @@ func (p *Properties) Refresh(prop gs.Properties) (err error) {
 		}
 	}
 
+	// Refresh objects based on changed keys.
 	keys := make([]string, 0, len(changes))
 	for k := range changes {
 		keys = append(keys, k)
@@ -123,14 +135,13 @@ func (p *Properties) Refresh(prop gs.Properties) (err error) {
 	return p.refreshKeys(keys)
 }
 
+// refreshKeys refreshes objects bound by the specified keys.
 func (p *Properties) refreshKeys(keys []string) (err error) {
-
-	// 找出需要更新的对象，一个对象可能对应多个 key，因此需要去重
 	updateIndexes := make(map[int]*refreshObject)
 	for _, key := range keys {
 		for index, o := range p.objects {
 			s := strings.TrimPrefix(key, o.param.Key)
-			if len(s) == len(key) { // 是否去除了前缀
+			if len(s) == len(key) { // Check if the key starts with the parameter key.
 				continue
 			}
 			if len(s) == 0 || s[0] == '.' || s[0] == '[' {
@@ -159,24 +170,24 @@ func (p *Properties) refreshKeys(keys []string) (err error) {
 	return p.refreshObjects(updateObjects)
 }
 
-// Errors 错误列表
+// Errors represents a collection of errors.
 type Errors struct {
 	arr []error
 }
 
-// Len 错误数量
+// Len returns the number of errors.
 func (e *Errors) Len() int {
 	return len(e.arr)
 }
 
-// Append 添加一个错误
+// Append adds an error to the collection if it is non-nil.
 func (e *Errors) Append(err error) {
 	if err != nil {
 		e.arr = append(e.arr, err)
 	}
 }
 
-// Error 实现 error 接口
+// Error concatenates all errors into a single string.
 func (e *Errors) Error() string {
 	var sb strings.Builder
 	for i, err := range e.arr {
@@ -188,10 +199,11 @@ func (e *Errors) Error() string {
 	return sb.String()
 }
 
+// refreshObjects refreshes all provided objects and aggregates errors.
 func (p *Properties) refreshObjects(objects []*refreshObject) error {
 	ret := &Errors{}
-	for _, f := range objects {
-		err := p.safeRefreshObject(f)
+	for _, obj := range objects {
+		err := p.safeRefreshObject(obj)
 		ret.Append(err)
 	}
 	if ret.Len() == 0 {
@@ -200,22 +212,25 @@ func (p *Properties) refreshObjects(objects []*refreshObject) error {
 	return ret
 }
 
-func (p *Properties) safeRefreshObject(f *refreshObject) (err error) {
+// safeRefreshObject refreshes an object and recovers from panics.
+func (p *Properties) safeRefreshObject(obj *refreshObject) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panic: %v", r)
 		}
 	}()
-	return f.target.OnRefresh(p.prop, f.param)
+	return obj.target.OnRefresh(p.prop, obj.param)
 }
 
-// RefreshBean 刷新一个 bean 对象，根据 watch 的值决定是否添加监听
+// RefreshBean refreshes a single refreshable object.
+// Optionally registers the object as refreshable if watch is true.
 func (p *Properties) RefreshBean(v gs.Refreshable, param conf.BindParam, watch bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	return p.doRefresh(v, param, watch)
 }
 
+// doRefresh performs the refresh operation and registers the object if watch is enabled.
 func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch bool) error {
 	if watch {
 		p.objects = append(p.objects, &refreshObject{
@@ -226,11 +241,13 @@ func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch boo
 	return v.OnRefresh(p.prop, param)
 }
 
+// filter is used to selectively refresh objects and fields.
 type filter struct {
 	*Properties
-	watch bool
+	watch bool // Whether to register objects as refreshable.
 }
 
+// Do attempts to refresh a single object if it implements the [gs.Refreshable] interface.
 func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
 	v, ok := i.(gs.Refreshable)
 	if !ok {
@@ -239,7 +256,7 @@ func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
 	return true, f.doRefresh(v, param, f.watch)
 }
 
-// RefreshField 刷新一个 bean 的 field，根据 watch 的值决定是否添加监听
+// RefreshField refreshes a field of a bean, optionally registering it as refreshable.
 func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam, watch bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()

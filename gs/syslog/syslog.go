@@ -29,34 +29,38 @@ func init() {
 	log.SetFlags(log.Flags() | log.Lshortfile)
 }
 
-// Debugf logs at [slog.LevelDebug].
+// Debugf logs a debug-level message using slog.
 func Debugf(format string, a ...any) {
 	logMsg(slog.LevelDebug, format, a...)
 }
 
-// Infof logs at [slog.LevelInfo].
+// Infof logs an info-level message using slog.
 func Infof(format string, a ...any) {
 	logMsg(slog.LevelInfo, format, a...)
 }
 
-// Warnf logs at [slog.LevelWarn].
+// Warnf logs a warning-level message using slog.
 func Warnf(format string, a ...any) {
 	logMsg(slog.LevelWarn, format, a...)
 }
 
-// Errorf logs at [slog.LevelError].
+// Errorf logs an error-level message using slog.
 func Errorf(format string, a ...any) {
 	logMsg(slog.LevelError, format, a...)
 }
 
+// logMsg constructs and logs a message at the specified log level.
 func logMsg(level slog.Level, format string, a ...any) {
 	ctx := context.Background()
 	if !slog.Default().Enabled(ctx, level) {
 		return
 	}
+
 	var pcs [1]uintptr
 	runtime.Callers(3, pcs[:])
+
 	msg := fmt.Sprintf(format, a...)
 	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
-	_ = slog.Default().Handler().Handle(ctx, r)
+	err := slog.Default().Handler().Handle(ctx, r)
+	_ = err // ignore error
 }
