@@ -32,7 +32,7 @@ type Boot struct {
 	Runners []AppRunner `autowire:"${spring.boot.runners:=*?}"`
 }
 
-// NewBoot creates a new boot instance.
+// NewBoot creates a new Boot instance.
 func NewBoot() *Boot {
 	b := &Boot{
 		c: gs_core.New(),
@@ -42,58 +42,61 @@ func NewBoot() *Boot {
 	return b
 }
 
-// Config returns the boot config.
+// Config returns the boot configuration.
 func (b *Boot) Config() *gs_conf.BootConfig {
 	return b.p
 }
 
-// Object registers a bean by instance.
+// Object registers an object bean.
 func (b *Boot) Object(i interface{}) *gs.RegisteredBean {
 	bd := gs_core.NewBean(reflect.ValueOf(i))
 	return b.c.Register(bd)
 }
 
-// Provide registers a bean by constructor.
+// Provide registers a bean using a constructor function.
 func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(ctor, args...)
 	return b.c.Register(bd)
 }
 
-// Register registers a [gs.BeanDefinition].
+// Register registers a BeanDefinition instance.
 func (b *Boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 	return b.c.Register(bd)
 }
 
-// GroupRegister registers a group of [gs.BeanDefinition].
+// GroupRegister registers a group of BeanDefinitions.
 func (b *Boot) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
 	b.c.GroupRegister(fn)
 }
 
-// Runner registers an [AppRunner] by instance or constructor.
+// Runner registers an AppRunner instance.
 func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
 	bd.Export((*AppRunner)(nil))
 	return b.c.Register(bd)
 }
 
+// Run executes the application's bootstrap process.
 func (b *Boot) Run() error {
-
+	// Refresh the boot configuration.
 	p, err := b.p.Refresh()
 	if err != nil {
 		return err
 	}
 
+	// Refresh properties in the container.
 	err = b.c.RefreshProperties(p)
 	if err != nil {
 		return err
 	}
 
+	// Refresh the container.
 	err = b.c.Refresh()
 	if err != nil {
 		return err
 	}
 
-	// 执行命令行启动器
+	// Execute all registered AppRunners.
 	for _, r := range b.Runners {
 		r.Run(&AppContext{b.c.(gs.Context)})
 	}
