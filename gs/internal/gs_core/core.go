@@ -33,8 +33,8 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 type refreshState int

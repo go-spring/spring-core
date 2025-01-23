@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/go-spring/spring-core/conf/sysconf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
@@ -29,7 +30,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	"github.com/go-spring/spring-core/gs/sysconf"
 )
 
 const (

@@ -23,9 +23,9 @@ import (
 	"runtime"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/syslog"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/errutil"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 // IndexArg represents an argument that has an index.

@@ -22,8 +22,8 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/conf/sysconf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/sysconf"
 )
 
 /******************************** AppConfig **********************************/

@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package store_test
+package storage_test
 
 import (
 	"testing"
 
-	"github.com/go-spring/spring-core/conf/store"
+	"github.com/go-spring/spring-core/conf/storage"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestStorage(t *testing.T) {
 
-	var s *store.Storage
+	var s *storage.Storage
 
 	{
-		s = store.NewStorage()
+		s = storage.NewStorage()
 		assert.Equal(t, s.Data(), map[string]string{})
 		assert.Equal(t, s.Keys(), []string{})
 
@@ -50,7 +50,7 @@ func TestStorage(t *testing.T) {
 
 	// 初始值是简单的 KV 值
 	{
-		s = store.NewStorage()
+		s = storage.NewStorage()
 
 		err := s.Set("a", "b")
 		assert.Nil(t, err)
@@ -92,7 +92,7 @@ func TestStorage(t *testing.T) {
 
 	// 初始值是嵌套的 KV 值
 	{
-		s = store.NewStorage()
+		s = storage.NewStorage()
 
 		err := s.Set("m.x", "y")
 		assert.Nil(t, err)
@@ -150,7 +150,7 @@ func TestStorage(t *testing.T) {
 
 	// 初始值是数组 KV 值
 	{
-		s = store.NewStorage()
+		s = storage.NewStorage()
 
 		err := s.Set("s[0]", "p")
 		assert.Nil(t, err)
@@ -205,7 +205,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	{
-		s = store.NewStorage()
+		s = storage.NewStorage()
 
 		err := s.Set("a.b[0].c", "")
 		assert.Nil(t, err)

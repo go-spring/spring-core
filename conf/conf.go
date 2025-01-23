@@ -29,7 +29,7 @@ import (
 	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
-	"github.com/go-spring/spring-core/conf/store"
+	"github.com/go-spring/spring-core/conf/storage"
 	"github.com/go-spring/spring-core/util"
 	"github.com/spf13/cast"
 )
@@ -128,13 +128,13 @@ var _ readOnlyProperties = (*Properties)(nil)
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
 type Properties struct {
-	storage *store.Storage
+	storage *storage.Storage
 }
 
 // New creates empty *Properties.
 func New() *Properties {
 	return &Properties{
-		storage: store.NewStorage(),
+		storage: storage.NewStorage(),
 	}
 }
 
