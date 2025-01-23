@@ -57,11 +57,9 @@ func Clear() {
 // Clone copies all properties into another properties.
 func Clone() *conf.Properties {
 	lock.Lock()
-	m := prop.Data()
-	lock.Unlock()
+	defer lock.Unlock()
 	p := conf.New()
-	for k, v := range m {
-		_ = p.Set(k, v)
-	}
+	err := prop.CopyTo(p)
+	_ = err // should no error
 	return p
 }

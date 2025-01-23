@@ -26,65 +26,64 @@ import (
 
 var ctx = &gs.ContextAware{}
 
-// Init 初始化测试环境
+// Init initializes the test environment.
 func Init() error {
 	gs.Object(ctx)
 	return gs.Start()
 }
 
-// Run 运行测试用例
+// Run executes test cases and ensures shutdown of the app context.
 func Run(m *testing.M) (code int) {
 	defer func() { gs.Stop() }()
 	return m.Run()
 }
 
+// Context retrieves the root [context.Context] bound to the app.
 func Context() context.Context {
 	return ctx.GSContext.Context()
 }
 
+// Keys retrieves all the property keys.
 func Keys() []string {
 	return ctx.GSContext.Keys()
 }
 
-// Has 判断属性是否存在
+// Has checks whether a specific property exists.
 func Has(key string) bool {
 	return ctx.GSContext.Has(key)
 }
 
+// SubKeys retrieves the sub-keys of a specified key.
 func SubKeys(key string) ([]string, error) {
 	return ctx.GSContext.SubKeys(key)
 }
 
-// Prop 获取属性值
+// Prop retrieves the value of a property specified by the key.
 func Prop(key string, opts ...conf.GetOption) string {
 	return ctx.GSContext.Prop(key, opts...)
 }
 
-// Resolve 解析字符串
+// Resolve resolves a given string with placeholders.
 func Resolve(s string) (string, error) {
 	return ctx.GSContext.Resolve(s)
 }
 
-// Bind 绑定对象
+// Bind binds an object to the properties.
 func Bind(i interface{}, opts ...conf.BindArg) error {
 	return ctx.GSContext.Bind(i, opts...)
 }
 
-// Get 获取对象
+// Get retrieves an object using specified selectors.
 func Get(i interface{}, selectors ...gs.BeanSelector) error {
 	return ctx.GSContext.Get(i, selectors...)
 }
 
-// Wire 注入对象
+// Wire injects dependencies into an object or constructor.
 func Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 	return ctx.GSContext.Wire(objOrCtor, ctorArgs...)
 }
 
-// Invoke 调用函数
+// Invoke calls a function with arguments injected.
 func Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 	return ctx.GSContext.Invoke(fn, args...)
-}
-
-func RefreshProperties(p gs.Properties) error {
-	return gs.RefreshProperties(p)
 }
