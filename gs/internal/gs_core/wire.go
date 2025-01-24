@@ -37,6 +37,57 @@ var (
 	GsContextType = reflect.TypeOf((*gs.Context)(nil)).Elem()
 )
 
+// Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
+// 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
+func (c *Container) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
+
+	finder := func(fn func(*gs_bean.BeanDefinition) bool) ([]gs.CondBean, error) {
+		var result []gs.CondBean
+		for _, b := range c.beans {
+			if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted || !fn(b) {
+				continue
+			}
+			if err := c.resolveBean(b); err != nil {
+				return nil, err
+			}
+			if b.Status() == gs_bean.StatusDeleted {
+				continue
+			}
+			result = append(result, b)
+		}
+		return result, nil
+	}
+
+	var t reflect.Type
+	switch st := selector.(type) {
+	case string, *gs_bean.BeanDefinition:
+		tag, err := c.toWireTag(selector)
+		if err != nil {
+			return nil, err
+		}
+		return finder(func(b *gs_bean.BeanDefinition) bool {
+			return b.Match(tag.typeName, tag.beanName)
+		})
+	case reflect.Type:
+		t = st
+	default:
+		t = reflect.TypeOf(st)
+	}
+
+	if t.Kind() == reflect.Ptr {
+		if e := t.Elem(); e.Kind() == reflect.Interface {
+			t = e // 指 (*error)(nil) 形式的 bean 选择器
+		}
+	}
+
+	return finder(func(b *gs_bean.BeanDefinition) bool {
+		if b.Type() == t {
+			return true
+		}
+		return false
+	})
+}
+
 // lazyField represents a lazy-injected field with metadata.
 type lazyField struct {
 	v    reflect.Value // The value to be injected.
