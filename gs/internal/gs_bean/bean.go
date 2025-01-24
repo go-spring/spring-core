@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"runtime"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
@@ -246,9 +245,9 @@ func (d *BeanMetadata) SetStatus(status BeanStatus) {
 	d.status = status
 }
 
-// SetCaller sets the caller information for the bean (file and line number).
-func (d *BeanDefinition) SetCaller(skip int) {
-	_, d.file, d.line, _ = runtime.Caller(skip)
+// SetFileLine sets the file and line number for the bean.
+func (d *BeanDefinition) SetFileLine(file string, line int) {
+	d.file, d.line = file, line
 }
 
 // SetName sets the name of the bean.

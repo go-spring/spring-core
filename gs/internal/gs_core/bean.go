@@ -17,7 +17,6 @@
 package gs_core
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -48,30 +47,34 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 	t := v.Type()
 	if !util.IsBeanType(t) {
-		panic(errors.New("bean must be ref type"))
+		panic("bean must be ref type")
 	}
 
+	// Ensure the value is valid and not nil
 	if !v.IsValid() || v.IsNil() {
-		panic(errors.New("bean can't be nil"))
+		panic("bean can't be nil")
 	}
 
 	var f gs.Callable
 
-	// 以 reflect.ValueOf(fn) 形式注册的函数被视为函数对象 bean 。
+	// If objOrCtor is a function (not from reflect.Value),
+	// process it as a constructor
 	if !fromValue && t.Kind() == reflect.Func {
 
 		if !util.IsConstructor(t) {
 			t1 := "func(...)bean"
 			t2 := "func(...)(bean, error)"
-			panic(fmt.Errorf("constructor should be %s or %s", t1, t2))
+			panic(fmt.Sprintf("constructor should be %s or %s", t1, t2))
 		}
 
+		// Bind the constructor arguments
 		var err error
 		f, err = gs_arg.Bind(objOrCtor, ctorArgs, 2)
 		if err != nil {
 			panic(err)
 		}
 
+		// Obtain the return type of the constructor
 		out0 := t.Out(0)
 		v = reflect.New(out0)
 		if util.IsBeanType(out0) {
@@ -80,10 +83,10 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 		t = v.Type()
 		if !util.IsBeanType(t) {
-			panic(errors.New("bean must be ref type"))
+			panic("bean must be ref type")
 		}
 
-		// 成员方法一般是 xxx/gs_test.(*Server).Consumer 形式命名
+		// Extract function name for naming the bean
 		fnPtr := reflect.ValueOf(objOrCtor).Pointer()
 		fnInfo := runtime.FuncForPC(fnPtr)
 		funcName := fnInfo.Name()
@@ -92,6 +95,8 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		if name[0] == '(' {
 			name = name[strings.Index(name, ".")+1:]
 		}
+
+		// Check if the function is a method and set a condition if needed
 		method := strings.LastIndexByte(fnInfo.Name(), ')') > 0
 		if method {
 			var selector interface{}
@@ -105,7 +110,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	}
 
 	if t.Kind() == reflect.Ptr && !util.IsValueType(t.Elem()) {
-		panic(errors.New("bean should be *val but not *ref"))
+		panic("bean should be *val but not *ref")
 	}
 
 	// Type.String() 一般返回 *pkg.Type 形式的字符串，
@@ -115,6 +120,8 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		name = strings.TrimPrefix(s[len(s)-1], "*")
 	}
 
+	_, file, line, _ := runtime.Caller(2)
 	d := gs_bean.NewBean(t, v, f, name)
-	return gs.NewBeanDefinition(d).Condition(cond).Caller(2)
+	d.SetFileLine(file, line)
+	return gs.NewBeanDefinition(d).Condition(cond)
 }

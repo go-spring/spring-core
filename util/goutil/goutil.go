@@ -18,11 +18,16 @@ package goutil
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
+
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 // OnPanic is a callback function triggered when a panic occurs.
-var OnPanic func(r interface{})
+var OnPanic = func(r interface{}) {
+	syslog.Errorf("panic: %v\n%s", r, debug.Stack())
+}
 
 // Status provides a mechanism to wait for a goroutine to finish.
 type Status struct {

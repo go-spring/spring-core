@@ -134,8 +134,6 @@ type BeanRegistration interface {
 	ID() string
 	// Type returns the [reflect.Type] of the bean.
 	Type() reflect.Type
-	// SetCaller sets the caller information, skipping 'skip' number of callers.
-	SetCaller(skip int)
 	// SetName sets the name of the bean.
 	SetName(name string)
 	// SetInit sets the initialization function for the bean.
@@ -172,12 +170,6 @@ func (d *beanBuilder[T]) ID() string {
 // Type returns the [reflect.Type] of the bean.
 func (d *beanBuilder[T]) Type() reflect.Type {
 	return d.b.Type()
-}
-
-// Caller sets caller information, skipping 'skip' number of callers.
-func (d *beanBuilder[T]) Caller(skip int) *T {
-	d.b.SetCaller(skip)
-	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Name sets the name of the bean.

@@ -47,7 +47,7 @@ const (
 	Refreshed                           // 已刷新
 )
 
-var BeanDefinitionType = reflect.TypeOf((*gs.BeanDefinition)(nil))
+var beanDefinitionType = reflect.TypeOf((*gs.BeanDefinition)(nil))
 
 type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
 
@@ -335,16 +335,18 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 			}
 			fnType := m.Func.Type()
 			out0 := fnType.Out(0)
-			if out0 == BeanDefinitionType {
+			if out0 == beanDefinitionType {
 				ret := m.Func.Call([]reflect.Value{bd.Value()})
 				if len(ret) > 1 {
 					if err := ret[1].Interface().(error); err != nil {
 						return nil, err
 					}
 				}
-				b := ret[0].Interface().(*gs.BeanDefinition)
-				newBeans = append(newBeans, b.BeanRegistration().(*gs_bean.BeanDefinition))
-				retBeans, err := c.scanConfiguration(b.BeanRegistration().(*gs_bean.BeanDefinition))
+				b := ret[0].Interface().(*gs.BeanDefinition).BeanRegistration().(*gs_bean.BeanDefinition)
+				file, line, _ := util.FileLine(m.Func.Interface())
+				b.SetFileLine(file, line)
+				newBeans = append(newBeans, b)
+				retBeans, err := c.scanConfiguration(b)
 				if err != nil {
 					return nil, err
 				}
@@ -360,7 +362,9 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 					v = v.Elem()
 				}
 				name := bd.Name() + "_" + m.Name
-				b := gs_bean.NewBean(v.Type(), v, f, name) // todo
+				file, line, _ := util.FileLine(m.Func.Interface())
+				b := gs_bean.NewBean(v.Type(), v, f, name)
+				b.SetFileLine(file, line)
 				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}
