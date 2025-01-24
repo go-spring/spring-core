@@ -17,7 +17,6 @@
 package gstest
 
 import (
-	"context"
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
@@ -36,11 +35,6 @@ func Init() error {
 func Run(m *testing.M) (code int) {
 	defer func() { gs.Stop() }()
 	return m.Run()
-}
-
-// Context retrieves the root [context.Context] bound to the app.
-func Context() context.Context {
-	return ctx.GSContext.Context()
 }
 
 // Keys retrieves all the property keys.

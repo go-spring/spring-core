@@ -45,7 +45,9 @@ func (p *AppContext) Unsafe() gs.Context {
 // Go executes a function in a new goroutine. The provided function will receive
 // a cancellation signal when the application begins shutting down.
 func (p *AppContext) Go(fn func(ctx context.Context)) {
-	p.c.Go(fn)
+	p.c.(interface {
+		Go(fn func(ctx context.Context))
+	}).Go(fn)
 }
 
 // AppRunner defines an interface for tasks that should be executed after all

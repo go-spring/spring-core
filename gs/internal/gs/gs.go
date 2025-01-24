@@ -17,7 +17,6 @@
 package gs
 
 import (
-	"context"
 	"reflect"
 	"unsafe"
 
@@ -286,8 +285,6 @@ type Container interface {
 // Context represents the unmodifiable (or runtime) aspects of an IoC container.
 // It provides methods for accessing properties, resolving values, and retrieving beans.
 type Context interface {
-	// Context returns the root [context.Context] associated with the container.
-	Context() context.Context
 
 	// Keys returns all the keys present in the container's properties.
 	Keys() []string
@@ -315,10 +312,6 @@ type Context interface {
 
 	// Invoke calls the provided function with the specified arguments and returns the result.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
-
-	// Go runs the provided function in a new goroutine.
-	// The context will be canceled when the container is closed.
-	Go(fn func(ctx context.Context))
 }
 
 // ContextAware is used to inject the container's Context into a bean.

@@ -34,6 +34,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/goutil"
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
@@ -121,11 +122,6 @@ func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 
 func (c *Container) GroupRegister(fn GroupFunc) {
 	c.groupFuncs = append(c.groupFuncs, fn)
-}
-
-// Context returns the root context.Context of the container.
-func (c *Container) Context() context.Context {
-	return c.ctx
 }
 
 // Keys returns all keys present in the container's properties.
@@ -556,15 +552,10 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 // the context.Context will be canceled.
 func (c *Container) Go(fn func(ctx context.Context)) {
 	c.wg.Add(1)
-	go func() {
+	goutil.Go(c.ctx, func(ctx context.Context) {
 		defer c.wg.Done()
-		defer func() {
-			if r := recover(); r != nil {
-				syslog.Errorf("%v", r)
-			}
-		}()
-		fn(c.ctx)
-	}()
+		fn(ctx)
+	})
 }
 
 // Close closes the container and cleans up resources.
