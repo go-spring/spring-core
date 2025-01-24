@@ -24,17 +24,19 @@ import (
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
-// OnPanic is a callback function triggered when a panic occurs.
+// OnPanic is a global callback function triggered when a panic occurs.
 var OnPanic = func(r interface{}) {
 	syslog.Errorf("panic: %v\n%s", r, debug.Stack())
 }
+
+/********************************** go ***************************************/
 
 // Status provides a mechanism to wait for a goroutine to finish.
 type Status struct {
 	wg sync.WaitGroup
 }
 
-// newStatus creates a new Status object.
+// newStatus creates and initializes a new Status object.
 func newStatus() *Status {
 	s := &Status{}
 	s.wg.Add(1)
@@ -51,8 +53,8 @@ func (s *Status) Wait() {
 	s.wg.Wait()
 }
 
-// Go provides a framework for running a goroutine with built-in recover,
-// preventing wild goroutines from crashing the process.
+// Go runs a goroutine safely with context support and panic recovery.
+// It ensures the process does not crash due to an uncaught panic in the goroutine.
 func Go(ctx context.Context, f func(ctx context.Context)) *Status {
 	s := newStatus()
 	go func() {
@@ -65,6 +67,70 @@ func Go(ctx context.Context, f func(ctx context.Context)) *Status {
 			}
 		}()
 		f(ctx)
+	}()
+	return s
+}
+
+// GoFunc runs a goroutine safely with panic recovery.
+// It ensures the process does not crash due to an uncaught panic in the goroutine.
+func GoFunc(f func()) *Status {
+	s := newStatus()
+	go func() {
+		defer s.done()
+		defer func() {
+			if r := recover(); r != nil {
+				if OnPanic != nil {
+					OnPanic(r)
+				}
+			}
+		}()
+		f()
+	}()
+	return s
+}
+
+/******************************* go with value *******************************/
+
+// ValueStatus provides a mechanism to wait for a goroutine that returns a value and an error.
+type ValueStatus[T any] struct {
+	wg  sync.WaitGroup
+	val T
+	err error
+}
+
+// newValueStatus creates and initializes a new ValueStatus object.
+func newValueStatus[T any]() *ValueStatus[T] {
+	s := &ValueStatus[T]{}
+	s.wg.Add(1)
+	return s
+}
+
+// done marks the goroutine as finished.
+func (s *ValueStatus[T]) done() {
+	s.wg.Done()
+}
+
+// Wait blocks until the goroutine finishes and returns its result and error.
+func (s *ValueStatus[T]) Wait() (T, error) {
+	s.wg.Wait()
+	return s.val, s.err
+}
+
+// GoValue runs a goroutine safely with context support and panic recovery and
+// returns its result and error.
+// It ensures the process does not crash due to an uncaught panic in the goroutine.
+func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error)) *ValueStatus[T] {
+	s := newValueStatus[T]()
+	go func() {
+		defer s.done()
+		defer func() {
+			if r := recover(); r != nil {
+				if OnPanic != nil {
+					OnPanic(r)
+				}
+			}
+		}()
+		s.val, s.err = f(ctx)
 	}()
 	return s
 }

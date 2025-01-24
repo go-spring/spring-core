@@ -1744,7 +1744,7 @@ func TestApplicationContext_CircleAutowire(t *testing.T) {
 			return new(CircleC)
 		})
 		err := c.Refresh()
-		assert.Error(t, err, "found circle autowire")
+		assert.Error(t, err, "found circular autowire")
 	})
 }
 

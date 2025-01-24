@@ -41,27 +41,27 @@ const (
 
 type Arg = gs.Arg
 
-// NilArg return a ValueArg with a value of nil.
+// NilArg returns a ValueArg with a nil value.
 func NilArg() gs_arg.ValueArg {
 	return gs_arg.Nil()
 }
 
-// ValueArg return a ValueArg with a value of v.
+// ValueArg returns a ValueArg with the specified value.
 func ValueArg(v interface{}) gs_arg.ValueArg {
 	return gs_arg.Value(v)
 }
 
-// IndexArg returns an IndexArg.
+// IndexArg returns an IndexArg with the specified index and argument.
 func IndexArg(n int, arg Arg) gs_arg.IndexArg {
 	return gs_arg.Index(n, arg)
 }
 
-// BindArg 为 Option 方法绑定运行时参数。
+// BindArg binds runtime arguments to a given function.
 func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
 	return gs_arg.MustBind(fn, args...)
 }
 
-// OptionArg 返回 Option 函数的参数绑定。
+// OptionArg returns an OptionArg for the specified function and arguments.
 func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
 	return gs_arg.Option(fn, args...)
 }
@@ -75,66 +75,77 @@ type (
 	CondContext = gs.CondContext
 )
 
+// OnFunc creates a Condition based on the provided function.
 func OnFunc(fn CondFunc) Condition {
 	return gs_cond.OnFunc(fn)
 }
 
+// MatchIfMissing specifies a property option to match if the property is missing.
 func MatchIfMissing() gs_cond.PropertyOption {
 	return gs_cond.MatchIfMissing()
 }
 
+// HavingValue specifies a property option to match a specific value.
 func HavingValue(havingValue string) gs_cond.PropertyOption {
 	return gs_cond.HavingValue(havingValue)
 }
 
+// OnProperty creates a Condition based on a property name and options.
 func OnProperty(name string, options ...gs_cond.PropertyOption) Condition {
 	return gs_cond.OnProperty(name, options...)
 }
 
+// OnMissingProperty creates a Condition that checks for a missing property.
 func OnMissingProperty(name string) Condition {
 	return gs_cond.OnMissingProperty(name)
 }
 
+// OnBean creates a Condition based on a BeanSelector.
 func OnBean(selector BeanSelector) Condition {
 	return gs_cond.OnBean(selector)
 }
 
+// OnMissingBean creates a Condition for when a specific bean is missing.
 func OnMissingBean(selector BeanSelector) Condition {
 	return gs_cond.OnMissingBean(selector)
 }
 
+// OnSingleBean creates a Condition for when only one instance of a bean exists.
 func OnSingleBean(selector BeanSelector) Condition {
 	return gs_cond.OnSingleBean(selector)
 }
 
+// RegisterExpressFunc registers a custom expression function.
 func RegisterExpressFunc(name string, fn interface{}) {
 	gs_cond.RegisterExpressFunc(name, fn)
 }
 
+// OnExpression creates a Condition based on a custom expression.
 func OnExpression(expression string) Condition {
 	return gs_cond.OnExpression(expression)
 }
 
-// Not returns a Condition that returns true when the given Condition returns false.
+// Not creates a Condition that negates the given Condition.
 func Not(c Condition) Condition {
 	return gs_cond.Not(c)
 }
 
-// Or returns a Condition that returns true when any of the given Conditions returns true.
+// Or creates a Condition that is true if any of the given Conditions are true.
 func Or(cond ...Condition) Condition {
 	return gs_cond.Or(cond...)
 }
 
-// And returns a Condition that returns true when all the given Conditions return true.
+// And creates a Condition that is true if all of the given Conditions are true.
 func And(cond ...Condition) Condition {
 	return gs_cond.And(cond...)
 }
 
-// None returns a Condition that returns true when none of the given Conditions returns true.
+// None creates a Condition that is true if none of the given Conditions are true.
 func None(cond ...Condition) Condition {
 	return gs_cond.None(cond...)
 }
 
+// OnProfile creates a Condition based on the active profile.
 func OnProfile(profile string) Condition {
 	return OnProperty("spring.profiles.active", HavingValue(profile))
 }
@@ -169,6 +180,7 @@ type (
 	BeanDefinition = gs.BeanDefinition
 )
 
+// NewBean creates a new BeanDefinition.
 func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *BeanDefinition {
 	return gs_core.NewBean(objOrCtor, ctorArgs...)
 }
@@ -177,17 +189,18 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *BeanDefinition {
 
 var boot *gs_app.Boot
 
+// bootRun runs the boot process.
 func bootRun() error {
 	if boot != nil {
 		if err := boot.Run(); err != nil {
 			return err
 		}
-		boot = nil // Boot 阶段结束，释放资源
+		boot = nil
 	}
 	return nil
 }
 
-// Boot returns a [gs_app.Boot] instance.
+// Boot initializes and returns a [gs_app.Boot] instance.
 func Boot() *gs_app.Boot {
 	if boot == nil {
 		boot = gs_app.NewBoot()
@@ -205,17 +218,17 @@ type (
 
 var app = gs_app.NewApp()
 
-// Start starts the app, usually used in test mode.
+// Start starts the app, usually for testing purposes.
 func Start() error {
 	return app.Start()
 }
 
-// Stop stops the app, usually used in test mode.
+// Stop stops the app, usually for testing purposes.
 func Stop() {
 	app.Stop()
 }
 
-// Run runs the app, and waits to exit by watching the interrupt signal.
+// Run runs the app and waits for an interrupt signal to exit.
 func Run() error {
 	printBanner()
 	if err := bootRun(); err != nil {
@@ -224,7 +237,7 @@ func Run() error {
 	return app.Run()
 }
 
-// ShutDown shuts down the app.
+// ShutDown shuts down the app with an optional message.
 func ShutDown(msg ...string) {
 	app.ShutDown(msg...)
 }
@@ -234,13 +247,13 @@ func Config() *gs_conf.AppConfig {
 	return app.P
 }
 
-// Object returns a bean definition for the given object.
+// Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
 	b := gs_core.NewBean(reflect.ValueOf(i))
 	return app.C.Register(b)
 }
 
-// Provide returns a bean definition for the given constructor.
+// Provide registers a bean definition for a given constructor.
 func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(ctor, args...)
 	return app.C.Register(b)
@@ -256,14 +269,14 @@ func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
 	app.C.GroupRegister(fn)
 }
 
-// Runner registers a bean definition for the given runner.
+// Runner registers a bean definition for an [AppRunner].
 func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
 	b.Export((*AppRunner)(nil))
 	return app.C.Register(b)
 }
 
-// Server registers a bean definition for the given server.
+// Server registers a bean definition for an [AppServer].
 func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(objOrCtor, ctorArgs...)
 	b.Export((*AppServer)(nil))
@@ -285,12 +298,12 @@ var appBanner = `
   \____|  \___/          |____/  |_|     |_| \_\ |___| |_| \_|  \____| 
 `
 
-// Banner sets the banner of the app.
+// Banner sets a custom app banner.
 func Banner(banner string) {
 	appBanner = banner
 }
 
-// printBanner prints the banner of the app.
+// printBanner prints the app banner.
 func printBanner() {
 	if len(appBanner) == 0 {
 		return
@@ -324,14 +337,14 @@ func printBanner() {
 
 /********************************** utility **********************************/
 
-// AllowCircularReferences allows circular references between beans.
+// AllowCircularReferences enables or disables circular references between beans.
 func AllowCircularReferences(enable bool) {
 	err := sysconf.Set("spring.allow-circular-references", enable)
-	_ = err // ignore error
+	_ = err // Ignore error
 }
 
-// ForceAutowireIsNullable forces autowire is nullable.
+// ForceAutowireIsNullable forces autowire to be nullable.
 func ForceAutowireIsNullable(enable bool) {
 	err := sysconf.Set("spring.force-autowire-is-nullable", enable)
-	_ = err // ignore error
+	_ = err // Ignore error
 }

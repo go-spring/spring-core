@@ -25,6 +25,10 @@ import (
 
 var ctx = &gs.ContextAware{}
 
+func init() {
+	gs.ForceAutowireIsNullable(true)
+}
+
 // Init initializes the test environment.
 func Init() error {
 	gs.Object(ctx)

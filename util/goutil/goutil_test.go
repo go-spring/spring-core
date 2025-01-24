@@ -15,3 +15,40 @@
  */
 
 package goutil_test
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	"github.com/go-spring/spring-core/util/goutil"
+)
+
+func TestGo(t *testing.T) {
+
+	goutil.Go(t.Context(), func(ctx context.Context) {
+		fmt.Println("hello")
+	}).Wait()
+
+	goutil.GoFunc(func() {
+		fmt.Println("hello")
+	}).Wait()
+}
+
+func TestGoValue(t *testing.T) {
+
+	s, err := goutil.GoValue(t.Context(), func(ctx context.Context) (string, error) {
+		return "hello", nil
+	}).Wait()
+	fmt.Println(s, err)
+
+	var arr []*goutil.ValueStatus[int]
+	for i := 0; i < 3; i++ {
+		arr = append(arr, goutil.GoValue(t.Context(), func(ctx context.Context) (int, error) {
+			return i, nil
+		}))
+	}
+	for _, g := range arr {
+		fmt.Println(g.Wait())
+	}
+}
