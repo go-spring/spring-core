@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -114,7 +115,7 @@ func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
 
 func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	if c.state >= Refreshing {
-		panic(errors.New("should call before Refresh"))
+		return nil
 	}
 	c.beans = append(c.beans, b.BeanRegistration().(*gs_bean.BeanDefinition))
 	return gs.NewRegisteredBean(b.BeanRegistration())
@@ -352,17 +353,17 @@ func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 				}
 				newBeans = append(newBeans, retBeans...)
 			} else {
-				var f gs.Callable
-				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd.ID()}, 0)
+				file, line, _ := util.FileLine(m.Func.Interface())
+				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd.ID()})
 				if err != nil {
 					return nil, err
 				}
+				f.SetFileLine(file, line)
 				v := reflect.New(out0)
 				if util.IsBeanType(out0) {
 					v = v.Elem()
 				}
 				name := bd.Name() + "_" + m.Name
-				file, line, _ := util.FileLine(m.Func.Interface())
 				b := gs_bean.NewBean(v.Type(), v, f, name)
 				b.SetFileLine(file, line)
 				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
@@ -535,10 +536,12 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 		}
 	}()
 
-	r, err := gs_arg.Bind(fn, args, 1)
+	_, file, line, _ := runtime.Caller(1)
+	r, err := gs_arg.Bind(fn, args)
 	if err != nil {
 		return nil, err
 	}
+	r.SetFileLine(file, line)
 
 	ret, err := r.Call(NewArgContext(c, stack))
 	if err != nil {

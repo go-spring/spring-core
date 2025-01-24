@@ -17,7 +17,6 @@
 package gs_bean
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -272,7 +271,7 @@ func (d *BeanDefinition) SetInit(fn interface{}) {
 		d.init = fn
 		return
 	}
-	panic(errors.New("init should be func(bean) or func(bean)error"))
+	panic("init should be func(bean) or func(bean)error")
 }
 
 // SetDestroy sets the destruction function for the bean.
@@ -281,7 +280,7 @@ func (d *BeanDefinition) SetDestroy(fn interface{}) {
 		d.destroy = fn
 		return
 	}
-	panic(errors.New("destroy should be func(bean) or func(bean)error"))
+	panic("destroy should be func(bean) or func(bean)error")
 }
 
 // AddCondition adds a condition to the list of conditions for the bean.
@@ -307,7 +306,7 @@ func (d *BeanDefinition) SetExport(exports ...interface{}) {
 			}
 		}
 		if t.Kind() != reflect.Interface {
-			panic(errors.New("only interface type can be exported"))
+			panic("only interface type can be exported")
 		}
 		exported := false
 		for _, export := range d.exports {
@@ -341,7 +340,7 @@ func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
 // SetRefreshable sets the refreshable flag and tag for the bean.
 func (d *BeanDefinition) SetRefreshable(tag string) {
 	if !d.Type().Implements(refreshableType) {
-		panic(errors.New("must implement gs.Refreshable interface"))
+		panic("must implement gs.Refreshable interface")
 	}
 	d.refreshable = true
 	d.refreshTag = tag

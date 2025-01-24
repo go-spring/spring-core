@@ -33,7 +33,7 @@ func TestBind(t *testing.T) {
 		stack := gs_core.NewWiringStack()
 		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
 		fn := func() {}
-		p, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
+		p, err := gs_arg.Bind(fn, []gs.Arg{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -54,7 +54,7 @@ func TestBind(t *testing.T) {
 		}
 		p, err := gs_arg.Bind(fn, []gs.Arg{
 			gs_arg.Value(3),
-		}, 1)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -78,7 +78,7 @@ func TestBind(t *testing.T) {
 		}
 		p, err := gs_arg.Bind(fn, []gs.Arg{
 			"${a.b.c}",
-		}, 1)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -106,7 +106,7 @@ func TestBind(t *testing.T) {
 		}
 		p, err := gs_arg.Bind(fn, []gs.Arg{
 			"a",
-		}, 1)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -132,7 +132,7 @@ func TestBind(t *testing.T) {
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{}, 1)
+		p, err := gs_arg.Bind(fn, []gs.Arg{})
 		if err != nil {
 			t.Fatal(err)
 		}

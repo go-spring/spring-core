@@ -56,6 +56,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	}
 
 	var f gs.Callable
+	_, file, line, _ := runtime.Caller(2)
 
 	// If objOrCtor is a function (not from reflect.Value),
 	// process it as a constructor
@@ -68,11 +69,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		}
 
 		// Bind the constructor arguments
-		var err error
-		f, err = gs_arg.Bind(objOrCtor, ctorArgs, 2)
-		if err != nil {
-			panic(err)
-		}
+		f = gs_arg.MustBind(objOrCtor, ctorArgs...).SetFileLine(file, line)
 
 		// Obtain the return type of the constructor
 		out0 := t.Out(0)
@@ -120,7 +117,6 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		name = strings.TrimPrefix(s[len(s)-1], "*")
 	}
 
-	_, file, line, _ := runtime.Caller(2)
 	d := gs_bean.NewBean(t, v, f, name)
 	d.SetFileLine(file, line)
 	return gs.NewBeanDefinition(d).Condition(cond)

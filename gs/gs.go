@@ -56,18 +56,14 @@ func IndexArg(n int, arg Arg) gs_arg.IndexArg {
 	return gs_arg.Index(n, arg)
 }
 
+// BindArg 为 Option 方法绑定运行时参数。
+func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
+	return gs_arg.MustBind(fn, args...)
+}
+
 // OptionArg 返回 Option 函数的参数绑定。
 func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
 	return gs_arg.Option(fn, args...)
-}
-
-func BindArg(fn interface{}, args []Arg, skip int) (*gs_arg.Callable, error) {
-	return gs_arg.Bind(fn, args, skip)
-}
-
-// MustBindArg 为 Option 方法绑定运行时参数。
-func MustBindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
-	return gs_arg.MustBind(fn, args...)
 }
 
 /************************************ cond ***********************************/
@@ -331,15 +327,11 @@ func printBanner() {
 // AllowCircularReferences allows circular references between beans.
 func AllowCircularReferences(enable bool) {
 	err := sysconf.Set("spring.allow-circular-references", enable)
-	if err != nil {
-		panic(err)
-	}
+	_ = err // ignore error
 }
 
 // ForceAutowireIsNullable forces autowire is nullable.
 func ForceAutowireIsNullable(enable bool) {
 	err := sysconf.Set("spring.force-autowire-is-nullable", enable)
-	if err != nil {
-		panic(err)
-	}
+	_ = err // ignore error
 }

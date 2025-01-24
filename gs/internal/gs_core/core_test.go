@@ -1383,7 +1383,7 @@ type Consumer struct {
 
 func (s *Server) Consumer() *Consumer {
 	if nil == s {
-		panic(errors.New("server is nil"))
+		panic("server is nil")
 	}
 	return &Consumer{s}
 }
@@ -1394,7 +1394,7 @@ func (s *Server) ConsumerT() *Consumer {
 
 func (s *Server) ConsumerArg(_ int) *Consumer {
 	if nil == s {
-		panic(errors.New("server is nil"))
+		panic("server is nil")
 	}
 	return &Consumer{s}
 }
@@ -1529,7 +1529,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 						}
 
 						if !strings.Contains(v, "found circle autowire") {
-							panic(errors.New("test error"))
+							panic("test error")
 						}
 					} else {
 						okCount++

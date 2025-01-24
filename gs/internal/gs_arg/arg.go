@@ -263,11 +263,9 @@ func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 		panic(errors.New("invalid option func"))
 	}
 
-	r, err := Bind(fn, args, 1)
-	if err != nil {
-		panic(err)
-	}
-	return &OptionArg{r: r}
+	_, file, line, _ := runtime.Caller(1)
+	r := MustBind(fn, args...)
+	return &OptionArg{r: r.SetFileLine(file, line)}
 }
 
 // Condition sets a condition for invoking the option function.
@@ -321,30 +319,28 @@ type Callable struct {
 
 // MustBind binds arguments to a function and panics if an error occurs.
 func MustBind(fn interface{}, args ...gs.Arg) *Callable {
-	r, err := Bind(fn, args, 1)
+	r, err := Bind(fn, args)
 	if err != nil {
 		panic(err)
 	}
-	return r
+	_, file, line, _ := runtime.Caller(1)
+	return r.SetFileLine(file, line)
 }
 
 // Bind creates a Callable by binding arguments to a function.
-func Bind(fn interface{}, args []gs.Arg, skip int) (*Callable, error) {
-
+func Bind(fn interface{}, args []gs.Arg) (*Callable, error) {
 	fnType := reflect.TypeOf(fn)
 	argList, err := NewArgList(fnType, args)
 	if err != nil {
 		return nil, err
 	}
+	return &Callable{fn: fn, fnType: fnType, argList: argList}, nil
+}
 
-	_, file, line, _ := runtime.Caller(skip + 1)
-	r := &Callable{
-		fn:       fn,
-		fnType:   fnType,
-		argList:  argList,
-		fileLine: fmt.Sprintf("%s:%d", file, line),
-	}
-	return r, nil
+// SetFileLine sets the file and line number of the function call.
+func (r *Callable) SetFileLine(file string, line int) *Callable {
+	r.fileLine = fmt.Sprintf("%s:%d", file, line)
+	return r
 }
 
 // Call invokes the function with its bound arguments processed in the IoC container.
