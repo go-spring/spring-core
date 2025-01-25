@@ -133,17 +133,25 @@ func (app *App) Start() error {
 		return err
 	}
 
-	ctx := app.C.(gs.Context)
+	c := &AppContext{c: app.C.(gs.Context)}
 
 	// runs all runners
 	for _, r := range app.Runners {
-		r.Run(&AppContext{ctx})
+		r.Run(c)
 	}
 
 	// starts all servers
 	for _, svr := range app.Servers {
-		svr.OnAppStart(&AppContext{ctx})
+		svr.OnAppStart(c)
 	}
+
+	// listens the cancel signal then stop the servers
+	c.Go(func(ctx context.Context) {
+		<-ctx.Done()
+		for _, svr := range app.Servers {
+			svr.OnAppStop(ctx)
+		}
+	})
 
 	app.C.ReleaseUnusedMemory()
 	return nil
@@ -152,10 +160,6 @@ func (app *App) Start() error {
 // Stop gracefully stops the application. This method is used to clean up
 // resources and stop servers started by the Start method.
 func (app *App) Stop() {
-	ctx := context.Background()
-	for _, svr := range app.Servers {
-		svr.OnAppStop(ctx)
-	}
 	app.C.Close()
 }
 

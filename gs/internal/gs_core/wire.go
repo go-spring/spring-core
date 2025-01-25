@@ -222,10 +222,19 @@ type wireTag struct {
 }
 
 // parseWireTag parses a wire tag from its string representation.
-func parseWireTag(str string) (tag wireTag) {
+func (c *Container) parseWireTag(str string, needResolve bool) (tag wireTag, err error) {
 
 	if str == "" {
 		return
+	}
+
+	if needResolve {
+		if strings.HasPrefix(str, "${") {
+			str, err = c.p.Data().Resolve(str)
+			if err != nil {
+				return
+			}
+		}
 	}
 
 	if n := len(str) - 1; str[n] == '?' {
@@ -270,60 +279,31 @@ func toWireString(tags []wireTag) string {
 	return buf.String()
 }
 
-// resolveTag preprocesses a tag string, resolving properties if necessary.
-func (c *Container) resolveTag(tag string) (string, error) {
-	if strings.HasPrefix(tag, "${") {
-		s, err := c.p.Data().Resolve(tag)
-		if err != nil {
-			return "", err
-		}
-		return s, nil
-	}
-	return tag, nil
-}
-
 // toWireTag converts a BeanSelector to a wireTag.
 func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
 	switch s := selector.(type) {
 	case string:
-		s, err := c.resolveTag(s)
-		if err != nil {
-			return wireTag{}, err
-		}
-		return parseWireTag(s), nil
-	case gs_bean.BeanDefinition:
-		return parseWireTag(s.ID()), nil
+		return c.parseWireTag(s, true)
 	case *gs_bean.BeanDefinition:
-		return parseWireTag(s.ID()), nil
+		return c.parseWireTag(s.ID(), false)
 	default:
-		return parseWireTag(util.TypeName(s) + ":"), nil
+		return c.parseWireTag(util.TypeName(s)+":", false)
 	}
 }
 
 // wireByTag performs dependency injection by tag.
-func (c *Container) wireByTag(v reflect.Value, tag string, stack *WiringStack) error {
-
-	tag, err := c.resolveTag(tag)
-	if err != nil {
-		return err
-	}
-
-	if tag == "" {
-		return c.autowire(v, nil, false, stack)
-	}
-
+func (c *Container) wireByTag(v reflect.Value, str string, stack *WiringStack) error {
 	var tags []wireTag
-	if tag != "?" {
-		for _, s := range strings.Split(tag, ",") {
-			var g wireTag
-			g, err = c.toWireTag(s)
+	if str != "" && str != "?" {
+		for _, s := range strings.Split(str, ",") {
+			g, err := c.parseWireTag(s, true)
 			if err != nil {
 				return err
 			}
 			tags = append(tags, g)
 		}
 	}
-	return c.autowire(v, tags, tag == "?", stack)
+	return c.autowire(v, tags, str == "?", stack)
 }
 
 // autowire injects dependencies into a given value based on tags.
