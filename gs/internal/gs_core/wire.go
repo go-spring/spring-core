@@ -300,6 +300,32 @@ func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
 	}
 }
 
+// wireByTag performs dependency injection by tag.
+func (c *Container) wireByTag(v reflect.Value, tag string, stack *WiringStack) error {
+
+	tag, err := c.resolveTag(tag)
+	if err != nil {
+		return err
+	}
+
+	if tag == "" {
+		return c.autowire(v, nil, false, stack)
+	}
+
+	var tags []wireTag
+	if tag != "?" {
+		for _, s := range strings.Split(tag, ",") {
+			var g wireTag
+			g, err = c.toWireTag(s)
+			if err != nil {
+				return err
+			}
+			tags = append(tags, g)
+		}
+	}
+	return c.autowire(v, tags, tag == "?", stack)
+}
+
 // autowire injects dependencies into a given value based on tags.
 func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, stack *WiringStack) error {
 	if c.ForceAutowireIsNullable {
@@ -309,7 +335,30 @@ func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, sta
 	}
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
-		return c.collectBeans(v, tags, nullable, stack)
+		{
+			beans, err := c.collectBeans(v.Type(), tags, nullable, stack)
+			if err != nil {
+				return err
+			}
+			// Populate the slice or map with the resolved beans
+			switch v.Kind() {
+			case reflect.Slice:
+				sort.Sort(byBeanName(beans))
+				ret := reflect.MakeSlice(v.Type(), 0, 0)
+				for _, b := range beans {
+					ret = reflect.Append(ret, b.Value())
+				}
+				v.Set(ret)
+			case reflect.Map:
+				ret := reflect.MakeMap(v.Type())
+				for _, b := range beans {
+					ret.SetMapIndex(reflect.ValueOf(b.Name()), b.Value())
+				}
+				v.Set(ret)
+			default:
+			}
+			return nil
+		}
 	default:
 		var tag wireTag
 		if len(tags) > 0 {
@@ -317,7 +366,16 @@ func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, sta
 		} else if nullable {
 			tag.nullable = true
 		}
-		return c.getBean(v, tag, stack)
+		// Ensure the provided value `v` is valid.
+		if !v.IsValid() {
+			return fmt.Errorf("receiver must be a reference type, bean:%q", tag)
+		}
+		b, err := c.getBean(v.Type(), tag, stack)
+		if err != nil {
+			return err
+		}
+		v.Set(b.Value())
+		return nil
 	}
 }
 
@@ -360,15 +418,16 @@ func filterBean(beans []BeanRuntime, tag wireTag, t reflect.Type) (int, error) {
 
 // collectBeans collects beans into the given slice or map value `v`.
 // It supports dependency injection by resolving matching beans based on tags.
-func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool, stack *WiringStack) error {
-	t := v.Type()
+func (c *Container) collectBeans(t reflect.Type, tags []wireTag,
+	nullable bool, stack *WiringStack) ([]BeanRuntime, error) {
+
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Map {
-		return fmt.Errorf("should be slice or map in collection mode")
+		return nil, fmt.Errorf("should be slice or map in collection mode")
 	}
 
 	et := t.Elem()
 	if !util.IsBeanReceiver(et) {
-		return fmt.Errorf("%s is not a valid receiver type", t.String())
+		return nil, fmt.Errorf("%s is not a valid receiver type", t.String())
 	}
 
 	var beans []BeanRuntime
@@ -399,7 +458,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 			// 是否遇到了"无序"标记
 			if item.beanName == "*" {
 				if foundAny {
-					return fmt.Errorf("more than one * in collection %q", tags)
+					return nil, fmt.Errorf("more than one * in collection %q", tags)
 				}
 				foundAny = true
 				continue
@@ -407,7 +466,7 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 
 			index, err := filterBean(beans, item, et)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if index < 0 {
 				continue
@@ -438,14 +497,14 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 	// Handle empty beans
 	if len(beans) == 0 && !nullable {
 		if len(tags) == 0 {
-			return fmt.Errorf("no beans collected for %q", toWireString(tags))
+			return nil, fmt.Errorf("no beans collected for %q", toWireString(tags))
 		}
 		for _, tag := range tags {
 			if !tag.nullable {
-				return fmt.Errorf("no beans collected for %q", toWireString(tags))
+				return nil, fmt.Errorf("no beans collected for %q", toWireString(tags))
 			}
 		}
-		return nil
+		return nil, nil
 	}
 
 	// Wire the beans based on the current state of the container
@@ -453,50 +512,26 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		switch c.state {
 		case Refreshing:
 			if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
-				return err
+				return nil, err
 			}
 		case Refreshed:
 			if b.Status() != gs_bean.StatusWired {
-				return fmt.Errorf("unexpected bean status %d", b.Status())
+				return nil, fmt.Errorf("unexpected bean status %d", b.Status())
 			}
 		default:
-			return fmt.Errorf("state is error for wiring")
+			return nil, fmt.Errorf("state is error for wiring")
 		}
 	}
-
-	// Populate the slice or map with the resolved beans
-	var ret reflect.Value
-	switch t.Kind() {
-	case reflect.Slice:
-		sort.Sort(byBeanName(beans))
-		ret = reflect.MakeSlice(t, 0, 0)
-		for _, b := range beans {
-			ret = reflect.Append(ret, b.Value())
-		}
-	case reflect.Map:
-		ret = reflect.MakeMap(t)
-		for _, b := range beans {
-			ret.SetMapIndex(reflect.ValueOf(b.Name()), b.Value())
-		}
-	default:
-	}
-	v.Set(ret)
-	return nil
+	return beans, nil
 }
 
 // getBean retrieves the bean corresponding to the specified tag and assigns it to `v`.
 // `v` should be an uninitialized value.
-func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) error {
+func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (BeanRuntime, error) {
 
-	// Ensure the provided value `v` is valid.
-	if !v.IsValid() {
-		return fmt.Errorf("receiver must be a reference type, bean:%q", tag)
-	}
-
-	t := v.Type()
 	// Check if the type of `v` is a valid bean receiver type.
 	if !util.IsBeanReceiver(t) {
-		return fmt.Errorf("%s is not a valid receiver type", t.String())
+		return nil, fmt.Errorf("%s is not a valid receiver type", t.String())
 	}
 
 	var foundBeans []BeanRuntime
@@ -542,9 +577,9 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 	// If no matching beans are found and the tag allows nullable beans, return nil.
 	if len(foundBeans) == 0 {
 		if tag.nullable {
-			return nil
+			return nil, nil
 		}
-		return fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
+		return nil, fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
 	}
 
 	// If more than one matching bean is found, return an error.
@@ -554,7 +589,7 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 			msg += "( " + b.String() + " ), "
 		}
 		msg = msg[:len(msg)-2] + "]"
-		return errors.New(msg)
+		return nil, errors.New(msg)
 	}
 
 	// Retrieve the single matching bean.
@@ -564,19 +599,19 @@ func (c *Container) getBean(v reflect.Value, tag wireTag, stack *WiringStack) er
 	switch c.state {
 	case Refreshing:
 		if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
-			return err
+			return nil, err
 		}
 	case Refreshed:
 		if b.Status() != gs_bean.StatusWired {
-			return fmt.Errorf("unexpected bean status %d", b.Status())
+			return nil, fmt.Errorf("unexpected bean status %d", b.Status())
 		}
 	default:
-		return fmt.Errorf("state is invalid for wiring")
+		return nil, fmt.Errorf("state is invalid for wiring")
 	}
 
-	// Set the value of `v` to the bean's value.
-	v.Set(b.Value())
-	return nil
+	//// Set the value of `v` to the bean's value.
+	//v.Set(b.Value())
+	return b, nil
 }
 
 // wireBean performs property binding and dependency injection for the specified bean.
@@ -872,30 +907,4 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 		}
 	}
 	return nil
-}
-
-// wireByTag performs dependency injection by tag.
-func (c *Container) wireByTag(v reflect.Value, tag string, stack *WiringStack) error {
-
-	tag, err := c.resolveTag(tag)
-	if err != nil {
-		return err
-	}
-
-	if tag == "" {
-		return c.autowire(v, nil, false, stack)
-	}
-
-	var tags []wireTag
-	if tag != "?" {
-		for _, s := range strings.Split(tag, ",") {
-			var g wireTag
-			g, err = c.toWireTag(s)
-			if err != nil {
-				return err
-			}
-			tags = append(tags, g)
-		}
-	}
-	return c.autowire(v, tags, tag == "?", stack)
 }

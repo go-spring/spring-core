@@ -18,6 +18,7 @@ package goutil
 
 import (
 	"context"
+	"errors"
 	"runtime/debug"
 	"sync"
 
@@ -128,6 +129,7 @@ func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error))
 				if OnPanic != nil {
 					OnPanic(r)
 				}
+				s.err = errors.New("has a panic")
 			}
 		}()
 		s.val, s.err = f(ctx)

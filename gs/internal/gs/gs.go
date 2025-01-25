@@ -140,8 +140,8 @@ type BeanRegistration interface {
 	SetInit(fn interface{})
 	// SetDestroy sets the destruction function for the bean.
 	SetDestroy(fn interface{})
-	// AddCondition adds a condition for the bean.
-	AddCondition(cond Condition)
+	// SetCondition adds a condition for the bean.
+	SetCondition(cond Condition)
 	// SetDependsOn sets the beans that this bean depends on.
 	SetDependsOn(selectors ...BeanSelector)
 	// SetExport defines the interfaces to be exported by the bean.
@@ -192,7 +192,7 @@ func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
 
 // Condition adds a condition to validate the bean.
 func (d *beanBuilder[T]) Condition(cond Condition) *T {
-	d.b.AddCondition(cond)
+	d.b.SetCondition(cond)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

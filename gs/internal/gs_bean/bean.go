@@ -283,8 +283,8 @@ func (d *BeanDefinition) SetDestroy(fn interface{}) {
 	panic("destroy should be func(bean) or func(bean)error")
 }
 
-// AddCondition adds a condition to the list of conditions for the bean.
-func (d *BeanDefinition) AddCondition(cond gs.Condition) {
+// SetCondition adds a condition to the list of conditions for the bean.
+func (d *BeanDefinition) SetCondition(cond gs.Condition) {
 	if cond != nil {
 		d.conditions = append(d.conditions, cond)
 	}
