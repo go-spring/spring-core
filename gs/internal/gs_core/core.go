@@ -53,7 +53,9 @@ var beanDefinitionType = reflect.TypeOf((*gs.BeanDefinition)(nil))
 type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
 
 type BeanRuntime interface {
+	ID() string
 	Name() string
+	TypeName() string
 	Type() reflect.Type
 	Value() reflect.Value
 	Interface() interface{}
@@ -71,10 +73,9 @@ type BeanRuntime interface {
 // go-spring 严格区分了这两种概念，在描述对 bean 的处理时要么单独使用依赖注入或属
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
-	beans        []*gs_bean.BeanDefinition
+	resolving    *resolvingStage
 	beansByName  map[string][]BeanRuntime
 	beansByType  map[reflect.Type][]BeanRuntime
-	groupFuncs   []GroupFunc
 	p            *gs_dync.Properties
 	ctx          context.Context
 	cancel       context.CancelFunc
@@ -94,6 +95,7 @@ func New() gs.Container {
 		ctx:         ctx,
 		cancel:      cancel,
 		p:           gs_dync.New(),
+		resolving:   &resolvingStage{},
 		beansByName: make(map[string][]BeanRuntime),
 		beansByType: make(map[reflect.Type][]BeanRuntime),
 	}
@@ -117,12 +119,13 @@ func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	if c.state >= Refreshing {
 		return nil
 	}
-	c.beans = append(c.beans, b.BeanRegistration().(*gs_bean.BeanDefinition))
+	x := b.BeanRegistration().(*gs_bean.BeanDefinition)
+	c.resolving.beans = append(c.resolving.beans, x)
 	return gs.NewRegisteredBean(b.BeanRegistration())
 }
 
 func (c *Container) GroupRegister(fn GroupFunc) {
-	c.groupFuncs = append(c.groupFuncs, fn)
+	c.resolving.groupFuncs = append(c.resolving.groupFuncs, fn)
 }
 
 // Keys returns all keys present in the container's properties.
@@ -168,61 +171,29 @@ func (c *Container) Refresh() (err error) {
 	c.state = RefreshInit
 	start := time.Now()
 
-	// processes all group functions to register beans.
-	for _, fn := range c.groupFuncs {
-		var beans []*gs.BeanDefinition
-		beans, err = fn(c.p.Data())
-		if err != nil {
-			return err
-		}
-		for _, b := range beans {
-			d := b.BeanRegistration().(*gs_bean.BeanDefinition)
-			c.beans = append(c.beans, d)
-		}
-	}
-	c.groupFuncs = nil
-
-	// processes configuration beans to register beans.
-	for _, b := range c.beans {
-		if !b.ConfigurationBean() {
-			continue
-		}
-		var newBeans []*gs_bean.BeanDefinition
-		newBeans, err = c.scanConfiguration(b)
-		if err != nil {
-			return err
-		}
-		c.beans = append(c.beans, newBeans...)
+	c.resolving.p = c.p.Data()
+	err = c.resolving.RefreshInit()
+	if err != nil {
+		return err
 	}
 
 	c.state = Refreshing
 
-	// registers all beans by name and type.
-	for _, b := range c.beans {
+	beansById, err := c.resolving.Refresh()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("xxx")
+	for _, bean := range beansById {
+		fmt.Println(bean.String())
+	}
+
+	// retains only the runtime essential content to simplify memory.
+	// c.beansByName = make(map[string][]BeanRuntime)
+	// c.beansByType = make(map[reflect.Type][]BeanRuntime)
+	for _, b := range c.resolving.beans {
 		c.registerBean(b)
-	}
-
-	// resolves all beans on their condition.
-	for _, b := range c.beans {
-		if err = c.resolveBean(b); err != nil {
-			return err
-		}
-	}
-
-	// caches all beans by id and checks for duplicates.
-	beansById := make(map[string]*gs_bean.BeanDefinition)
-	for _, b := range c.beans {
-		if b.Status() == gs_bean.StatusDeleted {
-			continue
-		}
-		if b.Status() != gs_bean.StatusResolved {
-			return fmt.Errorf("unexpected status %d", b.Status())
-		}
-		beanID := b.ID()
-		if d, ok := beansById[beanID]; ok {
-			return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
-		}
-		beansById[beanID] = b
 	}
 
 	stack := NewWiringStack()
@@ -264,13 +235,6 @@ func (c *Container) Refresh() (err error) {
 		return err
 	}
 
-	// retains only the runtime essential content to simplify memory.
-	c.beansByName = make(map[string][]BeanRuntime)
-	c.beansByType = make(map[reflect.Type][]BeanRuntime)
-	for _, b := range c.beans {
-		c.registerBean(b)
-	}
-
 	c.state = Refreshed
 	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
 		len(beansById), time.Now().Sub(start))
@@ -286,93 +250,7 @@ func (c *Container) ReleaseUnusedMemory() {
 		c.beansByName = nil
 		c.beansByType = nil
 	}
-	c.beans = nil
-}
-
-func (c *Container) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
-	var (
-		includes []*regexp.Regexp
-		excludes []*regexp.Regexp
-	)
-	param := bd.ConfigurationParam()
-	ss := param.Includes
-	if len(ss) == 0 {
-		ss = []string{"New*"}
-	}
-	for _, s := range ss {
-		var x *regexp.Regexp
-		x, err := regexp.Compile(s)
-		if err != nil {
-			return nil, err
-		}
-		includes = append(includes, x)
-	}
-	ss = param.Excludes
-	for _, s := range ss {
-		var x *regexp.Regexp
-		x, err := regexp.Compile(s)
-		if err != nil {
-			return nil, err
-		}
-		excludes = append(excludes, x)
-	}
-	var newBeans []*gs_bean.BeanDefinition
-	n := bd.Type().NumMethod()
-	for i := 0; i < n; i++ {
-		m := bd.Type().Method(i)
-		skip := false
-		for _, x := range excludes {
-			if x.MatchString(m.Name) {
-				skip = true
-				break
-			}
-		}
-		if skip {
-			continue
-		}
-		for _, x := range includes {
-			if !x.MatchString(m.Name) {
-				continue
-			}
-			fnType := m.Func.Type()
-			out0 := fnType.Out(0)
-			if out0 == beanDefinitionType {
-				ret := m.Func.Call([]reflect.Value{bd.Value()})
-				if len(ret) > 1 {
-					if err := ret[1].Interface().(error); err != nil {
-						return nil, err
-					}
-				}
-				b := ret[0].Interface().(*gs.BeanDefinition).BeanRegistration().(*gs_bean.BeanDefinition)
-				file, line, _ := util.FileLine(m.Func.Interface())
-				b.SetFileLine(file, line)
-				newBeans = append(newBeans, b)
-				retBeans, err := c.scanConfiguration(b)
-				if err != nil {
-					return nil, err
-				}
-				newBeans = append(newBeans, retBeans...)
-			} else {
-				file, line, _ := util.FileLine(m.Func.Interface())
-				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd.ID()})
-				if err != nil {
-					return nil, err
-				}
-				f.SetFileLine(file, line)
-				v := reflect.New(out0)
-				if util.IsBeanType(out0) {
-					v = v.Elem()
-				}
-				name := bd.Name() + "_" + m.Name
-				b := gs_bean.NewBean(v.Type(), v, f, name)
-				b.SetFileLine(file, line)
-				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
-				newBeans = append(newBeans, b)
-			}
-			break
-		}
-	}
-	return newBeans, nil
+	c.resolving = nil
 }
 
 // registerBean registers a bean by name and type.
@@ -385,24 +263,6 @@ func (c *Container) registerBean(b *gs_bean.BeanDefinition) {
 	for _, t := range b.Exports() {
 		c.beansByType[t] = append(c.beansByType[t], b)
 	}
-}
-
-// resolveBean determines the validity of the bean.
-func (c *Container) resolveBean(b *gs_bean.BeanDefinition) error {
-	if b.Status() >= gs_bean.StatusResolving {
-		return nil
-	}
-	b.SetStatus(gs_bean.StatusResolving)
-	for _, cond := range b.Conditions() {
-		if ok, err := cond.Matches(c); err != nil {
-			return err
-		} else if !ok {
-			b.SetStatus(gs_bean.StatusDeleted)
-			return nil
-		}
-	}
-	b.SetStatus(gs_bean.StatusResolved)
-	return nil
 }
 
 // Get retrieves a bean of the specified type using the provided selectors.
@@ -427,7 +287,7 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 
 	var tags []wireTag
 	for _, s := range selectors {
-		g, err := c.toWireTag(s)
+		g, err := toWireTag(c.p.Data(), s)
 		if err != nil {
 			return err
 		}
@@ -440,7 +300,7 @@ func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
 func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 
 	x := NewBean(objOrCtor, ctorArgs...)
-	b := x.BeanRegistration().(BeanRuntime)
+	b := x.BeanRegistration().(*gs_bean.BeanDefinition)
 
 	stack := NewWiringStack()
 	defer func() {
@@ -527,4 +387,275 @@ func (c *Container) Close() {
 	}
 
 	syslog.Infof("container closed")
+}
+
+type resolvingStage struct {
+	beans      []*gs_bean.BeanDefinition
+	groupFuncs []GroupFunc
+	p          gs.Properties
+}
+
+func (c *resolvingStage) RefreshInit() error {
+	// processes all group functions to register beans.
+	for _, fn := range c.groupFuncs {
+		beans, err := fn(c.p)
+		if err != nil {
+			return err
+		}
+		for _, b := range beans {
+			d := b.BeanRegistration().(*gs_bean.BeanDefinition)
+			c.beans = append(c.beans, d)
+		}
+	}
+	c.groupFuncs = nil
+
+	// processes configuration beans to register beans.
+	for _, b := range c.beans {
+		if !b.ConfigurationBean() {
+			continue
+		}
+		newBeans, err := c.scanConfiguration(b)
+		if err != nil {
+			return err
+		}
+		c.beans = append(c.beans, newBeans...)
+	}
+	return nil
+}
+
+func (c *resolvingStage) Refresh() (beansById map[string]*gs_bean.BeanDefinition, err error) {
+
+	// resolves all beans on their condition.
+	for _, b := range c.beans {
+		if err = c.resolveBean(b); err != nil {
+			return nil, err
+		}
+	}
+
+	// caches all beans by id and checks for duplicates.
+	beansById = make(map[string]*gs_bean.BeanDefinition)
+	for _, b := range c.beans {
+		if b.Status() == gs_bean.StatusDeleted {
+			continue
+		}
+		if b.Status() != gs_bean.StatusResolved {
+			return nil, fmt.Errorf("unexpected status %d", b.Status())
+		}
+		beanID := b.ID()
+		if d, ok := beansById[beanID]; ok {
+			return nil, fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
+		}
+		beansById[beanID] = b
+	}
+	return beansById, nil
+}
+
+func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
+	var (
+		includes []*regexp.Regexp
+		excludes []*regexp.Regexp
+	)
+	param := bd.ConfigurationParam()
+	ss := param.Includes
+	if len(ss) == 0 {
+		ss = []string{"New*"}
+	}
+	for _, s := range ss {
+		var x *regexp.Regexp
+		x, err := regexp.Compile(s)
+		if err != nil {
+			return nil, err
+		}
+		includes = append(includes, x)
+	}
+	ss = param.Excludes
+	for _, s := range ss {
+		var x *regexp.Regexp
+		x, err := regexp.Compile(s)
+		if err != nil {
+			return nil, err
+		}
+		excludes = append(excludes, x)
+	}
+	var newBeans []*gs_bean.BeanDefinition
+	n := bd.Type().NumMethod()
+	for i := 0; i < n; i++ {
+		m := bd.Type().Method(i)
+		skip := false
+		for _, x := range excludes {
+			if x.MatchString(m.Name) {
+				skip = true
+				break
+			}
+		}
+		if skip {
+			continue
+		}
+		for _, x := range includes {
+			if !x.MatchString(m.Name) {
+				continue
+			}
+			fnType := m.Func.Type()
+			out0 := fnType.Out(0)
+			if out0 == beanDefinitionType {
+				ret := m.Func.Call([]reflect.Value{bd.Value()})
+				if len(ret) > 1 {
+					if err := ret[1].Interface().(error); err != nil {
+						return nil, err
+					}
+				}
+				b := ret[0].Interface().(*gs.BeanDefinition).BeanRegistration().(*gs_bean.BeanDefinition)
+				file, line, _ := util.FileLine(m.Func.Interface())
+				b.SetFileLine(file, line)
+				newBeans = append(newBeans, b)
+				retBeans, err := c.scanConfiguration(b)
+				if err != nil {
+					return nil, err
+				}
+				newBeans = append(newBeans, retBeans...)
+			} else {
+				file, line, _ := util.FileLine(m.Func.Interface())
+				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd.ID()})
+				if err != nil {
+					return nil, err
+				}
+				f.SetFileLine(file, line)
+				v := reflect.New(out0)
+				if util.IsBeanType(out0) {
+					v = v.Elem()
+				}
+				name := bd.Name() + "_" + m.Name
+				b := gs_bean.NewBean(v.Type(), v, f, name)
+				b.SetFileLine(file, line)
+				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
+				newBeans = append(newBeans, b)
+			}
+			break
+		}
+	}
+	return newBeans, nil
+}
+
+// resolveBean determines the validity of the bean.
+func (c *resolvingStage) resolveBean(b *gs_bean.BeanDefinition) error {
+	if b.Status() >= gs_bean.StatusResolving {
+		return nil
+	}
+	b.SetStatus(gs_bean.StatusResolving)
+	for _, cond := range b.Conditions() {
+		if ok, err := cond.Matches(c); err != nil {
+			return err
+		} else if !ok {
+			b.SetStatus(gs_bean.StatusDeleted)
+			return nil
+		}
+	}
+	b.SetStatus(gs_bean.StatusResolved)
+	return nil
+}
+
+func (c *resolvingStage) Has(key string) bool {
+	return c.p.Has(key)
+}
+
+func (c *resolvingStage) Prop(key string, opts ...conf.GetOption) string {
+	return c.p.Get(key, opts...)
+}
+
+// Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
+// 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
+func (c *resolvingStage) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
+
+	finder := func(fn func(*gs_bean.BeanDefinition) bool) ([]gs.CondBean, error) {
+		var result []gs.CondBean
+		for _, b := range c.beans {
+			if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted || !fn(b) {
+				continue
+			}
+			if err := c.resolveBean(b); err != nil {
+				return nil, err
+			}
+			if b.Status() == gs_bean.StatusDeleted {
+				continue
+			}
+			result = append(result, b)
+		}
+		return result, nil
+	}
+
+	var t reflect.Type
+	switch st := selector.(type) {
+	case string, *gs_bean.BeanDefinition:
+		tag, err := toWireTag(c.p, selector)
+		if err != nil {
+			return nil, err
+		}
+		return finder(func(b *gs_bean.BeanDefinition) bool {
+			return b.Match(tag.typeName, tag.beanName)
+		})
+	case reflect.Type:
+		t = st
+	default:
+		t = reflect.TypeOf(st)
+	}
+
+	if t.Kind() == reflect.Ptr {
+		if e := t.Elem(); e.Kind() == reflect.Interface {
+			t = e // 指 (*error)(nil) 形式的 bean 选择器
+		}
+	}
+
+	return finder(func(b *gs_bean.BeanDefinition) bool {
+		if b.Type() == t {
+			return true
+		}
+		for _, typ := range b.Exports() {
+			if typ == t {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func toWireTag(p gs.Properties, selector gs.BeanSelector) (wireTag, error) {
+	switch s := selector.(type) {
+	case string:
+		return parseWireTag(p, s, true)
+	case *gs_bean.BeanDefinition:
+		return parseWireTag(p, s.ID(), false)
+	default:
+		return parseWireTag(p, util.TypeName(s)+":", false)
+	}
+}
+
+func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, err error) {
+
+	if str == "" {
+		return
+	}
+
+	if needResolve {
+		if strings.HasPrefix(str, "${") {
+			str, err = p.Resolve(str)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	if n := len(str) - 1; str[n] == '?' {
+		tag.nullable = true
+		str = str[:n]
+	}
+
+	i := strings.Index(str, ":")
+	if i < 0 {
+		tag.beanName = str
+		return
+	}
+
+	tag.typeName = str[:i]
+	tag.beanName = str[i+1:]
+	return
 }
