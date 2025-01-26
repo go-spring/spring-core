@@ -296,8 +296,8 @@ type Context interface {
 	// Bind binds the value of the specified key to the provided struct or variable.
 	Bind(i interface{}, opts ...conf.BindArg) error
 
-	// Get retrieves a bean of the specified type using the provided selectors (used for bean injection).
-	Get(i interface{}, selectors ...BeanSelector) error
+	// Get retrieves a bean of the specified type using the provided selector.
+	Get(i interface{}, selector ...string) error
 
 	// Wire creates and returns a bean by wiring it with the provided constructor or object.
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)

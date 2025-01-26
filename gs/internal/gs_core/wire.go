@@ -37,12 +37,13 @@ var (
 	GsContextType = reflect.TypeOf((*gs.Context)(nil)).Elem()
 )
 
-// lazyField represents a lazy-injected field with metadata.
-type lazyField struct {
-	v    reflect.Value // The value to be injected.
-	path string        // Path for the field in the injection hierarchy.
-	tag  string        // Associated tag for the field.
-}
+type byBeanName []BeanRuntime
+
+func (b byBeanName) Len() int           { return len(b) }
+func (b byBeanName) Less(i, j int) bool { return b[i].Name() < b[j].Name() }
+func (b byBeanName) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+
+/************************************ destroyer ******************************/
 
 // destroyer stores beans with destroy functions and their call order.
 type destroyer struct {
@@ -79,6 +80,15 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) (*list.List, erro
 		}
 	}
 	return result, nil
+}
+
+/******************************* wiring stack ********************************/
+
+// lazyField represents a lazy-injected field with metadata.
+type lazyField struct {
+	v    reflect.Value // The value to be injected.
+	path string        // Path for the field in the injection hierarchy.
+	tag  string        // Associated tag for the field.
 }
 
 // WiringStack tracks the injection path of beans and their destroyers.
@@ -163,44 +173,62 @@ func (s *WiringStack) sortDestroyers() ([]func(), error) {
 	return ret, nil
 }
 
+/************************************ arg ************************************/
+
+// ArgContext holds a Container and a WiringStack to manage dependency injection.
+type ArgContext struct {
+	c     *Container
+	stack *WiringStack
+}
+
+// NewArgContext creates a new ArgContext with a given Container and WiringStack.
+func NewArgContext(c *Container, stack *WiringStack) *ArgContext {
+	return &ArgContext{c: c, stack: stack}
+}
+
+func (a *ArgContext) Has(key string) bool {
+	return a.c.Has(key)
+}
+
+func (a *ArgContext) Prop(key string, opts ...conf.GetOption) string {
+	return a.c.Prop(key, opts...)
+}
+
+func (a *ArgContext) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
+	beans, err := a.c.findBeans(selector)
+	if err != nil {
+		return nil, err
+	}
+	var ret []gs.CondBean
+	for _, bean := range beans {
+		ret = append(ret, bean)
+	}
+	return ret, nil
+}
+
+// Matches checks if a given condition matches the container.
+func (a *ArgContext) Matches(c gs.Condition) (bool, error) {
+	return c.Matches(a)
+}
+
+// Bind binds a value to a specific tag in the container.
+func (a *ArgContext) Bind(v reflect.Value, tag string) error {
+	return a.c.p.Data().Bind(v, conf.Tag(tag))
+}
+
+// Wire wires a value based on a specific tag in the container.
+func (a *ArgContext) Wire(v reflect.Value, tag string) error {
+	return a.c.autowire(v, tag, a.stack)
+}
+
+/************************************ wire ***********************************/
+
 // wireTag represents a parsed injection tag in the format TypeName:BeanName?.
 type wireTag struct {
 	typeName string // Full type name.
 	beanName string // Bean name for injection.
 	nullable bool   // Whether the injection can be nil.
 }
-
-//// parseWireTag parses a wire tag from its string representation.
-//func (c *Container) parseWireTag(str string, needResolve bool) (tag wireTag, err error) {
-//
-//	if str == "" {
-//		return
-//	}
-//
-//	if needResolve {
-//		if strings.HasPrefix(str, "${") {
-//			str, err = c.p.Data().Resolve(str)
-//			if err != nil {
-//				return
-//			}
-//		}
-//	}
-//
-//	if n := len(str) - 1; str[n] == '?' {
-//		tag.nullable = true
-//		str = str[:n]
-//	}
-//
-//	i := strings.Index(str, ":")
-//	if i < 0 {
-//		tag.beanName = str
-//		return
-//	}
-//
-//	tag.typeName = str[:i]
-//	tag.beanName = str[i+1:]
-//	return
-//}
 
 // String converts a wireTag back to its string representation.
 func (tag wireTag) String() string {
@@ -228,43 +256,28 @@ func toWireString(tags []wireTag) string {
 	return buf.String()
 }
 
-//// toWireTag converts a BeanSelector to a wireTag.
-//func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
-//	switch s := selector.(type) {
-//	case string:
-//		return c.parseWireTag(s, true)
-//	case *gs_bean.BeanDefinition:
-//		return c.parseWireTag(s.ID(), false)
-//	default:
-//		return c.parseWireTag(util.TypeName(s)+":", false)
-//	}
-//}
-
 // wireByTag performs dependency injection by tag.
-func (c *Container) wireByTag(v reflect.Value, str string, stack *WiringStack) error {
-	var tags []wireTag
-	if str != "" && str != "?" {
-		for _, s := range strings.Split(str, ",") {
-			g, err := parseWireTag(c.p.Data(), s, true)
-			if err != nil {
-				return err
-			}
-			tags = append(tags, g)
-		}
-	}
-	return c.autowire(v, tags, str == "?", stack)
-}
-
-// autowire injects dependencies into a given value based on tags.
-func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, stack *WiringStack) error {
-	if c.ForceAutowireIsNullable {
-		for i := 0; i < len(tags); i++ {
-			tags[i].nullable = true
-		}
-	}
+func (c *Container) autowire(v reflect.Value, str string, stack *WiringStack) error {
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		{
+			var tags []wireTag
+			if str != "" && str != "?" {
+				for _, s := range strings.Split(str, ",") {
+					g, err := parseWireTag(c.p.Data(), s, true)
+					if err != nil {
+						return err
+					}
+					tags = append(tags, g)
+				}
+			}
+			nullable := str == "?"
+			if c.ForceAutowireIsNullable {
+				for i := 0; i < len(tags); i++ {
+					tags[i].nullable = true
+				}
+				nullable = true
+			}
 			beans, err := c.collectBeans(v.Type(), tags, nullable, stack)
 			if err != nil {
 				return err
@@ -289,15 +302,16 @@ func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, sta
 			return nil
 		}
 	default:
-		var tag wireTag
-		if len(tags) > 0 {
-			tag = tags[0]
-		} else if nullable {
+		tag, err := parseWireTag(c.p.Data(), str, true)
+		if err != nil {
+			return err
+		}
+		if c.ForceAutowireIsNullable {
 			tag.nullable = true
 		}
 		// Ensure the provided value `v` is valid.
 		if !v.IsValid() {
-			return fmt.Errorf("receiver must be a reference type, bean:%q", tag)
+			return fmt.Errorf("receiver must be a reference type, bean:%q", str)
 		}
 		b, err := c.getBean(v.Type(), tag, stack)
 		if err != nil {
@@ -307,12 +321,6 @@ func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, sta
 		return nil
 	}
 }
-
-type byBeanName []BeanRuntime
-
-func (b byBeanName) Len() int           { return len(b) }
-func (b byBeanName) Less(i, j int) bool { return b[i].Name() < b[j].Name() }
-func (b byBeanName) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // filterBean searches for a bean matching the given tag and type.
 // Returns the index of the matched bean in the array or -1 if no match is found.
@@ -463,11 +471,6 @@ func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (Be
 		return nil, fmt.Errorf("%s is not a valid receiver type", t.String())
 	}
 
-	//fmt.Println("xxxx")
-	//for st, b := range c.beansByType {
-	//	fmt.Println(st.String(), b)
-	//}
-
 	var foundBeans []BeanRuntime
 	// Iterate through all beans of the given type and match against the tag.
 	for _, b := range c.beansByType[t] {
@@ -542,9 +545,6 @@ func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (Be
 	default:
 		return nil, fmt.Errorf("state is invalid for wiring")
 	}
-
-	//// Set the value of `v` to the bean's value.
-	//v.Set(b.Value())
 	return b, nil
 }
 
@@ -674,52 +674,6 @@ func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) erro
 	return nil
 }
 
-// ArgContext holds a Container and a WiringStack to manage dependency injection.
-type ArgContext struct {
-	c     *Container
-	stack *WiringStack
-}
-
-func (a *ArgContext) Has(key string) bool {
-	return a.c.Has(key)
-}
-
-func (a *ArgContext) Prop(key string, opts ...conf.GetOption) string {
-	return a.c.Prop(key, opts...)
-}
-
-func (a *ArgContext) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
-	beans, err := a.c.findBeans(selector)
-	if err != nil {
-		return nil, err
-	}
-	var ret []gs.CondBean
-	for _, bean := range beans {
-		ret = append(ret, bean)
-	}
-	return ret, nil
-}
-
-// NewArgContext creates a new ArgContext with a given Container and WiringStack.
-func NewArgContext(c *Container, stack *WiringStack) *ArgContext {
-	return &ArgContext{c: c, stack: stack}
-}
-
-// Matches checks if a given condition matches the container.
-func (a *ArgContext) Matches(c gs.Condition) (bool, error) {
-	return c.Matches(a)
-}
-
-// Bind binds a value to a specific tag in the container.
-func (a *ArgContext) Bind(v reflect.Value, tag string) error {
-	return a.c.p.Data().Bind(v, conf.Tag(tag))
-}
-
-// Wire wires a value based on a specific tag in the container.
-func (a *ArgContext) Wire(v reflect.Value, tag string) error {
-	return a.c.wireByTag(v, tag, a.stack)
-}
-
 // getBeanValue retrieves the value of a bean. If it is a constructor bean,
 // it executes the constructor and returns the result.
 func (c *Container) getBeanValue(b BeanRuntime, stack *WiringStack) (reflect.Value, error) {
@@ -819,7 +773,7 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 				if ft.Type == GsContextType {
 					c.ContextAware = true
 				}
-				if err := c.wireByTag(fv, tag, stack); err != nil {
+				if err := c.autowire(fv, tag, stack); err != nil {
 					return fmt.Errorf("%q wired error: %w", fieldPath, err)
 				}
 			}
@@ -864,18 +818,6 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 }
 
 func (c *Container) findBeans(selector gs.BeanSelector) ([]BeanRuntime, error) {
-
-	//finder := func(fn func(*gs_bean.BeanDefinition) bool) ([]gs.CondBean, error) {
-	//	var result []gs.CondBean
-	//	for _, b := range c.beans {
-	//		if !fn(b) {
-	//			continue
-	//		}
-	//		result = append(result, b)
-	//	}
-	//	return result, nil
-	//}
-
 	var t reflect.Type
 	switch st := selector.(type) {
 	case string:
@@ -902,12 +844,10 @@ func (c *Container) findBeans(selector gs.BeanSelector) ([]BeanRuntime, error) {
 	default:
 		t = reflect.TypeOf(st)
 	}
-
 	if t.Kind() == reflect.Ptr {
 		if e := t.Elem(); e.Kind() == reflect.Interface {
 			t = e // 指 (*error)(nil) 形式的 bean 选择器
 		}
 	}
-
 	return c.beansByType[t], nil
 }

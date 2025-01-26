@@ -184,16 +184,16 @@ func (c *Container) Refresh() (err error) {
 		return err
 	}
 
-	fmt.Println("xxx")
-	for _, bean := range beansById {
-		fmt.Println(bean.String())
-	}
-
-	// retains only the runtime essential content to simplify memory.
-	// c.beansByName = make(map[string][]BeanRuntime)
-	// c.beansByType = make(map[reflect.Type][]BeanRuntime)
+	// registers all beans
 	for _, b := range c.resolving.beans {
-		c.registerBean(b)
+		if b.Status() == gs_bean.StatusDeleted {
+			continue
+		}
+		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
+		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
+		for _, t := range b.Exports() {
+			c.beansByType[t] = append(c.beansByType[t], b)
+		}
 	}
 
 	stack := NewWiringStack()
@@ -222,7 +222,7 @@ func (c *Container) Refresh() (err error) {
 		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
-			if err = c.wireByTag(f.v, tag, stack); err != nil {
+			if err = c.autowire(f.v, tag, stack); err != nil {
 				return fmt.Errorf("%q wired error: %s", f.path, err.Error())
 			}
 		}
@@ -234,6 +234,21 @@ func (c *Container) Refresh() (err error) {
 	if err != nil {
 		return err
 	}
+
+	// registers all beans
+	c.beansByName = make(map[string][]BeanRuntime)
+	c.beansByType = make(map[reflect.Type][]BeanRuntime)
+	for _, b := range c.resolving.beans {
+		if b.Status() == gs_bean.StatusDeleted {
+			continue
+		}
+		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
+		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
+		for _, t := range b.Exports() {
+			c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
+		}
+	}
+	c.resolving = nil
 
 	c.state = Refreshed
 	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
@@ -253,47 +268,26 @@ func (c *Container) ReleaseUnusedMemory() {
 	c.resolving = nil
 }
 
-// registerBean registers a bean by name and type.
-func (c *Container) registerBean(b *gs_bean.BeanDefinition) {
-	if b.Status() == gs_bean.StatusDeleted {
-		return
-	}
-	c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
-	c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
-	for _, t := range b.Exports() {
-		c.beansByType[t] = append(c.beansByType[t], b)
-	}
-}
-
-// Get retrieves a bean of the specified type using the provided selectors.
-func (c *Container) Get(i interface{}, selectors ...gs.BeanSelector) error {
-
+// Get retrieves a bean of the specified type using the provided selector.
+func (c *Container) Get(i interface{}, selector ...string) error {
 	if i == nil {
 		return errors.New("i can't be nil")
 	}
-
 	v := reflect.ValueOf(i)
 	if v.Kind() != reflect.Ptr {
 		return errors.New("i must be pointer")
 	}
-
 	stack := NewWiringStack()
-
 	defer func() {
 		if len(stack.beans) > 0 {
 			syslog.Infof("wiring path %s", stack.path())
 		}
 	}()
-
-	var tags []wireTag
-	for _, s := range selectors {
-		g, err := toWireTag(c.p.Data(), s)
-		if err != nil {
-			return err
-		}
-		tags = append(tags, g)
+	var tag string
+	if len(selector) > 0 {
+		tag = selector[0]
 	}
-	return c.autowire(v.Elem(), tags, false, stack)
+	return c.autowire(v.Elem(), tag, stack)
 }
 
 // Wire creates and returns a wired bean using the provided object or constructor function.
@@ -407,7 +401,6 @@ func (c *resolvingStage) RefreshInit() error {
 			c.beans = append(c.beans, d)
 		}
 	}
-	c.groupFuncs = nil
 
 	// processes configuration beans to register beans.
 	for _, b := range c.beans {
