@@ -222,7 +222,7 @@ func (c *Container) Refresh() (err error) {
 		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
-			if err = c.autowire(f.v, tag, stack); err != nil {
+			if err = c.wireStructField(f.v, tag, stack); err != nil {
 				return fmt.Errorf("%q wired error: %s", f.path, err.Error())
 			}
 		}
@@ -230,7 +230,7 @@ func (c *Container) Refresh() (err error) {
 		return errors.New("found circular references in beans")
 	}
 
-	c.destroyers, err = stack.sortDestroyers()
+	c.destroyers, err = stack.getSortedDestroyers()
 	if err != nil {
 		return err
 	}
@@ -287,7 +287,7 @@ func (c *Container) Get(i interface{}, selector ...string) error {
 	if len(selector) > 0 {
 		tag = selector[0]
 	}
-	return c.autowire(v.Elem(), tag, stack)
+	return c.wireStructField(v.Elem(), tag, stack)
 }
 
 // Wire creates and returns a wired bean using the provided object or constructor function.
