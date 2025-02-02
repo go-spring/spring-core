@@ -122,7 +122,7 @@ func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 
 	if !util.IsValueType(t) {
 		err := errors.New("target should be value type")
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 	}
 
 	defer func() {
@@ -144,21 +144,21 @@ func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 		return bindSlice(p, v, t, param, filter)
 	case reflect.Array:
 		err := errors.New("use slice instead of array")
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 	default: // for linter
 	}
 
 	fn := converters[t]
 	if fn == nil && v.Kind() == reflect.Struct {
 		if err := bindStruct(p, v, t, param, filter); err != nil {
-			return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+			return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
 		return nil
 	}
 
 	val, err := resolve(p, param)
 	if err != nil {
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	if fn != nil {
@@ -166,7 +166,7 @@ func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 		out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
 		if !out[1].IsNil() {
 			err = out[1].Interface().(error)
-			return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+			return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
 		v.Set(out[0])
 		return nil
@@ -179,28 +179,28 @@ func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 			v.SetUint(u)
 			return nil
 		}
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var i int64
 		if i, err = strconv.ParseInt(val, 0, 0); err == nil {
 			v.SetInt(i)
 			return nil
 		}
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	case reflect.Float32, reflect.Float64:
 		var f float64
 		if f, err = strconv.ParseFloat(val, 64); err == nil {
 			v.SetFloat(f)
 			return nil
 		}
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	case reflect.Bool:
 		var b bool
 		if b, err = strconv.ParseBool(val); err == nil {
 			v.SetBool(b)
 			return nil
 		}
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	case reflect.String:
 		v.SetString(val)
 		return nil
@@ -208,7 +208,7 @@ func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 	}
 
 	err = errors.New("unsupported bind type")
-	return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+	return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 }
 
 // bindSlice binds properties to a slice value.
@@ -217,7 +217,7 @@ func bindSlice(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 	et := t.Elem()
 	p, err := getSlice(p, et, param)
 	if err != nil {
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	slice := reflect.MakeSlice(t, 0, 0)
@@ -238,7 +238,7 @@ func bindSlice(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 			break
 		}
 		if err != nil {
-			return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+			return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
 		slice = reflect.Append(slice, e)
 	}
@@ -305,7 +305,7 @@ func bindMap(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("map can't have a non-empty default value")
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 	}
 
 	et := t.Elem()
@@ -314,7 +314,7 @@ func bindMap(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 
 	keys, err := p.SubKeys(param.Key)
 	if err != nil {
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	for _, key := range keys {
@@ -329,7 +329,7 @@ func bindMap(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 		}
 		err = BindValue(p, e, et, subParam, filter)
 		if err != nil {
-			return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+			return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
 		ret.SetMapIndex(reflect.ValueOf(key), e)
 	}
@@ -341,7 +341,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("struct can't have a non-empty default value")
-		return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+		return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -359,7 +359,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 
 		if tag, ok := ft.Tag.Lookup("value"); ok {
 			if err := subParam.BindTag(tag, ft.Tag); err != nil {
-				return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+				return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 			}
 			if filter != nil {
 				ret, err := filter.Do(fv.Addr().Interface(), subParam)
@@ -371,7 +371,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 				}
 			}
 			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
-				return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+				return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 			}
 			continue
 		}
@@ -382,7 +382,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 				continue
 			}
 			if err := bindStruct(p, fv, ft.Type, subParam, filter); err != nil {
-				return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+				return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 			}
 			continue
 		}
@@ -396,7 +396,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 			subParam.Key = strings.ToLower(subParam.Key)
 			subParam.Key = strings.ReplaceAll(subParam.Key, "_", ".")
 			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
-				return errutil.WrapError(err, "bind %s error: type=%s", param.Path, v.Type().String())
+				return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 			}
 		}
 	}
@@ -406,19 +406,17 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 // resolve returns property references processed property value.
 func resolve(p readOnlyProperties, param BindParam) (string, error) {
 	const defVal = "@@def@@"
-	val := p.Get(param.Key, Def(defVal))
+	val := p.MustGet(param.Key, defVal)
 	if val != defVal {
 		return resolveString(p, val)
 	}
 	if p.Has(param.Key) {
-		err := fmt.Errorf("property %q isn't simple value", param.Key)
-		return "", errutil.WrapError(err, "resolve property %q error", param.Key)
+		return "", fmt.Errorf("property key=%s isn't simple value", param.Key)
 	}
 	if param.Tag.HasDef {
 		return resolveString(p, param.Tag.Def)
 	}
-	err := fmt.Errorf("property %q %w", param.Key, ErrNotExist)
-	return "", errutil.WrapError(err, "resolve property %q error", param.Key)
+	return "", fmt.Errorf("property key=%s %w", param.Key, ErrNotExist)
 }
 
 // resolveString returns property references processed string.
@@ -456,7 +454,7 @@ func resolveString(p readOnlyProperties, s string) (string, error) {
 
 	if end < 0 || count > 0 {
 		err := ErrInvalidSyntax
-		return "", errutil.WrapError(err, "resolve string %q error", s)
+		return "", fmt.Errorf("resolve string %q error: %w", s, err)
 	}
 
 	var param BindParam

@@ -19,7 +19,6 @@ package gstest
 import (
 	"testing"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs"
 )
 
@@ -57,8 +56,13 @@ func SubKeys(key string) ([]string, error) {
 }
 
 // Prop retrieves the value of a property specified by the key.
-func Prop(key string, opts ...conf.GetOption) string {
-	return ctx.GSContext.Prop(key, opts...)
+func Prop(key string) string {
+	return ctx.GSContext.Prop(key)
+}
+
+// MustProp retrieves the value of a property specified by the key.
+func MustProp(key string, def string) string {
+	return ctx.GSContext.MustProp(key, def)
 }
 
 // Resolve resolves a given string with placeholders.
@@ -67,8 +71,18 @@ func Resolve(s string) (string, error) {
 }
 
 // Bind binds an object to the properties.
-func Bind(i interface{}, opts ...conf.BindArg) error {
-	return ctx.GSContext.Bind(i, opts...)
+func Bind(i interface{}) error {
+	return ctx.GSContext.Bind(i)
+}
+
+// BindKey binds an object to the properties with a specific key.
+func BindKey(i interface{}, key string) error {
+	return ctx.GSContext.BindKey(i, key)
+}
+
+// BindTag binds an object to the properties with a specific tag.
+func BindTag(i interface{}, tag string) error {
+	return ctx.GSContext.BindTag(i, tag)
 }
 
 // Get retrieves an object using specified selectors.

@@ -100,14 +100,23 @@ type readOnlyProperties interface {
 	// SubKeys returns the sorted sub keys of the key.
 	SubKeys(key string) ([]string, error)
 
-	// Get returns key's value, using Def to return a default value.
-	Get(key string, opts ...GetOption) string
+	// Get returns key's value.
+	Get(key string) string
+
+	// MustGet returns key's value, if key doesn't exist, it returns def.
+	MustGet(key string, def string) string
 
 	// Resolve resolves string that contains references.
 	Resolve(s string) (string, error)
 
 	// Bind binds properties into a value.
-	Bind(i interface{}, args ...BindArg) error
+	Bind(i interface{}) error
+
+	// BindKey binds properties into a value by key.
+	BindKey(i interface{}, key string) error
+
+	// BindTag binds properties into a value by tag.
+	BindTag(i interface{}, tag string) error
 
 	// CopyTo copies properties into another by override.
 	CopyTo(out *Properties) error
@@ -212,30 +221,18 @@ func (p *Properties) SubKeys(key string) ([]string, error) {
 	return p.storage.SubKeys(key)
 }
 
-type getArg struct {
-	def string
-}
-
-type GetOption func(arg *getArg)
-
-// Def returns v when key not exits.
-func Def(v string) GetOption {
-	return func(arg *getArg) {
-		arg.def = v
-	}
-}
-
 // Get returns key's value, using Def to return a default value.
-func (p *Properties) Get(key string, opts ...GetOption) string {
+func (p *Properties) Get(key string) string {
+	val, _ := p.storage.Get(key)
+	return val
+}
+
+func (p *Properties) MustGet(key string, def string) string {
 	val, ok := p.storage.Get(key)
 	if ok {
 		return val
 	}
-	arg := getArg{}
-	for _, opt := range opts {
-		opt(&arg)
-	}
-	return arg.def
+	return def
 }
 
 // Set sets key's value to be a primitive type as int or string,
@@ -259,53 +256,21 @@ func (p *Properties) Resolve(s string) (string, error) {
 	return resolveString(p, s)
 }
 
-type BindArg interface {
-	getParam() (BindParam, error)
-}
-
-type paramArg struct {
-	param BindParam
-}
-
-func (tag paramArg) getParam() (BindParam, error) {
-	return tag.param, nil
-}
-
-type tagArg struct {
-	tag string
-}
-
-func (tag tagArg) getParam() (BindParam, error) {
-	var param BindParam
-	err := param.BindTag(tag.tag, "")
-	if err != nil {
-		return BindParam{}, err
-	}
-	return param, nil
-}
-
-// Key binds properties using one key.
-func Key(key string) BindArg {
-	return tagArg{tag: "${" + key + "}"}
-}
-
-// Tag binds properties using one tag.
-func Tag(tag string) BindArg {
-	return tagArg{tag: tag}
-}
-
-// Param binds properties using BindParam.
-func Param(param BindParam) BindArg {
-	return paramArg{param: param}
-}
-
 // Bind binds properties to a value, the bind value can be primitive type,
 // map, slice, struct. When binding to struct, the tag 'value' indicates
 // which properties should be bind. The 'value' tags are defined by
 // value:"${a:=b}>>splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *Properties) Bind(i interface{}, args ...BindArg) error {
+func (p *Properties) Bind(i interface{}) error {
+	return p.BindTag(i, "${ROOT}")
+}
+
+func (p *Properties) BindKey(i interface{}, key string) error {
+	return p.BindTag(i, "${"+key+"}")
+}
+
+func (p *Properties) BindTag(i interface{}, tag string) error {
 
 	var v reflect.Value
 	{
@@ -321,17 +286,14 @@ func (p *Properties) Bind(i interface{}, args ...BindArg) error {
 		}
 	}
 
-	if len(args) == 0 {
-		args = []BindArg{tagArg{tag: "${ROOT}"}}
-	}
-
 	t := v.Type()
 	typeName := t.Name()
 	if typeName == "" { // primitive type has no name
 		typeName = t.String()
 	}
 
-	param, err := args[0].getParam()
+	var param BindParam
+	err := param.BindTag(tag, "")
 	if err != nil {
 		return err
 	}

@@ -28,7 +28,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
@@ -144,8 +143,13 @@ func (c *Container) SubKeys(key string) ([]string, error) {
 }
 
 // Prop retrieves the value of the specified key from the container's properties.
-func (c *Container) Prop(key string, opts ...conf.GetOption) string {
-	return c.p.Data().Get(key, opts...)
+func (c *Container) Prop(key string) string {
+	return c.p.Data().Get(key)
+}
+
+// MustProp retrieves the value of the specified key from the container's properties.
+func (c *Container) MustProp(key string, def string) string {
+	return c.p.Data().MustGet(key, def)
 }
 
 // Resolve resolves placeholders or references in the given string.
@@ -154,8 +158,18 @@ func (c *Container) Resolve(s string) (string, error) {
 }
 
 // Bind binds the value of the specified key to the provided struct or variable.
-func (c *Container) Bind(i interface{}, opts ...conf.BindArg) error {
-	return c.p.Data().Bind(i, opts...)
+func (c *Container) Bind(i interface{}) error {
+	return c.p.Data().Bind(i)
+}
+
+// BindKey binds the value of the specified key to the provided struct or variable.
+func (c *Container) BindKey(i interface{}, key string) error {
+	return c.p.Data().BindKey(i, key)
+}
+
+// BindTag binds the value of the specified key to the provided struct or variable.
+func (c *Container) BindTag(i interface{}, tag string) error {
+	return c.p.Data().BindTag(i, tag)
 }
 
 // RefreshProperties updates the properties of the container.
@@ -551,8 +565,12 @@ func (c *resolvingStage) Has(key string) bool {
 	return c.p.Has(key)
 }
 
-func (c *resolvingStage) Prop(key string, opts ...conf.GetOption) string {
-	return c.p.Get(key, opts...)
+func (c *resolvingStage) Prop(key string) string {
+	return c.p.Get(key)
+}
+
+func (c *resolvingStage) MustProp(key string, def string) string {
+	return c.p.MustGet(key, def)
 }
 
 // Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，

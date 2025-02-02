@@ -28,10 +28,17 @@ var (
 )
 
 // Get returns the property of the key.
-func Get(key string, opts ...conf.GetOption) string {
+func Get(key string) string {
 	lock.Lock()
 	defer lock.Unlock()
-	return prop.Get(key, opts...)
+	return prop.Get(key)
+}
+
+// MustGet returns the property of the key, if not exist, returns the default value.
+func MustGet(key string, def string) string {
+	lock.Lock()
+	defer lock.Unlock()
+	return prop.MustGet(key, def)
 }
 
 // Set sets the property of the key.
@@ -41,8 +48,8 @@ func Set(key string, val interface{}) error {
 	return prop.Set(key, val)
 }
 
-// Unset removes the property.
-func Unset(key string) {
+// Delete removes the property.
+func Delete(key string) {
 	lock.Lock()
 	defer lock.Unlock()
 }

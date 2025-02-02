@@ -191,7 +191,7 @@ func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (c *onBean) String() string {
-	return fmt.Sprintf("OnBean(s=%s)", c.s)
+	return fmt.Sprintf("OnBean(selector=%s)", c.s)
 }
 
 /***************************** OnMissingBean *********************************/
@@ -216,7 +216,7 @@ func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (c *onMissingBean) String() string {
-	return fmt.Sprintf("OnMissingBean(s=%s)", c.s)
+	return fmt.Sprintf("OnMissingBean(selector=%s)", c.s)
 }
 
 /***************************** OnSingleBean **********************************/
@@ -241,7 +241,7 @@ func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (c *onSingleBean) String() string {
-	return fmt.Sprintf("OnSingleBean(s=%s)", c.s)
+	return fmt.Sprintf("OnSingleBean(selector=%s)", c.s)
 }
 
 /***************************** OnExpression **********************************/

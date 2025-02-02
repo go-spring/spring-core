@@ -60,7 +60,9 @@ type CondContext interface {
 	Has(key string) bool
 	// Prop returns the value of a property from the IoC container,
 	// or an empty string if it doesn't exist.
-	Prop(key string, opts ...conf.GetOption) string
+	Prop(key string) string
+	// MustProp returns the value of a property from the IoC container,
+	MustProp(key string, def string) string
 	// Find searches for bean definitions matching the provided BeanSelector.
 	Find(s BeanSelector) ([]CondBean, error)
 }
@@ -111,11 +113,17 @@ type Properties interface {
 	// SubKeys retrieves the sub-keys for a given key.
 	SubKeys(key string) ([]string, error)
 	// Get retrieves the value of a property.
-	Get(key string, opts ...conf.GetOption) string
+	Get(key string) string
+	// MustGet retrieves the value of a property, or a default value if it doesn't exist.
+	MustGet(key string, def string) string
 	// Resolve resolves a string value to its final value, possibly involving placeholders.
 	Resolve(s string) (string, error)
 	// Bind binds the properties to a provided struct or variable.
-	Bind(i interface{}, args ...conf.BindArg) error
+	Bind(i interface{}) error
+	// BindKey binds the properties to a provided struct or variable, using a specific key.
+	BindKey(i interface{}, key string) error
+	// BindTag binds the properties to a provided struct or variable, using a specific tag.
+	BindTag(i interface{}, tag string) error
 	// CopyTo copies the properties to another [*conf.Properties].
 	CopyTo(out *conf.Properties) error
 }
@@ -294,13 +302,22 @@ type Context interface {
 	SubKeys(key string) ([]string, error)
 
 	// Prop retrieves the value of the specified key from the container's properties.
-	Prop(key string, opts ...conf.GetOption) string
+	Prop(key string) string
+
+	// MustProp retrieves the value of the specified key from the container's properties.
+	MustProp(key string, def string) string
 
 	// Resolve resolves placeholders or references (e.g., ${KEY}) in the given string to actual values.
 	Resolve(s string) (string, error)
 
 	// Bind binds the value of the specified key to the provided struct or variable.
-	Bind(i interface{}, opts ...conf.BindArg) error
+	Bind(i interface{}) error
+
+	// BindKey binds the value of the specified key to the provided struct or variable.
+	BindKey(i interface{}, key string) error
+
+	// BindTag binds the value of the specified key to the provided struct or variable.
+	BindTag(i interface{}, tag string) error
 
 	// Get retrieves a bean of the specified type using the provided tag.
 	Get(i interface{}, tag ...string) error
