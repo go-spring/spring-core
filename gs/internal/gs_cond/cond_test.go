@@ -36,53 +36,53 @@ func TestConditionString(t *testing.T) {
 	c = gs_cond.OnMissingProperty("a")
 	assert.Equal(t, fmt.Sprint(c), `OnMissingProperty(name=a)`)
 
-	c = gs_cond.OnBean("a")
+	c = gs_cond.OnBean(gs.TagBeanSelector("a"))
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=a)`)
 
-	c = gs_cond.OnBean(new(error))
-	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=error:)`)
+	c = gs_cond.OnBean(gs.TypeBeanSelector[error]())
+	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=(error))`)
 
-	c = gs_cond.OnMissingBean("a")
+	c = gs_cond.OnMissingBean(gs.TagBeanSelector("a"))
 	assert.Equal(t, fmt.Sprint(c), `OnMissingBean(selector=a)`)
 
-	c = gs_cond.OnMissingBean(new(error))
-	assert.Equal(t, fmt.Sprint(c), `OnMissingBean(selector=error:)`)
+	c = gs_cond.OnMissingBean(gs.TypeBeanSelector[error]())
+	assert.Equal(t, fmt.Sprint(c), `OnMissingBean(selector=(error))`)
 
-	c = gs_cond.OnSingleBean("a")
+	c = gs_cond.OnSingleBean(gs.TagBeanSelector("a"))
 	assert.Equal(t, fmt.Sprint(c), `OnSingleBean(selector=a)`)
 
-	c = gs_cond.OnSingleBean(new(error))
-	assert.Equal(t, fmt.Sprint(c), `OnSingleBean(selector=error:)`)
+	c = gs_cond.OnSingleBean(gs.TypeBeanSelector[error]())
+	assert.Equal(t, fmt.Sprint(c), `OnSingleBean(selector=(error))`)
 
 	c = gs_cond.OnExpression("a")
 	assert.Equal(t, fmt.Sprint(c), `OnExpression(expression=a)`)
 
-	c = gs_cond.Not(gs_cond.OnBean("a"))
+	c = gs_cond.Not(gs_cond.OnBean(gs.TagBeanSelector("a")))
 	assert.Equal(t, fmt.Sprint(c), `Not(OnBean(selector=a))`)
 
-	c = gs_cond.Or(gs_cond.OnBean("a"))
+	c = gs_cond.Or(gs_cond.OnBean(gs.TagBeanSelector("a")))
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=a)`)
 
-	c = gs_cond.Or(gs_cond.OnBean("a"), gs_cond.OnBean("b"))
+	c = gs_cond.Or(gs_cond.OnBean(gs.TagBeanSelector("a")), gs_cond.OnBean(gs.TagBeanSelector("b")))
 	assert.Equal(t, fmt.Sprint(c), `Or(OnBean(selector=a), OnBean(selector=b))`)
 
-	c = gs_cond.And(gs_cond.OnBean("a"))
+	c = gs_cond.And(gs_cond.OnBean(gs.TagBeanSelector("a")))
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector=a)`)
 
-	c = gs_cond.And(gs_cond.OnBean("a"), gs_cond.OnBean("b"))
+	c = gs_cond.And(gs_cond.OnBean(gs.TagBeanSelector("a")), gs_cond.OnBean(gs.TagBeanSelector("b")))
 	assert.Equal(t, fmt.Sprint(c), `And(OnBean(selector=a), OnBean(selector=b))`)
 
-	c = gs_cond.None(gs_cond.OnBean("a"))
+	c = gs_cond.None(gs_cond.OnBean(gs.TagBeanSelector("a")))
 	assert.Equal(t, fmt.Sprint(c), `Not(OnBean(selector=a))`)
 
-	c = gs_cond.None(gs_cond.OnBean("a"), gs_cond.OnBean("b"))
+	c = gs_cond.None(gs_cond.OnBean(gs.TagBeanSelector("a")), gs_cond.OnBean(gs.TagBeanSelector("b")))
 	assert.Equal(t, fmt.Sprint(c), `None(OnBean(selector=a), OnBean(selector=b))`)
 
 	c = gs_cond.And(
-		gs_cond.OnBean("a"),
+		gs_cond.OnBean(gs.TagBeanSelector("a")),
 		gs_cond.Or(
-			gs_cond.OnBean("b"),
-			gs_cond.Not(gs_cond.OnBean("c")),
+			gs_cond.OnBean(gs.TagBeanSelector("b")),
+			gs_cond.Not(gs_cond.OnBean(gs.TagBeanSelector("c"))),
 		),
 	)
 	assert.Equal(t, fmt.Sprint(c), `And(OnBean(selector=a), Or(OnBean(selector=b), Not(OnBean(selector=c))))`)

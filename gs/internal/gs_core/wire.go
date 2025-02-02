@@ -188,8 +188,8 @@ func (a *ArgContext) Prop(key string, opts ...conf.GetOption) string {
 	return a.c.Prop(key, opts...)
 }
 
-func (a *ArgContext) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
-	beans, err := a.c.findBeans(selector)
+func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
+	beans, err := a.c.findBeans(s)
 	if err != nil {
 		return nil, err
 	}
@@ -251,20 +251,21 @@ func toWireString(tags []wireTag) string {
 }
 
 // findBeans finds beans based on a given selector.
-func (c *Container) findBeans(selector gs.BeanSelector) ([]BeanRuntime, error) {
-	var t reflect.Type
-	switch st := selector.(type) {
-	case string:
-		tag, err := toWireTag(c.p.Data(), selector)
+func (c *Container) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
+	var beans []BeanRuntime
+	if t := s.Type; t != nil {
+		beans = c.beansByType[t]
+	}
+	if s.Tag != "" {
+		tag, err := parseWireTag(c.p.Data(), s.Tag, true)
 		if err != nil {
 			return nil, err
 		}
 		if tag.beanName == "" {
 			return nil, fmt.Errorf("bean name is empty")
 		}
-		beans, ok := c.beansByName[tag.beanName]
-		if !ok {
-			return nil, nil
+		if beans == nil {
+			beans = c.beansByName[tag.beanName]
 		}
 		var ret []BeanRuntime
 		for _, b := range beans {
@@ -272,18 +273,9 @@ func (c *Container) findBeans(selector gs.BeanSelector) ([]BeanRuntime, error) {
 				ret = append(ret, b)
 			}
 		}
-		return ret, nil
-	case reflect.Type:
-		t = st
-	default:
-		t = reflect.TypeOf(st)
+		beans = ret
 	}
-	if t.Kind() == reflect.Ptr {
-		if e := t.Elem(); e.Kind() == reflect.Interface {
-			t = e // 指 (*error)(nil) 形式的 bean 选择器
-		}
-	}
-	return c.beansByType[t], nil
+	return beans, nil
 }
 
 // getSingleBean retrieves the bean corresponding to the specified tag and assigns it to `v`.

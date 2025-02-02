@@ -174,16 +174,16 @@ func (c *onMissingProperty) String() string {
 // onBean checks for the existence of beans that match a selector.
 // It returns true if at least one bean matches the selector, and false otherwise.
 type onBean struct {
-	selector gs.BeanSelector // The selector used to match beans in the context.
+	s gs.BeanSelector // The selector used to match beans in the context.
 }
 
 // OnBean creates a condition that evaluates to true if at least one bean matches the provided selector.
-func OnBean(selector gs.BeanSelector) gs.Condition {
-	return &onBean{selector: selector}
+func OnBean(s gs.BeanSelector) gs.Condition {
+	return &onBean{s: s}
 }
 
 func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
-	beans, err := ctx.Find(c.selector)
+	beans, err := ctx.Find(c.s)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
@@ -191,7 +191,7 @@ func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (c *onBean) String() string {
-	return fmt.Sprintf("OnBean(selector=%s)", gs.BeanSelectorToString(c.selector))
+	return fmt.Sprintf("OnBean(s=%s)", c.s)
 }
 
 /***************************** OnMissingBean *********************************/
@@ -199,16 +199,16 @@ func (c *onBean) String() string {
 // onMissingBean checks for the absence of beans matching a selector.
 // It returns true if no beans match the selector, and false otherwise.
 type onMissingBean struct {
-	selector gs.BeanSelector // The selector used to find beans.
+	s gs.BeanSelector // The selector used to find beans.
 }
 
 // OnMissingBean creates a condition that evaluates to true if no beans match the provided selector.
-func OnMissingBean(selector gs.BeanSelector) gs.Condition {
-	return &onMissingBean{selector: selector}
+func OnMissingBean(s gs.BeanSelector) gs.Condition {
+	return &onMissingBean{s: s}
 }
 
 func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
-	beans, err := ctx.Find(c.selector)
+	beans, err := ctx.Find(c.s)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
@@ -216,7 +216,7 @@ func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (c *onMissingBean) String() string {
-	return fmt.Sprintf("OnMissingBean(selector=%s)", gs.BeanSelectorToString(c.selector))
+	return fmt.Sprintf("OnMissingBean(s=%s)", c.s)
 }
 
 /***************************** OnSingleBean **********************************/
@@ -224,16 +224,16 @@ func (c *onMissingBean) String() string {
 // onSingleBean checks if exactly one matching bean exists in the context.
 // It returns true if exactly one bean matches the selector, and false otherwise.
 type onSingleBean struct {
-	selector gs.BeanSelector // The selector used to find beans.
+	s gs.BeanSelector // The selector used to find beans.
 }
 
 // OnSingleBean creates a condition that evaluates to true if exactly one bean matches the provided selector.
-func OnSingleBean(selector gs.BeanSelector) gs.Condition {
-	return &onSingleBean{selector: selector}
+func OnSingleBean(s gs.BeanSelector) gs.Condition {
+	return &onSingleBean{s: s}
 }
 
 func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
-	beans, err := ctx.Find(c.selector)
+	beans, err := ctx.Find(c.s)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
@@ -241,7 +241,7 @@ func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (c *onSingleBean) String() string {
-	return fmt.Sprintf("OnSingleBean(selector=%s)", gs.BeanSelectorToString(c.selector))
+	return fmt.Sprintf("OnSingleBean(s=%s)", c.s)
 }
 
 /***************************** OnExpression **********************************/

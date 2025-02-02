@@ -269,7 +269,7 @@ func (c *Container) ReleaseUnusedMemory() {
 }
 
 // Get retrieves a bean of the specified type using the provided selector.
-func (c *Container) Get(i interface{}, selector ...string) error {
+func (c *Container) Get(i interface{}, tag ...string) error {
 	if i == nil {
 		return errors.New("i can't be nil")
 	}
@@ -283,11 +283,11 @@ func (c *Container) Get(i interface{}, selector ...string) error {
 			syslog.Infof("wiring path %s", stack.path())
 		}
 	}()
-	var tag string
-	if len(selector) > 0 {
-		tag = selector[0]
+	var s string
+	if len(tag) > 0 {
+		s = tag[0]
 	}
-	return c.wireStructField(v.Elem(), tag, stack)
+	return c.wireStructField(v.Elem(), s, stack)
 }
 
 // Wire creates and returns a wired bean using the provided object or constructor function.
@@ -520,7 +520,7 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 				name := bd.Name() + "_" + m.Name
 				b := gs_bean.NewBean(v.Type(), v, f, name)
 				b.SetFileLine(file, line)
-				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
+				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(gs.TagBeanSelector(bd.ID())))
 				newBeans = append(newBeans, b)
 			}
 			break
@@ -557,70 +557,58 @@ func (c *resolvingStage) Prop(key string, opts ...conf.GetOption) string {
 
 // Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
 // 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *resolvingStage) Find(selector gs.BeanSelector) ([]gs.CondBean, error) {
-
-	finder := func(fn func(*gs_bean.BeanDefinition) bool) ([]gs.CondBean, error) {
-		var result []gs.CondBean
-		for _, b := range c.beans {
-			if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted || !fn(b) {
+func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
+	var result []gs.CondBean
+	for _, b := range c.beans {
+		if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted {
+			continue
+		}
+		if t := s.Type; t != nil {
+			if b.Type() != t {
 				continue
 			}
-			if err := c.resolveBean(b); err != nil {
+			foundType := false
+			for _, typ := range b.Exports() {
+				if typ == t {
+					foundType = true
+					break
+				}
+			}
+			if !foundType {
+				continue
+			}
+		}
+		if s.Tag != "" {
+			tag, err := parseWireTag(c.p, s.Tag, true)
+			if err != nil {
 				return nil, err
 			}
-			if b.Status() == gs_bean.StatusDeleted {
+			ok := b.Match(tag.typeName, tag.beanName)
+			if !ok {
 				continue
 			}
-			result = append(result, b)
 		}
-		return result, nil
-	}
-
-	var t reflect.Type
-	switch st := selector.(type) {
-	case string, *gs_bean.BeanDefinition:
-		tag, err := toWireTag(c.p, selector)
-		if err != nil {
+		if err := c.resolveBean(b); err != nil {
 			return nil, err
 		}
-		return finder(func(b *gs_bean.BeanDefinition) bool {
-			return b.Match(tag.typeName, tag.beanName)
-		})
-	case reflect.Type:
-		t = st
-	default:
-		t = reflect.TypeOf(st)
+		if b.Status() == gs_bean.StatusDeleted {
+			continue
+		}
+		result = append(result, b)
 	}
-
-	if t.Kind() == reflect.Ptr {
-		if e := t.Elem(); e.Kind() == reflect.Interface {
-			t = e // 指 (*error)(nil) 形式的 bean 选择器
-		}
-	}
-
-	return finder(func(b *gs_bean.BeanDefinition) bool {
-		if b.Type() == t {
-			return true
-		}
-		for _, typ := range b.Exports() {
-			if typ == t {
-				return true
-			}
-		}
-		return false
-	})
+	return result, nil
 }
 
-func toWireTag(p gs.Properties, selector gs.BeanSelector) (wireTag, error) {
-	switch s := selector.(type) {
-	case string:
-		return parseWireTag(p, s, true)
-	case *gs_bean.BeanDefinition:
-		return parseWireTag(p, s.ID(), false)
-	default:
-		return parseWireTag(p, util.TypeName(s)+":", false)
-	}
-}
+//func toWireTag(p gs.Properties, selector string) (wireTag, error) {
+//	switch s := selector.(type) {
+//	case string:
+//		return parseWireTag(p, s, true)
+//	case *gs_bean.BeanDefinition:
+//		return parseWireTag(p, s.ID(), false)
+//	default:
+//		return parseWireTag(p, util.TypeName(s)+":", false)
+//	}
+//}
 
 func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, err error) {
 

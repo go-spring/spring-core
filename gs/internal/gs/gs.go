@@ -21,21 +21,27 @@ import (
 	"unsafe"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/util"
 )
 
-// BeanSelector is an identifier for a bean. It can be a string, a [reflect.Type],
-// or an interface pointer (e.g., (*error)(nil) or new(error)).
-type BeanSelector interface{}
+// BeanSelector is an identifier for a bean.
+type BeanSelector struct {
+	Type reflect.Type // Type of the bean
+	Tag  string       // Tag of the bean
+}
 
-// BeanSelectorToString returns the string representation of the given bean selector.
-func BeanSelectorToString(s BeanSelector) string {
-	switch v := s.(type) {
-	case string:
-		return v
-	default:
-		return util.TypeName(s) + ":"
+func TagBeanSelector(tag string) BeanSelector {
+	return BeanSelector{Tag: tag}
+}
+
+func TypeBeanSelector[T any]() BeanSelector {
+	return BeanSelector{Type: reflect.TypeFor[T]()}
+}
+
+func (s BeanSelector) String() string {
+	if s.Type == nil {
+		return s.Tag
 	}
+	return "(" + s.Type.String() + ")" + s.Tag
 }
 
 /********************************** condition ********************************/
@@ -56,7 +62,7 @@ type CondContext interface {
 	// or an empty string if it doesn't exist.
 	Prop(key string, opts ...conf.GetOption) string
 	// Find searches for bean definitions matching the provided BeanSelector.
-	Find(selector BeanSelector) ([]CondBean, error)
+	Find(s BeanSelector) ([]CondBean, error)
 }
 
 // CondFunc defines a function that determines whether a condition is met.
@@ -296,8 +302,8 @@ type Context interface {
 	// Bind binds the value of the specified key to the provided struct or variable.
 	Bind(i interface{}, opts ...conf.BindArg) error
 
-	// Get retrieves a bean of the specified type using the provided selector.
-	Get(i interface{}, selector ...string) error
+	// Get retrieves a bean of the specified type using the provided tag.
+	Get(i interface{}, tag ...string) error
 
 	// Wire creates and returns a bean by wiring it with the provided constructor or object.
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)

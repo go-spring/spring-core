@@ -72,8 +72,8 @@ func Bind(i interface{}, opts ...conf.BindArg) error {
 }
 
 // Get retrieves an object using specified selectors.
-func Get(i interface{}, selectors ...gs.BeanSelector) error {
-	return ctx.GSContext.Get(i, selectors...)
+func Get(i interface{}, tag ...string) error {
+	return ctx.GSContext.Get(i, tag...)
 }
 
 // Wire injects dependencies into an object or constructor.

@@ -96,13 +96,17 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		// Check if the function is a method and set a condition if needed
 		method := strings.LastIndexByte(fnInfo.Name(), ')') > 0
 		if method {
-			var selector interface{}
+			var s gs.BeanSelector
 			if len(ctorArgs) > 0 {
-				selector = ctorArgs[0]
+				tag, ok := ctorArgs[0].(string)
+				if !ok {
+					// todo
+				}
+				s = gs.BeanSelector{Tag: tag}
 			} else {
-				selector = t.In(0)
+				s = gs.BeanSelector{Type: t.In(0)}
 			}
-			cond = gs_cond.OnBean(selector)
+			cond = gs_cond.OnBean(s)
 		}
 	}
 
