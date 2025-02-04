@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/util/assert"
@@ -33,7 +32,7 @@ func TestBind(t *testing.T) {
 		stack := gs_core.NewWiringStack()
 		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
 		fn := func() {}
-		p, err := gs_arg.Bind(fn, []gs.Arg{})
+		p, err := gs_arg.Bind(fn, []interface{}{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -52,7 +51,7 @@ func TestBind(t *testing.T) {
 		fn := func(i int) {
 			expectInt = i
 		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{
+		p, err := gs_arg.Bind(fn, []interface{}{
 			gs_arg.Value(3),
 		})
 		if err != nil {
@@ -76,7 +75,7 @@ func TestBind(t *testing.T) {
 		fn := func(i int) {
 			expectInt = i
 		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{
+		p, err := gs_arg.Bind(fn, []interface{}{
 			"${a.b.c}",
 		})
 		if err != nil {
@@ -104,7 +103,7 @@ func TestBind(t *testing.T) {
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{
+		p, err := gs_arg.Bind(fn, []interface{}{
 			"a",
 		})
 		if err != nil {
@@ -132,7 +131,7 @@ func TestBind(t *testing.T) {
 		fn := func(v *st) {
 			expectInt = v.i
 		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{})
+		p, err := gs_arg.Bind(fn, []interface{}{})
 		if err != nil {
 			t.Fatal(err)
 		}

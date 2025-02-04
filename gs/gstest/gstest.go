@@ -91,11 +91,11 @@ func Get(i interface{}, tag ...string) error {
 }
 
 // Wire injects dependencies into an object or constructor.
-func Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
+func Wire(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) (interface{}, error) {
 	return ctx.GSContext.Wire(objOrCtor, ctorArgs...)
 }
 
 // Invoke calls a function with arguments injected.
-func Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
+func Invoke(fn interface{}, args ...any /* gs.ArgT */) ([]interface{}, error) {
 	return ctx.GSContext.Invoke(fn, args...)
 }

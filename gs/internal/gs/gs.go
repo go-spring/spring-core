@@ -83,7 +83,15 @@ type Condition interface {
 // - A ValueArg type (for normal user-provided values),
 // - An IndexArg type (for indexed parameter binding),
 // - An *OptionArg type (for binding arguments in Option methods).
-type Arg interface{}
+type Arg interface {
+	Value() reflect.Value
+}
+
+// ArgT is a type that can be used as an argument for a function.
+type ArgT interface {
+	string /* type */
+	Arg
+}
 
 // ArgContext defines methods for the IoC container used by Callable types.
 type ArgContext interface {
@@ -267,7 +275,7 @@ type Container interface {
 	Object(i interface{}) *RegisteredBean
 
 	// Provide registers a bean using the provided constructor function and optional arguments.
-	Provide(ctor interface{}, args ...Arg) *RegisteredBean
+	Provide(ctor interface{}, args ...any /* ArgT */) *RegisteredBean
 
 	// Register registers a bean using the provided bean definition.
 	Register(b *BeanDefinition) *RegisteredBean
@@ -323,10 +331,10 @@ type Context interface {
 	Get(i interface{}, tag ...string) error
 
 	// Wire creates and returns a bean by wiring it with the provided constructor or object.
-	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
+	Wire(objOrCtor interface{}, ctorArgs ...any /* ArgT */) (interface{}, error)
 
 	// Invoke calls the provided function with the specified arguments and returns the result.
-	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
+	Invoke(fn interface{}, args ...any /* ArgT */) ([]interface{}, error)
 }
 
 // ContextAware is used to inject the container's Context into a bean.

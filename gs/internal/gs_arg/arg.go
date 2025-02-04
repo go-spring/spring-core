@@ -28,6 +28,29 @@ import (
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
+func toArg(i any /* gs.ArgT */) gs.Arg {
+	switch v := i.(type) {
+	case gs.Arg:
+		return v
+	case string:
+		return FieldTag(v)
+	default:
+		return FieldTag(util.TypeName(v) + ":")
+	}
+}
+
+type FieldTagArg struct {
+	tag string
+}
+
+func FieldTag(tag string) FieldTagArg {
+	return FieldTagArg{tag: tag}
+}
+
+func (arg FieldTagArg) Value() reflect.Value {
+	panic(util.UnimplementedMethod)
+}
+
 // IndexArg represents an argument that has an index.
 type IndexArg struct {
 	n   int
@@ -35,8 +58,12 @@ type IndexArg struct {
 }
 
 // Index creates an IndexArg with the given index and argument.
-func Index(n int, arg gs.Arg) IndexArg {
-	return IndexArg{n: n, arg: arg}
+func Index(n int, arg any /* gs.ArgT */) IndexArg {
+	return IndexArg{n: n, arg: toArg(arg)}
+}
+
+func (arg IndexArg) Value() reflect.Value {
+	panic(util.UnimplementedMethod)
 }
 
 // ValueArg represents an argument with a fixed value.
@@ -54,6 +81,10 @@ func Value(v interface{}) ValueArg {
 	return ValueArg{v: v}
 }
 
+func (arg ValueArg) Value() reflect.Value {
+	panic(util.UnimplementedMethod)
+}
+
 // ArgList represents a list of arguments for a function.
 type ArgList struct {
 	fnType reflect.Type
@@ -61,7 +92,12 @@ type ArgList struct {
 }
 
 // NewArgList creates and validates an ArgList for the specified function.
-func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
+func NewArgList(fnType reflect.Type, a []any /* gs.ArgT */) (*ArgList, error) {
+
+	var args []gs.Arg
+	for _, i := range a {
+		args = append(args, toArg(i))
+	}
 
 	// calculates the number of fixed arguments in the function.
 	fixedArgCount := fnType.NumIn()
@@ -146,7 +182,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	// fills any unassigned fixed arguments with default values.
 	for i := 0; i < fixedArgCount; i++ {
 		if fnArgs[i] == nil {
-			fnArgs[i] = ""
+			fnArgs[i] = FieldTag("")
 		}
 	}
 
@@ -218,10 +254,8 @@ func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 		return reflect.ValueOf(g.v), nil
 	case *OptionArg:
 		return g.call(ctx)
-	case string:
-		tag = g
-	default:
-		tag = util.TypeName(g) + ":"
+	case FieldTagArg:
+		tag = g.tag
 	}
 
 	// binds property values based on the argument type.
@@ -256,7 +290,7 @@ type OptionArg struct {
 }
 
 // Option creates a binding for an option function argument.
-func Option(fn interface{}, args ...gs.Arg) *OptionArg {
+func Option(fn interface{}, args ...any /* gs.ArgT */) *OptionArg {
 
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func || t.NumOut() != 1 {
@@ -266,6 +300,10 @@ func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 	_, file, line, _ := runtime.Caller(1)
 	r := MustBind(fn, args...)
 	return &OptionArg{r: r.SetFileLine(file, line)}
+}
+
+func (arg *OptionArg) Value() reflect.Value {
+	panic(util.UnimplementedMethod)
 }
 
 // Condition sets a condition for invoking the option function.
@@ -318,7 +356,7 @@ type Callable struct {
 }
 
 // MustBind binds arguments to a function and panics if an error occurs.
-func MustBind(fn interface{}, args ...gs.Arg) *Callable {
+func MustBind(fn interface{}, args ...any /* gs.ArgT */) *Callable {
 	r, err := Bind(fn, args)
 	if err != nil {
 		panic(err)
@@ -328,13 +366,17 @@ func MustBind(fn interface{}, args ...gs.Arg) *Callable {
 }
 
 // Bind creates a Callable by binding arguments to a function.
-func Bind(fn interface{}, args []gs.Arg) (*Callable, error) {
+func Bind(fn interface{}, args []any /* gs.ArgT */) (*Callable, error) {
 	fnType := reflect.TypeOf(fn)
 	argList, err := NewArgList(fnType, args)
 	if err != nil {
 		return nil, err
 	}
 	return &Callable{fn: fn, fnType: fnType, argList: argList}, nil
+}
+
+func (r *Callable) Value() reflect.Value {
+	panic(util.UnimplementedMethod)
 }
 
 // SetFileLine sets the file and line number of the function call.

@@ -30,7 +30,7 @@ import (
 )
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+func NewBean(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) *gs.BeanDefinition {
 
 	var v reflect.Value
 	var fromValue bool

@@ -109,7 +109,7 @@ func (c *Container) Object(i interface{}) *gs.RegisteredBean {
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+func (c *Container) Provide(ctor interface{}, args ...any /* gs.ArgT */) *gs.RegisteredBean {
 	b := NewBean(ctor, args...)
 	return c.Register(b)
 }
@@ -305,7 +305,7 @@ func (c *Container) Get(i interface{}, tag ...string) error {
 }
 
 // Wire creates and returns a wired bean using the provided object or constructor function.
-func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
+func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) (interface{}, error) {
 
 	x := NewBean(objOrCtor, ctorArgs...)
 	b := x.BeanRegistration().(*gs_bean.BeanDefinition)
@@ -339,7 +339,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 }
 
 // Invoke calls the provided function with the specified arguments.
-func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
+func (c *Container) Invoke(fn interface{}, args ...any /* gs.ArgT */) ([]interface{}, error) {
 
 	if !util.IsFuncType(reflect.TypeOf(fn)) {
 		return nil, errors.New("fn should be func type")
@@ -522,7 +522,7 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 				newBeans = append(newBeans, retBeans...)
 			} else {
 				file, line, _ := util.FileLine(m.Func.Interface())
-				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{bd.ID()})
+				f, err := gs_arg.Bind(m.Func.Interface(), []interface{}{bd.ID()})
 				if err != nil {
 					return nil, err
 				}
@@ -616,17 +616,6 @@ func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 	}
 	return result, nil
 }
-
-//func toWireTag(p gs.Properties, selector string) (wireTag, error) {
-//	switch s := selector.(type) {
-//	case string:
-//		return parseWireTag(p, s, true)
-//	case *gs_bean.BeanDefinition:
-//		return parseWireTag(p, s.ID(), false)
-//	default:
-//		return parseWireTag(p, util.TypeName(s)+":", false)
-//	}
-//}
 
 func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, err error) {
 
