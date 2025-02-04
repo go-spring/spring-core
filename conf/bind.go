@@ -151,7 +151,7 @@ func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 	fn := converters[t]
 	if fn == nil && v.Kind() == reflect.Struct {
 		if err := bindStruct(p, v, t, param, filter); err != nil {
-			return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+			return err // no wrap
 		}
 		return nil
 	}
@@ -327,9 +327,8 @@ func bindMap(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 			Key:  subKey,
 			Path: param.Path,
 		}
-		err = BindValue(p, e, et, subParam, filter)
-		if err != nil {
-			return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		if err = BindValue(p, e, et, subParam, filter); err != nil {
+			return err // no wrap
 		}
 		ret.SetMapIndex(reflect.ValueOf(key), e)
 	}
@@ -371,7 +370,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 				}
 			}
 			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
-				return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+				return err // no wrap
 			}
 			continue
 		}
@@ -382,7 +381,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 				continue
 			}
 			if err := bindStruct(p, fv, ft.Type, subParam, filter); err != nil {
-				return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+				return err // no wrap
 			}
 			continue
 		}
@@ -396,7 +395,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 			subParam.Key = strings.ToLower(subParam.Key)
 			subParam.Key = strings.ReplaceAll(subParam.Key, "_", ".")
 			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
-				return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+				return err // no wrap
 			}
 		}
 	}

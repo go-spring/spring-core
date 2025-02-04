@@ -21,10 +21,10 @@ import (
 )
 
 // LineBreak defines the separator used between errors with hierarchical relationships.
-var LineBreak = "; "
+var LineBreak = " << "
 
 // WrapError wraps an existing error, creating a new error with hierarchical relationships.
 func WrapError(err error, format string, args ...interface{}) error {
 	msg := fmt.Sprintf(format, args...)
-	return fmt.Errorf("%w%s%s", err, LineBreak, msg)
+	return fmt.Errorf("%s%s%w", msg, LineBreak, err)
 }

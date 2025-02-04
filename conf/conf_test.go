@@ -327,7 +327,7 @@ func TestBindMap(t *testing.T) {
 		assert.Nil(t, err)
 		var r map[string]string
 		err = p.Bind(&r)
-		assert.Error(t, err, "property key=a isn't simple value; bind path=.* type=.* error; ")
+		assert.Error(t, err, "bind path=map\\[string]string type=string error << property key=a isn't simple value")
 	})
 
 	t.Run("", func(t *testing.T) {
@@ -341,7 +341,7 @@ func TestBindMap(t *testing.T) {
 		})
 		assert.Nil(t, err)
 		err = p.Bind(&r)
-		assert.Error(t, err, "property 'a' is value; bind path=.* type=.* error; ")
+		assert.Error(t, err, "bind path=S\\.A type=map\\[string]string error << property 'a' is value")
 	})
 
 	t.Run("", func(t *testing.T) {
