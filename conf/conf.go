@@ -101,10 +101,7 @@ type ReadOnlyProperties interface {
 	SubKeys(key string) ([]string, error)
 
 	// Get returns key's value.
-	Get(key string) string
-
-	// MustGet returns key's value, if key doesn't exist, it returns def.
-	MustGet(key string, def string) string
+	Get(key string, def ...string) string
 
 	// Resolve resolves string that contains references.
 	Resolve(s string) (string, error)
@@ -216,17 +213,12 @@ func (p *Properties) SubKeys(key string) ([]string, error) {
 }
 
 // Get returns key's value, using Def to return a default value.
-func (p *Properties) Get(key string) string {
-	val, _ := p.storage.Get(key)
-	return val
-}
-
-func (p *Properties) MustGet(key string, def string) string {
+func (p *Properties) Get(key string, def ...string) string {
 	val, ok := p.storage.Get(key)
-	if ok {
-		return val
+	if !ok && len(def) > 0 {
+		return def[0]
 	}
-	return def
+	return val
 }
 
 // Set sets key's value to be a primitive type as int or string,

@@ -80,19 +80,9 @@ func OnFunc(fn CondFunc) Condition {
 	return gs_cond.OnFunc(fn)
 }
 
-// MatchIfMissing specifies a property option to match if the property is missing.
-func MatchIfMissing() gs_cond.PropertyOption {
-	return gs_cond.MatchIfMissing()
-}
-
-// HavingValue specifies a property option to match a specific value.
-func HavingValue(havingValue string) gs_cond.PropertyOption {
-	return gs_cond.HavingValue(havingValue)
-}
-
 // OnProperty creates a Condition based on a property name and options.
-func OnProperty(name string, options ...gs_cond.PropertyOption) Condition {
-	return gs_cond.OnProperty(name, options...)
+func OnProperty(name string) *gs_cond.CondOnProperty {
+	return gs_cond.OnProperty(name)
 }
 
 // OnMissingProperty creates a Condition that checks for a missing property.
@@ -147,7 +137,7 @@ func None(cond ...Condition) Condition {
 
 // OnProfile creates a Condition based on the active profile.
 func OnProfile(profile string) Condition {
-	return OnProperty("spring.profiles.active", HavingValue(profile))
+	return OnProperty("spring.profiles.active").HavingValue(profile)
 }
 
 /************************************ ioc ************************************/

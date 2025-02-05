@@ -184,12 +184,8 @@ func (a *ArgContext) Has(key string) bool {
 	return a.c.Has(key)
 }
 
-func (a *ArgContext) Prop(key string) string {
-	return a.c.Prop(key)
-}
-
-func (a *ArgContext) MustProp(key string, def string) string {
-	return a.c.MustProp(key, def)
+func (a *ArgContext) Prop(key string, def ...string) string {
+	return a.c.Prop(key, def...)
 }
 
 func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {

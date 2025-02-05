@@ -145,13 +145,8 @@ func (c *Container) SubKeys(key string) ([]string, error) {
 }
 
 // Prop retrieves the value of the specified key from the container's properties.
-func (c *Container) Prop(key string) string {
-	return c.p.Data().Get(key)
-}
-
-// MustProp retrieves the value of the specified key from the container's properties.
-func (c *Container) MustProp(key string, def string) string {
-	return c.p.Data().MustGet(key, def)
+func (c *Container) Prop(key string, def ...string) string {
+	return c.p.Data().Get(key, def...)
 }
 
 // Resolve resolves placeholders or references in the given string.
@@ -561,12 +556,8 @@ func (c *resolvingStage) Has(key string) bool {
 	return c.p.Has(key)
 }
 
-func (c *resolvingStage) Prop(key string) string {
-	return c.p.Get(key)
-}
-
-func (c *resolvingStage) MustProp(key string, def string) string {
-	return c.p.MustGet(key, def)
+func (c *resolvingStage) Prop(key string, def ...string) string {
+	return c.p.Get(key, def...)
 }
 
 // Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，

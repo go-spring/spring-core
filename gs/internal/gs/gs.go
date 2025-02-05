@@ -60,9 +60,7 @@ type CondContext interface {
 	Has(key string) bool
 	// Prop returns the value of a property from the IoC container,
 	// or an empty string if it doesn't exist.
-	Prop(key string) string
-	// MustProp returns the value of a property from the IoC container,
-	MustProp(key string, def string) string
+	Prop(key string, def ...string) string
 	// Find searches for bean definitions matching the provided BeanSelector.
 	Find(s BeanSelector) ([]CondBean, error)
 }
@@ -280,10 +278,7 @@ type Context interface {
 	SubKeys(key string) ([]string, error)
 
 	// Prop retrieves the value of the specified key from the container's properties.
-	Prop(key string) string
-
-	// MustProp retrieves the value of the specified key from the container's properties.
-	MustProp(key string, def string) string
+	Prop(key string, def ...string) string
 
 	// Resolve resolves placeholders or references (e.g., ${KEY}) in the given string to actual values.
 	Resolve(s string) (string, error)

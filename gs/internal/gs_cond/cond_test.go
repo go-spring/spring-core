@@ -30,7 +30,7 @@ func TestConditionString(t *testing.T) {
 	c := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) { return false, nil })
 	assert.Equal(t, fmt.Sprint(c), `OnFunc(fn=gs_cond_test.TestConditionString.func1)`)
 
-	c = gs_cond.OnProperty("a", gs_cond.HavingValue("123"))
+	c = gs_cond.OnProperty("a").HavingValue("123")
 	assert.Equal(t, fmt.Sprint(c), `OnProperty(name=a, havingValue=123)`)
 
 	c = gs_cond.OnMissingProperty("a")

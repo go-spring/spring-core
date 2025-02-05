@@ -419,7 +419,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 // resolve returns property references processed property value.
 func resolve(p ReadOnlyProperties, param BindParam) (string, error) {
 	const defVal = "@@def@@"
-	val := p.MustGet(param.Key, defVal)
+	val := p.Get(param.Key, defVal)
 	if val != defVal {
 		return resolveString(p, val)
 	}

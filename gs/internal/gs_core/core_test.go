@@ -2482,7 +2482,7 @@ func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	c := gs_core.New()
 
 	c1 := gs_cond.Or(
-		gs_cond.OnProperty("null", gs_cond.MatchIfMissing()),
+		gs_cond.OnProperty("null").MatchIfMissing(),
 	)
 
 	c.Object(&BeanZero{5}).Condition(

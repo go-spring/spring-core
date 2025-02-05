@@ -56,41 +56,33 @@ func (c *onFunc) String() string {
 
 /******************************* OnProperty **********************************/
 
-// onProperty evaluates a condition based on the existence and value of a property
+// CondOnProperty evaluates a condition based on the existence and value of a property
 // in the context. It allows for complex matching behaviors such as matching missing
 // properties or evaluating expressions.
-type onProperty struct {
+type CondOnProperty struct {
 	name           string // The name of the property to check.
 	havingValue    string // The expected value or expression to match.
 	matchIfMissing bool   // Whether to match if the property is missing.
 }
 
-type PropertyOption func(*onProperty)
-
-// MatchIfMissing configures the condition to match when the property is missing from the context.
-func MatchIfMissing() PropertyOption {
-	return func(c *onProperty) {
-		c.matchIfMissing = true
-	}
-}
-
-// HavingValue sets a specific value the property must match. It can be a static value or an expression.
-func HavingValue(havingValue string) PropertyOption {
-	return func(c *onProperty) {
-		c.havingValue = havingValue
-	}
-}
-
 // OnProperty creates a condition based on the presence and value of a specified property.
-func OnProperty(name string, options ...PropertyOption) gs.Condition {
-	c := &onProperty{name: name}
-	for _, option := range options {
-		option(c)
-	}
+func OnProperty(name string) *CondOnProperty {
+	return &CondOnProperty{name: name}
+}
+
+// MatchIfMissing sets the condition to match if the property is missing.
+func (c *CondOnProperty) MatchIfMissing() *CondOnProperty {
+	c.matchIfMissing = true
 	return c
 }
 
-func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
+// HavingValue sets the expected value or expression to match.
+func (c *CondOnProperty) HavingValue(s string) *CondOnProperty {
+	c.havingValue = s
+	return c
+}
+
+func (c *CondOnProperty) Matches(ctx gs.CondContext) (bool, error) {
 
 	// If the context doesn't have the property, handle accordingly.
 	if !ctx.Has(c.name) {
@@ -133,7 +125,7 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 	return ok, nil
 }
 
-func (c *onProperty) String() string {
+func (c *CondOnProperty) String() string {
 	var sb strings.Builder
 	sb.WriteString("OnProperty(name=")
 	sb.WriteString(c.name)

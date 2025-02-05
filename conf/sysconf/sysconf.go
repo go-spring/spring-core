@@ -38,7 +38,7 @@ func Get(key string) string {
 func MustGet(key string, def string) string {
 	lock.Lock()
 	defer lock.Unlock()
-	return prop.MustGet(key, def)
+	return prop.Get(key, def)
 }
 
 // Set sets the property of the key.

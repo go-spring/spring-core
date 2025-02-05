@@ -87,7 +87,7 @@ func TestProperties_Get(t *testing.T) {
 		assert.False(t, p.Has("NULL"))
 		assert.Equal(t, p.Get("NULL"), "")
 
-		v = p.MustGet("NULL", "OK")
+		v = p.Get("NULL", "OK")
 		assert.Equal(t, v, "OK")
 
 		v = p.Get("Int")

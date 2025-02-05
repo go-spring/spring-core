@@ -56,13 +56,8 @@ func SubKeys(key string) ([]string, error) {
 }
 
 // Prop retrieves the value of a property specified by the key.
-func Prop(key string) string {
-	return ctx.GSContext.Prop(key)
-}
-
-// MustProp retrieves the value of a property specified by the key.
-func MustProp(key string, def string) string {
-	return ctx.GSContext.MustProp(key, def)
+func Prop(key string, def ...string) string {
+	return ctx.GSContext.Prop(key, def...)
 }
 
 // Resolve resolves a given string with placeholders.
