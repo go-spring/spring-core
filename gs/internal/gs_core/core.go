@@ -371,17 +371,11 @@ func (c *Container) Go(fn func(ctx context.Context)) {
 
 // Close closes the container and cleans up resources.
 func (c *Container) Close() {
-
 	c.cancel()
 	c.wg.Wait()
-
-	syslog.Infof("goroutines exited")
-
 	for _, f := range c.destroyers {
 		f()
 	}
-
-	syslog.Infof("container closed")
 }
 
 type resolvingStage struct {
@@ -601,35 +595,4 @@ func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 		result = append(result, b)
 	}
 	return result, nil
-}
-
-func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, err error) {
-
-	if str == "" {
-		return
-	}
-
-	if needResolve {
-		if strings.HasPrefix(str, "${") {
-			str, err = p.Resolve(str)
-			if err != nil {
-				return
-			}
-		}
-	}
-
-	if n := len(str) - 1; str[n] == '?' {
-		tag.nullable = true
-		str = str[:n]
-	}
-
-	i := strings.Index(str, ":")
-	if i < 0 {
-		tag.beanName = str
-		return
-	}
-
-	tag.typeName = str[:i]
-	tag.beanName = str[i+1:]
-	return
 }

@@ -250,6 +250,38 @@ func toWireString(tags []wireTag) string {
 	return buf.String()
 }
 
+// parseWireTag parses a wire tag string and returns a wireTag struct.
+func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, err error) {
+
+	if str == "" {
+		return
+	}
+
+	if needResolve {
+		if strings.HasPrefix(str, "${") {
+			str, err = p.Resolve(str)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	if n := len(str) - 1; str[n] == '?' {
+		tag.nullable = true
+		str = str[:n]
+	}
+
+	i := strings.Index(str, ":")
+	if i < 0 {
+		tag.beanName = str
+		return
+	}
+
+	tag.typeName = str[:i]
+	tag.beanName = str[i+1:]
+	return
+}
+
 // findBeans finds beans based on a given selector.
 func (c *Container) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 	var beans []BeanRuntime
