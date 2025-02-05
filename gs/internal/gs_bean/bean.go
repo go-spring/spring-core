@@ -296,15 +296,8 @@ func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
 }
 
 // SetExport sets the exported interfaces for the bean.
-func (d *BeanDefinition) SetExport(exports ...interface{}) {
-	for _, o := range exports {
-		t, ok := o.(reflect.Type)
-		if !ok {
-			t = reflect.TypeOf(o)
-			if t.Kind() == reflect.Ptr {
-				t = t.Elem()
-			}
-		}
+func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
+	for _, t := range exports {
 		if t.Kind() != reflect.Interface {
 			panic("only interface type can be exported")
 		}

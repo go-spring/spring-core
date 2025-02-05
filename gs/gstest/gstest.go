@@ -71,18 +71,8 @@ func Resolve(s string) (string, error) {
 }
 
 // Bind binds an object to the properties.
-func Bind(i interface{}) error {
-	return ctx.GSContext.Bind(i)
-}
-
-// BindKey binds an object to the properties with a specific key.
-func BindKey(i interface{}, key string) error {
-	return ctx.GSContext.BindKey(i, key)
-}
-
-// BindTag binds an object to the properties with a specific tag.
-func BindTag(i interface{}, tag string) error {
-	return ctx.GSContext.BindTag(i, tag)
+func Bind(i interface{}, tag ...string) error {
+	return ctx.GSContext.Bind(i, tag...)
 }
 
 // Get retrieves an object using specified selectors.
@@ -91,11 +81,11 @@ func Get(i interface{}, tag ...string) error {
 }
 
 // Wire injects dependencies into an object or constructor.
-func Wire(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) (interface{}, error) {
+func Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 	return ctx.GSContext.Wire(objOrCtor, ctorArgs...)
 }
 
 // Invoke calls a function with arguments injected.
-func Invoke(fn interface{}, args ...any /* gs.ArgT */) ([]interface{}, error) {
+func Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 	return ctx.GSContext.Invoke(fn, args...)
 }

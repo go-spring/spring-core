@@ -100,7 +100,7 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Nil(t, err)
 
 		dbConfig2 := DbConfig{}
-		err = p.BindTag(&dbConfig2, "${prefix}")
+		err = p.Bind(&dbConfig2, "${prefix}")
 		assert.Nil(t, err)
 
 		// 实际上是取的两个节点，只是值是一样的而已
@@ -129,7 +129,7 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Nil(t, err)
 
 		dbConfig2 := NestedDbConfig{}
-		err = p.BindTag(&dbConfig2, "${prefix}")
+		err = p.Bind(&dbConfig2, "${prefix}")
 		assert.Nil(t, err)
 
 		// 实际上是取的两个节点，只是值是一样的而已
@@ -148,7 +148,7 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Nil(t, err)
 
 		var m map[string]string
-		err = p.BindTag(&m, "${a}")
+		err = p.Bind(&m, "${a}")
 		assert.Nil(t, err)
 
 		assert.Equal(t, len(m), 3)
@@ -161,7 +161,7 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Nil(t, err)
 
 		var m map[string]string
-		err = p.BindTag(&m, "${camera}")
+		err = p.Bind(&m, "${camera}")
 		assert.Nil(t, err)
 
 		assert.Equal(t, len(m), 3)
@@ -174,14 +174,14 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Nil(t, err)
 
 		var m map[string]NestedDB
-		err = p.BindTag(&m, "${db_map}")
+		err = p.Bind(&m, "${db_map}")
 		assert.Nil(t, err)
 
 		assert.Equal(t, len(m), 2)
 		assert.Equal(t, m["d1"].DB, "db1")
 
 		dbConfig2 := NestedDbMapConfig{}
-		err = p.BindTag(&dbConfig2, "${prefix_map}")
+		err = p.Bind(&dbConfig2, "${prefix_map}")
 		assert.Nil(t, err)
 
 		assert.Equal(t, len(dbConfig2.DB), 2)

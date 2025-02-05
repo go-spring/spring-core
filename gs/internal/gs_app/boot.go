@@ -54,7 +54,7 @@ func (b *Boot) Object(i interface{}) *gs.RegisteredBean {
 }
 
 // Provide registers a bean using a constructor function.
-func (b *Boot) Provide(ctor interface{}, args ...any /* gs.ArgT */) *gs.RegisteredBean {
+func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(ctor, args...)
 	return b.c.Register(bd)
 }
@@ -70,9 +70,10 @@ func (b *Boot) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, err
 }
 
 // Runner registers an AppRunner instance.
-func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) *gs.RegisteredBean {
-	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
-	bd.Export((*AppRunner)(nil))
+func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
+	bd := gs_core.NewBean(objOrCtor, ctorArgs...).Export(
+		reflect.TypeFor[AppRunner](),
+	)
 	return b.c.Register(bd)
 }
 

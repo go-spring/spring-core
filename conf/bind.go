@@ -94,22 +94,27 @@ type BindParam struct {
 }
 
 func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
+	param.Validate = validate
 	parsedTag, err := ParseTag(tag)
 	if err != nil {
 		return err
 	}
+	if parsedTag.Key == "" { // ${:=} 默认值语法
+		if parsedTag.HasDef {
+			param.Tag = parsedTag
+			return nil
+		}
+		return fmt.Errorf("xxxx") // todo
+	}
 	if parsedTag.Key == "ROOT" {
 		parsedTag.Key = ""
-	} else if parsedTag.Key == "" {
-		parsedTag.Key = "ANONYMOUS"
 	}
-	param.Tag = parsedTag
 	if param.Key == "" {
 		param.Key = parsedTag.Key
 	} else if parsedTag.Key != "" {
 		param.Key = param.Key + "." + parsedTag.Key
 	}
-	param.Validate = validate
+	param.Tag = parsedTag
 	return nil
 }
 
@@ -118,7 +123,7 @@ type Filter interface {
 }
 
 // BindValue binds properties to a value.
-func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
+func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
 	if !util.IsValueType(t) {
 		err := errors.New("target should be value type")
@@ -212,7 +217,7 @@ func BindValue(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 }
 
 // bindSlice binds properties to a slice value.
-func bindSlice(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindSlice(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	et := t.Elem()
 	p, err := getSlice(p, et, param)
@@ -245,7 +250,7 @@ func bindSlice(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 	return nil
 }
 
-func getSlice(p readOnlyProperties, et reflect.Type, param BindParam) (readOnlyProperties, error) {
+func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyProperties, error) {
 
 	// properties that defined as list.
 	if p.Has(param.Key + "[0]") {
@@ -295,13 +300,15 @@ func getSlice(p readOnlyProperties, et reflect.Type, param BindParam) (readOnlyP
 	r := New()
 	for i, s := range arrVal {
 		k := fmt.Sprintf("%s[%d]", param.Key, i)
-		_ = r.storage.Set(k, s)
+		if err = r.storage.Set(k, s); err != nil {
+			return nil, err
+		}
 	}
 	return r, nil
 }
 
 // bindMap binds properties to a map value.
-func bindMap(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("map can't have a non-empty default value")
@@ -311,6 +318,13 @@ func bindMap(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 	et := t.Elem()
 	ret := reflect.MakeMap(t)
 	defer func() { v.Set(ret) }()
+
+	// 当成默认值处理
+	if param.Tag.Key == "" {
+		if param.Tag.HasDef {
+			return nil
+		}
+	}
 
 	keys, err := p.SubKeys(param.Key)
 	if err != nil {
@@ -336,7 +350,7 @@ func bindMap(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 }
 
 // bindStruct binds properties to a struct value.
-func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errors.New("struct can't have a non-empty default value")
@@ -403,7 +417,7 @@ func bindStruct(p readOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 }
 
 // resolve returns property references processed property value.
-func resolve(p readOnlyProperties, param BindParam) (string, error) {
+func resolve(p ReadOnlyProperties, param BindParam) (string, error) {
 	const defVal = "@@def@@"
 	val := p.MustGet(param.Key, defVal)
 	if val != defVal {
@@ -419,7 +433,7 @@ func resolve(p readOnlyProperties, param BindParam) (string, error) {
 }
 
 // resolveString returns property references processed string.
-func resolveString(p readOnlyProperties, s string) (string, error) {
+func resolveString(p ReadOnlyProperties, s string) (string, error) {
 
 	var (
 		length = len(s)

@@ -87,12 +87,6 @@ type Arg interface {
 	Value() reflect.Value
 }
 
-// ArgT is a type that can be used as an argument for a function.
-type ArgT interface {
-	string /* type */
-	Arg
-}
-
 // ArgContext defines methods for the IoC container used by Callable types.
 type ArgContext interface {
 	// Matches checks if the given condition is met.
@@ -110,31 +104,7 @@ type Callable interface {
 
 /*********************************** conf ************************************/
 
-// Properties defines methods for managing properties in an IoC container.
-type Properties interface {
-	// Data returns the map of all properties.
-	Data() map[string]string
-	// Keys returns a list of all property keys.
-	Keys() []string
-	// Has checks if the property exists.
-	Has(key string) bool
-	// SubKeys retrieves the sub-keys for a given key.
-	SubKeys(key string) ([]string, error)
-	// Get retrieves the value of a property.
-	Get(key string) string
-	// MustGet retrieves the value of a property, or a default value if it doesn't exist.
-	MustGet(key string, def string) string
-	// Resolve resolves a string value to its final value, possibly involving placeholders.
-	Resolve(s string) (string, error)
-	// Bind binds the properties to a provided struct or variable.
-	Bind(i interface{}) error
-	// BindKey binds the properties to a provided struct or variable, using a specific key.
-	BindKey(i interface{}, key string) error
-	// BindTag binds the properties to a provided struct or variable, using a specific tag.
-	BindTag(i interface{}, tag string) error
-	// CopyTo copies the properties to another [*conf.Properties].
-	CopyTo(out *conf.Properties) error
-}
+type Properties = conf.ReadOnlyProperties
 
 // Refreshable represents an object that can be dynamically refreshed.
 type Refreshable interface {
@@ -167,7 +137,7 @@ type BeanRegistration interface {
 	// SetDependsOn sets the beans that this bean depends on.
 	SetDependsOn(selectors ...BeanSelector)
 	// SetExport defines the interfaces to be exported by the bean.
-	SetExport(exports ...interface{})
+	SetExport(exports ...reflect.Type)
 	// SetConfiguration applies the bean configuration.
 	SetConfiguration(param ...ConfigurationParam)
 	// SetRefreshable marks the bean as refreshable with the given tag.
@@ -225,7 +195,7 @@ func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
 }
 
 // Export sets the interfaces that the bean will export.
-func (d *beanBuilder[T]) Export(exports ...interface{}) *T {
+func (d *beanBuilder[T]) Export(exports ...reflect.Type) *T {
 	d.b.SetExport(exports...)
 	return *(**T)(unsafe.Pointer(&d))
 }
@@ -275,7 +245,7 @@ type Container interface {
 	Object(i interface{}) *RegisteredBean
 
 	// Provide registers a bean using the provided constructor function and optional arguments.
-	Provide(ctor interface{}, args ...any /* ArgT */) *RegisteredBean
+	Provide(ctor interface{}, args ...Arg) *RegisteredBean
 
 	// Register registers a bean using the provided bean definition.
 	Register(b *BeanDefinition) *RegisteredBean
@@ -319,22 +289,16 @@ type Context interface {
 	Resolve(s string) (string, error)
 
 	// Bind binds the value of the specified key to the provided struct or variable.
-	Bind(i interface{}) error
-
-	// BindKey binds the value of the specified key to the provided struct or variable.
-	BindKey(i interface{}, key string) error
-
-	// BindTag binds the value of the specified key to the provided struct or variable.
-	BindTag(i interface{}, tag string) error
+	Bind(i interface{}, tag ...string) error
 
 	// Get retrieves a bean of the specified type using the provided tag.
 	Get(i interface{}, tag ...string) error
 
 	// Wire creates and returns a bean by wiring it with the provided constructor or object.
-	Wire(objOrCtor interface{}, ctorArgs ...any /* ArgT */) (interface{}, error)
+	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
 
 	// Invoke calls the provided function with the specified arguments and returns the result.
-	Invoke(fn interface{}, args ...any /* ArgT */) ([]interface{}, error)
+	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 }
 
 // ContextAware is used to inject the container's Context into a bean.

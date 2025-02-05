@@ -33,7 +33,7 @@ import (
 )
 
 // newBean 该方法是为了平衡调用栈的深度，一般情况下 gs.NewBean 不应该被直接使用。
-func newBean(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) *gs.BeanDefinition {
+func newBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	return gs_core.NewBean(objOrCtor, ctorArgs...)
 }
 

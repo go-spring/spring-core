@@ -33,6 +33,7 @@ func TestSplitPath(t *testing.T) {
 	}{
 		{
 			Key: "",
+			Err: errors.New("invalid key ''"),
 		},
 		{
 			Key: " ",

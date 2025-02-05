@@ -98,7 +98,9 @@ func New() gs.Container {
 		beansByName: make(map[string][]BeanRuntime),
 		beansByType: make(map[reflect.Type][]BeanRuntime),
 	}
-	c.Object(c).Export((*gs.Context)(nil))
+	c.Object(c).Export(
+		reflect.TypeFor[gs.Context](),
+	)
 	return c
 }
 
@@ -109,7 +111,7 @@ func (c *Container) Object(i interface{}) *gs.RegisteredBean {
 }
 
 // Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
-func (c *Container) Provide(ctor interface{}, args ...any /* gs.ArgT */) *gs.RegisteredBean {
+func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	b := NewBean(ctor, args...)
 	return c.Register(b)
 }
@@ -158,18 +160,8 @@ func (c *Container) Resolve(s string) (string, error) {
 }
 
 // Bind binds the value of the specified key to the provided struct or variable.
-func (c *Container) Bind(i interface{}) error {
-	return c.p.Data().Bind(i)
-}
-
-// BindKey binds the value of the specified key to the provided struct or variable.
-func (c *Container) BindKey(i interface{}, key string) error {
-	return c.p.Data().BindKey(i, key)
-}
-
-// BindTag binds the value of the specified key to the provided struct or variable.
-func (c *Container) BindTag(i interface{}, tag string) error {
-	return c.p.Data().BindTag(i, tag)
+func (c *Container) Bind(i interface{}, tag ...string) error {
+	return c.p.Data().Bind(i, tag...)
 }
 
 // RefreshProperties updates the properties of the container.
@@ -305,7 +297,7 @@ func (c *Container) Get(i interface{}, tag ...string) error {
 }
 
 // Wire creates and returns a wired bean using the provided object or constructor function.
-func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) (interface{}, error) {
+func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
 
 	x := NewBean(objOrCtor, ctorArgs...)
 	b := x.BeanRegistration().(*gs_bean.BeanDefinition)
@@ -323,7 +315,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) (
 	}
 
 	t := v.Type()
-	err = c.wireBeanValue(v, t, stack)
+	err = c.wireBeanValue(v, t, false, stack)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +331,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) (
 }
 
 // Invoke calls the provided function with the specified arguments.
-func (c *Container) Invoke(fn interface{}, args ...any /* gs.ArgT */) ([]interface{}, error) {
+func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
 
 	if !util.IsFuncType(reflect.TypeOf(fn)) {
 		return nil, errors.New("fn should be func type")
@@ -522,7 +514,9 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 				newBeans = append(newBeans, retBeans...)
 			} else {
 				file, line, _ := util.FileLine(m.Func.Interface())
-				f, err := gs_arg.Bind(m.Func.Interface(), []interface{}{bd.ID()})
+				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{
+					gs_arg.Tag(bd.ID()),
+				})
 				if err != nil {
 					return nil, err
 				}
@@ -534,7 +528,9 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 				name := bd.Name() + "_" + m.Name
 				b := gs_bean.NewBean(v.Type(), v, f, name)
 				b.SetFileLine(file, line)
-				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(gs.TagBeanSelector(bd.ID())))
+				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(
+					gs.BeanSelector{Type: bd.Type(), Tag: bd.ID()},
+				))
 				newBeans = append(newBeans, b)
 			}
 			break
@@ -583,17 +579,16 @@ func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 		}
 		if t := s.Type; t != nil {
 			if b.Type() != t {
-				continue
-			}
-			foundType := false
-			for _, typ := range b.Exports() {
-				if typ == t {
-					foundType = true
-					break
+				foundType := false
+				for _, typ := range b.Exports() {
+					if typ == t {
+						foundType = true
+						break
+					}
 				}
-			}
-			if !foundType {
-				continue
+				if !foundType {
+					continue
+				}
 			}
 		}
 		if s.Tag != "" {

@@ -56,7 +56,7 @@ func JoinPath(path []Path) string {
 // SplitPath splits key into individual path elements.
 func SplitPath(key string) ([]Path, error) {
 	if key == "" {
-		return nil, nil
+		return nil, fmt.Errorf("invalid key '%s'", key)
 	}
 	var (
 		path        []Path

@@ -45,7 +45,7 @@ func TestStorage(t *testing.T) {
 		assert.Error(t, err, "invalid key 'm\\[b]'")
 
 		err = s.Set("[0].x", "123")
-		assert.Error(t, err, "invalid key '\\[0].x'")
+		assert.Nil(t, err)
 	}
 
 	// 初始值是简单的 KV 值

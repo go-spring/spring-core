@@ -25,31 +25,21 @@ import (
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
 // TypeName returns a fully qualified name consisting of package path and type name.
-func TypeName(i interface{}) string {
-
-	var typ reflect.Type
-	switch o := i.(type) {
-	case reflect.Type:
-		typ = o
-	case reflect.Value:
-		typ = o.Type()
-	default:
-		typ = reflect.TypeOf(o)
-	}
+func TypeName(t reflect.Type) string {
 
 	for {
-		if k := typ.Kind(); k == reflect.Ptr || k == reflect.Slice {
-			typ = typ.Elem()
+		if k := t.Kind(); k == reflect.Ptr || k == reflect.Slice {
+			t = t.Elem()
 		} else {
 			break
 		}
 	}
 
-	if pkgPath := typ.PkgPath(); pkgPath != "" {
+	if pkgPath := t.PkgPath(); pkgPath != "" {
 		pkgPath = strings.TrimSuffix(pkgPath, "_test")
-		return pkgPath + "/" + typ.String()
+		return pkgPath + "/" + t.String()
 	}
-	return typ.String() // the path of built-in type is empty
+	return t.String() // the path of built-in type is empty
 }
 
 // IsFuncType returns whether `t` is func type.

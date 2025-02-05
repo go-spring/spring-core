@@ -165,7 +165,9 @@ func TestApplicationContext_AutoWireBeans(t *testing.T) {
 	c.Object(obj)
 
 	b := TestBincoreng{1}
-	c.Object(&b).Name("struct_ptr").Export((*fmt.Stringer)(nil))
+	c.Object(&b).Name("struct_ptr").Export(
+		reflect.TypeFor[fmt.Stringer](),
+	)
 
 	err := runTest(c, func(p gs.Context) {})
 	assert.Nil(t, err)
@@ -395,7 +397,9 @@ type ProxyGrouper struct {
 
 func TestApplicationContext_NestedBean(t *testing.T) {
 	c := gs_core.New()
-	c.Object(new(MyGrouper)).Export((*Grouper)(nil))
+	c.Object(new(MyGrouper)).Export(
+		reflect.TypeFor[Grouper](),
+	)
 	c.Object(new(ProxyGrouper))
 	err := c.Refresh()
 	assert.Nil(t, err)
@@ -413,8 +417,12 @@ type SamePkgHolder struct {
 func TestApplicationContext_SameNameBean(t *testing.T) {
 	c := gs_core.New()
 	c.Object(new(SamePkgHolder))
-	c.Object(&pkg1.SamePkg{}).Export((*Pkg)(nil))
-	c.Object(&pkg2.SamePkg{}).Export((*Pkg)(nil))
+	c.Object(&pkg1.SamePkg{}).Export(
+		reflect.TypeFor[Pkg](),
+	)
+	c.Object(&pkg2.SamePkg{}).Export(
+		reflect.TypeFor[Pkg](),
+	)
 	err := c.Refresh()
 	assert.Nil(t, err)
 }
@@ -440,8 +448,12 @@ type DiffPkgHolder struct {
 
 func TestApplicationContext_DiffNameBean(t *testing.T) {
 	c := gs_core.New()
-	c.Object(&DiffPkgOne{}).Name("same").Export((*Pkg)(nil))
-	c.Object(&DiffPkgTwo{}).Name("same").Export((*Pkg)(nil))
+	c.Object(&DiffPkgOne{}).Name("same").Export(
+		reflect.TypeFor[Pkg](),
+	)
+	c.Object(&DiffPkgTwo{}).Name("same").Export(
+		reflect.TypeFor[Pkg](),
+	)
 	c.Object(new(DiffPkgHolder))
 	err := c.Refresh()
 	assert.Nil(t, err)
@@ -513,7 +525,9 @@ func TestApplicationContext_Get(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
-		c.Object(new(BeanTwo)).Export((*Grouper)(nil))
+		c.Object(new(BeanTwo)).Export(
+			reflect.TypeFor[Grouper](),
+		)
 		err := runTest(c, func(p gs.Context) {
 
 			var two *BeanTwo
@@ -665,12 +679,14 @@ func TestApplicationContext_RegisterBeanFn(t *testing.T) {
 	c := gs_core.New()
 
 	// 用接口注册时实际使用的是原始类型
-	c.Object(Teacher(newHistoryTeacher(""))).Export((*Teacher)(nil))
+	c.Object(Teacher(newHistoryTeacher(""))).Export(
+		reflect.TypeFor[Teacher](),
+	)
 
-	c.Provide(NewStudent, "", "${room}").Name("st1")
-	c.Provide(NewPtrStudent, "", "${room}").Name("st2")
-	c.Provide(NewStudent, "?", "${room:=https://}").Name("st3")
-	c.Provide(NewPtrStudent, "?", "${room:=4567}").Name("st4")
+	c.Provide(NewStudent, gs_arg.Tag(""), gs_arg.Tag("${room}")).Name("st1")
+	c.Provide(NewPtrStudent, gs_arg.Tag(""), gs_arg.Tag("${room}")).Name("st2")
+	c.Provide(NewStudent, gs_arg.Tag("?"), gs_arg.Tag("${room:=https://}")).Name("st3")
+	c.Provide(NewPtrStudent, gs_arg.Tag("?"), gs_arg.Tag("${room:=4567}")).Name("st4")
 
 	c.Object(newTeacher("history", "")).Init(func(teacher Teacher) {
 		fmt.Println(teacher.Course())
@@ -1294,7 +1310,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		prop.Set("president", "CaiYuanPei")
 
 		c := gs_core.New()
-		c.Provide(NewClassRoom, gs_arg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"))
+		c.Provide(NewClassRoom, gs_arg.Option(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1340,7 +1356,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(NewClassRoom,
 			gs_arg.Option(withStudents),
-			gs_arg.Option(withClassName, "${class_name:=二年级03班}", "${class_floor:=3}"),
+			gs_arg.Option(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")),
 			gs_arg.Option(withBuilder, gs_arg.MustBind(func(param string) *ClassBuilder {
 				return &ClassBuilder{param: param}
 			}, gs_arg.Value("1"))),
@@ -1411,7 +1427,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		bd := c.Provide((*Server).Consumer, parent.ID())
+		bd := c.Provide((*Server).Consumer, gs_arg.Tag(parent.ID()))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1438,7 +1454,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server)).Condition(gs_cond.Not(gs_cond.OnMissingProperty("a")))
-		bd := c.Provide((*Server).Consumer, parent.ID())
+		bd := c.Provide((*Server).Consumer, gs_arg.Tag(parent.ID()))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1461,7 +1477,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		c.Provide((*Server).ConsumerArg, parent.ID(), "${i:=9}")
+		c.Provide((*Server).ConsumerArg, gs_arg.Tag(parent.ID()), gs_arg.Tag("${i:=9}"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1487,7 +1503,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Provide(NewServerInterface)
-		c.Provide(ServerInterface.Consumer, parent.ID()).DependsOn(gs.TagBeanSelector("ServerInterface"))
+		c.Provide(ServerInterface.Consumer, gs_arg.Tag(parent.ID())).DependsOn(gs.TagBeanSelector("ServerInterface"))
 		c.Object(new(Service))
 
 		c.RefreshProperties(prop)
@@ -1541,7 +1557,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 				c := gs_core.New()
 				parent := c.Object(new(Server)).DependsOn(gs.TagBeanSelector("Service"))
-				c.Provide((*Server).Consumer, parent.ID()).DependsOn(gs.TagBeanSelector("Server"))
+				c.Provide((*Server).Consumer, gs_arg.Tag(parent.ID())).DependsOn(gs.TagBeanSelector("Server"))
 				c.Object(new(Service))
 				c.RefreshProperties(prop)
 				err := c.Refresh()
@@ -1576,7 +1592,9 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		c.Object(new(Server))
-		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, (*Server)(nil))
+		c.Provide(func(s *Server) *Consumer { return s.Consumer() },
+			gs_arg.BeanTag[Server](),
+		)
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1602,7 +1620,9 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		c.Object(new(Server))
-		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, (*int)(nil))
+		c.Provide(func(s *Server) *Consumer { return s.Consumer() },
+			gs_arg.BeanTag[int](),
+		)
 
 		c.RefreshProperties(prop)
 		err := c.Refresh()
@@ -1615,7 +1635,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		c.Object(new(Server))
-		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, "Server")
+		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, gs_arg.Tag("Server"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1641,7 +1661,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		c.Object(new(Server))
-		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, "NULL")
+		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, gs_arg.Tag("NULL"))
 
 		c.RefreshProperties(prop)
 		err := c.Refresh()
@@ -1838,7 +1858,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewVarObj, "${var.obj}", gs_arg.Option(withVar, "v1"))
+		c.Provide(NewVarObj, gs_arg.Tag("${var.obj}"), gs_arg.Option(withVar, gs_arg.Tag("v1")))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1859,7 +1879,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewVarObj, gs_arg.Value("description"), gs_arg.Option(withVar, "v1", "v2"))
+		c.Provide(NewVarObj, gs_arg.Value("description"), gs_arg.Option(withVar, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1876,9 +1896,13 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 
 	t.Run("variable option interface param 1", func(t *testing.T) {
 		c := gs_core.New()
-		c.Object(&Var{"v1"}).Name("v1").Export((*interface{})(nil))
-		c.Object(&Var{"v2"}).Name("v2").Export((*interface{})(nil))
-		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, "v1"))
+		c.Object(&Var{"v1"}).Name("v1").Export(
+			reflect.TypeFor[interface{}](),
+		)
+		c.Object(&Var{"v2"}).Name("v2").Export(
+			reflect.TypeFor[interface{}](),
+		)
+		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1")))
 		err := runTest(c, func(p gs.Context) {
 			var obj *VarInterfaceObj
 			err := p.Get(&obj)
@@ -1890,9 +1914,13 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 
 	t.Run("variable option interface param 1", func(t *testing.T) {
 		c := gs_core.New()
-		c.Object(&Var{"v1"}).Name("v1").Export((*interface{})(nil))
-		c.Object(&Var{"v2"}).Name("v2").Export((*interface{})(nil))
-		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, "v1", "v2"))
+		c.Object(&Var{"v1"}).Name("v1").Export(
+			reflect.TypeFor[interface{}](),
+		)
+		c.Object(&Var{"v2"}).Name("v2").Export(
+			reflect.TypeFor[interface{}](),
+		)
+		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
 		err := runTest(c, func(p gs.Context) {
 			var obj *VarInterfaceObj
 			err := p.Get(&obj)
@@ -2136,8 +2164,12 @@ func TestApplicationContext_FnArgCollectBean(t *testing.T) {
 
 	t.Run("interface type", func(t *testing.T) {
 		c := gs_core.New()
-		c.Provide(newHistoryTeacher("t1")).Name("t1").Export((*Teacher)(nil))
-		c.Provide(newHistoryTeacher("t2")).Name("t2").Export((*Teacher)(nil))
+		c.Provide(newHistoryTeacher("t1")).Name("t1").Export(
+			reflect.TypeFor[Teacher](),
+		)
+		c.Provide(newHistoryTeacher("t2")).Name("t2").Export(
+			reflect.TypeFor[Teacher](),
+		)
 		c.Provide(func(teachers []Teacher) func() {
 			names := make([]string, 0)
 			for _, teacher := range teachers {
@@ -2167,7 +2199,9 @@ func TestApplicationContext_BeanCache(t *testing.T) {
 
 	t.Run("not implement interface", func(t *testing.T) {
 		c := gs_core.New()
-		c.Object(func() {}).Export((*filter)(nil))
+		c.Object(func() {}).Export(
+			reflect.TypeFor[filter](),
+		)
 		err := c.Refresh()
 		assert.Error(t, err, "doesn't implement interface gs_core_test.filter")
 	})
@@ -2181,7 +2215,9 @@ func TestApplicationContext_BeanCache(t *testing.T) {
 
 		c := gs_core.New()
 		c.Provide(func() filter { return new(filterImpl) }).Name("f1")
-		c.Object(new(filterImpl)).Export((*filter)(nil)).Name("f2")
+		c.Object(new(filterImpl)).Export(
+			reflect.TypeFor[filter](),
+		).Name("f2")
 		c.Object(&server)
 
 		err := c.Refresh()
@@ -2325,7 +2361,7 @@ func TestApplicationContext_CreateBean(t *testing.T) {
 	c := gs_core.New()
 	c.Object(&ObjFactory{})
 	err := runTest(c, func(p gs.Context) {
-		b, err := p.Wire((*ObjFactory).NewObj, gs_arg.Index(1, "${i:=5}"))
+		b, err := p.Wire((*ObjFactory).NewObj, gs_arg.Index(1, gs_arg.Tag("${i:=5}")))
 		fmt.Println(b, err)
 	})
 	assert.Nil(t, err)
@@ -2357,8 +2393,8 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		c := gs_core.New()
 		c.Provide(NewClassRoom, gs_arg.Option(withClassName,
-			"${class_name:=二年级03班}",
-			"${class_floor:=3}",
+			gs_arg.Tag("${class_name:=二年级03班}"),
+			gs_arg.Tag("${class_floor:=3}"),
 		).Condition(gs_cond.OnProperty("class_name_enable")))
 
 		c.RefreshProperties(prop)
@@ -2382,8 +2418,8 @@ func TestDefaultSpringContext(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(NewClassRoom,
 			gs_arg.Option(withClassName,
-				"${class_name:=二年级03班}",
-				"${class_floor:=3}",
+				gs_arg.Tag("${class_name:=二年级03班}"),
+				gs_arg.Tag("${class_floor:=3}"),
 			).Condition(onProperty),
 		)
 
@@ -2406,7 +2442,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		c.Provide((*Server).Consumer, parent.ID()).Condition(gs_cond.OnProperty("consumer.enable"))
+		c.Provide((*Server).Consumer, gs_arg.Tag(parent.ID())).Condition(gs_cond.OnProperty("consumer.enable"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -2690,7 +2726,7 @@ func TestApplicationContext_Invoke(t *testing.T) {
 		err := runTest(c, func(p gs.Context) {
 			_, _ = p.Invoke(func(f func(), version string) {
 				fmt.Println("version:", version)
-			}, "", "${version}")
+			}, gs_arg.Tag(""), gs_arg.Tag("${version}"))
 		})
 		assert.Nil(t, err)
 	})
@@ -2708,7 +2744,7 @@ func TestApplicationContext_Invoke(t *testing.T) {
 			fn := func(f func(), version string) {
 				fmt.Println("version:", version)
 			}
-			_, _ = p.Invoke(fn, "", "${version}")
+			_, _ = p.Invoke(fn, gs_arg.Tag(""), gs_arg.Tag("${version}"))
 		})
 		assert.Nil(t, err)
 	})

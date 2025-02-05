@@ -45,7 +45,7 @@ type Storage struct {
 func NewStorage() *Storage {
 	return &Storage{
 		tree: &treeNode{
-			node: nodeTypeMap,
+			node: nodeTypeNil,
 			data: make(map[string]*treeNode),
 		},
 		data: make(map[string]string),
@@ -73,9 +73,13 @@ func (s *Storage) Keys() []string {
 
 // SubKeys returns the sorted sub keys of the key.
 func (s *Storage) SubKeys(key string) ([]string, error) {
-	path, err := SplitPath(key)
-	if err != nil {
-		return nil, err
+	var path []Path
+	if key != "" {
+		var err error
+		path, err = SplitPath(key)
+		if err != nil {
+			return nil, err
+		}
 	}
 	tree := s.tree
 	for i, pathNode := range path {
@@ -157,9 +161,6 @@ func (s *Storage) merge(key, val string) (*treeNode, error) {
 	path, err := SplitPath(key)
 	if err != nil {
 		return nil, err
-	}
-	if path[0].Type == PathTypeIndex {
-		return nil, fmt.Errorf("invalid key '%s'", key)
 	}
 	tree := s.tree
 	for i, pathNode := range path {

@@ -85,8 +85,8 @@ func RegisterConverter[T any](fn Converter[T]) {
 	converters[t.Out(0)] = fn
 }
 
-// readOnlyProperties is the interface for read-only properties.
-type readOnlyProperties interface {
+// ReadOnlyProperties is the interface for read-only properties.
+type ReadOnlyProperties interface {
 
 	// Data returns key-value pairs of the properties.
 	Data() map[string]string
@@ -110,19 +110,13 @@ type readOnlyProperties interface {
 	Resolve(s string) (string, error)
 
 	// Bind binds properties into a value.
-	Bind(i interface{}) error
-
-	// BindKey binds properties into a value by key.
-	BindKey(i interface{}, key string) error
-
-	// BindTag binds properties into a value by tag.
-	BindTag(i interface{}, tag string) error
+	Bind(i interface{}, tag ...string) error
 
 	// CopyTo copies properties into another by override.
 	CopyTo(out *Properties) error
 }
 
-var _ readOnlyProperties = (*Properties)(nil)
+var _ ReadOnlyProperties = (*Properties)(nil)
 
 // Properties stores the data with map[string]string and the keys are case-sensitive,
 // you can get one of them by its key, or bind some of them to a value.
@@ -258,19 +252,11 @@ func (p *Properties) Resolve(s string) (string, error) {
 
 // Bind binds properties to a value, the bind value can be primitive type,
 // map, slice, struct. When binding to struct, the tag 'value' indicates
-// which properties should be bind. The 'value' tags are defined by
+// which properties should be bind. The 'value' tag are defined by
 // value:"${a:=b}>>splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *Properties) Bind(i interface{}) error {
-	return p.BindTag(i, "${ROOT}")
-}
-
-func (p *Properties) BindKey(i interface{}, key string) error {
-	return p.BindTag(i, "${"+key+"}")
-}
-
-func (p *Properties) BindTag(i interface{}, tag string) error {
+func (p *Properties) Bind(i interface{}, tag ...string) error {
 
 	var v reflect.Value
 	{
@@ -292,8 +278,13 @@ func (p *Properties) BindTag(i interface{}, tag string) error {
 		typeName = t.String()
 	}
 
+	s := "${ROOT}"
+	if len(tag) > 0 {
+		s = tag[0]
+	}
+
 	var param BindParam
-	err := param.BindTag(tag, "")
+	err := param.BindTag(s, "")
 	if err != nil {
 		return err
 	}

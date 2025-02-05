@@ -30,7 +30,7 @@ import (
 )
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) *gs.BeanDefinition {
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 	var v reflect.Value
 	var fromValue bool
@@ -98,13 +98,13 @@ func NewBean(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) *gs.BeanDefin
 		if method {
 			var s gs.BeanSelector
 			if len(ctorArgs) > 0 {
-				tag, ok := ctorArgs[0].(string)
+				r, ok := ctorArgs[0].(gs_arg.TagArg)
 				if !ok {
 					// todo
 				}
-				s = gs.BeanSelector{Tag: tag}
+				s = gs.BeanSelector{Tag: r.Tag}
 			} else {
-				s = gs.BeanSelector{Type: t.In(0)}
+				s = gs.BeanSelector{Tag: util.TypeName(t.In(0)) + ":"}
 			}
 			cond = gs_cond.OnBean(s)
 		}

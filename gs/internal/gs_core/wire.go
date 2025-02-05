@@ -211,7 +211,7 @@ func (a *ArgContext) Matches(c gs.Condition) (bool, error) {
 
 // Bind binds a value to a specific tag in the container.
 func (a *ArgContext) Bind(v reflect.Value, tag string) error {
-	return a.c.p.Data().BindTag(v, tag)
+	return a.c.p.Data().Bind(v, tag)
 }
 
 // Wire wires a value based on a specific tag in the container.
@@ -574,8 +574,24 @@ func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) erro
 		}
 	}
 
+	watchRefresh := true
+
+	// If the bean is refreshable, add it to the refreshable list.
+	if b.Refreshable() {
+		i := b.Interface().(gs.Refreshable)
+		var param conf.BindParam
+		err = param.BindTag(b.RefreshTag(), "")
+		if err != nil {
+			return err
+		}
+		if err = c.p.RefreshBean(i, param, true); err != nil {
+			return err
+		}
+		watchRefresh = false
+	}
+
 	// Wire the value of the bean.
-	err = c.wireBeanValue(v, t, stack)
+	err = c.wireBeanValue(v, t, watchRefresh, stack)
 	if err != nil {
 		return err
 	}
@@ -592,20 +608,6 @@ func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) erro
 	// If the bean implements the BeanInit interface, execute its OnBeanInit method.
 	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
 		if err = f.OnBeanInit(c); err != nil {
-			return err
-		}
-	}
-
-	// If the bean is refreshable, add it to the refreshable list.
-	if b.Refreshable() {
-		i := b.Interface().(gs.Refreshable)
-		var param conf.BindParam
-		err = param.BindTag(b.RefreshTag(), "")
-		if err != nil {
-			return err
-		}
-		watch := c.state == Refreshing
-		if err = c.p.RefreshBean(i, param, watch); err != nil {
 			return err
 		}
 	}
@@ -659,7 +661,7 @@ func (c *Container) getBeanValue(b BeanRuntime, stack *WiringStack) (reflect.Val
 }
 
 // wireValue binds properties and injects dependencies into the value v. v should already be initialized.
-func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, stack *WiringStack) error {
+func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, watchRefresh bool, stack *WiringStack) error {
 
 	// Dereference pointer types and adjust the target type.
 	if v.Kind() == reflect.Ptr {
@@ -679,11 +681,11 @@ func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, stack *Wiring
 	}
 
 	param := conf.BindParam{Path: typeName}
-	return c.wireStruct(v, t, param, stack)
+	return c.wireStruct(v, t, watchRefresh, param, stack)
 }
 
 // wireStruct performs dependency injection for a struct.
-func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *WiringStack) error {
+func (c *Container) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, opt conf.BindParam, stack *WiringStack) error {
 	// Loop through each field of the struct.
 	for i := 0; i < t.NumField(); i++ {
 		ft := t.Field(i)
@@ -733,14 +735,13 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 			}
 			if ft.Anonymous {
 				// Recursively wire anonymous structs.
-				err := c.wireStruct(fv, ft.Type, subParam, stack)
+				err := c.wireStruct(fv, ft.Type, watchRefresh, subParam, stack)
 				if err != nil {
 					return err
 				}
 			} else {
 				// Refresh field value if needed.
-				watch := c.state == Refreshing
-				err := c.p.RefreshField(fv.Addr(), subParam, watch)
+				err := c.p.RefreshField(fv.Addr(), subParam, watchRefresh)
 				if err != nil {
 					return err
 				}
@@ -750,7 +751,7 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 
 		// Recursively wire anonymous struct fields.
 		if ft.Anonymous && ft.Type.Kind() == reflect.Struct {
-			if err := c.wireStruct(fv, ft.Type, subParam, stack); err != nil {
+			if err := c.wireStruct(fv, ft.Type, watchRefresh, subParam, stack); err != nil {
 				return err
 			}
 		}

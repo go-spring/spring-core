@@ -94,22 +94,22 @@ func TestProperties_Get(t *testing.T) {
 		assert.Equal(t, v, "3")
 
 		var v2 int
-		err = p.BindKey(&v2, "Int")
+		err = p.Bind(&v2, "${Int}")
 		assert.Nil(t, err)
 		assert.Equal(t, v2, 3)
 
 		var u2 uint
-		err = p.BindKey(&u2, "Uint")
+		err = p.Bind(&u2, "${Uint}")
 		assert.Nil(t, err)
 		assert.Equal(t, u2, uint(3))
 
 		var u3 uint32
-		err = p.BindKey(&u3, "Uint")
+		err = p.Bind(&u3, "${Uint}")
 		assert.Nil(t, err)
 		assert.Equal(t, u3, uint32(3))
 
 		var f2 float32
-		err = p.BindKey(&f2, "Float")
+		err = p.Bind(&f2, "${Float}")
 		assert.Nil(t, err)
 		assert.Equal(t, f2, float32(3))
 
@@ -118,7 +118,7 @@ func TestProperties_Get(t *testing.T) {
 		assert.Equal(t, b, true)
 
 		var b2 bool
-		err = p.BindKey(&b2, "Bool")
+		err = p.Bind(&b2, "${Bool}")
 		assert.Nil(t, err)
 		assert.Equal(t, b2, true)
 
@@ -146,12 +146,12 @@ func TestProperties_Get(t *testing.T) {
 		assert.Equal(t, d, time.Second*3)
 
 		var ti time.Time
-		err = p.BindKey(&ti, "Time")
+		err = p.Bind(&ti, "${Time}")
 		assert.Nil(t, err)
 		assert.Equal(t, ti, time.Date(2020, 02, 04, 20, 02, 04, 0, time.UTC))
 
 		var ss2 []string
-		err = p.BindKey(&ss2, "StringSlice")
+		err = p.Bind(&ss2, "${StringSlice}")
 		assert.Nil(t, err)
 		assert.Equal(t, ss2, []string{"3", "4"})
 	})
@@ -240,7 +240,7 @@ func TestBindSlice(t *testing.T) {
 	p := conf.New()
 	p.Set("a", []string{"1", "2"})
 	var ss []string
-	err := p.BindKey(&ss, "a")
+	err := p.Bind(&ss, "${a}")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,10 +277,7 @@ func TestBindMap(t *testing.T) {
 	}
 
 	t.Run("", func(t *testing.T) {
-		type S struct {
-			M [3]map[string]string `value:"${}"`
-		}
-		var r map[string]S
+		var r map[string][3]map[string]string
 		p, err := conf.Map(m)
 		assert.Nil(t, err)
 		err = p.Bind(&r)
@@ -288,10 +285,7 @@ func TestBindMap(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		type S struct {
-			M []map[string]string `value:"${}"`
-		}
-		var r map[string]S
+		var r map[string][]map[string]string
 		p, err := conf.Map(m)
 		assert.Nil(t, err)
 		err = p.Bind(&r)
@@ -299,10 +293,7 @@ func TestBindMap(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		type S struct {
-			M map[string]map[string]string `value:"${}"`
-		}
-		var r map[string]S
+		var r map[string]map[string]map[string]string
 		p, err := conf.Map(m)
 		assert.Nil(t, err)
 		err = p.Bind(&r)
@@ -491,7 +482,7 @@ func TestSplitter(t *testing.T) {
 	conf.RegisterConverter(PointConverter)
 	conf.RegisterSplitter("PointSplitter", PointSplitter)
 	var points []image.Point
-	err := conf.New().BindTag(&points, "${:=(1,2)(3,4)}>>PointSplitter")
+	err := conf.New().Bind(&points, "${:=(1,2)(3,4)}>>PointSplitter")
 	assert.Nil(t, err)
 	assert.Equal(t, points, []image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
 }

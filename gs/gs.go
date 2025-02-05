@@ -52,17 +52,17 @@ func ValueArg(v interface{}) gs_arg.ValueArg {
 }
 
 // IndexArg returns an IndexArg with the specified index and argument.
-func IndexArg(n int, arg interface{}) gs_arg.IndexArg {
+func IndexArg(n int, arg Arg) gs_arg.IndexArg {
 	return gs_arg.Index(n, arg)
 }
 
 // BindArg binds runtime arguments to a given function.
-func BindArg(fn interface{}, args ...any /* gs.ArgT */) *gs_arg.Callable {
+func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
 	return gs_arg.MustBind(fn, args...)
 }
 
 // OptionArg returns an OptionArg for the specified function and arguments.
-func OptionArg(fn interface{}, args ...any /* gs.ArgT */) *gs_arg.OptionArg {
+func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
 	return gs_arg.Option(fn, args...)
 }
 
@@ -252,7 +252,7 @@ func Object(i interface{}) *RegisteredBean {
 }
 
 // Provide registers a bean definition for a given constructor.
-func Provide(ctor interface{}, args ...any /* gs.ArgT */) *RegisteredBean {
+func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
 	b := gs_core.NewBean(ctor, args...)
 	return app.C.Register(b)
 }
@@ -268,16 +268,18 @@ func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
 }
 
 // Runner registers a bean definition for an [AppRunner].
-func Runner(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) *RegisteredBean {
-	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*AppRunner)(nil))
+func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
+	b := gs_core.NewBean(objOrCtor, ctorArgs...).Export(
+		reflect.TypeFor[AppRunner](),
+	)
 	return app.C.Register(b)
 }
 
 // Server registers a bean definition for an [AppServer].
-func Server(objOrCtor interface{}, ctorArgs ...any /* gs.ArgT */) *RegisteredBean {
-	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*AppServer)(nil))
+func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
+	b := gs_core.NewBean(objOrCtor, ctorArgs...).Export(
+		reflect.TypeFor[AppServer](),
+	)
 	return app.C.Register(b)
 }
 
