@@ -46,6 +46,16 @@ func NilArg() gs_arg.ValueArg {
 	return gs_arg.Nil()
 }
 
+// TagArg returns a TagArg with the specified tag.
+func TagArg(tag string) gs_arg.TagArg {
+	return gs_arg.Tag(tag)
+}
+
+// BeanTagArg returns a TagArg with the specified bean type.
+func BeanTagArg[T any]() gs_arg.TagArg {
+	return gs_arg.BeanTag[T]()
+}
+
 // ValueArg returns a ValueArg with the specified value.
 func ValueArg(v interface{}) gs_arg.ValueArg {
 	return gs_arg.Value(v)
@@ -237,13 +247,13 @@ func Config() *gs_conf.AppConfig {
 
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
-	b := gs_core.NewBean(reflect.ValueOf(i))
+	b := NewBean(reflect.ValueOf(i))
 	return app.C.Register(b)
 }
 
 // Provide registers a bean definition for a given constructor.
 func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
-	b := gs_core.NewBean(ctor, args...)
+	b := NewBean(ctor, args...)
 	return app.C.Register(b)
 }
 
@@ -259,7 +269,7 @@ func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
 
 // Runner registers a bean definition for an [AppRunner].
 func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := gs_core.NewBean(objOrCtor, ctorArgs...).Export(
+	b := NewBean(objOrCtor, ctorArgs...).Export(
 		reflect.TypeFor[AppRunner](),
 	)
 	return app.C.Register(b)
@@ -267,7 +277,7 @@ func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 
 // Server registers a bean definition for an [AppServer].
 func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := gs_core.NewBean(objOrCtor, ctorArgs...).Export(
+	b := NewBean(objOrCtor, ctorArgs...).Export(
 		reflect.TypeFor[AppServer](),
 	)
 	return app.C.Register(b)
