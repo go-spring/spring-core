@@ -71,6 +71,11 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		// Bind the constructor arguments
 		f = gs_arg.MustBind(objOrCtor, ctorArgs...).SetFileLine(file, line)
 
+		var in0 reflect.Type
+		if t.NumIn() > 0 {
+			in0 = t.In(0)
+		}
+
 		// Obtain the return type of the constructor
 		out0 := t.Out(0)
 		v = reflect.New(out0)
@@ -96,15 +101,20 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		// Check if the function is a method and set a condition if needed
 		method := strings.LastIndexByte(fnInfo.Name(), ')') > 0
 		if method {
-			var s gs.BeanSelector
+			s := gs.BeanSelector{Type: in0}
 			if len(ctorArgs) > 0 {
-				r, ok := ctorArgs[0].(gs_arg.TagArg)
-				if !ok {
-					// todo
+				switch a := ctorArgs[0].(type) {
+				case gs_arg.TagArg:
+					s.Tag = a.Tag
+				case gs_arg.IndexArg:
+					if a.Idx == 0 {
+						x, ok := a.Arg.(gs_arg.TagArg)
+						if !ok {
+							panic("IndexArg(0) should be TagArg")
+						}
+						s.Tag = x.Tag
+					}
 				}
-				s = gs.BeanSelector{Tag: r.Tag}
-			} else {
-				s = gs.BeanSelector{Tag: util.TypeName(t.In(0)) + ":"}
 			}
 			cond = gs_cond.OnBean(s)
 		}

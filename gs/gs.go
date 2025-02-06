@@ -51,8 +51,8 @@ func TagArg(tag string) gs_arg.TagArg {
 	return gs_arg.Tag(tag)
 }
 
-// BeanTagArg returns a TagArg with the specified bean type.
-func BeanTagArg[T any]() gs_arg.TagArg {
+// TypeArg returns a TagArg with the specified bean type.
+func TypeArg[T any]() gs_arg.TagArg {
 	return gs_arg.BeanTag[T]()
 }
 
@@ -182,6 +182,16 @@ type (
 
 // NewBean creates a new BeanDefinition.
 var NewBean = gs_core.NewBean
+
+// TagBeanSelector creates a BeanSelector based on a tag.
+func TagBeanSelector(tag string) BeanSelector {
+	return BeanSelector{Tag: tag}
+}
+
+// TypeBeanSelector creates a BeanSelector based on a type.
+func TypeBeanSelector[T any]() BeanSelector {
+	return BeanSelector{Type: reflect.TypeFor[T]()}
+}
 
 /************************************ boot ***********************************/
 

@@ -87,28 +87,20 @@ func RegisterConverter[T any](fn Converter[T]) {
 
 // ReadOnlyProperties is the interface for read-only properties.
 type ReadOnlyProperties interface {
-
 	// Data returns key-value pairs of the properties.
 	Data() map[string]string
-
 	// Keys returns keys of the properties.
 	Keys() []string
-
 	// Has returns whether the key exists.
 	Has(key string) bool
-
 	// SubKeys returns the sorted sub keys of the key.
 	SubKeys(key string) ([]string, error)
-
 	// Get returns key's value.
 	Get(key string, def ...string) string
-
 	// Resolve resolves string that contains references.
 	Resolve(s string) (string, error)
-
 	// Bind binds properties into a value.
 	Bind(i interface{}, tag ...string) error
-
 	// CopyTo copies properties into another by override.
 	CopyTo(out *Properties) error
 }

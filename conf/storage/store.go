@@ -72,12 +72,10 @@ func (s *Storage) Keys() []string {
 }
 
 // SubKeys returns the sorted sub keys of the key.
-func (s *Storage) SubKeys(key string) ([]string, error) {
+func (s *Storage) SubKeys(key string) (_ []string, err error) {
 	var path []Path
 	if key != "" {
-		var err error
-		path, err = SplitPath(key)
-		if err != nil {
+		if path, err = SplitPath(key); err != nil {
 			return nil, err
 		}
 	}
@@ -106,6 +104,12 @@ func (s *Storage) SubKeys(key string) ([]string, error) {
 
 // Has returns whether the key exists.
 func (s *Storage) Has(key string) bool {
+	if key == "" {
+		return false
+	}
+	if _, ok := s.data[key]; ok {
+		return true
+	}
 	path, err := SplitPath(key)
 	if err != nil {
 		return false
@@ -144,6 +148,9 @@ func (s *Storage) Get(key string) (string, bool) {
 
 // Set stores the value of the key.
 func (s *Storage) Set(key, val string) error {
+	if key == "" {
+		return fmt.Errorf("key is empty")
+	}
 	tree, err := s.merge(key, val)
 	if err != nil {
 		return err

@@ -46,13 +46,13 @@ func (arg TagArg) Value() reflect.Value {
 
 // IndexArg represents an argument that has an index.
 type IndexArg struct {
-	n   int
-	arg gs.Arg
+	Idx int
+	Arg gs.Arg
 }
 
 // Index creates an IndexArg with the given index and argument.
 func Index(n int, arg gs.Arg) IndexArg {
-	return IndexArg{n: n, arg: arg}
+	return IndexArg{Idx: n, Arg: arg}
 }
 
 func (arg IndexArg) Value() reflect.Value {
@@ -114,11 +114,11 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		case *OptionArg:
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
-			if arg.n < 0 || arg.n >= fixedArgCount {
-				err := fmt.Errorf("arg index %d exceeds max index %d", arg.n, fixedArgCount)
+			if arg.Idx < 0 || arg.Idx >= fixedArgCount {
+				err := fmt.Errorf("arg index %d exceeds max index %d", arg.Idx, fixedArgCount)
 				return nil, errutil.WrapError(err, "%v", args)
 			} else {
-				fnArgs[arg.n] = arg.arg
+				fnArgs[arg.Idx] = arg.Arg
 			}
 		default:
 			if fixedArgCount > 0 {
@@ -142,14 +142,14 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 				err := fmt.Errorf("the Args must have or have no index")
 				return nil, errutil.WrapError(err, "%v", args)
 			}
-			if arg.n < 0 || arg.n >= fixedArgCount {
-				err := fmt.Errorf("arg index %d exceeds max index %d", arg.n, fixedArgCount)
+			if arg.Idx < 0 || arg.Idx >= fixedArgCount {
+				err := fmt.Errorf("arg index %d exceeds max index %d", arg.Idx, fixedArgCount)
 				return nil, errutil.WrapError(err, "%v", args)
-			} else if fnArgs[arg.n] != nil {
-				err := fmt.Errorf("found same index %d", arg.n)
+			} else if fnArgs[arg.Idx] != nil {
+				err := fmt.Errorf("found same index %d", arg.Idx)
 				return nil, errutil.WrapError(err, "%v", args)
 			} else {
-				fnArgs[arg.n] = arg.arg
+				fnArgs[arg.Idx] = arg.Arg
 			}
 		default:
 			if shouldIndex {
