@@ -259,7 +259,7 @@ func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	}
 
 	// wires dependent beans based on the argument type.
-	if util.IsBeanReceiver(t) {
+	if util.IsBeanInjectionTarget(t) {
 		v := reflect.New(t).Elem()
 		if err = ctx.Wire(v, tag); err != nil {
 			return reflect.Value{}, err

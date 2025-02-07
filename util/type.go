@@ -112,15 +112,13 @@ func IsPrimitiveValueType(t reflect.Type) bool {
 // composite type including array, slice, map and struct, such as []int, [3]string,
 // []string, map[int]int, map[string]string, etc.
 func IsValueType(t reflect.Type) bool {
-	fn := func(t reflect.Type) bool {
-		return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct
-	}
 	switch t.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
-		return fn(t.Elem())
+		t = t.Elem()
 	default:
-		return fn(t)
+		// do nothing
 	}
+	return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct
 }
 
 // IsBeanType returns whether `t` is a bean type.
@@ -135,13 +133,13 @@ func IsBeanType(t reflect.Type) bool {
 	}
 }
 
-// IsBeanReceiver returns whether the `t` is a bean receiver, a bean receiver can
-// be a bean, a map or slice whose elements are beans.
-func IsBeanReceiver(t reflect.Type) bool {
+// IsBeanInjectionTarget returns whether `t` is a bean injection target.
+func IsBeanInjectionTarget(t reflect.Type) bool {
 	switch t.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
-		return IsBeanType(t.Elem())
+		t = t.Elem()
 	default:
-		return IsBeanType(t)
+		// do nothing
 	}
+	return IsBeanType(t)
 }

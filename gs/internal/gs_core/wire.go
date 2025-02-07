@@ -315,7 +315,7 @@ func (c *Container) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (BeanRuntime, error) {
 
 	// Check if the type of `v` is a valid bean receiver type.
-	if !util.IsBeanReceiver(t) {
+	if !util.IsBeanInjectionTarget(t) {
 		return nil, fmt.Errorf("%s is not a valid receiver type", t.String())
 	}
 
@@ -405,7 +405,7 @@ func (c *Container) getBeans(t reflect.Type, tags []wireTag, nullable bool, stac
 	}
 
 	et := t.Elem()
-	if !util.IsBeanReceiver(et) {
+	if !util.IsBeanInjectionTarget(et) {
 		return nil, fmt.Errorf("%s is not a valid receiver type", t.String())
 	}
 

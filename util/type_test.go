@@ -531,14 +531,14 @@ func TestHasReceiver(t *testing.T) {
 	assert.False(t, util.HasReceiver(reflect.TypeOf(func(error, int) {}), reflect.ValueOf(new(testdata.Receiver))))
 }
 
-func TestIsBeanReceiver(t *testing.T) {
-	assert.False(t, util.IsBeanReceiver(reflect.TypeOf("abc")))
-	assert.False(t, util.IsBeanReceiver(reflect.TypeOf(new(string))))
-	assert.True(t, util.IsBeanReceiver(reflect.TypeOf(errors.New("abc"))))
-	assert.False(t, util.IsBeanReceiver(reflect.TypeOf([]string{})))
-	assert.False(t, util.IsBeanReceiver(reflect.TypeOf([]*string{})))
-	assert.True(t, util.IsBeanReceiver(reflect.TypeOf([]fmt.Stringer{})))
-	assert.False(t, util.IsBeanReceiver(reflect.TypeOf(map[string]string{})))
-	assert.False(t, util.IsBeanReceiver(reflect.TypeOf(map[string]*string{})))
-	assert.True(t, util.IsBeanReceiver(reflect.TypeOf(map[string]fmt.Stringer{})))
+func TestIsBeanInjectionTarget(t *testing.T) {
+	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf("abc")))
+	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf(new(string))))
+	assert.True(t, util.IsBeanInjectionTarget(reflect.TypeOf(errors.New("abc"))))
+	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf([]string{})))
+	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf([]*string{})))
+	assert.True(t, util.IsBeanInjectionTarget(reflect.TypeOf([]fmt.Stringer{})))
+	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]string{})))
+	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]*string{})))
+	assert.True(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]fmt.Stringer{})))
 }
