@@ -75,18 +75,6 @@ func IsConstructor(t reflect.Type) bool {
 	return IsFuncType(t) && (t.NumOut() == 1 || returnError)
 }
 
-// HasReceiver returns whether the function has a receiver.
-func HasReceiver(t reflect.Type, receiver reflect.Value) bool {
-	if t.NumIn() < 1 {
-		return false
-	}
-	t0 := t.In(0)
-	if t0.Kind() != reflect.Interface {
-		return t0 == receiver.Type()
-	}
-	return receiver.Type().Implements(t0)
-}
-
 // IsPrimitiveValueType returns whether `t` is the primitive value type which only is
 // int, unit, float, bool, string and complex.
 func IsPrimitiveValueType(t reflect.Type) bool {

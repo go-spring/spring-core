@@ -523,14 +523,6 @@ func TestIsConstructor(t *testing.T) {
 	assert.False(t, util.IsConstructor(reflect.TypeOf(func() (bool, *testdata.Receiver, error) { return false, nil, nil })))
 }
 
-func TestHasReceiver(t *testing.T) {
-	assert.False(t, util.HasReceiver(reflect.TypeOf(func() {}), reflect.ValueOf(new(testdata.Receiver))))
-	assert.True(t, util.HasReceiver(reflect.TypeOf(func(*testdata.Receiver) {}), reflect.ValueOf(new(testdata.Receiver))))
-	assert.True(t, util.HasReceiver(reflect.TypeOf(func(*testdata.Receiver, int) {}), reflect.ValueOf(new(testdata.Receiver))))
-	assert.True(t, util.HasReceiver(reflect.TypeOf(func(fmt.Stringer, int) {}), reflect.ValueOf(new(testdata.Receiver))))
-	assert.False(t, util.HasReceiver(reflect.TypeOf(func(error, int) {}), reflect.ValueOf(new(testdata.Receiver))))
-}
-
 func TestIsBeanInjectionTarget(t *testing.T) {
 	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf("abc")))
 	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf(new(string))))

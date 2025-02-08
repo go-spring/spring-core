@@ -255,11 +255,15 @@ func (d *BeanDefinition) SetName(name string) {
 }
 
 // validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
-func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
-	if !util.IsFuncType(fnType) {
+func validLifeCycleFunc(fnType reflect.Type, beanType reflect.Type) bool {
+	if !util.IsFuncType(fnType) || fnType.NumIn() != 1 {
 		return false
 	}
-	if fnType.NumIn() != 1 || !util.HasReceiver(fnType, beanValue) {
+	if t := fnType.In(0); t.Kind() == reflect.Interface {
+		if !beanType.Implements(t) {
+			return false
+		}
+	} else if t != beanType {
 		return false
 	}
 	return util.ReturnNothing(fnType) || util.ReturnOnlyError(fnType)
@@ -267,7 +271,7 @@ func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
 
 // SetInit sets the initialization function for the bean.
 func (d *BeanDefinition) SetInit(fn interface{}) {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
+	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
 		d.init = fn
 		return
 	}
@@ -276,7 +280,7 @@ func (d *BeanDefinition) SetInit(fn interface{}) {
 
 // SetDestroy sets the destruction function for the bean.
 func (d *BeanDefinition) SetDestroy(fn interface{}) {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
+	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
 		d.destroy = fn
 		return
 	}
