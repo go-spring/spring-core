@@ -36,8 +36,32 @@ func Tag(tag string) TagArg {
 	return TagArg{Tag: tag}
 }
 
-func (arg TagArg) Value() reflect.Value {
-	panic(util.UnimplementedMethod)
+func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
+	tag := arg.Tag
+
+	// binds property values based on the argument type.
+	if util.IsPropBindingTarget(t) {
+		if tag == "" {
+			tag = "${}"
+		}
+		v := reflect.New(t).Elem()
+		if err := ctx.Bind(v, tag); err != nil {
+			return reflect.Value{}, err
+		}
+		return v, nil
+	}
+
+	// wires dependent beans based on the argument type.
+	if util.IsBeanInjectionTarget(t) {
+		v := reflect.New(t).Elem()
+		if err := ctx.Wire(v, tag); err != nil {
+			return reflect.Value{}, err
+		}
+		return v, nil
+	}
+
+	err := fmt.Errorf("error type %s", t.String())
+	return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", tag)
 }
 
 // IndexArg represents an argument that has an index.
@@ -51,7 +75,7 @@ func Index(n int, arg gs.Arg) IndexArg {
 	return IndexArg{Idx: n, Arg: arg}
 }
 
-func (arg IndexArg) Value() reflect.Value {
+func (arg IndexArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 	panic(util.UnimplementedMethod)
 }
 
@@ -70,8 +94,11 @@ func Value(v interface{}) ValueArg {
 	return ValueArg{v: v}
 }
 
-func (arg ValueArg) Value() reflect.Value {
-	panic(util.UnimplementedMethod)
+func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
+	if arg.v == nil {
+		return reflect.Zero(t), nil
+	}
+	return reflect.ValueOf(arg.v), nil
 }
 
 // ArgList represents a list of arguments for a function.
@@ -191,7 +218,7 @@ func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, erro
 			t = fnType.In(idx)
 		}
 
-		v, err := r.getArg(ctx, arg, t, fileLine)
+		v, err := arg.GetArgValue(ctx, t)
 		if err != nil {
 			err = errutil.WrapError(err, "returns error when getting %d arg", idx)
 			return nil, errutil.WrapError(err, "get arg list error: %v", arg)
@@ -202,69 +229,6 @@ func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, erro
 	}
 
 	return result, nil
-}
-
-// getArg processes an individual argument and returns its [reflect.Value] representation.
-func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine string) (reflect.Value, error) {
-
-	var (
-		err error
-		tag string
-	)
-
-	description := fmt.Sprintf("arg:\"%v\" %s", arg, fileLine)
-	syslog.Debugf("get value %s", description)
-	defer func() {
-		if err == nil {
-			syslog.Debugf("get value %s success", description)
-		} else {
-			syslog.Debugf("get value %s error:%s", err.Error(), description)
-		}
-	}()
-
-	switch g := arg.(type) {
-	case *Callable:
-		if results, err := g.Call(ctx); err != nil {
-			return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", arg)
-		} else if len(results) < 1 {
-			return reflect.Value{}, errors.New("")
-		} else {
-			return results[0], nil
-		}
-	case ValueArg:
-		if g.v == nil {
-			return reflect.Zero(t), nil
-		}
-		return reflect.ValueOf(g.v), nil
-	case *OptionArg:
-		return g.call(ctx)
-	case TagArg:
-		tag = g.Tag
-	}
-
-	// binds property values based on the argument type.
-	if util.IsPropBindingTarget(t) {
-		if tag == "" {
-			tag = "${}"
-		}
-		v := reflect.New(t).Elem()
-		if err = ctx.Bind(v, tag); err != nil {
-			return reflect.Value{}, err
-		}
-		return v, nil
-	}
-
-	// wires dependent beans based on the argument type.
-	if util.IsBeanInjectionTarget(t) {
-		v := reflect.New(t).Elem()
-		if err = ctx.Wire(v, tag); err != nil {
-			return reflect.Value{}, err
-		}
-		return v, nil
-	}
-
-	err = fmt.Errorf("error type %s", t.String())
-	return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", tag)
 }
 
 // OptionArg represents a binding for an option function argument.
@@ -286,8 +250,8 @@ func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 	return &OptionArg{r: r.SetFileLine(file, line)}
 }
 
-func (arg *OptionArg) Value() reflect.Value {
-	panic(util.UnimplementedMethod)
+func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
+	return arg.call(ctx)
 }
 
 // Condition sets a condition for invoking the option function.
@@ -359,8 +323,14 @@ func Bind(fn interface{}, args []gs.Arg) (*Callable, error) {
 	return &Callable{fn: fn, fnType: fnType, argList: argList}, nil
 }
 
-func (r *Callable) Value() reflect.Value {
-	panic(util.UnimplementedMethod)
+func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
+	if results, err := r.Call(ctx); err != nil {
+		return reflect.Value{}, err
+	} else if len(results) < 1 {
+		return reflect.Value{}, errors.New("xxx")
+	} else {
+		return results[0], nil
+	}
 }
 
 // SetFileLine sets the file and line number of the function call.

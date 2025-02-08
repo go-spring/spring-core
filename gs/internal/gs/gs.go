@@ -73,16 +73,6 @@ type Condition interface {
 
 /************************************* arg ***********************************/
 
-// Arg is used to provide binding values for function parameters. It can be:
-// - A BeanSelector type (for injecting beans),
-// - A string in the form of ${X:=Y} (for property binding or bean injection),
-// - A ValueArg type (for normal user-provided values),
-// - An IndexArg type (for indexed parameter binding),
-// - An *OptionArg type (for binding arguments in Option methods).
-type Arg interface {
-	Value() reflect.Value
-}
-
 // ArgContext defines methods for the IoC container used by Callable types.
 type ArgContext interface {
 	// Matches checks if the given condition is met.
@@ -96,6 +86,11 @@ type ArgContext interface {
 // Callable represents an entity that can be invoked with an ArgContext.
 type Callable interface {
 	Call(ctx ArgContext) ([]reflect.Value, error)
+}
+
+// Arg is used to provide binding values for function parameters.
+type Arg interface {
+	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
 }
 
 /*********************************** conf ************************************/
