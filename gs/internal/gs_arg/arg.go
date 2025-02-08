@@ -36,10 +36,6 @@ func Tag(tag string) TagArg {
 	return TagArg{Tag: tag}
 }
 
-func BeanTag[T any]() TagArg {
-	return Tag(util.TypeName(reflect.TypeFor[T]()) + ":")
-}
-
 func (arg TagArg) Value() reflect.Value {
 	panic(util.UnimplementedMethod)
 }

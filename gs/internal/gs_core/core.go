@@ -52,14 +52,12 @@ var beanDefinitionType = reflect.TypeOf((*gs.BeanDefinition)(nil))
 type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
 
 type BeanRuntime interface {
-	ID() string
 	Name() string
-	TypeName() string
 	Type() reflect.Type
 	Value() reflect.Value
 	Interface() interface{}
 	Callable() gs.Callable
-	Match(typeName string, beanName string) bool
+	Match(beanName string) bool
 	Status() gs_bean.BeanStatus
 	String() string
 }
@@ -73,7 +71,7 @@ type BeanRuntime interface {
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
 	resolving    *resolvingStage
-	beansByName  map[string][]BeanRuntime
+	beansByName  map[string][]BeanRuntime // 用于查找未导出接口
 	beansByType  map[reflect.Type][]BeanRuntime
 	p            *gs_dync.Properties
 	ctx          context.Context
@@ -429,7 +427,7 @@ func (c *resolvingStage) Refresh() (beansById map[string]*gs_bean.BeanDefinition
 		if b.Status() != gs_bean.StatusResolved {
 			return nil, fmt.Errorf("unexpected status %d", b.Status())
 		}
-		beanID := b.ID()
+		beanID := b.Name()
 		if d, ok := beansById[beanID]; ok {
 			return nil, fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
 		}
@@ -504,7 +502,7 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 			} else {
 				file, line, _ := util.FileLine(m.Func.Interface())
 				f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{
-					gs_arg.Tag(bd.ID()),
+					gs_arg.Tag(bd.Name()),
 				})
 				if err != nil {
 					return nil, err
@@ -518,7 +516,7 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 				b := gs_bean.NewBean(v.Type(), v, f, name)
 				b.SetFileLine(file, line)
 				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(
-					gs.BeanSelector{Type: bd.Type(), Tag: bd.ID()},
+					gs.BeanSelector{Type: bd.Type(), Tag: bd.Name()},
 				))
 				newBeans = append(newBeans, b)
 			}
@@ -581,7 +579,7 @@ func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 			if err != nil {
 				return nil, err
 			}
-			ok := b.Match(tag.typeName, tag.beanName)
+			ok := b.Match(tag.beanName)
 			if !ok {
 				continue
 			}

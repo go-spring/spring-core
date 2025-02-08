@@ -18,29 +18,10 @@ package util
 
 import (
 	"reflect"
-	"strings"
 )
 
 // errorType the reflection type of error.
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
-
-// TypeName returns a fully qualified name consisting of package path and type name.
-func TypeName(t reflect.Type) string {
-
-	for {
-		if k := t.Kind(); k == reflect.Ptr || k == reflect.Slice {
-			t = t.Elem()
-		} else {
-			break
-		}
-	}
-
-	if pkgPath := t.PkgPath(); pkgPath != "" {
-		pkgPath = strings.TrimSuffix(pkgPath, "_test")
-		return pkgPath + "/" + t.String()
-	}
-	return t.String() // the path of built-in type is empty
-}
 
 // IsFuncType returns whether `t` is func type.
 func IsFuncType(t reflect.Type) bool {

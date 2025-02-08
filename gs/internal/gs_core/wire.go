@@ -125,10 +125,10 @@ func (s *WiringStack) path() (path string) {
 
 // saveDestroyer tracks a bean with a destroy function, ensuring no duplicates.
 func (s *WiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
-	d, ok := s.destroyerMap[b.ID()]
+	d, ok := s.destroyerMap[b.Name()] // todo
 	if !ok {
 		d = &destroyer{current: b}
-		s.destroyerMap[b.ID()] = d
+		s.destroyerMap[b.Name()] = d
 	}
 	return d
 }
@@ -219,7 +219,6 @@ func (a *ArgContext) Wire(v reflect.Value, tag string) error {
 
 // wireTag represents a parsed injection tag in the format TypeName:BeanName?.
 type wireTag struct {
-	typeName string // Full type name.
 	beanName string // Bean name for injection.
 	nullable bool   // Whether the injection can be nil.
 }
@@ -227,10 +226,6 @@ type wireTag struct {
 // String converts a wireTag back to its string representation.
 func (tag wireTag) String() string {
 	b := bytes.NewBuffer(nil)
-	if tag.typeName != "" {
-		b.WriteString(tag.typeName)
-		b.WriteString(":")
-	}
 	b.WriteString(tag.beanName)
 	if tag.nullable {
 		b.WriteString("?")
@@ -271,14 +266,7 @@ func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, e
 		str = str[:n]
 	}
 
-	i := strings.Index(str, ":")
-	if i < 0 {
-		tag.beanName = str
-		return
-	}
-
-	tag.typeName = str[:i]
-	tag.beanName = str[i+1:]
+	tag.beanName = str
 	return
 }
 
@@ -301,7 +289,7 @@ func (c *Container) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 		}
 		var ret []BeanRuntime
 		for _, b := range beans {
-			if b.Match(tag.typeName, tag.beanName) {
+			if b.Match(tag.beanName) {
 				ret = append(ret, b)
 			}
 		}
@@ -325,7 +313,7 @@ func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (Be
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		if !b.Match(tag.typeName, tag.beanName) {
+		if !b.Match(tag.beanName) {
 			continue
 		}
 		foundBeans = append(foundBeans, b)
@@ -340,7 +328,7 @@ func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (Be
 			if !b.Type().AssignableTo(t) {
 				continue
 			}
-			if !b.Match(tag.typeName, tag.beanName) {
+			if !b.Match(tag.beanName) {
 				continue
 			}
 
@@ -445,7 +433,7 @@ func (c *Container) getBeans(t reflect.Type, tags []wireTag, nullable bool, stac
 
 			var founds []int
 			for i, b := range beans {
-				if b.Match(item.typeName, item.beanName) {
+				if b.Match(item.beanName) {
 					founds = append(founds, i)
 				}
 			}
@@ -526,7 +514,7 @@ func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) erro
 
 	// Check if the bean is deleted.
 	if b.Status() == gs_bean.StatusDeleted {
-		return fmt.Errorf("bean:%q has been deleted", b.ID())
+		return fmt.Errorf("bean:%q has been deleted", b.String())
 	}
 
 	// If the container is refreshed and the bean is already wired, do nothing.

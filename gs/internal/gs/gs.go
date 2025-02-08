@@ -48,9 +48,7 @@ func (s BeanSelector) String() string {
 
 // CondBean represents a bean that has an ID, Name, TypeName, and Type.
 type CondBean interface {
-	ID() string
 	Name() string
-	TypeName() string
 	Type() reflect.Type
 }
 
@@ -120,8 +118,8 @@ type ConfigurationParam struct {
 
 // BeanRegistration provides methods to configure and register bean metadata.
 type BeanRegistration interface {
-	// ID returns the unique identifier of the bean.
-	ID() string
+	// AsArg returns the bean as an argument.
+	AsArg() Arg
 	// Type returns the [reflect.Type] of the bean.
 	Type() reflect.Type
 	// SetName sets the name of the bean.
@@ -152,14 +150,14 @@ func (d *beanBuilder[T]) BeanRegistration() BeanRegistration {
 	return d.b
 }
 
-// ID returns the unique identifier of the bean.
-func (d *beanBuilder[T]) ID() string {
-	return d.b.ID()
-}
-
 // Type returns the [reflect.Type] of the bean.
 func (d *beanBuilder[T]) Type() reflect.Type {
 	return d.b.Type()
+}
+
+// AsArg returns the bean as an argument.
+func (d *beanBuilder[T]) AsArg() Arg {
+	return d.b.AsArg()
 }
 
 // Name sets the name of the bean.

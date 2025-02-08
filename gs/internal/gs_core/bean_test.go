@@ -26,8 +26,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
-	pkg1 "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/bar"
-	pkg2 "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
 )
@@ -106,35 +104,6 @@ func TestIsFuncBeanType(t *testing.T) {
 	}
 }
 
-func TestBeanDefinition_Match(t *testing.T) {
-
-	data := []struct {
-		bd       *gs.BeanDefinition
-		typeName string
-		beanName string
-		expect   bool
-	}{
-		{newBean(new(pkg2.SamePkg)), "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo/pkg.SamePkg", "SamePkg", true},
-		{newBean(new(pkg2.SamePkg)), "", "SamePkg", true},
-		{newBean(new(pkg2.SamePkg)), "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo/pkg.SamePkg", "", true},
-		{newBean(new(pkg2.SamePkg)).Name("pkg2"), "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo/pkg.SamePkg", "pkg2", true},
-		{newBean(new(pkg2.SamePkg)).Name("pkg2"), "", "pkg2", true},
-		{newBean(new(pkg2.SamePkg)).Name("pkg2"), "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo/pkg.SamePkg", "pkg2", true},
-		{newBean(new(pkg1.SamePkg)), "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/bar/pkg.SamePkg", "SamePkg", true},
-		{newBean(new(pkg1.SamePkg)), "", "SamePkg", true},
-		{newBean(new(pkg1.SamePkg)), "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/bar/pkg.SamePkg", "", true},
-		{newBean(new(pkg1.SamePkg)).Name("pkg1"), "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/bar/pkg.SamePkg", "pkg1", true},
-		{newBean(new(pkg1.SamePkg)).Name("pkg1"), "", "pkg1", true},
-		{newBean(new(pkg1.SamePkg)).Name("pkg1"), "github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/bar/pkg.SamePkg", "pkg1", true},
-	}
-
-	for i, s := range data {
-		if ok := s.bd.BeanRegistration().(*gs_bean.BeanDefinition).Match(s.typeName, s.beanName); ok != s.expect {
-			t.Errorf("%d expect %v but %v", i, s.expect, ok)
-		}
-	}
-}
-
 func TestObjectBean(t *testing.T) {
 
 	// t.Run("bean must be ref type", func(t *testing.T) {
@@ -160,34 +129,14 @@ func TestObjectBean(t *testing.T) {
 	})
 
 	t.Run("check name && typename", func(t *testing.T) {
-
 		data := map[*gs.BeanDefinition]struct {
-			name     string
-			typeName string
+			name string
 		}{
-			newBean(io.Writer(os.Stdout)): {
-				"File", "os/os.File",
-			},
-
-			newBean(newHistoryTeacher("")): {
-				"historyTeacher",
-				"github.com/go-spring/spring-core/gs/internal/gs_core/gs_core_test.historyTeacher",
-			},
-
-			newBean(new(pkg2.SamePkg)): {
-				"SamePkg",
-				"github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo/pkg.SamePkg",
-			},
-
-			newBean(new(pkg2.SamePkg)).Name("pkg2"): {
-				"pkg2",
-				"github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo/pkg.SamePkg",
-			},
+			newBean(io.Writer(os.Stdout)):  {"File"},
+			newBean(newHistoryTeacher("")): {"historyTeacher"},
 		}
-
 		for bd, v := range data {
 			assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).Name(), v.name)
-			assert.Equal(t, bd.BeanRegistration().(*gs_bean.BeanDefinition).TypeName(), v.typeName)
 		}
 	})
 }

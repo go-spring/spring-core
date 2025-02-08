@@ -51,11 +51,6 @@ func TagArg(tag string) gs_arg.TagArg {
 	return gs_arg.Tag(tag)
 }
 
-// TypeArg returns a TagArg with the specified bean type.
-func TypeArg[T any]() gs_arg.TagArg {
-	return gs_arg.BeanTag[T]()
-}
-
 // ValueArg returns a ValueArg with the specified value.
 func ValueArg(v interface{}) gs_arg.ValueArg {
 	return gs_arg.Value(v)

@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -157,25 +158,19 @@ func (d *BeanMetadata) Class() string {
 
 // BeanRuntime holds runtime information about the bean.
 type BeanRuntime struct {
-	v        reflect.Value // The value of the bean.
-	t        reflect.Type  // The type of the bean.
-	name     string        // The name of the bean.
-	typeName string        // The type name of the bean.
+	v    reflect.Value // The value of the bean.
+	t    reflect.Type  // The type of the bean.
+	name string        // The name of the bean.
 }
 
-// ID returns a unique identifier for the bean.
-func (d *BeanRuntime) ID() string {
-	return d.typeName + ":" + d.name
+// AsArg returns the bean as an argument.
+func (d *BeanRuntime) AsArg() gs.Arg {
+	return gs_arg.Tag(d.name)
 }
 
 // Name returns the name of the bean.
 func (d *BeanRuntime) Name() string {
 	return d.name
-}
-
-// TypeName returns the type name of the bean.
-func (d *BeanRuntime) TypeName() string {
-	return d.typeName
 }
 
 // Type returns the type of the bean.
@@ -204,18 +199,12 @@ func (d *BeanRuntime) Callable() gs.Callable {
 }
 
 // Match checks if the bean matches the given typeName and beanName.
-func (d *BeanRuntime) Match(typeName string, beanName string) bool {
-	typeIsSame := false
-	if typeName == "" || d.typeName == typeName {
-		typeIsSame = true
-	}
-
+func (d *BeanRuntime) Match(beanName string) bool {
 	nameIsSame := false
 	if beanName == "" || d.name == beanName {
 		nameIsSame = true
 	}
-
-	return typeIsSame && nameIsSame
+	return nameIsSame
 }
 
 // String returns a string representation of the bean.
@@ -356,10 +345,9 @@ func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string) *BeanD
 			status: StatusDefault,
 		},
 		BeanRuntime: &BeanRuntime{
-			t:        t,
-			v:        v,
-			name:     name,
-			typeName: util.TypeName(t),
+			t:    t,
+			v:    v,
+			name: name,
 		},
 	}
 }
