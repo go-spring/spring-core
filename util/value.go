@@ -38,14 +38,6 @@ func PatchValue(v reflect.Value) reflect.Value {
 	return v
 }
 
-// Indirect returns its element type when t is a pointer type.
-func Indirect(t reflect.Type) reflect.Type {
-	if t.Kind() != reflect.Ptr {
-		return t
-	}
-	return t.Elem()
-}
-
 // FileLine returns a function's name, file name and line number.
 func FileLine(fn interface{}) (file string, line int, fnName string) {
 

@@ -36,14 +36,6 @@ func TestPatchValue(t *testing.T) {
 	v.SetInt(4)
 }
 
-func TestIndirect(t *testing.T) {
-	var r struct{ v int }
-	typ := reflect.TypeOf(r)
-	assert.Equal(t, util.Indirect(typ), reflect.TypeOf(r))
-	typ = reflect.TypeOf(&r)
-	assert.Equal(t, util.Indirect(typ), reflect.TypeOf(r))
-}
-
 func fnNoArgs() {}
 
 func fnWithArgs(i int) {}
