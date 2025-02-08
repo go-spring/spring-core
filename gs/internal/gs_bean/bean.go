@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -161,11 +160,6 @@ type BeanRuntime struct {
 	v    reflect.Value // The value of the bean.
 	t    reflect.Type  // The type of the bean.
 	name string        // The name of the bean.
-}
-
-// AsArg returns the bean as an argument.
-func (d *BeanRuntime) AsArg() gs.Arg {
-	return gs_arg.Tag(d.name)
 }
 
 // Name returns the name of the bean.

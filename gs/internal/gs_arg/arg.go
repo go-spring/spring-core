@@ -28,40 +28,8 @@ import (
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
-type TagArg struct {
-	Tag string
-}
-
-func Tag(tag string) TagArg {
-	return TagArg{Tag: tag}
-}
-
-func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
-	tag := arg.Tag
-
-	// binds property values based on the argument type.
-	if util.IsPropBindingTarget(t) {
-		if tag == "" {
-			tag = "${}"
-		}
-		v := reflect.New(t).Elem()
-		if err := ctx.Bind(v, tag); err != nil {
-			return reflect.Value{}, err
-		}
-		return v, nil
-	}
-
-	// wires dependent beans based on the argument type.
-	if util.IsBeanInjectionTarget(t) {
-		v := reflect.New(t).Elem()
-		if err := ctx.Wire(v, tag); err != nil {
-			return reflect.Value{}, err
-		}
-		return v, nil
-	}
-
-	err := fmt.Errorf("error type %s", t.String())
-	return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", tag)
+func Tag(tag string) gs.TagArg {
+	return gs.TagArg{Tag: tag}
 }
 
 // IndexArg represents an argument that has an index.

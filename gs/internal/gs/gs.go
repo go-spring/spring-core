@@ -17,10 +17,13 @@
 package gs
 
 import (
+	"fmt"
 	"reflect"
 	"unsafe"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/errutil"
 )
 
 // BeanSelector is an identifier for a bean.
@@ -93,6 +96,38 @@ type Arg interface {
 	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
 }
 
+type TagArg struct {
+	Tag string
+}
+
+func (arg TagArg) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
+	tag := arg.Tag
+
+	// binds property values based on the argument type.
+	if util.IsPropBindingTarget(t) {
+		if tag == "" {
+			tag = "${}"
+		}
+		v := reflect.New(t).Elem()
+		if err := ctx.Bind(v, tag); err != nil {
+			return reflect.Value{}, err
+		}
+		return v, nil
+	}
+
+	// wires dependent beans based on the argument type.
+	if util.IsBeanInjectionTarget(t) {
+		v := reflect.New(t).Elem()
+		if err := ctx.Wire(v, tag); err != nil {
+			return reflect.Value{}, err
+		}
+		return v, nil
+	}
+
+	err := fmt.Errorf("error type %s", t.String())
+	return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", tag)
+}
+
 /*********************************** conf ************************************/
 
 type Properties = conf.ReadOnlyProperties
@@ -113,8 +148,8 @@ type ConfigurationParam struct {
 
 // BeanRegistration provides methods to configure and register bean metadata.
 type BeanRegistration interface {
-	// AsArg returns the bean as an argument.
-	AsArg() Arg
+	// Name returns the name of the bean.
+	Name() string
 	// Type returns the [reflect.Type] of the bean.
 	Type() reflect.Type
 	// SetName sets the name of the bean.
@@ -148,11 +183,6 @@ func (d *beanBuilder[T]) BeanRegistration() BeanRegistration {
 // Type returns the [reflect.Type] of the bean.
 func (d *beanBuilder[T]) Type() reflect.Type {
 	return d.b.Type()
-}
-
-// AsArg returns the bean as an argument.
-func (d *beanBuilder[T]) AsArg() Arg {
-	return d.b.AsArg()
 }
 
 // Name sets the name of the bean.
@@ -215,6 +245,10 @@ func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 	}
 }
 
+func (r *RegisteredBean) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
+	return TagArg{Tag: r.b.Name()}.GetArgValue(ctx, t)
+}
+
 // BeanDefinition represents a bean that has not yet been registered in the IoC container.
 type BeanDefinition struct {
 	beanBuilder[BeanDefinition]
@@ -225,6 +259,10 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 	return &BeanDefinition{
 		beanBuilder: beanBuilder[BeanDefinition]{d},
 	}
+}
+
+func (r *BeanDefinition) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
+	return TagArg{Tag: r.b.Name()}.GetArgValue(ctx, t)
 }
 
 /************************************ ioc ************************************/

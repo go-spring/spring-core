@@ -805,10 +805,7 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c := gs_core.New()
 		c.RefreshProperties(prop)
 
-		bd := c.Provide(NewManager)
-		// assert.Matches(t, bd.AsArg(), ".*:NewManager")
-		_ = bd
-
+		c.Provide(NewManager)
 		err := runTest(c, func(p gs.Context) {
 
 			var m Manager
@@ -1352,7 +1349,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		c.Provide((*Server).Consumer, parent.AsArg())
+		c.Provide((*Server).Consumer, parent)
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1378,7 +1375,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server)).Condition(gs_cond.Not(gs_cond.OnMissingProperty("a")))
-		c.Provide((*Server).Consumer, parent.AsArg())
+		c.Provide((*Server).Consumer, parent)
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1400,7 +1397,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		c.Provide((*Server).ConsumerArg, parent.AsArg(), gs_arg.Tag("${i:=9}"))
+		c.Provide((*Server).ConsumerArg, parent, gs_arg.Tag("${i:=9}"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
@@ -1426,7 +1423,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Provide(NewServerInterface)
-		c.Provide(ServerInterface.Consumer, parent.AsArg()).DependsOn(gs.TagBeanSelector("ServerInterface"))
+		c.Provide(ServerInterface.Consumer, parent).DependsOn(gs.TagBeanSelector("ServerInterface"))
 		c.Object(new(Service))
 
 		c.RefreshProperties(prop)
@@ -1480,7 +1477,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 				c := gs_core.New()
 				parent := c.Object(new(Server)).DependsOn(gs.TagBeanSelector("Service"))
-				c.Provide((*Server).Consumer, parent.AsArg()).DependsOn(gs.TagBeanSelector("Server"))
+				c.Provide((*Server).Consumer, parent).DependsOn(gs.TagBeanSelector("Server"))
 				c.Object(new(Service))
 				c.RefreshProperties(prop)
 				err := c.Refresh()
@@ -2361,7 +2358,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Object(new(Server))
-		c.Provide((*Server).Consumer, parent.AsArg()).Condition(gs_cond.OnProperty("consumer.enable"))
+		c.Provide((*Server).Consumer, parent).Condition(gs_cond.OnProperty("consumer.enable"))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p gs.Context) {
