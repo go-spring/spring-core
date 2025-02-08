@@ -120,7 +120,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		}
 	}
 
-	if t.Kind() == reflect.Ptr && !util.IsValueType(t.Elem()) {
+	if t.Kind() == reflect.Ptr && !util.IsPropBindingTarget(t.Elem()) {
 		panic("bean should be *val but not *ref")
 	}
 

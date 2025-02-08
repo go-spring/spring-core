@@ -385,7 +385,7 @@ func TestTypeName(t *testing.T) {
 	}
 }
 
-func TestIsValueType(t *testing.T) {
+func TestIsPropBindingTarget(t *testing.T) {
 
 	data := []struct {
 		i interface{}
@@ -405,8 +405,8 @@ func TestIsValueType(t *testing.T) {
 		{uintptr(0), false},          // Uintptr
 		{float32(1), true},           // Float32
 		{float64(1), true},           // Float64
-		{complex64(1), true},         // Complex64
-		{complex128(1), true},        // Complex128
+		{complex64(1), false},        // Complex64
+		{complex128(1), false},       // Complex128
 		{[1]int{0}, true},            // Array
 		{make(chan struct{}), false}, // Chan
 		{func() {}, false},           // Func
@@ -430,7 +430,7 @@ func TestIsValueType(t *testing.T) {
 		default:
 			typ = reflect.TypeOf(i)
 		}
-		if r := util.IsValueType(typ); d.v != r {
+		if r := util.IsPropBindingTarget(typ); d.v != r {
 			t.Errorf("%v expect %v but %v", typ, d.v, r)
 		}
 	}

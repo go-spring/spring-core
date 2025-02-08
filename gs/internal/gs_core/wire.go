@@ -664,7 +664,7 @@ func (c *Container) getBeanValue(b BeanRuntime, stack *WiringStack) (reflect.Val
 	// If the return value is of bean type, handle it accordingly.
 	if val := out[0]; util.IsBeanType(val.Type()) {
 		// If it's a non-pointer value type, convert it into a pointer and set it.
-		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsValueType(val.Elem().Type()) {
+		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsPropBindingTarget(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())
 			v.Elem().Set(val.Elem())
 			b.Value().Set(v)

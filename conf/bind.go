@@ -125,7 +125,7 @@ type Filter interface {
 // BindValue binds properties to a value.
 func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
-	if !util.IsValueType(t) {
+	if !util.IsPropBindingTarget(t) {
 		err := errors.New("target should be value type")
 		return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 	}
@@ -400,7 +400,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 			continue
 		}
 
-		if util.IsValueType(ft.Type) {
+		if util.IsPropBindingTarget(ft.Type) {
 			if subParam.Key == "" {
 				subParam.Key = ft.Name
 			} else {

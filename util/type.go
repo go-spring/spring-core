@@ -95,8 +95,6 @@ func IsPrimitiveValueType(t reflect.Type) bool {
 		return true
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return true
-	case reflect.Complex64, reflect.Complex128:
-		return true
 	case reflect.Float32, reflect.Float64:
 		return true
 	case reflect.String:
@@ -108,10 +106,10 @@ func IsPrimitiveValueType(t reflect.Type) bool {
 	}
 }
 
-// IsValueType returns whether the input type is the primitive value type and their
+// IsPropBindingTarget returns whether the input type is the primitive value type and their
 // composite type including array, slice, map and struct, such as []int, [3]string,
 // []string, map[int]int, map[string]string, etc.
-func IsValueType(t reflect.Type) bool {
+func IsPropBindingTarget(t reflect.Type) bool {
 	switch t.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		t = t.Elem()

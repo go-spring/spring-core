@@ -247,7 +247,7 @@ func (r *ArgList) getArg(ctx gs.ArgContext, arg gs.Arg, t reflect.Type, fileLine
 	}
 
 	// binds property values based on the argument type.
-	if util.IsValueType(t) {
+	if util.IsPropBindingTarget(t) {
 		if tag == "" {
 			tag = "${}"
 		}
