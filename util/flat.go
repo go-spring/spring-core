@@ -23,7 +23,9 @@ import (
 	"github.com/spf13/cast"
 )
 
-// FlattenMap can expand the nested array, slice and map.
+// FlattenMap flattens a nested map, array, or slice into a single-level map
+// with string keys and string values. It recursively processes each element
+// of the input map and adds its flattened representation to the result map.
 func FlattenMap(m map[string]interface{}) map[string]string {
 	result := make(map[string]string)
 	for key, val := range m {
@@ -32,8 +34,12 @@ func FlattenMap(m map[string]interface{}) map[string]string {
 	return result
 }
 
-// FlattenValue can expand the nested array, slice and map.
+// FlattenValue flattens a single value (which can be a map, array, slice,
+// or other types) into the result map.
 func FlattenValue(key string, val interface{}, result map[string]string) {
+	if val == nil {
+		return
+	}
 	switch v := reflect.ValueOf(val); v.Kind() {
 	case reflect.Map:
 		if v.Len() == 0 {
@@ -53,6 +59,12 @@ func FlattenValue(key string, val interface{}, result map[string]string) {
 		for i := 0; i < v.Len(); i++ {
 			subKey := fmt.Sprintf("%s[%d]", key, i)
 			subValue := v.Index(i).Interface()
+			// If an element is nil, treat it as an empty value and assign an empty string.
+			// Note: We do not remove the nil element to avoid changing the array's size.
+			if subValue == nil {
+				result[subKey] = ""
+				continue
+			}
 			FlattenValue(subKey, subValue, result)
 		}
 	default:
