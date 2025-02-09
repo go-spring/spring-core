@@ -389,7 +389,7 @@ func TestProperties_Set(t *testing.T) {
 		p := conf.New()
 		err := p.Set("m", nil)
 		assert.Nil(t, err)
-		assert.True(t, p.Has("m"))
+		assert.False(t, p.Has("m"))
 		assert.Equal(t, p.Get("m"), "")
 
 		err = p.Set("m", map[string]string{"a": "b"})
@@ -418,7 +418,7 @@ func TestProperties_Set(t *testing.T) {
 		p := conf.New()
 		err := p.Set("a", nil)
 		assert.Nil(t, err)
-		assert.True(t, p.Has("a"))
+		assert.False(t, p.Has("a"))
 		assert.Equal(t, p.Get("a"), "")
 		err = p.Set("a", []string{"b"})
 		assert.Nil(t, err)

@@ -34,8 +34,9 @@ func TestFlatten(t *testing.T) {
 				"a": "123",
 				"b": "456",
 			},
-			([]interface{})(nil),
-			(map[string]string)(nil),
+			nil,
+			([]interface{})(nil),     // it doesn't equal to nil
+			(map[string]string)(nil), // it doesn't equal to nil
 			[]interface{}{},
 			map[string]string{},
 		},
@@ -46,25 +47,31 @@ func TestFlatten(t *testing.T) {
 				"abc",
 				"def",
 			},
-			"nil_arr":   nil,
-			"nil_map":   nil,
+			"nil":       nil,
+			"nil_arr":   []interface{}(nil),     // it doesn't equal to nil
+			"nil_map":   map[string]string(nil), // it doesn't equal to nil
 			"empty_arr": []interface{}{},
 			"empty_map": map[string]string{},
 		},
-		"nil_arr":   nil,
-		"nil_map":   nil,
+		"nil":       nil,
+		"nil_arr":   []interface{}(nil),     // it doesn't equal to nil
+		"nil_map":   map[string]string(nil), // it doesn't equal to nil
 		"empty_arr": []interface{}{},
 		"empty_map": map[string]string{},
 	})
 	expect := map[string]string{
 		"int":           "123",
 		"str":           "abc",
+		"nil_arr":       "",
+		"nil_map":       "",
 		"empty_arr":     "",
 		"empty_map":     "",
 		"map.a":         "123",
 		"map.b":         "456",
 		"map.arr[0]":    "abc",
 		"map.arr[1]":    "def",
+		"map.nil_arr":   "",
+		"map.nil_map":   "",
 		"map.empty_arr": "",
 		"map.empty_map": "",
 		"arr[0]":        "abc",
@@ -75,6 +82,7 @@ func TestFlatten(t *testing.T) {
 		"arr[4]":        "",
 		"arr[5]":        "",
 		"arr[6]":        "",
+		"arr[7]":        "",
 	}
 	assert.Equal(t, m, expect)
 }
