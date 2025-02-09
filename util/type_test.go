@@ -26,7 +26,6 @@ import (
 
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
-	"github.com/go-spring/spring-core/util/testdata"
 )
 
 func TestIsErrorType(t *testing.T) {
@@ -54,9 +53,9 @@ func TestIsConstructor(t *testing.T) {
 	assert.False(t, util.IsConstructor(reflect.TypeOf(func() {})))
 	assert.True(t, util.IsConstructor(reflect.TypeOf(func() string { return "" })))
 	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *string { return nil })))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *testdata.Receiver { return nil })))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() (*testdata.Receiver, error) { return nil, nil })))
-	assert.False(t, util.IsConstructor(reflect.TypeOf(func() (bool, *testdata.Receiver, error) { return false, nil, nil })))
+	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *receiver { return nil })))
+	assert.True(t, util.IsConstructor(reflect.TypeOf(func() (*receiver, error) { return nil, nil })))
+	assert.False(t, util.IsConstructor(reflect.TypeOf(func() (bool, *receiver, error) { return false, nil, nil })))
 }
 
 func TestIsPropBindingTarget(t *testing.T) {

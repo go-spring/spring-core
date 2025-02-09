@@ -54,7 +54,7 @@ func IsConstructor(t reflect.Type) bool {
 	}
 	switch t.NumOut() {
 	case 1:
-		return true
+		return !IsErrorType(t.Out(0))
 	case 2:
 		return IsErrorType(t.Out(1))
 	default:

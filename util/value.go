@@ -29,7 +29,9 @@ const (
 	flagRO       = flagStickyRO | flagEmbedRO
 )
 
-// PatchValue makes an unexported field can be assignable.
+// PatchValue modifies an unexported field to make it assignable by modifying the internal flag.
+// It takes a [reflect.Value] and returns the patched value that can be written to.
+// This is typically used to manipulate unexported fields in struct types.
 func PatchValue(v reflect.Value) reflect.Value {
 	rv := reflect.ValueOf(&v)
 	flag := rv.Elem().FieldByName("flag")
@@ -38,7 +40,9 @@ func PatchValue(v reflect.Value) reflect.Value {
 	return v
 }
 
-// FileLine returns a function's name, file name and line number.
+// FileLine returns the file, line number, and function name for a given function.
+// It uses reflection and runtime information to extract these details.
+// 'fn' is expected to be a function or method value.
 func FileLine(fn interface{}) (file string, line int, fnName string) {
 
 	fnPtr := reflect.ValueOf(fn).Pointer()
@@ -47,6 +51,10 @@ func FileLine(fn interface{}) (file string, line int, fnName string) {
 
 	s := fnInfo.Name()
 	i := strings.LastIndex(s, "/")
+	if i > 0 {
+		s = s[i+1:]
+	}
+	i = strings.IndexByte(s, '.')
 	if i > 0 {
 		s = s[i+1:]
 	}
