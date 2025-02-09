@@ -29,8 +29,37 @@ import (
 	"github.com/go-spring/spring-core/util/testdata"
 )
 
-func TestIsPropBindingTarget(t *testing.T) {
+func TestIsErrorType(t *testing.T) {
+	err := fmt.Errorf("error")
+	assert.True(t, util.IsErrorType(reflect.TypeOf(err)))
+	err = os.ErrClosed
+	assert.True(t, util.IsErrorType(reflect.TypeOf(err)))
+	assert.False(t, util.IsErrorType(reflect.TypeFor[int]()))
+}
 
+func TestReturnNothing(t *testing.T) {
+	assert.True(t, util.ReturnNothing(reflect.TypeOf(func() {})))
+	assert.True(t, util.ReturnNothing(reflect.TypeOf(func(key string) {})))
+	assert.False(t, util.ReturnNothing(reflect.TypeOf(func() string { return "" })))
+}
+
+func TestReturnOnlyError(t *testing.T) {
+	assert.True(t, util.ReturnOnlyError(reflect.TypeOf(func() error { return nil })))
+	assert.True(t, util.ReturnOnlyError(reflect.TypeOf(func(string) error { return nil })))
+	assert.False(t, util.ReturnOnlyError(reflect.TypeOf(func() (string, error) { return "", nil })))
+}
+
+func TestIsConstructor(t *testing.T) {
+	assert.False(t, util.IsConstructor(reflect.TypeFor[int]()))
+	assert.False(t, util.IsConstructor(reflect.TypeOf(func() {})))
+	assert.True(t, util.IsConstructor(reflect.TypeOf(func() string { return "" })))
+	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *string { return nil })))
+	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *testdata.Receiver { return nil })))
+	assert.True(t, util.IsConstructor(reflect.TypeOf(func() (*testdata.Receiver, error) { return nil, nil })))
+	assert.False(t, util.IsConstructor(reflect.TypeOf(func() (bool, *testdata.Receiver, error) { return false, nil, nil })))
+}
+
+func TestIsPropBindingTarget(t *testing.T) {
 	data := []struct {
 		i interface{}
 		v bool
@@ -65,7 +94,6 @@ func TestIsPropBindingTarget(t *testing.T) {
 		{struct{}{}, true},                            // Struct
 		{unsafe.Pointer(new(int)), false},             // UnsafePointer
 	}
-
 	for _, d := range data {
 		var typ reflect.Type
 		switch i := d.i.(type) {
@@ -81,7 +109,6 @@ func TestIsPropBindingTarget(t *testing.T) {
 }
 
 func TestIsBeanType(t *testing.T) {
-
 	data := []struct {
 		i interface{}
 		v bool
@@ -116,7 +143,6 @@ func TestIsBeanType(t *testing.T) {
 		{struct{}{}, false},                          // Struct
 		{unsafe.Pointer(new(int)), false},            // UnsafePointer
 	}
-
 	for _, d := range data {
 		var typ reflect.Type
 		switch i := d.i.(type) {
@@ -129,42 +155,6 @@ func TestIsBeanType(t *testing.T) {
 			t.Errorf("%v expect %v but %v", typ, d.v, r)
 		}
 	}
-}
-
-func TestIsErrorType(t *testing.T) {
-	err := fmt.Errorf("error")
-	assert.True(t, util.IsErrorType(reflect.TypeOf(err)))
-	err = os.ErrClosed
-	assert.True(t, util.IsErrorType(reflect.TypeOf(err)))
-}
-
-func TestReturnNothing(t *testing.T) {
-	assert.True(t, util.ReturnNothing(reflect.TypeOf(func() {})))
-	assert.True(t, util.ReturnNothing(reflect.TypeOf(func(key string) {})))
-	assert.False(t, util.ReturnNothing(reflect.TypeOf(func() string { return "" })))
-}
-
-func TestReturnOnlyError(t *testing.T) {
-	assert.True(t, util.ReturnOnlyError(reflect.TypeOf(func() error { return nil })))
-	assert.True(t, util.ReturnOnlyError(reflect.TypeOf(func(string) error { return nil })))
-	assert.False(t, util.ReturnOnlyError(reflect.TypeOf(func() (string, error) { return "", nil })))
-}
-
-func TestIsStructPtr(t *testing.T) {
-	assert.False(t, util.IsStructPtr(reflect.TypeOf(3)))
-	assert.False(t, util.IsStructPtr(reflect.TypeOf(func() {})))
-	assert.False(t, util.IsStructPtr(reflect.TypeOf(struct{}{})))
-	assert.False(t, util.IsStructPtr(reflect.TypeOf(struct{ a string }{})))
-	assert.True(t, util.IsStructPtr(reflect.TypeOf(&struct{ a string }{})))
-}
-
-func TestIsConstructor(t *testing.T) {
-	assert.False(t, util.IsConstructor(reflect.TypeOf(func() {})))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() string { return "" })))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *string { return nil })))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *testdata.Receiver { return nil })))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() (*testdata.Receiver, error) { return nil, nil })))
-	assert.False(t, util.IsConstructor(reflect.TypeOf(func() (bool, *testdata.Receiver, error) { return false, nil, nil })))
 }
 
 func TestIsBeanInjectionTarget(t *testing.T) {
