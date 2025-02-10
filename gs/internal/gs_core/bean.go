@@ -133,5 +133,10 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 	d := gs_bean.NewBean(t, v, f, name)
 	d.SetFileLine(file, line)
-	return gs.NewBeanDefinition(d).Condition(cond)
+
+	bd := gs.NewBeanDefinition(d)
+	if cond != nil {
+		bd.Condition(cond)
+	}
+	return bd
 }

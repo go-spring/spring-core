@@ -271,10 +271,8 @@ func (d *BeanDefinition) SetDestroy(fn interface{}) {
 }
 
 // SetCondition adds a condition to the list of conditions for the bean.
-func (d *BeanDefinition) SetCondition(cond gs.Condition) {
-	if cond != nil {
-		d.conditions = append(d.conditions, cond)
-	}
+func (d *BeanDefinition) SetCondition(cond ...gs.Condition) {
+	d.conditions = append(d.conditions, cond...)
 }
 
 // SetDependsOn sets the list of dependencies for the bean.
