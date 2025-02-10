@@ -23,5 +23,8 @@ import (
 )
 
 func TestLog(t *testing.T) {
+	syslog.Debugf("hello %s", "world")
 	syslog.Infof("hello %s", "world")
+	syslog.Warnf("hello %s", "world")
+	syslog.Errorf("hello %s", "world")
 }

@@ -21,26 +21,51 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-spring/spring-core/util/assert"
 	"github.com/go-spring/spring-core/util/goutil"
 )
 
 func TestGo(t *testing.T) {
 
+	var s string
 	goutil.Go(t.Context(), func(ctx context.Context) {
-		fmt.Println("hello")
+		panic("something is wrong")
 	}).Wait()
+	assert.Equal(t, s, "")
+
+	goutil.Go(t.Context(), func(ctx context.Context) {
+		s = "hello world!"
+	}).Wait()
+	assert.Equal(t, s, "hello world!")
+}
+
+func TestGoFunc(t *testing.T) {
+
+	var s string
+	goutil.GoFunc(func() {
+		panic("something is wrong")
+	}).Wait()
+	assert.Equal(t, s, "")
 
 	goutil.GoFunc(func() {
-		fmt.Println("hello")
+		s = "hello world!"
 	}).Wait()
+	assert.Equal(t, s, "hello world!")
 }
 
 func TestGoValue(t *testing.T) {
 
 	s, err := goutil.GoValue(t.Context(), func(ctx context.Context) (string, error) {
-		return "hello", nil
+		panic("something is wrong")
 	}).Wait()
-	fmt.Println(s, err)
+	assert.Equal(t, s, "")
+	assert.Equal(t, err, fmt.Errorf("panic occurred"))
+
+	s, err = goutil.GoValue(t.Context(), func(ctx context.Context) (string, error) {
+		return "hello world!", nil
+	}).Wait()
+	assert.Equal(t, s, "hello world!")
+	assert.Nil(t, err)
 
 	var arr []*goutil.ValueStatus[int]
 	for i := 0; i < 3; i++ {
@@ -48,7 +73,11 @@ func TestGoValue(t *testing.T) {
 			return i, nil
 		}))
 	}
-	for _, g := range arr {
-		fmt.Println(g.Wait())
+
+	var v int
+	for i, g := range arr {
+		v, err = g.Wait()
+		assert.Equal(t, v, i)
+		assert.Nil(t, err)
 	}
 }

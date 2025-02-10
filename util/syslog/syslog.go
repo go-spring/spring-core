@@ -56,6 +56,7 @@ func logMsg(level slog.Level, format string, a ...any) {
 		return
 	}
 
+	// skip [runtime.Callers, syslog.logMsg, syslog.*f]
 	var pcs [1]uintptr
 	runtime.Callers(3, pcs[:])
 
