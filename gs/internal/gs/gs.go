@@ -17,13 +17,10 @@
 package gs
 
 import (
-	"fmt"
 	"reflect"
 	"unsafe"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/util"
-	"github.com/go-spring/spring-core/util/errutil"
 )
 
 // BeanSelector is an identifier for a bean.
@@ -93,38 +90,6 @@ type Arg interface {
 	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
 }
 
-type TagArg struct {
-	Tag string
-}
-
-func (arg TagArg) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
-	tag := arg.Tag
-
-	// binds property values based on the argument type.
-	if util.IsPropBindingTarget(t) {
-		if tag == "" {
-			tag = "${}"
-		}
-		v := reflect.New(t).Elem()
-		if err := ctx.Bind(v, tag); err != nil {
-			return reflect.Value{}, err
-		}
-		return v, nil
-	}
-
-	// wires dependent beans based on the argument type.
-	if util.IsBeanInjectionTarget(t) {
-		v := reflect.New(t).Elem()
-		if err := ctx.Wire(v, tag); err != nil {
-			return reflect.Value{}, err
-		}
-		return v, nil
-	}
-
-	err := fmt.Errorf("error type %s", t.String())
-	return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", tag)
-}
-
 /*********************************** conf ************************************/
 
 type Properties = conf.ReadOnlyProperties
@@ -149,6 +114,8 @@ type BeanRegistration interface {
 	Name() string
 	// Type returns the [reflect.Type] of the bean.
 	Type() reflect.Type
+	// Value returns the [reflect.Value] of the bean.
+	Value() reflect.Value
 	// SetName sets the name of the bean.
 	SetName(name string)
 	// SetInit sets the initialization function for the bean.
@@ -243,7 +210,7 @@ func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 }
 
 func (r *RegisteredBean) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
-	return TagArg{Tag: r.b.Name()}.GetArgValue(ctx, t)
+	return r.BeanRegistration().Value(), nil
 }
 
 // BeanDefinition represents a bean that has not yet been registered in the IoC container.
@@ -259,7 +226,7 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 }
 
 func (r *BeanDefinition) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
-	return TagArg{Tag: r.b.Name()}.GetArgValue(ctx, t)
+	return r.BeanRegistration().Value(), nil
 }
 
 /************************************ ioc ************************************/

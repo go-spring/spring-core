@@ -47,8 +47,8 @@ func NilArg() gs_arg.ValueArg {
 }
 
 // TagArg returns a TagArg with the specified tag.
-func TagArg(tag string) gs.TagArg {
-	return gs.TagArg{Tag: tag}
+func TagArg(tag string) gs_arg.TagArg {
+	return gs_arg.TagArg{Tag: tag}
 }
 
 // ValueArg returns a ValueArg with the specified value.

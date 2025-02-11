@@ -104,11 +104,11 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 			s := gs.BeanSelector{Type: in0}
 			if len(ctorArgs) > 0 {
 				switch a := ctorArgs[0].(type) {
-				case gs.TagArg:
+				case gs_arg.TagArg:
 					s.Tag = a.Tag
 				case gs_arg.IndexArg:
 					if a.Idx == 0 {
-						x, ok := a.Arg.(gs.TagArg)
+						x, ok := a.Arg.(gs_arg.TagArg)
 						if !ok {
 							panic("IndexArg(0) should be TagArg")
 						}
