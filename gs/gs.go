@@ -180,7 +180,7 @@ var NewBean = gs_core.NewBean
 
 // BeanSelectorForType returns a BeanSelector for the given type.
 func BeanSelectorForType[T any]() BeanSelector {
-	return BeanSelector{Type: reflect.TypeFor[T]()}
+	return gs.BeanSelectorForType[T]()
 }
 
 /************************************ boot ***********************************/

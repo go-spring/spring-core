@@ -104,16 +104,23 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 			s := gs.BeanSelector{Type: in0}
 			if len(ctorArgs) > 0 {
 				switch a := ctorArgs[0].(type) {
-				case gs_arg.TagArg:
-					s.Tag = a.Tag
+				case *gs.RegisteredBean:
+					s = a.BeanSelector()
+				case *gs.BeanDefinition:
+					s = a.BeanSelector()
 				case gs_arg.IndexArg:
 					if a.Idx == 0 {
-						x, ok := a.Arg.(gs_arg.TagArg)
-						if !ok {
-							panic("IndexArg(0) should be TagArg")
+						switch x := a.Arg.(type) {
+						case *gs.RegisteredBean:
+							s = x.BeanSelector()
+						case *gs.BeanDefinition:
+							s = x.BeanSelector()
+						default:
+							panic("the arg of IndexArg[0] should be *RegisteredBean or *BeanDefinition")
 						}
-						s.Tag = x.Tag
 					}
+				default:
+					panic("ctorArgs[0] should be *RegisteredBean or *BeanDefinition or IndexArg[0]")
 				}
 			}
 			cond = gs_cond.OnBean(s)

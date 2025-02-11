@@ -139,14 +139,17 @@ type beanBuilder[T any] struct {
 	b BeanRegistration
 }
 
+// BeanSelector returns the BeanSelector for the bean.
+func (d *beanBuilder[T]) BeanSelector() BeanSelector {
+	return BeanSelector{
+		Tag:  d.BeanRegistration().Name(),
+		Type: d.BeanRegistration().Type(),
+	}
+}
+
 // BeanRegistration returns the underlying BeanRegistration instance.
 func (d *beanBuilder[T]) BeanRegistration() BeanRegistration {
 	return d.b
-}
-
-// Type returns the [reflect.Type] of the bean.
-func (d *beanBuilder[T]) Type() reflect.Type {
-	return d.b.Type()
 }
 
 // Name sets the name of the bean.
