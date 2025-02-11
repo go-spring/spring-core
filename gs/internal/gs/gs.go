@@ -28,15 +28,12 @@ import (
 
 // BeanSelector is an identifier for a bean.
 type BeanSelector struct {
-	Type reflect.Type // Type of the bean
 	Tag  string       // Tag of the bean
+	Type reflect.Type // Type of the bean
 }
 
-func TagBeanSelector(tag string) BeanSelector {
-	return BeanSelector{Tag: tag}
-}
-
-func TypeBeanSelector[T any]() BeanSelector {
+// BeanSelectorForType returns a BeanSelector for the given type.
+func BeanSelectorForType[T any]() BeanSelector {
 	return BeanSelector{Type: reflect.TypeFor[T]()}
 }
 

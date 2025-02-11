@@ -178,13 +178,8 @@ type (
 // NewBean creates a new BeanDefinition.
 var NewBean = gs_core.NewBean
 
-// TagBeanSelector creates a BeanSelector based on a tag.
-func TagBeanSelector(tag string) BeanSelector {
-	return BeanSelector{Tag: tag}
-}
-
-// TypeBeanSelector creates a BeanSelector based on a type.
-func TypeBeanSelector[T any]() BeanSelector {
+// BeanSelectorForType returns a BeanSelector for the given type.
+func BeanSelectorForType[T any]() BeanSelector {
 	return BeanSelector{Type: reflect.TypeFor[T]()}
 }
 
