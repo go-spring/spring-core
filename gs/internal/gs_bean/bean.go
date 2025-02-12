@@ -253,7 +253,7 @@ func validLifeCycleFunc(fnType reflect.Type, beanType reflect.Type) bool {
 }
 
 // SetInit sets the initialization function for the bean.
-func (d *BeanDefinition) SetInit(fn interface{}) {
+func (d *BeanDefinition) SetInit(fn gs.InitFunc) {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
 		d.init = fn
 		return
@@ -262,7 +262,7 @@ func (d *BeanDefinition) SetInit(fn interface{}) {
 }
 
 // SetDestroy sets the destruction function for the bean.
-func (d *BeanDefinition) SetDestroy(fn interface{}) {
+func (d *BeanDefinition) SetDestroy(fn gs.DestroyFunc) {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
 		d.destroy = fn
 		return

@@ -24,6 +24,10 @@ import (
 	"github.com/go-spring/spring-core/conf"
 )
 
+type InitFunc = interface{}
+
+type DestroyFunc = interface{}
+
 // BeanSelector is an identifier for a bean.
 type BeanSelector struct {
 	Type reflect.Type // Type of the bean
@@ -131,9 +135,9 @@ type BeanRegistration interface {
 	// SetName sets the name of the bean.
 	SetName(name string)
 	// SetInit sets the initialization function for the bean.
-	SetInit(fn interface{})
+	SetInit(fn InitFunc)
 	// SetDestroy sets the destruction function for the bean.
-	SetDestroy(fn interface{})
+	SetDestroy(fn DestroyFunc)
 	// SetCondition adds a condition for the bean.
 	SetCondition(conditions ...Condition)
 	// SetDependsOn sets the beans that this bean depends on.
@@ -171,13 +175,13 @@ func (d *beanBuilder[T]) Name(name string) *T {
 }
 
 // Init sets the initialization function for the bean.
-func (d *beanBuilder[T]) Init(fn interface{}) *T {
+func (d *beanBuilder[T]) Init(fn InitFunc) *T {
 	d.b.SetInit(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Destroy sets the destruction function for the bean.
-func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
+func (d *beanBuilder[T]) Destroy(fn DestroyFunc) *T {
 	d.b.SetDestroy(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
@@ -251,25 +255,18 @@ func (r *BeanDefinition) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Va
 type Container interface {
 	// Object registers a bean using the provided object instance.
 	Object(i interface{}) *RegisteredBean
-
 	// Provide registers a bean using the provided constructor function and optional arguments.
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
-
 	// Register registers a bean using the provided bean definition.
 	Register(b *BeanDefinition) *RegisteredBean
-
 	// GroupRegister registers multiple beans by executing the given function to return BeanDefinitions.
 	GroupRegister(fn func(p Properties) ([]*BeanDefinition, error))
-
 	// RefreshProperties updates the properties of the container.
 	RefreshProperties(p Properties) error
-
 	// Refresh initializes and wires all beans in the container.
 	Refresh() error
-
 	// ReleaseUnusedMemory cleans up unused resources and releases memory.
 	ReleaseUnusedMemory()
-
 	// Close shuts down the container and cleans up all resources.
 	Close()
 }
@@ -277,31 +274,22 @@ type Container interface {
 // Context represents the unmodifiable (or runtime) aspects of an IoC container.
 // It provides methods for accessing properties, resolving values, and retrieving beans.
 type Context interface {
-
 	// Keys returns all the keys present in the container's properties.
 	Keys() []string
-
 	// Has checks if the specified key exists in the container's properties.
 	Has(key string) bool
-
 	// SubKeys returns the sub-keys under a specific key in the container's properties.
 	SubKeys(key string) ([]string, error)
-
 	// Prop retrieves the value of the specified key from the container's properties.
 	Prop(key string, def ...string) string
-
 	// Resolve resolves placeholders or references (e.g., ${KEY}) in the given string to actual values.
 	Resolve(s string) (string, error)
-
 	// Bind binds the value of the specified key to the provided struct or variable.
 	Bind(i interface{}, tag ...string) error
-
 	// Get retrieves a bean of the specified type using the provided tag.
 	Get(i interface{}, tag ...string) error
-
 	// Wire creates and returns a bean by wiring it with the provided constructor or object.
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
-
 	// Invoke calls the provided function with the specified arguments and returns the result.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 }
