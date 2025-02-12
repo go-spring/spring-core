@@ -285,7 +285,7 @@ func (c *Container) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 		}
 		var ret []BeanRuntime
 		for _, b := range beans {
-			if b.Match(s.Name) {
+			if s.Name == b.Name() {
 				ret = append(ret, b)
 			}
 		}
@@ -309,10 +309,9 @@ func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (Be
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		if !b.Match(tag.beanName) {
-			continue
+		if tag.beanName == "" || tag.beanName == b.Name() {
+			foundBeans = append(foundBeans, b)
 		}
-		foundBeans = append(foundBeans, b)
 	}
 
 	// When a specific bean name is provided, find it by name.
@@ -324,7 +323,7 @@ func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (Be
 			if !b.Type().AssignableTo(t) {
 				continue
 			}
-			if !b.Match(tag.beanName) {
+			if tag.beanName != "" && tag.beanName != b.Name() {
 				continue
 			}
 
@@ -429,7 +428,7 @@ func (c *Container) getBeans(t reflect.Type, tags []wireTag, nullable bool, stac
 
 			var founds []int
 			for i, b := range beans {
-				if b.Match(item.beanName) {
+				if item.beanName == b.Name() {
 					founds = append(founds, i)
 				}
 			}

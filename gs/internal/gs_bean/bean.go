@@ -192,15 +192,6 @@ func (d *BeanRuntime) Callable() gs.Callable {
 	return nil
 }
 
-// Match checks if the bean matches the given typeName and beanName.
-func (d *BeanRuntime) Match(beanName string) bool {
-	nameIsSame := false
-	if beanName == "" || d.name == beanName {
-		nameIsSame = true
-	}
-	return nameIsSame
-}
-
 // String returns a string representation of the bean.
 func (d *BeanRuntime) String() string {
 	return d.name

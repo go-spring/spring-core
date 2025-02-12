@@ -57,7 +57,6 @@ type BeanRuntime interface {
 	Value() reflect.Value
 	Interface() interface{}
 	Callable() gs.Callable
-	Match(beanName string) bool
 	Status() gs_bean.BeanStatus
 	String() string
 }
@@ -574,11 +573,8 @@ func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 				}
 			}
 		}
-		if s.Name != "" {
-			ok := b.Match(s.Name)
-			if !ok {
-				continue
-			}
+		if s.Name != "" && s.Name != b.Name() {
+			continue
 		}
 		if err := c.resolveBean(b); err != nil {
 			return nil, err
