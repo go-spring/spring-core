@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Package gs provides all the concepts required for go-spring implementation.
 package gs
 
 import (
@@ -24,8 +25,12 @@ import (
 	"github.com/go-spring/spring-core/conf"
 )
 
+// InitFunc defines the prototype for initialization functions,
+// e.g., `func(bean)` or `func(bean) error`.
 type InitFunc = interface{}
 
+// DestroyFunc defines the prototype for destroy functions,
+// e.g., `func(bean)` or `func(bean) error`.
 type DestroyFunc = interface{}
 
 // BeanSelector is an identifier for a bean.
@@ -64,7 +69,7 @@ type Condition interface {
 	Matches(ctx CondContext) (bool, error)
 }
 
-// CondBean represents a bean that has an ID, Name, TypeName, and Type.
+// CondBean represents a bean with an ID, Name, TypeName, and Type.
 type CondBean interface {
 	Name() string
 	Type() reflect.Type
@@ -72,16 +77,15 @@ type CondBean interface {
 
 // CondContext defines methods for the IoC container used by conditions.
 type CondContext interface {
-	// Has checks if the IoC container has a property with the given key.
+	// Has checks whether the IoC container has a property with the given key.
 	Has(key string) bool
-	// Prop returns the value of a property from the IoC container,
-	// or an empty string if it doesn't exist.
+	// Prop retrieves the value of a property from the IoC container.
 	Prop(key string, def ...string) string
-	// Find searches for bean definitions matching the provided BeanSelector.
+	// Find searches for bean definitions that match the provided BeanSelector.
 	Find(s BeanSelector) ([]CondBean, error)
 }
 
-// CondFunc defines a function that determines whether a condition is met.
+// CondFunc is a function type that determines whether a condition is satisfied.
 type CondFunc func(ctx CondContext) (bool, error)
 
 /************************************* arg ***********************************/
@@ -192,7 +196,7 @@ func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// DependsOn sets the beans this bean depends on.
+// DependsOn sets the beans that this bean depends on.
 func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
 	d.b.SetDependsOn(selectors...)
 	return *(**T)(unsafe.Pointer(&d))
@@ -251,7 +255,7 @@ func (r *BeanDefinition) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Va
 /************************************ ioc ************************************/
 
 // Container represents the modifiable aspects of an IoC (Inversion of Control) container.
-// It provides methods for registering, refreshing, and managing beans in the container.
+// It provides methods for registering, refreshing, and managing beans within the container.
 type Container interface {
 	// Object registers a bean using the provided object instance.
 	Object(i interface{}) *RegisteredBean
@@ -259,7 +263,7 @@ type Container interface {
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
 	// Register registers a bean using the provided bean definition.
 	Register(b *BeanDefinition) *RegisteredBean
-	// GroupRegister registers multiple beans by executing the given function to return BeanDefinitions.
+	// GroupRegister registers multiple beans by executing the given function that returns [*BeanDefinition]s.
 	GroupRegister(fn func(p Properties) ([]*BeanDefinition, error))
 	// RefreshProperties updates the properties of the container.
 	RefreshProperties(p Properties) error
