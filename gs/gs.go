@@ -126,18 +126,18 @@ func Not(c Condition) Condition {
 }
 
 // Or creates a Condition that is true if any of the given Conditions are true.
-func Or(cond ...Condition) Condition {
-	return gs_cond.Or(cond...)
+func Or(conditions ...Condition) Condition {
+	return gs_cond.Or(conditions...)
 }
 
 // And creates a Condition that is true if all of the given Conditions are true.
-func And(cond ...Condition) Condition {
-	return gs_cond.And(cond...)
+func And(conditions ...Condition) Condition {
+	return gs_cond.And(conditions...)
 }
 
 // None creates a Condition that is true if none of the given Conditions are true.
-func None(cond ...Condition) Condition {
-	return gs_cond.None(cond...)
+func None(conditions ...Condition) Condition {
+	return gs_cond.None(conditions...)
 }
 
 // OnProfile creates a Condition based on the active profile.

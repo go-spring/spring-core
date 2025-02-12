@@ -704,7 +704,7 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 		c.Object(new(BeanOne))
 		c.Object(new(BeanFour)).DependsOn(
 			gs.BeanSelectorForType[*BeanOne](),
-			gs.BeanSelector{Tag: "BeanZero"},
+			gs.BeanSelector{Name: "BeanZero"},
 		)
 		err := c.Refresh()
 		assert.Nil(t, err)
@@ -1420,7 +1420,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c := gs_core.New()
 		parent := c.Provide(NewServerInterface)
-		c.Provide(ServerInterface.Consumer, parent).DependsOn(gs.BeanSelector{Tag: "ServerInterface"})
+		c.Provide(ServerInterface.Consumer, parent).DependsOn(gs.BeanSelector{Name: "ServerInterface"})
 		c.Object(new(Service))
 
 		c.RefreshProperties(prop)
@@ -1473,8 +1473,8 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 				prop.Set("server.version", "1.0.0")
 
 				c := gs_core.New()
-				parent := c.Object(new(Server)).DependsOn(gs.BeanSelector{Tag: "Service"})
-				c.Provide((*Server).Consumer, parent).DependsOn(gs.BeanSelector{Tag: "Service"})
+				parent := c.Object(new(Server)).DependsOn(gs.BeanSelector{Name: "Service"})
+				c.Provide((*Server).Consumer, parent).DependsOn(gs.BeanSelector{Name: "Service"})
 				c.Object(new(Service))
 				c.RefreshProperties(prop)
 				err := c.Refresh()
@@ -2401,18 +2401,18 @@ func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	c.Object(&BeanZero{5}).Condition(
 		gs_cond.And(
 			c1,
-			gs_cond.OnMissingBean(gs.BeanSelector{Tag: "null"}),
+			gs_cond.OnMissingBean(gs.BeanSelector{Name: "null"}),
 		),
 	)
 	c.Object(new(BeanOne)).Condition(
 		gs_cond.And(
 			c1,
-			gs_cond.OnMissingBean(gs.BeanSelector{Tag: "null"}),
+			gs_cond.OnMissingBean(gs.BeanSelector{Name: "null"}),
 		),
 	)
 
-	c.Object(new(BeanTwo)).Condition(gs_cond.OnBean(gs.BeanSelector{Tag: "BeanOne"}))
-	c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnBean(gs.BeanSelector{Tag: "Null"}))
+	c.Object(new(BeanTwo)).Condition(gs_cond.OnBean(gs.BeanSelector{Name: "BeanOne"}))
+	c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnBean(gs.BeanSelector{Name: "Null"}))
 
 	err := runTest(c, func(p gs.Context) {
 
@@ -2431,8 +2431,8 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
-		c.Object(new(BeanTwo)).Condition(gs_cond.OnMissingBean(gs.BeanSelector{Tag: "BeanOne"}))
-		c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnMissingBean(gs.BeanSelector{Tag: "Null"}))
+		c.Object(new(BeanTwo)).Condition(gs_cond.OnMissingBean(gs.BeanSelector{Name: "BeanOne"}))
+		c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnMissingBean(gs.BeanSelector{Name: "Null"}))
 		err := runTest(c, func(p gs.Context) {
 
 			var two *BeanTwo

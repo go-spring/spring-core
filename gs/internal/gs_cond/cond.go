@@ -289,22 +289,22 @@ func (c *not) String() string {
 // onOr is a condition that combines multiple conditions with an OR operator.
 // It evaluates to true if at least one condition is satisfied.
 type onOr struct {
-	cond []gs.Condition // The list of conditions to evaluate with OR.
+	conditions []gs.Condition // The list of conditions to evaluate with OR.
 }
 
 // Or combines multiple conditions with an OR operator, returning true if at
 // least one condition is satisfied.
-func Or(cond ...gs.Condition) gs.Condition {
-	if n := len(cond); n == 0 {
+func Or(conditions ...gs.Condition) gs.Condition {
+	if n := len(conditions); n == 0 {
 		return nil
 	} else if n == 1 {
-		return cond[0]
+		return conditions[0]
 	}
-	return &onOr{cond: cond}
+	return &onOr{conditions: conditions}
 }
 
 func (g *onOr) Matches(ctx gs.CondContext) (bool, error) {
-	for _, c := range g.cond {
+	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
 			return false, errutil.WrapError(err, "condition matches error: %s", g)
 		} else if ok {
@@ -315,7 +315,7 @@ func (g *onOr) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (g *onOr) String() string {
-	return FormatGroup("Or", g.cond)
+	return FormatGroup("Or", g.conditions)
 }
 
 /********************************* And ***************************************/
@@ -323,22 +323,22 @@ func (g *onOr) String() string {
 // onAnd is a condition that combines multiple conditions with an AND operator.
 // It evaluates to true only if all conditions are satisfied.
 type onAnd struct {
-	cond []gs.Condition // The list of conditions to evaluate with AND.
+	conditions []gs.Condition // The list of conditions to evaluate with AND.
 }
 
 // And combines multiple conditions with an AND operator, returning true if
 // all conditions are satisfied.
-func And(cond ...gs.Condition) gs.Condition {
-	if n := len(cond); n == 0 {
+func And(conditions ...gs.Condition) gs.Condition {
+	if n := len(conditions); n == 0 {
 		return nil
 	} else if n == 1 {
-		return cond[0]
+		return conditions[0]
 	}
-	return &onAnd{cond: cond}
+	return &onAnd{conditions: conditions}
 }
 
 func (g *onAnd) Matches(ctx gs.CondContext) (bool, error) {
-	for _, c := range g.cond {
+	for _, c := range g.conditions {
 		ok, err := c.Matches(ctx)
 		if err != nil {
 			return false, errutil.WrapError(err, "condition matches error: %s", g)
@@ -350,7 +350,7 @@ func (g *onAnd) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (g *onAnd) String() string {
-	return FormatGroup("And", g.cond)
+	return FormatGroup("And", g.conditions)
 }
 
 /********************************** None *************************************/
@@ -358,22 +358,22 @@ func (g *onAnd) String() string {
 // onNone is a condition that combines multiple conditions with a NONE operator.
 // It evaluates to true only if none of the conditions are satisfied.
 type onNone struct {
-	cond []gs.Condition // The list of conditions to evaluate with NONE.
+	conditions []gs.Condition // The list of conditions to evaluate with NONE.
 }
 
 // None combines multiple conditions with a NONE operator, returning true if
 // none of the conditions are satisfied.
-func None(cond ...gs.Condition) gs.Condition {
-	if n := len(cond); n == 0 {
+func None(conditions ...gs.Condition) gs.Condition {
+	if n := len(conditions); n == 0 {
 		return nil
 	} else if n == 1 {
-		return Not(cond[0])
+		return Not(conditions[0])
 	}
-	return &onNone{cond: cond}
+	return &onNone{conditions: conditions}
 }
 
 func (g *onNone) Matches(ctx gs.CondContext) (bool, error) {
-	for _, c := range g.cond {
+	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
 			return false, errutil.WrapError(err, "condition matches error: %s", g)
 		} else if ok {
@@ -384,17 +384,17 @@ func (g *onNone) Matches(ctx gs.CondContext) (bool, error) {
 }
 
 func (g *onNone) String() string {
-	return FormatGroup("None", g.cond)
+	return FormatGroup("None", g.conditions)
 }
 
 /******************************* utilities ***********************************/
 
 // FormatGroup generates a formatted string for a group of conditions (AND, OR, NONE).
-func FormatGroup(op string, cond []gs.Condition) string {
+func FormatGroup(op string, conditions []gs.Condition) string {
 	var sb strings.Builder
 	sb.WriteString(op)
 	sb.WriteString("(")
-	for i, c := range cond {
+	for i, c := range conditions {
 		if i > 0 {
 			sb.WriteString(", ")
 		}

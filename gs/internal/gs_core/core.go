@@ -516,7 +516,7 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 				b := gs_bean.NewBean(v.Type(), v, f, name)
 				b.SetFileLine(file, line)
 				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(
-					gs.BeanSelector{Type: bd.Type(), Tag: bd.Name()},
+					gs.BeanSelector{Type: bd.Type(), Name: bd.Name()},
 				))
 				newBeans = append(newBeans, b)
 			}
@@ -574,12 +574,8 @@ func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 				}
 			}
 		}
-		if s.Tag != "" {
-			tag, err := parseWireTag(c.p, s.Tag, true)
-			if err != nil {
-				return nil, err
-			}
-			ok := b.Match(tag.beanName)
+		if s.Name != "" {
+			ok := b.Match(s.Name)
 			if !ok {
 				continue
 			}

@@ -255,8 +255,8 @@ func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Va
 }
 
 // Condition sets a condition for invoking the option function.
-func (arg *OptionArg) Condition(cond ...gs.Condition) *OptionArg {
-	arg.c = append(arg.c, cond...)
+func (arg *OptionArg) Condition(conditions ...gs.Condition) *OptionArg {
+	arg.c = append(arg.c, conditions...)
 	return arg
 }
 

@@ -276,20 +276,16 @@ func (c *Container) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 	if t := s.Type; t != nil {
 		beans = c.beansByType[t]
 	}
-	if s.Tag != "" {
-		tag, err := parseWireTag(c.p.Data(), s.Tag, true)
-		if err != nil {
-			return nil, err
-		}
-		if tag.beanName == "" {
+	if s.Name != "" {
+		if s.Name == "" {
 			return nil, fmt.Errorf("bean name is empty")
 		}
 		if beans == nil {
-			beans = c.beansByName[tag.beanName]
+			beans = c.beansByName[s.Name]
 		}
 		var ret []BeanRuntime
 		for _, b := range beans {
-			if b.Match(tag.beanName) {
+			if b.Match(s.Name) {
 				ret = append(ret, b)
 			}
 		}

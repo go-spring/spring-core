@@ -54,10 +54,6 @@ func FileLine(fn interface{}) (file string, line int, fnName string) {
 	if i > 0 {
 		s = s[i+1:]
 	}
-	i = strings.IndexByte(s, '.')
-	if i > 0 {
-		s = s[i+1:]
-	}
 
 	// method values are printed as "T.m-fm"
 	s = strings.TrimRight(s, "-fm")

@@ -57,25 +57,25 @@ func TestFileLine(t *testing.T) {
 			fnNoArgs,
 			"spring-core/util/value_test.go",
 			39,
-			"fnNoArgs",
+			"util_test.fnNoArgs",
 		},
 		{
 			fnWithArgs,
 			"spring-core/util/value_test.go",
 			41,
-			"fnWithArgs",
+			"util_test.fnWithArgs",
 		},
 		{
 			(*receiver).ptrFnNoArgs,
 			"spring-core/util/value_test.go",
 			45,
-			"(*receiver).ptrFnNoArgs",
+			"util_test.(*receiver).ptrFnNoArgs",
 		},
 		{
 			(*receiver).ptrFnWithArgs,
 			"spring-core/util/value_test.go",
 			47,
-			"(*receiver).ptrFnWithArgs",
+			"util_test.(*receiver).ptrFnWithArgs",
 		},
 	}
 	for i, c := range testcases {

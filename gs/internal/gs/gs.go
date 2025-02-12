@@ -18,6 +18,7 @@ package gs
 
 import (
 	"reflect"
+	"strings"
 	"unsafe"
 
 	"github.com/go-spring/spring-core/conf"
@@ -25,8 +26,8 @@ import (
 
 // BeanSelector is an identifier for a bean.
 type BeanSelector struct {
-	Tag  string       // Tag of the bean
 	Type reflect.Type // Type of the bean
+	Name string       // Name of the bean
 }
 
 // BeanSelectorForType returns a BeanSelector for the given type.
@@ -35,13 +36,29 @@ func BeanSelectorForType[T any]() BeanSelector {
 }
 
 func (s BeanSelector) String() string {
-	if s.Type == nil {
-		return s.Tag
+	var sb strings.Builder
+	sb.WriteString("{")
+	if s.Type != nil {
+		sb.WriteString("Type:")
+		sb.WriteString(s.Type.String())
 	}
-	return "(" + s.Type.String() + ")" + s.Tag
+	if s.Name != "" {
+		if s.Type != nil {
+			sb.WriteString(",")
+		}
+		sb.WriteString("Name:")
+		sb.WriteString(s.Name)
+	}
+	sb.WriteString("}")
+	return sb.String()
 }
 
 /********************************** condition ********************************/
+
+// Condition is a conditional logic interface used when registering beans.
+type Condition interface {
+	Matches(ctx CondContext) (bool, error)
+}
 
 // CondBean represents a bean that has an ID, Name, TypeName, and Type.
 type CondBean interface {
@@ -63,12 +80,12 @@ type CondContext interface {
 // CondFunc defines a function that determines whether a condition is met.
 type CondFunc func(ctx CondContext) (bool, error)
 
-// Condition is a conditional logic interface used when registering beans.
-type Condition interface {
-	Matches(ctx CondContext) (bool, error)
-}
-
 /************************************* arg ***********************************/
+
+// Arg is used to provide binding values for function parameters.
+type Arg interface {
+	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
+}
 
 // ArgContext defines methods for the IoC container used by Callable types.
 type ArgContext interface {
@@ -83,11 +100,6 @@ type ArgContext interface {
 // Callable represents an entity that can be invoked with an ArgContext.
 type Callable interface {
 	Call(ctx ArgContext) ([]reflect.Value, error)
-}
-
-// Arg is used to provide binding values for function parameters.
-type Arg interface {
-	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
 }
 
 /*********************************** conf ************************************/
@@ -123,7 +135,7 @@ type BeanRegistration interface {
 	// SetDestroy sets the destruction function for the bean.
 	SetDestroy(fn interface{})
 	// SetCondition adds a condition for the bean.
-	SetCondition(cond ...Condition)
+	SetCondition(conditions ...Condition)
 	// SetDependsOn sets the beans that this bean depends on.
 	SetDependsOn(selectors ...BeanSelector)
 	// SetExport defines the interfaces to be exported by the bean.
@@ -142,7 +154,7 @@ type beanBuilder[T any] struct {
 // BeanSelector returns the BeanSelector for the bean.
 func (d *beanBuilder[T]) BeanSelector() BeanSelector {
 	return BeanSelector{
-		Tag:  d.BeanRegistration().Name(),
+		Name: d.BeanRegistration().Name(),
 		Type: d.BeanRegistration().Type(),
 	}
 }
@@ -171,8 +183,8 @@ func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
 }
 
 // Condition adds a condition to validate the bean.
-func (d *beanBuilder[T]) Condition(cond ...Condition) *T {
-	d.b.SetCondition(cond...)
+func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
+	d.b.SetCondition(conditions...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
