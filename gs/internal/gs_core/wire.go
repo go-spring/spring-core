@@ -188,7 +188,7 @@ func (a *ArgContext) Prop(key string, def ...string) string {
 	return a.c.Prop(key, def...)
 }
 
-func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
+func (a *ArgContext) Find(s gs.BeanSelectorInterface) ([]gs.CondBean, error) {
 	beans, err := a.c.findBeans(s)
 	if err != nil {
 		return nil, err
@@ -271,21 +271,19 @@ func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, e
 }
 
 // findBeans finds beans based on a given selector.
-func (c *Container) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
+func (c *Container) findBeans(s gs.BeanSelectorInterface) ([]BeanRuntime, error) {
+	t, name := s.TypeAndName()
 	var beans []BeanRuntime
-	if t := s.Type; t != nil {
+	if t != nil {
 		beans = c.beansByType[t]
 	}
-	if s.Name != "" {
-		if s.Name == "" {
-			return nil, fmt.Errorf("bean name is empty")
-		}
+	if name != "" {
 		if beans == nil {
-			beans = c.beansByName[s.Name]
+			beans = c.beansByName[name]
 		}
 		var ret []BeanRuntime
 		for _, b := range beans {
-			if s.Name == b.Name() {
+			if name == b.Name() {
 				ret = append(ret, b)
 			}
 		}

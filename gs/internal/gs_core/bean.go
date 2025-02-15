@@ -101,20 +101,20 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		// Check if the function is a method and set a condition if needed
 		method := strings.LastIndexByte(fnInfo.Name(), ')') > 0
 		if method {
-			s := gs.BeanSelector{Type: in0}
+			var s gs.BeanSelectorInterface = gs.BeanSelector{Type: in0}
 			if len(ctorArgs) > 0 {
 				switch a := ctorArgs[0].(type) {
 				case *gs.RegisteredBean:
-					s = a.BeanSelector()
+					s = a
 				case *gs.BeanDefinition:
-					s = a.BeanSelector()
+					s = a
 				case gs_arg.IndexArg:
 					if a.Idx == 0 {
 						switch x := a.Arg.(type) {
 						case *gs.RegisteredBean:
-							s = x.BeanSelector()
+							s = x
 						case *gs.BeanDefinition:
-							s = x.BeanSelector()
+							s = x
 						default:
 							panic("the arg of IndexArg[0] should be *RegisteredBean or *BeanDefinition")
 						}

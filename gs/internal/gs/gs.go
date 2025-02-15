@@ -33,6 +33,11 @@ type InitFunc = interface{}
 // e.g., `func(bean)` or `func(bean) error`.
 type DestroyFunc = interface{}
 
+// BeanSelectorInterface is an interface for selecting beans.
+type BeanSelectorInterface interface {
+	TypeAndName() (reflect.Type, string)
+}
+
 // BeanSelector is an identifier for a bean.
 type BeanSelector struct {
 	Type reflect.Type // Type of the bean
@@ -42,6 +47,11 @@ type BeanSelector struct {
 // BeanSelectorForType returns a BeanSelector for the given type.
 func BeanSelectorForType[T any]() BeanSelector {
 	return BeanSelector{Type: reflect.TypeFor[T]()}
+}
+
+// TypeAndName returns the type and name of the bean.
+func (s BeanSelector) TypeAndName() (reflect.Type, string) {
+	return s.Type, s.Name
 }
 
 func (s BeanSelector) String() string {
@@ -82,7 +92,7 @@ type CondContext interface {
 	// Prop retrieves the value of a property from the IoC container.
 	Prop(key string, def ...string) string
 	// Find searches for bean definitions that match the provided BeanSelector.
-	Find(s BeanSelector) ([]CondBean, error)
+	Find(s BeanSelectorInterface) ([]CondBean, error)
 }
 
 // CondFunc is a function type that determines whether a condition is satisfied.
@@ -145,7 +155,7 @@ type BeanRegistration interface {
 	// SetCondition adds a condition for the bean.
 	SetCondition(conditions ...Condition)
 	// SetDependsOn sets the beans that this bean depends on.
-	SetDependsOn(selectors ...BeanSelector)
+	SetDependsOn(selectors ...BeanSelectorInterface)
 	// SetExport defines the interfaces to be exported by the bean.
 	SetExport(exports ...reflect.Type)
 	// SetConfiguration applies the bean configuration.
@@ -159,12 +169,15 @@ type beanBuilder[T any] struct {
 	b BeanRegistration
 }
 
-// BeanSelector returns the BeanSelector for the bean.
-func (d *beanBuilder[T]) BeanSelector() BeanSelector {
-	return BeanSelector{
-		Name: d.BeanRegistration().Name(),
-		Type: d.BeanRegistration().Type(),
-	}
+// TypeAndName returns the type and name of the bean.
+func (d *beanBuilder[T]) TypeAndName() (reflect.Type, string) {
+	r := d.BeanRegistration()
+	return r.Type(), r.Name()
+}
+
+// GetArgValue returns the value of the bean.
+func (d *beanBuilder[T]) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
+	return d.BeanRegistration().Value(), nil
 }
 
 // BeanRegistration returns the underlying BeanRegistration instance.
@@ -197,7 +210,7 @@ func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
 }
 
 // DependsOn sets the beans that this bean depends on.
-func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
+func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelectorInterface) *T {
 	d.b.SetDependsOn(selectors...)
 	return *(**T)(unsafe.Pointer(&d))
 }
@@ -232,10 +245,6 @@ func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 	}
 }
 
-func (r *RegisteredBean) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
-	return r.BeanRegistration().Value(), nil
-}
-
 // BeanDefinition represents a bean that has not yet been registered in the IoC container.
 type BeanDefinition struct {
 	beanBuilder[BeanDefinition]
@@ -246,10 +255,6 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 	return &BeanDefinition{
 		beanBuilder: beanBuilder[BeanDefinition]{d},
 	}
-}
-
-func (r *BeanDefinition) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
-	return r.BeanRegistration().Value(), nil
 }
 
 /************************************ ioc ************************************/

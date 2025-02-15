@@ -514,9 +514,7 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 				name := bd.Name() + "_" + m.Name
 				b := gs_bean.NewBean(v.Type(), v, f, name)
 				b.SetFileLine(file, line)
-				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(
-					gs.BeanSelector{Type: bd.Type(), Name: bd.Name()},
-				))
+				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}
 			break
@@ -553,13 +551,14 @@ func (c *resolvingStage) Prop(key string, def ...string) string {
 
 // Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
 // 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
+func (c *resolvingStage) Find(s gs.BeanSelectorInterface) ([]gs.CondBean, error) {
+	t, name := s.TypeAndName()
 	var result []gs.CondBean
 	for _, b := range c.beans {
 		if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		if t := s.Type; t != nil {
+		if t != nil {
 			if b.Type() != t {
 				foundType := false
 				for _, typ := range b.Exports() {
@@ -573,7 +572,7 @@ func (c *resolvingStage) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 				}
 			}
 		}
-		if s.Name != "" && s.Name != b.Name() {
+		if name != "" && name != b.Name() {
 			continue
 		}
 		if err := c.resolveBean(b); err != nil {

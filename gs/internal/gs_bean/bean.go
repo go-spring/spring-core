@@ -74,13 +74,13 @@ type BeanDestroy interface {
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f          gs.Callable       // Callable for the bean (ctor or method).
-	init       interface{}       // Initialization function for the bean.
-	destroy    interface{}       // Destruction function for the bean.
-	dependsOn  []gs.BeanSelector // List of dependencies for the bean.
-	exports    []reflect.Type    // List of exported types for the bean.
-	conditions []gs.Condition    // List of conditions for the bean.
-	status     BeanStatus        // Current status of the bean.
+	f          gs.Callable                // Callable for the bean (ctor or method).
+	init       interface{}                // Initialization function for the bean.
+	destroy    interface{}                // Destruction function for the bean.
+	dependsOn  []gs.BeanSelectorInterface // List of dependencies for the bean.
+	exports    []reflect.Type             // List of exported types for the bean.
+	conditions []gs.Condition             // List of conditions for the bean.
+	status     BeanStatus                 // Current status of the bean.
 
 	file string // The file where the bean is defined.
 	line int    // The line number in the file where the bean is defined.
@@ -103,7 +103,7 @@ func (d *BeanMetadata) Destroy() interface{} {
 }
 
 // DependsOn returns the list of dependencies for the bean.
-func (d *BeanMetadata) DependsOn() []gs.BeanSelector {
+func (d *BeanMetadata) DependsOn() []gs.BeanSelectorInterface {
 	return d.dependsOn
 }
 
@@ -203,6 +203,11 @@ type BeanDefinition struct {
 	*BeanRuntime
 }
 
+// TypeAndName returns the type and name of the bean.
+func (d *BeanDefinition) TypeAndName() (reflect.Type, string) {
+	return d.Type(), d.Name()
+}
+
 // Callable returns the callable for the bean.
 func (d *BeanDefinition) Callable() gs.Callable {
 	return d.f
@@ -267,7 +272,7 @@ func (d *BeanDefinition) SetCondition(conditions ...gs.Condition) {
 }
 
 // SetDependsOn sets the list of dependencies for the bean.
-func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
+func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelectorInterface) {
 	d.dependsOn = append(d.dependsOn, selectors...)
 }
 
