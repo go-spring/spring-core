@@ -85,7 +85,7 @@ func OnFunc(fn CondFunc) Condition {
 }
 
 // OnProperty creates a Condition based on a property name and options.
-func OnProperty(name string) *gs_cond.CondOnProperty {
+func OnProperty(name string) gs_cond.OnPropertyInterface {
 	return gs_cond.OnProperty(name)
 }
 

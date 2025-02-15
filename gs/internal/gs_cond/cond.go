@@ -56,33 +56,40 @@ func (c *onFunc) String() string {
 
 /******************************* OnProperty **********************************/
 
-// CondOnProperty evaluates a condition based on the existence and value of a property
+// OnPropertyInterface defines the methods for evaluating a condition based on a property.
+type OnPropertyInterface interface {
+	gs.Condition
+	MatchIfMissing() OnPropertyInterface
+	HavingValue(s string) OnPropertyInterface
+}
+
+// onProperty evaluates a condition based on the existence and value of a property
 // in the context. It allows for complex matching behaviors such as matching missing
 // properties or evaluating expressions.
-type CondOnProperty struct {
+type onProperty struct {
 	name           string // The name of the property to check.
 	havingValue    string // The expected value or expression to match.
 	matchIfMissing bool   // Whether to match if the property is missing.
 }
 
 // OnProperty creates a condition based on the presence and value of a specified property.
-func OnProperty(name string) *CondOnProperty {
-	return &CondOnProperty{name: name}
+func OnProperty(name string) OnPropertyInterface {
+	return &onProperty{name: name}
 }
 
 // MatchIfMissing sets the condition to match if the property is missing.
-func (c *CondOnProperty) MatchIfMissing() *CondOnProperty {
+func (c *onProperty) MatchIfMissing() OnPropertyInterface {
 	c.matchIfMissing = true
 	return c
 }
 
 // HavingValue sets the expected value or expression to match.
-func (c *CondOnProperty) HavingValue(s string) *CondOnProperty {
+func (c *onProperty) HavingValue(s string) OnPropertyInterface {
 	c.havingValue = s
 	return c
 }
 
-func (c *CondOnProperty) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 
 	// If the context doesn't have the property, handle accordingly.
 	if !ctx.Has(c.name) {
@@ -125,7 +132,7 @@ func (c *CondOnProperty) Matches(ctx gs.CondContext) (bool, error) {
 	return ok, nil
 }
 
-func (c *CondOnProperty) String() string {
+func (c *onProperty) String() string {
 	var sb strings.Builder
 	sb.WriteString("OnProperty(name=")
 	sb.WriteString(c.name)
