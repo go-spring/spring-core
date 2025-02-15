@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Package gs provides all the concepts required for go-spring implementation.
+// Package gs provides all the concepts required for Go-Spring implementation.
 package gs
 
 import (
@@ -25,12 +25,12 @@ import (
 	"github.com/go-spring/spring-core/conf"
 )
 
-// BeanInitFunc defines the prototype for initialization functions,
-// e.g., `func(bean)` or `func(bean) error`.
+// BeanInitFunc defines the prototype for initialization functions.
+// For example: `func(bean)` or `func(bean) error`.
 type BeanInitFunc = interface{}
 
-// BeanDestroyFunc defines the prototype for destroy functions,
-// e.g., `func(bean)` or `func(bean) error`.
+// BeanDestroyFunc defines the prototype for destroy functions.
+// For example: `func(bean)` or `func(bean) error`.
 type BeanDestroyFunc = interface{}
 
 // BeanInitInterface defines an interface for bean initialization.
@@ -89,7 +89,7 @@ type Condition interface {
 	Matches(ctx CondContext) (bool, error)
 }
 
-// CondBean represents a bean with an ID, Name, TypeName, and Type.
+// CondBean represents a bean with Name and Type.
 type CondBean interface {
 	Name() string
 	Type() reflect.Type
@@ -132,6 +132,7 @@ type Callable interface {
 
 /*********************************** conf ************************************/
 
+// Properties represents read-only configuration properties.
 type Properties = conf.ReadOnlyProperties
 
 // Refreshable represents an object that can be dynamically refreshed.
@@ -144,8 +145,8 @@ type Refreshable interface {
 
 // ConfigurationParam holds configuration parameters for bean setup.
 type ConfigurationParam struct {
-	Includes []string // Methods to include
-	Excludes []string // Methods to exclude
+	Includes []string // List of methods to include
+	Excludes []string // List of methods to exclude
 }
 
 // BeanRegistration provides methods to configure and register bean metadata.

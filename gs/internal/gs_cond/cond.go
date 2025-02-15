@@ -57,6 +57,7 @@ func (c *onFunc) String() string {
 /******************************* OnProperty **********************************/
 
 // OnPropertyInterface defines the methods for evaluating a condition based on a property.
+// This interface provides flexibility for matching missing properties and checking their values.
 type OnPropertyInterface interface {
 	gs.Condition
 	MatchIfMissing() OnPropertyInterface
@@ -268,18 +269,18 @@ func (c *onExpression) String() string {
 
 /********************************** Not ***************************************/
 
-// not is a condition that negates another condition. It returns true if the wrapped
+// onNot is a condition that negates another condition. It returns true if the wrapped
 // condition evaluates to false, and false if the wrapped condition evaluates to true.
-type not struct {
+type onNot struct {
 	c gs.Condition // The condition to negate.
 }
 
 // Not creates a condition that inverts the result of the provided condition.
 func Not(c gs.Condition) gs.Condition {
-	return &not{c: c}
+	return &onNot{c: c}
 }
 
-func (c *not) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onNot) Matches(ctx gs.CondContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
@@ -287,7 +288,7 @@ func (c *not) Matches(ctx gs.CondContext) (bool, error) {
 	return !ok, nil
 }
 
-func (c *not) String() string {
+func (c *onNot) String() string {
 	return fmt.Sprintf("Not(%s)", c.c)
 }
 
