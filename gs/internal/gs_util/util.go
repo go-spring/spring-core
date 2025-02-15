@@ -98,7 +98,7 @@ func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
 
 		// If the dependency is not sorted but still needs sorting, process it recursively.
 		if !inSorted && inToSort {
-			err := tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
+			err = tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
 			if err != nil {
 				return err
 			}

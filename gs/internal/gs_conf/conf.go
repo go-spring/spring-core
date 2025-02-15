@@ -185,7 +185,7 @@ func (p *PropertySources) getDefaultLocations(resolver *conf.Properties) (_ []st
 
 	var configDir string
 	if p.configType == ConfigTypeLocal {
-		configDir, err = resolver.Resolve("${spring.application.config.dir:=./conf}")
+		configDir, err = resolver.Resolve("${spring.app.config.dir:=./conf}")
 	} else if p.configType == ConfigTypeRemote {
 		configDir, err = resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
 	} else {

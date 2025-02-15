@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Package gs_dync provides dynamic properties and refreshable objects.
 package gs_dync
 
 import (

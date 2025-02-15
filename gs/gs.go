@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	Version = "go-spring@v1.1.3"
+	Version = "go-spring@v1.2.0.rc"
 	Website = "https://go-spring.com/"
 )
 
@@ -40,14 +40,14 @@ const (
 
 type Arg = gs.Arg
 
-// NilArg returns a ValueArg with a nil value.
-func NilArg() gs_arg.ValueArg {
-	return gs_arg.Nil()
-}
-
 // TagArg returns a TagArg with the specified tag.
 func TagArg(tag string) gs_arg.TagArg {
 	return gs_arg.TagArg{Tag: tag}
+}
+
+// NilArg returns a ValueArg with a nil value.
+func NilArg() gs_arg.ValueArg {
+	return gs_arg.Nil()
 }
 
 // ValueArg returns a ValueArg with the specified value.
@@ -129,7 +129,7 @@ func Or(conditions ...Condition) Condition {
 	return gs_cond.Or(conditions...)
 }
 
-// And creates a Condition that is true if all of the given Conditions are true.
+// And creates a Condition that is true if all the given Conditions are true.
 func And(conditions ...Condition) Condition {
 	return gs_cond.And(conditions...)
 }
@@ -147,33 +147,27 @@ func OnProfile(profile string) Condition {
 /************************************ ioc ************************************/
 
 type (
-	BeanSelector = gs.BeanSelector
-)
-
-type (
-	Properties = gs.Properties
-)
-
-type (
 	Context      = gs.Context
 	ContextAware = gs.ContextAware
 )
 
 type (
+	Properties  = gs.Properties
 	Refreshable = gs.Refreshable
 	Dync[T any] = gs_dync.Value[T]
 )
 
 type (
+	RegisteredBean = gs.RegisteredBean
+	BeanDefinition = gs.BeanDefinition
+)
+
+type (
+	BeanSelector         = gs.BeanSelector
 	BeanInitFunc         = gs.BeanInitFunc
 	BeanDestroyFunc      = gs.BeanDestroyFunc
 	BeanInitInterface    = gs.BeanInitInterface
 	BeanDestroyInterface = gs.BeanDestroyInterface
-)
-
-type (
-	RegisteredBean = gs.RegisteredBean
-	BeanDefinition = gs.BeanDefinition
 )
 
 // NewBean creates a new BeanDefinition.
@@ -188,6 +182,14 @@ func BeanSelectorForType[T any]() BeanSelector {
 
 var boot *gs_app.Boot
 
+// Boot initializes and returns a [*gs_app.Boot] instance.
+func Boot() *gs_app.Boot {
+	if boot == nil {
+		boot = gs_app.NewBoot()
+	}
+	return boot
+}
+
 // bootRun runs the boot process.
 func bootRun() error {
 	if boot != nil {
@@ -197,14 +199,6 @@ func bootRun() error {
 		boot = nil
 	}
 	return nil
-}
-
-// Boot initializes and returns a [gs_app.Boot] instance.
-func Boot() *gs_app.Boot {
-	if boot == nil {
-		boot = gs_app.NewBoot()
-	}
-	return boot
 }
 
 /*********************************** app *************************************/
@@ -246,6 +240,11 @@ func Config() *gs_conf.AppConfig {
 	return app.P
 }
 
+// RefreshProperties refreshes the app configuration.
+func RefreshProperties(p Properties) error {
+	return app.C.RefreshProperties(p)
+}
+
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
@@ -282,11 +281,6 @@ func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 		reflect.TypeFor[AppServer](),
 	)
 	return app.C.Register(b)
-}
-
-// RefreshProperties refreshes the app configuration.
-func RefreshProperties(p Properties) error {
-	return app.C.RefreshProperties(p)
 }
 
 /********************************** banner ***********************************/

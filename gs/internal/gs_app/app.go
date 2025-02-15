@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Package gs_app provides a framework for building and managing Go-Spring applications.
 package gs_app
 
 import (

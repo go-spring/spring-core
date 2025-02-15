@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Package gs_arg provides a set of tools for working with function arguments.
 package gs_arg
 
 import (
@@ -25,49 +26,48 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/errutil"
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
+// TagArg represents an argument that has a tag for binding or autowiring.
 type TagArg struct {
 	Tag string
 }
 
+// Tag creates a TagArg with the given tag.
 func Tag(tag string) TagArg {
 	return TagArg{Tag: tag}
 }
 
+// GetArgValue returns the value of the argument based on its type.
 func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
-	tag := arg.Tag
 
-	// binds property values based on the argument type.
+	// Binds property values based on the argument type.
 	if util.IsPropBindingTarget(t) {
-		if tag == "" {
-			tag = "${}"
-		}
 		v := reflect.New(t).Elem()
-		if err := ctx.Bind(v, tag); err != nil {
+		if err := ctx.Bind(v, arg.Tag); err != nil {
 			return reflect.Value{}, err
 		}
 		return v, nil
 	}
 
-	// wires dependent beans based on the argument type.
+	// Wires dependent beans based on the argument type.
 	if util.IsBeanInjectionTarget(t) {
 		v := reflect.New(t).Elem()
-		if err := ctx.Wire(v, tag); err != nil {
+		if err := ctx.Wire(v, arg.Tag); err != nil {
 			return reflect.Value{}, err
 		}
 		return v, nil
 	}
 
+	// If none of the conditions match, return an error.
 	err := fmt.Errorf("error type %s", t.String())
-	return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", tag)
+	return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", arg.Tag)
 }
 
 // IndexArg represents an argument that has an index.
 type IndexArg struct {
-	Idx int
-	Arg gs.Arg
+	Idx int    // Index of the argument.
+	Arg gs.Arg // The actual argument value.
 }
 
 // Index creates an IndexArg with the given index and argument.
@@ -75,13 +75,14 @@ func Index(n int, arg gs.Arg) IndexArg {
 	return IndexArg{Idx: n, Arg: arg}
 }
 
+// GetArgValue is not implemented for IndexArg, it panics if called.
 func (arg IndexArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 	panic(util.UnimplementedMethod)
 }
 
 // ValueArg represents an argument with a fixed value.
 type ValueArg struct {
-	v interface{}
+	v interface{} // The fixed value associated with this argument.
 }
 
 // Nil returns a ValueArg with a value of nil.
@@ -94,6 +95,7 @@ func Value(v interface{}) ValueArg {
 	return ValueArg{v: v}
 }
 
+// GetArgValue returns the value of the fixed argument.
 func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 	if arg.v == nil {
 		return reflect.Zero(t), nil
@@ -103,20 +105,20 @@ func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 
 // ArgList represents a list of arguments for a function.
 type ArgList struct {
-	fnType reflect.Type
-	args   []gs.Arg
+	fnType reflect.Type // Type of the function to be invoked.
+	args   []gs.Arg     // List of arguments for the function.
 }
 
 // NewArgList creates and validates an ArgList for the specified function.
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 
-	// calculates the number of fixed arguments in the function.
+	// Calculates the number of fixed arguments in the function.
 	fixedArgCount := fnType.NumIn()
 	if fnType.IsVariadic() {
 		fixedArgCount--
 	}
 
-	// determines if the arguments use indexing.
+	// Determines if the arguments use indexing.
 	shouldIndex := func() bool {
 		if len(args) == 0 {
 			return false
@@ -127,7 +129,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 
 	fnArgs := make([]gs.Arg, fixedArgCount)
 
-	// processes the first argument separately to determine its type.
+	// Processes the first argument separately to determine its type.
 	if len(args) > 0 {
 		if args[0] == nil {
 			err := errors.New("the first arg must not be nil")
@@ -155,7 +157,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		}
 	}
 
-	// processes the remaining arguments.
+	// Processes the remaining arguments.
 	for i := 1; i < len(args); i++ {
 		switch arg := args[i].(type) {
 		case *OptionArg:
@@ -190,7 +192,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		}
 	}
 
-	// fills any unassigned fixed arguments with default values.
+	// Fills any unassigned fixed arguments with default values.
 	for i := 0; i < fixedArgCount; i++ {
 		if fnArgs[i] == nil {
 			fnArgs[i] = Tag("")
@@ -201,14 +203,14 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 }
 
 // get returns the processed argument values for the function call.
-func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, error) {
+func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 
 	fnType := r.fnType
 	numIn := fnType.NumIn()
 	variadic := fnType.IsVariadic()
 	result := make([]reflect.Value, 0)
 
-	// processes each argument and convert it to a [reflect.Value].
+	// Processes each argument and converts it to a [reflect.Value].
 	for idx, arg := range r.args {
 
 		var t reflect.Type
@@ -227,9 +229,11 @@ func (r *ArgList) get(ctx gs.ArgContext, fileLine string) ([]reflect.Value, erro
 			result = append(result, v)
 		}
 	}
-
 	return result, nil
 }
+
+// CallableFunc is a function that can be called.
+type CallableFunc = interface{}
 
 // OptionArg represents a binding for an option function argument.
 type OptionArg struct {
@@ -238,7 +242,7 @@ type OptionArg struct {
 }
 
 // Option creates a binding for an option function argument.
-func Option(fn interface{}, args ...gs.Arg) *OptionArg {
+func Option(fn CallableFunc, args ...gs.Arg) *OptionArg {
 
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func || t.NumOut() != 1 {
@@ -250,36 +254,17 @@ func Option(fn interface{}, args ...gs.Arg) *OptionArg {
 	return &OptionArg{r: r.SetFileLine(file, line)}
 }
 
-func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
-	return arg.call(ctx)
-}
-
 // Condition sets a condition for invoking the option function.
 func (arg *OptionArg) Condition(conditions ...gs.Condition) *OptionArg {
 	arg.c = append(arg.c, conditions...)
 	return arg
 }
 
-// call invokes the option function if its condition is met.
-func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
+func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 
-	var (
-		ok  bool
-		err error
-	)
-
-	syslog.Debugf("call option func %s", arg.r.fileLine)
-	defer func() {
-		if err == nil {
-			syslog.Debugf("call option func success %s", arg.r.fileLine)
-		} else {
-			syslog.Debugf("call option func error %s %s", err.Error(), arg.r.fileLine)
-		}
-	}()
-
-	// checks if the condition is met.
+	// Checks if the condition is met.
 	for _, c := range arg.c {
-		ok, err = ctx.Matches(c)
+		ok, err := ctx.Matches(c)
 		if err != nil {
 			return reflect.Value{}, err
 		} else if !ok {
@@ -287,7 +272,7 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 		}
 	}
 
-	// invokes the function and return its result.
+	// Calls the function and returns its result.
 	out, err := arg.r.Call(ctx)
 	if err != nil {
 		return reflect.Value{}, err
@@ -297,14 +282,14 @@ func (arg *OptionArg) call(ctx gs.ArgContext) (reflect.Value, error) {
 
 // Callable wraps a function and its binding arguments.
 type Callable struct {
-	fn       interface{}
-	fnType   reflect.Type
-	argList  *ArgList
-	fileLine string
+	fn       CallableFunc // The function to be called.
+	fnType   reflect.Type // The type of the function.
+	argList  *ArgList     // The argument list for the function.
+	fileLine string       // File and line number where the function is defined.
 }
 
 // MustBind binds arguments to a function and panics if an error occurs.
-func MustBind(fn interface{}, args ...gs.Arg) *Callable {
+func MustBind(fn CallableFunc, args ...gs.Arg) *Callable {
 	r, err := Bind(fn, args)
 	if err != nil {
 		panic(err)
@@ -314,23 +299,13 @@ func MustBind(fn interface{}, args ...gs.Arg) *Callable {
 }
 
 // Bind creates a Callable by binding arguments to a function.
-func Bind(fn interface{}, args []gs.Arg) (*Callable, error) {
+func Bind(fn CallableFunc, args []gs.Arg) (*Callable, error) {
 	fnType := reflect.TypeOf(fn)
 	argList, err := NewArgList(fnType, args)
 	if err != nil {
 		return nil, err
 	}
 	return &Callable{fn: fn, fnType: fnType, argList: argList}, nil
-}
-
-func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
-	if results, err := r.Call(ctx); err != nil {
-		return reflect.Value{}, err
-	} else if len(results) < 1 {
-		return reflect.Value{}, errors.New("xxx")
-	} else {
-		return results[0], nil
-	}
 }
 
 // SetFileLine sets the file and line number of the function call.
@@ -342,7 +317,7 @@ func (r *Callable) SetFileLine(file string, line int) *Callable {
 // Call invokes the function with its bound arguments processed in the IoC container.
 func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 
-	in, err := r.argList.get(ctx, r.fileLine)
+	in, err := r.argList.get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -361,4 +336,14 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 		return out[:n-1], nil
 	}
 	return out, nil
+}
+
+func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
+	if results, err := r.Call(ctx); err != nil {
+		return reflect.Value{}, err
+	} else if len(results) < 1 {
+		return reflect.Value{}, errors.New("xxx")
+	} else {
+		return results[0], nil
+	}
 }
