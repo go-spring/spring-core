@@ -514,7 +514,7 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 				name := bd.Name() + "_" + m.Name
 				b := gs_bean.NewBean(v.Type(), v, f, name)
 				b.SetFileLine(file, line)
-				gs.NewBeanDefinition(b).Condition(gs_cond.OnBean(bd))
+				b.SetCondition(gs_cond.OnBean(bd))
 				newBeans = append(newBeans, b)
 			}
 			break
