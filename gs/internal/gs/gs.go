@@ -25,13 +25,23 @@ import (
 	"github.com/go-spring/spring-core/conf"
 )
 
-// InitFunc defines the prototype for initialization functions,
+// BeanInitFunc defines the prototype for initialization functions,
 // e.g., `func(bean)` or `func(bean) error`.
-type InitFunc = interface{}
+type BeanInitFunc = interface{}
 
-// DestroyFunc defines the prototype for destroy functions,
+// BeanDestroyFunc defines the prototype for destroy functions,
 // e.g., `func(bean)` or `func(bean) error`.
-type DestroyFunc = interface{}
+type BeanDestroyFunc = interface{}
+
+// BeanInitInterface defines an interface for bean initialization.
+type BeanInitInterface interface {
+	OnBeanInit(ctx Context) error
+}
+
+// BeanDestroyInterface defines an interface for bean destruction.
+type BeanDestroyInterface interface {
+	OnBeanDestroy()
+}
 
 // BeanSelectorInterface is an interface for selecting beans.
 type BeanSelectorInterface interface {
@@ -149,9 +159,9 @@ type BeanRegistration interface {
 	// SetName sets the name of the bean.
 	SetName(name string)
 	// SetInit sets the initialization function for the bean.
-	SetInit(fn InitFunc)
+	SetInit(fn BeanInitFunc)
 	// SetDestroy sets the destruction function for the bean.
-	SetDestroy(fn DestroyFunc)
+	SetDestroy(fn BeanDestroyFunc)
 	// SetCondition adds a condition for the bean.
 	SetCondition(conditions ...Condition)
 	// SetDependsOn sets the beans that this bean depends on.
@@ -192,13 +202,13 @@ func (d *beanBuilder[T]) Name(name string) *T {
 }
 
 // Init sets the initialization function for the bean.
-func (d *beanBuilder[T]) Init(fn InitFunc) *T {
+func (d *beanBuilder[T]) Init(fn BeanInitFunc) *T {
 	d.b.SetInit(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
 // Destroy sets the destruction function for the bean.
-func (d *beanBuilder[T]) Destroy(fn DestroyFunc) *T {
+func (d *beanBuilder[T]) Destroy(fn BeanDestroyFunc) *T {
 	d.b.SetDestroy(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }

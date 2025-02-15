@@ -313,7 +313,7 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 	}
 
 	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
+	if f, ok := b.Interface().(gs.BeanInitInterface); ok {
 		if err = f.OnBeanInit(c); err != nil {
 			return nil, err
 		}

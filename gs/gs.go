@@ -25,7 +25,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
@@ -166,8 +165,10 @@ type (
 )
 
 type (
-	BeanInit    = gs_bean.BeanInit
-	BeanDestroy = gs_bean.BeanDestroy
+	BeanInitFunc         = gs.BeanInitFunc
+	BeanDestroyFunc      = gs.BeanDestroyFunc
+	BeanInitInterface    = gs.BeanInitInterface
+	BeanDestroyInterface = gs.BeanDestroyInterface
 )
 
 type (

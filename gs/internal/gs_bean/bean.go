@@ -62,21 +62,11 @@ func (status BeanStatus) String() string {
 	}
 }
 
-// BeanInit defines an interface for bean initialization.
-type BeanInit interface {
-	OnBeanInit(ctx gs.Context) error
-}
-
-// BeanDestroy defines an interface for bean destruction.
-type BeanDestroy interface {
-	OnBeanDestroy()
-}
-
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
 	f          gs.Callable                // Callable for the bean (ctor or method).
-	init       interface{}                // Initialization function for the bean.
-	destroy    interface{}                // Destruction function for the bean.
+	init       gs.BeanInitFunc            // Initialization function for the bean.
+	destroy    gs.BeanDestroyFunc         // Destruction function for the bean.
 	dependsOn  []gs.BeanSelectorInterface // List of dependencies for the bean.
 	exports    []reflect.Type             // List of exported types for the bean.
 	conditions []gs.Condition             // List of conditions for the bean.
@@ -93,12 +83,12 @@ type BeanMetadata struct {
 }
 
 // Init returns the initialization function of the bean.
-func (d *BeanMetadata) Init() interface{} {
+func (d *BeanMetadata) Init() gs.BeanInitFunc {
 	return d.init
 }
 
 // Destroy returns the destruction function of the bean.
-func (d *BeanMetadata) Destroy() interface{} {
+func (d *BeanMetadata) Destroy() gs.BeanDestroyFunc {
 	return d.destroy
 }
 
@@ -249,7 +239,7 @@ func validLifeCycleFunc(fnType reflect.Type, beanType reflect.Type) bool {
 }
 
 // SetInit sets the initialization function for the bean.
-func (d *BeanDefinition) SetInit(fn gs.InitFunc) {
+func (d *BeanDefinition) SetInit(fn gs.BeanInitFunc) {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
 		d.init = fn
 		return
@@ -258,7 +248,7 @@ func (d *BeanDefinition) SetInit(fn gs.InitFunc) {
 }
 
 // SetDestroy sets the destruction function for the bean.
-func (d *BeanDefinition) SetDestroy(fn gs.DestroyFunc) {
+func (d *BeanDefinition) SetDestroy(fn gs.BeanDestroyFunc) {
 	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
 		d.destroy = fn
 		return
