@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,16 +22,22 @@ import (
 	"github.com/expr-lang/expr"
 )
 
-var exprFuncs = map[string]interface{}{}
+// funcMap is used to store express functions that can be referenced in expressions.
+var funcMap = map[string]interface{}{}
 
-func RegisterExprFunc(name string, fn interface{}) {
-	exprFuncs[name] = fn
+// RegisterExpressFunc registers an express function with a specified name.
+// The function can later be used in expressions evaluated by EvalExpr.
+func RegisterExpressFunc(name string, fn interface{}) {
+	funcMap[name] = fn
 }
 
-// evalExpr returns the value for the expression expr.
-func evalExpr(input string, val interface{}) (bool, error) {
+// EvalExpr evaluates a boolean expression (input) using the provided value (val)
+// and any registered express functions. The string expression to evaluate (should
+// return a boolean value). The value used in the evaluation (referred to as `$`
+// in the expression context).
+func EvalExpr(input string, val interface{}) (bool, error) {
 	env := map[string]interface{}{"$": val}
-	for k, v := range exprFuncs {
+	for k, v := range funcMap {
 		env[k] = v
 	}
 	r, err := expr.Eval(input, env)

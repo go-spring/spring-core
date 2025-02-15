@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,9 @@ const (
 	flagRO       = flagStickyRO | flagEmbedRO
 )
 
-// PatchValue makes an unexported field can be assignable.
+// PatchValue modifies an unexported field to make it assignable by modifying the internal flag.
+// It takes a [reflect.Value] and returns the patched value that can be written to.
+// This is typically used to manipulate unexported fields in struct types.
 func PatchValue(v reflect.Value) reflect.Value {
 	rv := reflect.ValueOf(&v)
 	flag := rv.Elem().FieldByName("flag")
@@ -38,15 +40,9 @@ func PatchValue(v reflect.Value) reflect.Value {
 	return v
 }
 
-// Indirect returns its element type when t is a pointer type.
-func Indirect(t reflect.Type) reflect.Type {
-	if t.Kind() != reflect.Ptr {
-		return t
-	}
-	return t.Elem()
-}
-
-// FileLine returns a function's name, file name and line number.
+// FileLine returns the file, line number, and function name for a given function.
+// It uses reflection and runtime information to extract these details.
+// 'fn' is expected to be a function or method value.
 func FileLine(fn interface{}) (file string, line int, fnName string) {
 
 	fnPtr := reflect.ValueOf(fn).Pointer()
@@ -54,9 +50,8 @@ func FileLine(fn interface{}) (file string, line int, fnName string) {
 	file, line = fnInfo.FileLine(fnPtr)
 
 	s := fnInfo.Name()
-	if ss := strings.Split(s, "/"); len(ss) > 0 {
-		s = ss[len(ss)-1]
-		i := strings.Index(s, ".")
+	i := strings.LastIndex(s, "/")
+	if i > 0 {
 		s = s[i+1:]
 	}
 

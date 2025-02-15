@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,8 +34,9 @@ func TestFlatten(t *testing.T) {
 				"a": "123",
 				"b": "456",
 			},
-			([]interface{})(nil),
-			(map[string]string)(nil),
+			nil,
+			([]interface{})(nil),     // it doesn't equal to nil
+			(map[string]string)(nil), // it doesn't equal to nil
 			[]interface{}{},
 			map[string]string{},
 		},
@@ -46,13 +47,15 @@ func TestFlatten(t *testing.T) {
 				"abc",
 				"def",
 			},
-			"nil_arr":   nil,
-			"nil_map":   nil,
+			"nil":       nil,
+			"nil_arr":   []interface{}(nil),     // it doesn't equal to nil
+			"nil_map":   map[string]string(nil), // it doesn't equal to nil
 			"empty_arr": []interface{}{},
 			"empty_map": map[string]string{},
 		},
-		"nil_arr":   nil,
-		"nil_map":   nil,
+		"nil":       nil,
+		"nil_arr":   []interface{}(nil),     // it doesn't equal to nil
+		"nil_map":   map[string]string(nil), // it doesn't equal to nil
 		"empty_arr": []interface{}{},
 		"empty_map": map[string]string{},
 	})
@@ -79,6 +82,7 @@ func TestFlatten(t *testing.T) {
 		"arr[4]":        "",
 		"arr[5]":        "",
 		"arr[6]":        "",
+		"arr[7]":        "",
 	}
 	assert.Equal(t, m, expect)
 }

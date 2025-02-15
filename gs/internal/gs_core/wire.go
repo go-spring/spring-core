@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,26 +28,24 @@ import (
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
-	"github.com/go-spring/spring-core/gs/syslog"
+	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 var (
 	GsContextType = reflect.TypeOf((*gs.Context)(nil)).Elem()
 )
 
-type lazyField struct {
-	v    reflect.Value
-	path string
-	tag  string
-}
+/************************************ destroyer ******************************/
 
-// destroyer 保存具有销毁函数的 bean 以及销毁函数的调用顺序。
+// destroyer stores beans with destroy functions and their call order.
 type destroyer struct {
-	current *gs_bean.BeanDefinition
-	earlier []*gs_bean.BeanDefinition
+	current *gs_bean.BeanDefinition   // The current bean being processed.
+	earlier []*gs_bean.BeanDefinition // Beans that must be destroyed before the current bean.
 }
 
+// foundEarlier checks if a bean is already in the earlier list.
 func (d *destroyer) foundEarlier(b *gs_bean.BeanDefinition) bool {
 	for _, c := range d.earlier {
 		if c == b {
@@ -57,7 +55,7 @@ func (d *destroyer) foundEarlier(b *gs_bean.BeanDefinition) bool {
 	return false
 }
 
-// after 添加一个需要在该 bean 的销毁函数执行之前调用销毁函数的 bean 。
+// after adds a bean to the earlier list, ensuring it is destroyed before the current bean.
 func (d *destroyer) after(b *gs_bean.BeanDefinition) {
 	if d.foundEarlier(b) {
 		return
@@ -65,8 +63,8 @@ func (d *destroyer) after(b *gs_bean.BeanDefinition) {
 	d.earlier = append(d.earlier, b)
 }
 
-// getBeforeDestroyers 获取排在 i 前面的 destroyer，用于 sort.Triple 排序。
-func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
+// getBeforeDestroyers retrieves destroyers that should be processed before a given one for sorting purposes.
+func getBeforeDestroyers(destroyers *list.List, i interface{}) (*list.List, error) {
 	d := i.(*destroyer)
 	result := list.New()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
@@ -75,68 +73,78 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
 			result.PushBack(c)
 		}
 	}
-	return result
+	return result, nil
 }
 
-// wiringStack 记录 bean 的注入路径。
-type wiringStack struct {
+/******************************* wiring stack ********************************/
+
+// lazyField represents a lazy-injected field with metadata.
+type lazyField struct {
+	v    reflect.Value // The value to be injected.
+	path string        // Path for the field in the injection hierarchy.
+	tag  string        // Associated tag for the field.
+}
+
+// WiringStack tracks the injection path of beans and their destroyers.
+type WiringStack struct {
 	destroyers   *list.List
 	destroyerMap map[string]*destroyer
 	beans        []*gs_bean.BeanDefinition
 	lazyFields   []lazyField
 }
 
-func newWiringStack() *wiringStack {
-	return &wiringStack{
+// NewWiringStack creates a new WiringStack instance.
+func NewWiringStack() *WiringStack {
+	return &WiringStack{
 		destroyers:   list.New(),
 		destroyerMap: make(map[string]*destroyer),
 	}
 }
 
-// pushBack 添加一个即将注入的 bean 。
-func (s *wiringStack) pushBack(b *gs_bean.BeanDefinition) {
-	syslog.Debug("push %s %s", b, gs_bean.GetStatusString(b.Status()))
+// pushBack adds a bean to the injection path.
+func (s *WiringStack) pushBack(b *gs_bean.BeanDefinition) {
+	syslog.Debugf("push %s %s", b, b.Status())
 	s.beans = append(s.beans, b)
 }
 
-// popBack 删除一个已经注入的 bean 。
-func (s *wiringStack) popBack() {
+// popBack removes the last bean from the injection path.
+func (s *WiringStack) popBack() {
 	n := len(s.beans)
 	b := s.beans[n-1]
 	s.beans = s.beans[:n-1]
-	syslog.Debug("pop %s %s", b, gs_bean.GetStatusString(b.Status()))
+	syslog.Debugf("pop %s %s", b, b.Status())
 }
 
-// path 返回 bean 的注入路径。
-func (s *wiringStack) path() (path string) {
+// path returns the injection path as a string.
+func (s *WiringStack) path() (path string) {
 	for _, b := range s.beans {
 		path += fmt.Sprintf("=> %s ↩\n", b)
 	}
-	return path[:len(path)-1]
+	return path[:len(path)-1] // Remove the trailing newline.
 }
 
-// saveDestroyer 记录具有销毁函数的 bean ，因为可能有多个依赖，因此需要排重处理。
-func (s *wiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
-	d, ok := s.destroyerMap[b.ID()]
+// saveDestroyer tracks a bean with a destroy function, ensuring no duplicates.
+func (s *WiringStack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
+	d, ok := s.destroyerMap[b.Name()] // todo
 	if !ok {
 		d = &destroyer{current: b}
-		s.destroyerMap[b.ID()] = d
+		s.destroyerMap[b.Name()] = d
 	}
 	return d
 }
 
-// sortDestroyers 对具有销毁函数的 bean 按照销毁函数的依赖顺序进行排序。
-func (s *wiringStack) sortDestroyers() []func() {
+// getSortedDestroyers sorts beans with destroy functions by dependency order.
+func (s *WiringStack) getSortedDestroyers() ([]func(), error) {
 
 	destroy := func(v reflect.Value, fn interface{}) func() {
 		return func() {
 			if fn == nil {
-				v.Interface().(gs_bean.BeanDestroy).OnDestroy()
+				v.Interface().(gs.BeanDestroyInterface).OnBeanDestroy()
 			} else {
 				fnValue := reflect.ValueOf(fn)
 				out := fnValue.Call([]reflect.Value{v})
 				if len(out) > 0 && !out[0].IsNil() {
-					syslog.Error(out[0].Interface().(error).Error())
+					syslog.Errorf("%s", out[0].Interface().(error).Error())
 				}
 			}
 		}
@@ -146,53 +154,78 @@ func (s *wiringStack) sortDestroyers() []func() {
 	for _, d := range s.destroyerMap {
 		destroyers.PushBack(d)
 	}
-	destroyers = TripleSort(destroyers, getBeforeDestroyers)
+	destroyers, err := gs_util.TripleSort(destroyers, getBeforeDestroyers)
+	if err != nil {
+		return nil, err
+	}
 
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
 		d := e.Value.(*destroyer).current
 		ret = append(ret, destroy(d.Value(), d.Destroy()))
 	}
-	return ret
+	return ret, nil
 }
 
-// wireTag 注入语法的 tag 分解式，字符串形式的完整格式为 TypeName:BeanName? 。
-// 注入语法的字符串表示形式分为三个部分，TypeName 是原始类型的全限定名，BeanName
-// 是 bean 注册时设置的名称，? 表示注入结果允许为空。
+/************************************ arg ************************************/
+
+// ArgContext holds a Container and a WiringStack to manage dependency injection.
+type ArgContext struct {
+	c     *Container
+	stack *WiringStack
+}
+
+// NewArgContext creates a new ArgContext with a given Container and WiringStack.
+func NewArgContext(c *Container, stack *WiringStack) *ArgContext {
+	return &ArgContext{c: c, stack: stack}
+}
+
+func (a *ArgContext) Has(key string) bool {
+	return a.c.Has(key)
+}
+
+func (a *ArgContext) Prop(key string, def ...string) string {
+	return a.c.Prop(key, def...)
+}
+
+func (a *ArgContext) Find(s gs.BeanSelectorInterface) ([]gs.CondBean, error) {
+	beans, err := a.c.findBeans(s)
+	if err != nil {
+		return nil, err
+	}
+	var ret []gs.CondBean
+	for _, bean := range beans {
+		ret = append(ret, bean)
+	}
+	return ret, nil
+}
+
+// Matches checks if a given condition matches the container.
+func (a *ArgContext) Matches(c gs.Condition) (bool, error) {
+	return c.Matches(a)
+}
+
+// Bind binds a value to a specific tag in the container.
+func (a *ArgContext) Bind(v reflect.Value, tag string) error {
+	return a.c.p.Data().Bind(v, tag)
+}
+
+// Wire wires a value based on a specific tag in the container.
+func (a *ArgContext) Wire(v reflect.Value, tag string) error {
+	return a.c.wireStructField(v, tag, a.stack)
+}
+
+/************************************ wire ***********************************/
+
+// wireTag represents a parsed injection tag in the format TypeName:BeanName?.
 type wireTag struct {
-	typeName string
-	beanName string
-	nullable bool
+	beanName string // Bean name for injection.
+	nullable bool   // Whether the injection can be nil.
 }
 
-func parseWireTag(str string) (tag wireTag) {
-
-	if str == "" {
-		return
-	}
-
-	if n := len(str) - 1; str[n] == '?' {
-		tag.nullable = true
-		str = str[:n]
-	}
-
-	i := strings.Index(str, ":")
-	if i < 0 {
-		tag.beanName = str
-		return
-	}
-
-	tag.typeName = str[:i]
-	tag.beanName = str[i+1:]
-	return
-}
-
+// String converts a wireTag back to its string representation.
 func (tag wireTag) String() string {
 	b := bytes.NewBuffer(nil)
-	if tag.typeName != "" {
-		b.WriteString(tag.typeName)
-		b.WriteString(":")
-	}
 	b.WriteString(tag.beanName)
 	if tag.nullable {
 		b.WriteString("?")
@@ -200,6 +233,7 @@ func (tag wireTag) String() string {
 	return b.String()
 }
 
+// toWireString converts a slice of wireTags to a comma-separated string.
 func toWireString(tags []wireTag) string {
 	var buf bytes.Buffer
 	for i, tag := range tags {
@@ -211,111 +245,159 @@ func toWireString(tags []wireTag) string {
 	return buf.String()
 }
 
-// resolveTag tag 预处理，可能通过属性值进行指定。
-func (c *Container) resolveTag(tag string) (string, error) {
-	if strings.HasPrefix(tag, "${") {
-		s, err := c.p.Data().Resolve(tag)
-		if err != nil {
-			return "", err
-		}
-		return s, nil
+// parseWireTag parses a wire tag string and returns a wireTag struct.
+func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, err error) {
+
+	if str == "" {
+		return
 	}
-	return tag, nil
+
+	if needResolve {
+		if strings.HasPrefix(str, "${") {
+			str, err = p.Resolve(str)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	if n := len(str) - 1; str[n] == '?' {
+		tag.nullable = true
+		str = str[:n]
+	}
+
+	tag.beanName = str
+	return
 }
 
-func (c *Container) toWireTag(selector gs.BeanSelector) (wireTag, error) {
-	switch s := selector.(type) {
-	case string:
-		s, err := c.resolveTag(s)
-		if err != nil {
-			return wireTag{}, err
-		}
-		return parseWireTag(s), nil
-	case gs_bean.BeanDefinition:
-		return parseWireTag(s.ID()), nil
-	case *gs_bean.BeanDefinition:
-		return parseWireTag(s.ID()), nil
-	default:
-		return parseWireTag(util.TypeName(s) + ":"), nil
+// findBeans finds beans based on a given selector.
+func (c *Container) findBeans(s gs.BeanSelectorInterface) ([]BeanRuntime, error) {
+	t, name := s.TypeAndName()
+	var beans []BeanRuntime
+	if t != nil {
+		beans = c.beansByType[t]
 	}
+	if name != "" {
+		if beans == nil {
+			beans = c.beansByName[name]
+		}
+		var ret []BeanRuntime
+		for _, b := range beans {
+			if name == b.Name() {
+				ret = append(ret, b)
+			}
+		}
+		beans = ret
+	}
+	return beans, nil
 }
 
-func (c *Container) autowire(v reflect.Value, tags []wireTag, nullable bool, stack *wiringStack) error {
-	if c.ForceAutowireIsNullable {
-		for i := 0; i < len(tags); i++ {
-			tags[i].nullable = true
-		}
+// getSingleBean retrieves the bean corresponding to the specified tag and assigns it to `v`.
+// `v` should be an uninitialized value.
+func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (BeanRuntime, error) {
+
+	// Check if the type of `v` is a valid bean receiver type.
+	if !util.IsBeanInjectionTarget(t) {
+		return nil, fmt.Errorf("%s is not a valid receiver type", t.String())
 	}
-	switch v.Kind() {
-	case reflect.Map, reflect.Slice, reflect.Array:
-		return c.collectBeans(v, tags, nullable, stack)
-	default:
-		var tag wireTag
-		if len(tags) > 0 {
-			tag = tags[0]
-		} else if nullable {
-			tag.nullable = true
+
+	var foundBeans []BeanRuntime
+	// Iterate through all beans of the given type and match against the tag.
+	for _, b := range c.beansByType[t] {
+		if b.Status() == gs_bean.StatusDeleted {
+			continue
 		}
-		return c.getBean(v, tag, stack)
-	}
-}
-
-type byBeanName []BeanRuntime
-
-func (b byBeanName) Len() int           { return len(b) }
-func (b byBeanName) Less(i, j int) bool { return b[i].Name() < b[j].Name() }
-func (b byBeanName) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
-
-// filterBean 返回 tag 对应的 bean 在数组中的索引，找不到返回 -1。
-func filterBean(beans []BeanRuntime, tag wireTag, t reflect.Type) (int, error) {
-
-	var found []int
-	for i, b := range beans {
-		if b.Match(tag.typeName, tag.beanName) {
-			found = append(found, i)
+		if tag.beanName == "" || tag.beanName == b.Name() {
+			foundBeans = append(foundBeans, b)
 		}
 	}
 
-	if len(found) > 1 {
-		msg := fmt.Sprintf("found %d beans, bean:%q type:%q [", len(found), tag, t)
-		for _, i := range found {
-			msg += "( " + beans[i].String() + " ), "
+	// When a specific bean name is provided, find it by name.
+	if t.Kind() == reflect.Interface && tag.beanName != "" {
+		for _, b := range c.beansByName[tag.beanName] {
+			if b.Status() == gs_bean.StatusDeleted {
+				continue
+			}
+			if !b.Type().AssignableTo(t) {
+				continue
+			}
+			if tag.beanName != "" && tag.beanName != b.Name() {
+				continue
+			}
+
+			// Deduplicate the results.
+			found := false
+			for _, r := range foundBeans {
+				if r == b {
+					found = true
+					break
+				}
+			}
+			if !found {
+				foundBeans = append(foundBeans, b)
+				syslog.Warnf("you should call Export() on %s", b)
+			}
+		}
+	}
+
+	// If no matching beans are found and the tag allows nullable beans, return nil.
+	if len(foundBeans) == 0 {
+		if tag.nullable {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
+	}
+
+	// If more than one matching bean is found, return an error.
+	if len(foundBeans) > 1 {
+		msg := fmt.Sprintf("found %d beans, bean:%q type:%q [", len(foundBeans), tag, t)
+		for _, b := range foundBeans {
+			msg += "( " + b.String() + " ), "
 		}
 		msg = msg[:len(msg)-2] + "]"
-		return -1, errors.New(msg)
+		return nil, errors.New(msg)
 	}
 
-	if len(found) > 0 {
-		i := found[0]
-		return i, nil
-	}
+	// Retrieve the single matching bean.
+	b := foundBeans[0]
 
-	if tag.nullable {
-		return -1, nil
+	// Ensure the found bean has completed dependency injection.
+	switch c.state {
+	case Refreshing:
+		if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
+			return nil, err
+		}
+	case Refreshed:
+		if b.Status() != gs_bean.StatusWired {
+			return nil, fmt.Errorf("unexpected bean status %d", b.Status())
+		}
+	default:
+		return nil, fmt.Errorf("state is invalid for wiring")
 	}
-
-	return -1, fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
+	return b, nil
 }
 
-func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool, stack *wiringStack) error {
+// getMultiBeans collects beans into the given slice or map value `v`.
+// It supports dependency injection by resolving matching beans based on tags.
+func (c *Container) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *WiringStack) ([]BeanRuntime, error) {
 
-	t := v.Type()
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Map {
-		return fmt.Errorf("should be slice or map in collection mode")
+		return nil, fmt.Errorf("should be slice or map in collection mode")
 	}
 
 	et := t.Elem()
-	if !util.IsBeanReceiver(et) {
-		return fmt.Errorf("%s is not valid receiver type", t.String())
+	if !util.IsBeanInjectionTarget(et) {
+		return nil, fmt.Errorf("%s is not a valid receiver type", t.String())
 	}
 
 	var beans []BeanRuntime
 	beans = c.beansByType[et]
 
+	// Filter out deleted beans
 	{
 		var arr []BeanRuntime
 		for _, b := range beans {
-			if b.Status() == gs_bean.Deleted {
+			if b.Status() == gs_bean.StatusDeleted {
 				continue
 			}
 			arr = append(arr, b)
@@ -323,34 +405,47 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		beans = arr
 	}
 
+	// Process bean tags to filter and order beans
 	if len(tags) > 0 {
-
 		var (
 			anyBeans  []BeanRuntime
 			afterAny  []BeanRuntime
 			beforeAny []BeanRuntime
 		)
-
 		foundAny := false
 		for _, item := range tags {
 
 			// 是否遇到了"无序"标记
 			if item.beanName == "*" {
 				if foundAny {
-					return fmt.Errorf("more than one * in collection %q", tags)
+					return nil, fmt.Errorf("more than one * in collection %q", tags)
 				}
 				foundAny = true
 				continue
 			}
 
-			index, err := filterBean(beans, item, et)
-			if err != nil {
-				return err
+			var founds []int
+			for i, b := range beans {
+				if item.beanName == b.Name() {
+					founds = append(founds, i)
+				}
 			}
-			if index < 0 {
-				continue
+			if len(founds) > 1 {
+				msg := fmt.Sprintf("found %d beans, bean:%q type:%q [", len(founds), item, t)
+				for _, i := range founds {
+					msg += "( " + beans[i].String() + " ), "
+				}
+				msg = msg[:len(msg)-2] + "]"
+				return nil, errors.New(msg)
+			}
+			if len(founds) == 0 {
+				if item.nullable {
+					continue
+				}
+				return nil, fmt.Errorf("can't find bean, bean:%q type:%q", item, t)
 			}
 
+			index := founds[0]
 			if foundAny {
 				afterAny = append(afterAny, beans[index])
 			} else {
@@ -373,185 +468,64 @@ func (c *Container) collectBeans(v reflect.Value, tags []wireTag, nullable bool,
 		beans = arr
 	}
 
+	// Handle empty beans
 	if len(beans) == 0 && !nullable {
 		if len(tags) == 0 {
-			return fmt.Errorf("no beans collected for %q", toWireString(tags))
+			return nil, fmt.Errorf("no beans collected for %q", toWireString(tags))
 		}
 		for _, tag := range tags {
 			if !tag.nullable {
-				return fmt.Errorf("no beans collected for %q", toWireString(tags))
+				return nil, fmt.Errorf("no beans collected for %q", toWireString(tags))
 			}
 		}
-		return nil
+		return nil, nil
 	}
 
+	// Wire the beans based on the current state of the container
 	for _, b := range beans {
 		switch c.state {
 		case Refreshing:
-			if err := c.wireBeanInRefreshing(b.(*gs_bean.BeanDefinition), stack); err != nil {
-				return err
+			if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
+				return nil, err
 			}
 		case Refreshed:
-			if err := c.wireBeanAfterRefreshed(b.(*gs_bean.BeanRuntime), stack); err != nil {
-				return err
+			if b.Status() != gs_bean.StatusWired {
+				return nil, fmt.Errorf("unexpected bean status %d", b.Status())
 			}
 		default:
-			return fmt.Errorf("state is error for wiring")
+			return nil, fmt.Errorf("state is error for wiring")
 		}
 	}
-
-	var ret reflect.Value
-	switch t.Kind() {
-	case reflect.Slice:
-		sort.Sort(byBeanName(beans))
-		ret = reflect.MakeSlice(t, 0, 0)
-		for _, b := range beans {
-			ret = reflect.Append(ret, b.Value())
-		}
-	case reflect.Map:
-		ret = reflect.MakeMap(t)
-		for _, b := range beans {
-			ret.SetMapIndex(reflect.ValueOf(b.Name()), b.Value())
-		}
-	default:
-	}
-	v.Set(ret)
-	return nil
+	return beans, nil
 }
 
-// getBean 获取 tag 对应的 bean 然后赋值给 v，因此 v 应该是一个未初始化的值。
-func (c *Container) getBean(v reflect.Value, tag wireTag, stack *wiringStack) error {
+// wireBean performs property binding and dependency injection for the specified bean.
+// It also tracks its injection path. If the bean has an initialization function, it
+// is executed after the injection is completed. If the bean depends on other beans,
+// it attempts to instantiate and inject those dependencies first.
+func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) error {
 
-	if !v.IsValid() {
-		return fmt.Errorf("receiver must be ref type, bean:%q", tag)
+	// Check if the bean is deleted.
+	if b.Status() == gs_bean.StatusDeleted {
+		return fmt.Errorf("bean:%q has been deleted", b.String())
 	}
 
-	t := v.Type()
-	if !util.IsBeanReceiver(t) {
-		return fmt.Errorf("%s is not valid receiver type", t.String())
-	}
-
-	var foundBeans []BeanRuntime
-	for _, b := range c.beansByType[t] {
-		if b.Status() == gs_bean.Deleted {
-			continue
-		}
-		if !b.Match(tag.typeName, tag.beanName) {
-			continue
-		}
-		foundBeans = append(foundBeans, b)
-	}
-
-	// 指定 bean 名称时通过名称获取，防止未通过 Export 方法导出接口。
-	if t.Kind() == reflect.Interface && tag.beanName != "" {
-		for _, b := range c.beansByName[tag.beanName] {
-			if b.Status() == gs_bean.Deleted {
-				continue
-			}
-			if !b.Type().AssignableTo(t) {
-				continue
-			}
-			if !b.Match(tag.typeName, tag.beanName) {
-				continue
-			}
-
-			found := false // 对结果排重
-			for _, r := range foundBeans {
-				if r == b {
-					found = true
-					break
-				}
-			}
-			if !found {
-				foundBeans = append(foundBeans, b)
-				syslog.Warn("you should call Export() on %s", b)
-			}
-		}
-	}
-
-	if len(foundBeans) == 0 {
-		if tag.nullable {
-			return nil
-		}
-		return fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
-	}
-
-	// 优先使用设置成主版本的 bean
-	var primaryBeans []BeanRuntime
-
-	for _, b := range foundBeans {
-		if b.IsPrimary() {
-			primaryBeans = append(primaryBeans, b)
-		}
-	}
-
-	if len(primaryBeans) > 1 {
-		msg := fmt.Sprintf("found %d primary beans, bean:%q type:%q [", len(primaryBeans), tag, t)
-		for _, b := range primaryBeans {
-			msg += "( " + b.String() + " ), "
-		}
-		msg = msg[:len(msg)-2] + "]"
-		return errors.New(msg)
-	}
-
-	if len(primaryBeans) == 0 && len(foundBeans) > 1 {
-		msg := fmt.Sprintf("found %d beans, bean:%q type:%q [", len(foundBeans), tag, t)
-		for _, b := range foundBeans {
-			msg += "( " + b.String() + " ), "
-		}
-		msg = msg[:len(msg)-2] + "]"
-		return errors.New(msg)
-	}
-
-	var result BeanRuntime
-	if len(primaryBeans) == 1 {
-		result = primaryBeans[0]
-	} else {
-		result = foundBeans[0]
-	}
-
-	// 确保找到的 bean 已经完成依赖注入。
-	switch c.state {
-	case Refreshing:
-		if err := c.wireBeanInRefreshing(result.(*gs_bean.BeanDefinition), stack); err != nil {
-			return err
-		}
-	case Refreshed:
-		if err := c.wireBeanAfterRefreshed(result, stack); err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("state is error for wiring")
-	}
-
-	v.Set(result.Value())
-	return nil
-}
-
-// wireBean 对 bean 进行属性绑定和依赖注入，同时追踪其注入路径。如果 bean 有初始
-// 化函数，则在注入完成之后执行其初始化函数。如果 bean 依赖了其他 bean，则首先尝试
-// 实例化被依赖的 bean 然后对它们进行注入。
-func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wiringStack) error {
-
-	if b.Status() == gs_bean.Deleted {
-		return fmt.Errorf("bean:%q have been deleted", b.ID())
-	}
-
-	// 运行时 Get 或者 Wire 会出现下面这种情况。
-	if c.state == Refreshed && b.Status() == gs_bean.Wired {
+	// If the container is refreshed and the bean is already wired, do nothing.
+	if c.state == Refreshed && b.Status() == gs_bean.StatusWired {
 		return nil
 	}
 
 	haveDestroy := false
 
+	// Ensure destroy functions are cleaned up in case of failure.
 	defer func() {
 		if haveDestroy {
 			stack.destroyers.Remove(stack.destroyers.Back())
 		}
 	}()
 
-	// 记录注入路径上的销毁函数及其执行的先后顺序。
-	if _, ok := b.Interface().(gs_bean.BeanDestroy); ok || b.Destroy() != nil {
+	// Record the destroy function for the bean, if it exists.
+	if _, ok := b.Interface().(gs.BeanDestroyInterface); ok || b.Destroy() != nil {
 		haveDestroy = true
 		d := stack.saveDestroyer(b)
 		if i := stack.destroyers.Back(); i != nil {
@@ -562,41 +536,46 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wirin
 
 	stack.pushBack(b)
 
-	if b.Status() == gs_bean.Creating && b.Callable() != nil {
+	// Detect circular dependency.
+	if b.Status() == gs_bean.StatusCreating && b.Callable() != nil {
 		prev := stack.beans[len(stack.beans)-2]
-		if prev.Status() == gs_bean.Creating {
-			return errors.New("found circle autowire")
+		if prev.Status() == gs_bean.StatusCreating {
+			return errors.New("found circular autowire")
 		}
 	}
 
-	if b.Status() >= gs_bean.Creating {
+	// If the bean is already being created, return early.
+	if b.Status() >= gs_bean.StatusCreating {
 		stack.popBack()
 		return nil
 	}
 
-	b.SetStatus(gs_bean.Creating)
+	// Mark the bean as being created.
+	b.SetStatus(gs_bean.StatusCreating)
 
-	// 对当前 bean 的间接依赖项进行注入。
-	for _, s := range b.Depends() {
-		beans, err := c.Find(s)
+	// Inject dependencies for the current bean.
+	for _, s := range b.DependsOn() {
+		beans, err := c.findBeans(s) // todo 唯一
 		if err != nil {
 			return err
 		}
 		for _, d := range beans {
-			err = c.wireBeanInRefreshing(d.(*gs_bean.BeanDefinition), stack)
+			err = c.wireBean(d.(*gs_bean.BeanDefinition), stack)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
+	// Get the value of the current bean.
 	v, err := c.getBeanValue(b, stack)
 	if err != nil {
 		return err
 	}
 
-	b.SetStatus(gs_bean.Created)
+	b.SetStatus(gs_bean.StatusCreated)
 
+	// Validate that the bean exports the appropriate interfaces.
 	t := v.Type()
 	for _, typ := range b.Exports() {
 		if !t.Implements(typ) {
@@ -604,12 +583,29 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wirin
 		}
 	}
 
-	err = c.wireBeanValue(v, t, stack)
+	watchRefresh := true
+
+	// If the bean is refreshable, add it to the refreshable list.
+	if b.Refreshable() {
+		i := b.Interface().(gs.Refreshable)
+		var param conf.BindParam
+		err = param.BindTag(b.RefreshTag(), "")
+		if err != nil {
+			return err
+		}
+		if err = c.p.RefreshBean(i, param, true); err != nil {
+			return err
+		}
+		watchRefresh = false
+	}
+
+	// Wire the value of the bean.
+	err = c.wireBeanValue(v, t, watchRefresh, stack)
 	if err != nil {
 		return err
 	}
 
-	// 如果 bean 有初始化函数，则执行其初始化函数。
+	// Execute the bean's initialization function, if it exists.
 	if b.Init() != nil {
 		fnValue := reflect.ValueOf(b.Init())
 		out := fnValue.Call([]reflect.Value{b.Value()})
@@ -618,84 +614,38 @@ func (c *Container) wireBeanInRefreshing(b *gs_bean.BeanDefinition, stack *wirin
 		}
 	}
 
-	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
-		if err = f.OnInit(c); err != nil {
+	// If the bean implements the BeanInit interface, execute its OnBeanInit method.
+	if f, ok := b.Interface().(gs.BeanInitInterface); ok {
+		if err = f.OnBeanInit(c); err != nil {
 			return err
 		}
 	}
 
-	// 如果 bean 实现了 dync.Refreshable 接口，则将 bean 添加到可刷新对象列表中。
-	if b.EnableRefresh() {
-		i := b.Interface().(gs.Refreshable)
-		refreshParam := b.RefreshParam()
-		watch := c.state == Refreshing
-		if err = c.p.RefreshBean(i, refreshParam, watch); err != nil {
-			return err
-		}
-	}
-
-	b.SetStatus(gs_bean.Wired)
+	// Mark the bean as wired and pop it from the stack.
+	b.SetStatus(gs_bean.StatusWired)
 	stack.popBack()
 	return nil
 }
 
-func (c *Container) wireBeanAfterRefreshed(b BeanRuntime, stack *wiringStack) error {
+// getBeanValue retrieves the value of a bean. If it is a constructor bean,
+// it executes the constructor and returns the result.
+func (c *Container) getBeanValue(b BeanRuntime, stack *WiringStack) (reflect.Value, error) {
 
-	v, err := c.getBeanValue(b, stack)
-	if err != nil {
-		return err
-	}
-
-	t := v.Type()
-	err = c.wireBeanValue(v, t, stack)
-	if err != nil {
-		return err
-	}
-
-	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(gs_bean.BeanInit); ok {
-		if err = f.OnInit(c); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-type argContext struct {
-	c     *Container
-	stack *wiringStack
-}
-
-func (a *argContext) Matches(c gs.Condition) (bool, error) {
-	return c.Matches(a.c)
-}
-
-func (a *argContext) Bind(v reflect.Value, tag string) error {
-	return a.c.p.Data().Bind(v, conf.Tag(tag))
-}
-
-func (a *argContext) Wire(v reflect.Value, tag string) error {
-	return a.c.wireByTag(v, tag, a.stack)
-}
-
-// getBeanValue 获取 bean 的值，如果是构造函数 bean 则执行其构造函数然后返回执行结果。
-func (c *Container) getBeanValue(b BeanRuntime, stack *wiringStack) (reflect.Value, error) {
-
+	// If the bean has no callable function, return its value directly.
 	if b.Callable() == nil {
 		return b.Value(), nil
 	}
 
-	out, err := b.Callable().Call(&argContext{c: c, stack: stack})
+	// Call the bean's constructor and handle errors.
+	out, err := b.Callable().Call(NewArgContext(c, stack))
 	if err != nil {
 		return reflect.Value{}, err /* fmt.Errorf("%s:%s return error: %v", b.getClass(), b.ID(), err) */
 	}
 
-	// 构造函数的返回值为值类型时 b.Type() 返回其指针类型。
+	// If the return value is of bean type, handle it accordingly.
 	if val := out[0]; util.IsBeanType(val.Type()) {
-		// 如果实现接口的是值类型，那么需要转换成指针类型然后再赋值给接口。
-		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsValueType(val.Elem().Type()) {
+		// If it's a non-pointer value type, convert it into a pointer and set it.
+		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsPropBindingTarget(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())
 			v.Elem().Set(val.Elem())
 			b.Value().Set(v)
@@ -706,47 +656,51 @@ func (c *Container) getBeanValue(b BeanRuntime, stack *wiringStack) (reflect.Val
 		b.Value().Elem().Set(val)
 	}
 
+	// Return an error if the value is nil.
 	if b.Value().IsNil() {
 		return reflect.Value{}, fmt.Errorf("%s return nil", b.String()) // b.GetClass(), b.FileLine())
 	}
 
 	v := b.Value()
-	// 结果以接口类型返回时需要将原始值取出来才能进行注入。
+	// If the result is an interface, extract the original value.
 	if b.Type().Kind() == reflect.Interface {
 		v = v.Elem()
 	}
 	return v, nil
 }
 
-// wireBeanValue 对 v 进行属性绑定和依赖注入，v 在传入时应该是一个已经初始化的值。
-func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, stack *wiringStack) error {
+// wireValue binds properties and injects dependencies into the value v. v should already be initialized.
+func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, watchRefresh bool, stack *WiringStack) error {
 
+	// Dereference pointer types and adjust the target type.
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 		t = t.Elem()
 	}
 
-	// 如整数指针类型的 bean 是无需注入的。
+	// If v is not a struct type, no injection is needed.
 	if v.Kind() != reflect.Struct {
 		return nil
 	}
 
 	typeName := t.Name()
-	if typeName == "" { // 简单类型没有名字
+	if typeName == "" {
+		// Simple types don't have names, use their string representation.
 		typeName = t.String()
 	}
 
 	param := conf.BindParam{Path: typeName}
-	return c.wireStruct(v, t, param, stack)
+	return c.wireStruct(v, t, watchRefresh, param, stack)
 }
 
-// wireStruct 对结构体进行依赖注入，需要注意的是这里不需要进行属性绑定。
-func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *wiringStack) error {
-
+// wireStruct performs dependency injection for a struct.
+func (c *Container) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, opt conf.BindParam, stack *WiringStack) error {
+	// Loop through each field of the struct.
 	for i := 0; i < t.NumField(); i++ {
 		ft := t.Field(i)
 		fv := v.Field(i)
 
+		// If the field is unexported, try to patch it.
 		if !fv.CanInterface() {
 			fv = util.PatchValue(fv)
 			if !fv.CanInterface() {
@@ -756,20 +710,22 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 
 		fieldPath := opt.Path + "." + ft.Name
 
-		// 支持 autowire 和 inject 两个标签。
+		// Check for autowire or inject tags.
 		tag, ok := ft.Tag.Lookup("autowire")
 		if !ok {
 			tag, ok = ft.Tag.Lookup("inject")
 		}
 		if ok {
+			// Handle lazy injection.
 			if strings.HasSuffix(tag, ",lazy") {
 				f := lazyField{v: fv, path: fieldPath, tag: tag}
 				stack.lazyFields = append(stack.lazyFields, f)
 			} else {
+				// Handle context-aware injection.
 				if ft.Type == GsContextType {
 					c.ContextAware = true
 				}
-				if err := c.wireByTag(fv, tag, stack); err != nil {
+				if err := c.wireStructField(fv, tag, stack); err != nil {
 					return fmt.Errorf("%q wired error: %w", fieldPath, err)
 				}
 			}
@@ -781,18 +737,20 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 			Path: fieldPath,
 		}
 
+		// Bind values if the field has a "value" tag.
 		if tag, ok = ft.Tag.Lookup("value"); ok {
 			if err := subParam.BindTag(tag, ft.Tag); err != nil {
 				return err
 			}
 			if ft.Anonymous {
-				err := c.wireStruct(fv, ft.Type, subParam, stack)
+				// Recursively wire anonymous structs.
+				err := c.wireStruct(fv, ft.Type, watchRefresh, subParam, stack)
 				if err != nil {
 					return err
 				}
 			} else {
-				watch := c.state == Refreshing
-				err := c.p.RefreshField(fv.Addr(), subParam, watch)
+				// Refresh field value if needed.
+				err := c.p.RefreshField(fv.Addr(), subParam, watchRefresh)
 				if err != nil {
 					return err
 				}
@@ -800,8 +758,9 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 			continue
 		}
 
+		// Recursively wire anonymous struct fields.
 		if ft.Anonymous && ft.Type.Kind() == reflect.Struct {
-			if err := c.wireStruct(fv, ft.Type, subParam, stack); err != nil {
+			if err := c.wireStruct(fv, ft.Type, watchRefresh, subParam, stack); err != nil {
 				return err
 			}
 		}
@@ -809,27 +768,70 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPar
 	return nil
 }
 
-func (c *Container) wireByTag(v reflect.Value, tag string, stack *wiringStack) error {
-
-	tag, err := c.resolveTag(tag)
-	if err != nil {
-		return err
-	}
-
-	if tag == "" {
-		return c.autowire(v, nil, false, stack)
-	}
-
-	var tags []wireTag
-	if tag != "?" {
-		for _, s := range strings.Split(tag, ",") {
-			var g wireTag
-			g, err = c.toWireTag(s)
+// wireField performs dependency injection by tag.
+func (c *Container) wireStructField(v reflect.Value, str string, stack *WiringStack) error {
+	switch v.Kind() {
+	case reflect.Map, reflect.Slice, reflect.Array:
+		{
+			var tags []wireTag
+			if str != "" && str != "?" {
+				for _, s := range strings.Split(str, ",") {
+					g, err := parseWireTag(c.p.Data(), s, true)
+					if err != nil {
+						return err
+					}
+					tags = append(tags, g)
+				}
+			}
+			nullable := str == "?"
+			if c.ForceAutowireIsNullable {
+				for i := 0; i < len(tags); i++ {
+					tags[i].nullable = true
+				}
+				nullable = true
+			}
+			beans, err := c.getBeans(v.Type(), tags, nullable, stack)
 			if err != nil {
 				return err
 			}
-			tags = append(tags, g)
+			// Populate the slice or map with the resolved beans
+			switch v.Kind() {
+			case reflect.Slice:
+				sort.Slice(beans, func(i, j int) bool {
+					return beans[i].Name() < beans[j].Name()
+				})
+				ret := reflect.MakeSlice(v.Type(), 0, 0)
+				for _, b := range beans {
+					ret = reflect.Append(ret, b.Value())
+				}
+				v.Set(ret)
+			case reflect.Map:
+				ret := reflect.MakeMap(v.Type())
+				for _, b := range beans {
+					ret.SetMapIndex(reflect.ValueOf(b.Name()), b.Value())
+				}
+				v.Set(ret)
+			default:
+			}
+			return nil
 		}
+	default:
+		tag, err := parseWireTag(c.p.Data(), str, true)
+		if err != nil {
+			return err
+		}
+		if c.ForceAutowireIsNullable {
+			tag.nullable = true
+		}
+		// Ensure the provided value `v` is valid.
+		if !v.IsValid() {
+			return fmt.Errorf("receiver must be a reference type, bean:%q", str)
+		}
+		b, err := c.getBean(v.Type(), tag, stack)
+		if err != nil {
+			return err
+		}
+		v.Set(b.Value())
+		return nil
 	}
-	return c.autowire(v, tags, tag == "?", stack)
 }

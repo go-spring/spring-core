@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,22 @@ import (
 	"github.com/expr-lang/expr"
 )
 
-type ValidateFunc[T interface{}] func(T) bool
+// ValidateFunc defines a type for validation functions, which accept
+// a value of type T and return a boolean result.
+type ValidateFunc[T any] func(T) bool
 
+// validateFuncs holds a map of registered validation functions.
 var validateFuncs = map[string]interface{}{}
 
-func RegisterValidateFunc[T interface{}](name string, fn ValidateFunc[T]) {
+// RegisterValidateFunc registers a validation function with a specific name.
+// The function can then be used in validation expressions.
+func RegisterValidateFunc[T any](name string, fn ValidateFunc[T]) {
 	validateFuncs[name] = fn
 }
 
-// validateField validates the field with the given tag and value.
+// validateField validates a field using a validation expression (tag) and the field value (i).
+// It evaluates the expression and checks if the result is true (i.e., the validation passes).
+// If any error occurs during evaluation or if the validation fails, an error is returned.
 func validateField(tag string, i interface{}) error {
 	env := map[string]interface{}{"$": i}
 	for k, v := range validateFuncs {

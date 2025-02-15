@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,230 +14,307 @@
  * limitations under the License.
  */
 
+// Package gs provides all the concepts required for Go-Spring implementation.
 package gs
 
 import (
-	"context"
 	"reflect"
+	"strings"
 	"unsafe"
 
 	"github.com/go-spring/spring-core/conf"
 )
 
-// A BeanSelector can be the ID of a bean, a `reflect.Type`, an interface{}
-// pointer such as `(*error)(nil)`, or `new(error)`.
-type BeanSelector interface{}
+// BeanInitFunc defines the prototype for initialization functions.
+// For example: `func(bean)` or `func(bean) error`.
+type BeanInitFunc = interface{}
+
+// BeanDestroyFunc defines the prototype for destroy functions.
+// For example: `func(bean)` or `func(bean) error`.
+type BeanDestroyFunc = interface{}
+
+// BeanInitInterface defines an interface for bean initialization.
+type BeanInitInterface interface {
+	OnBeanInit(ctx Context) error
+}
+
+// BeanDestroyInterface defines an interface for bean destruction.
+type BeanDestroyInterface interface {
+	OnBeanDestroy()
+}
+
+// BeanSelectorInterface is an interface for selecting beans.
+type BeanSelectorInterface interface {
+	TypeAndName() (reflect.Type, string)
+}
+
+// BeanSelector is an identifier for a bean.
+type BeanSelector struct {
+	Type reflect.Type // Type of the bean
+	Name string       // Name of the bean
+}
+
+// BeanSelectorForType returns a BeanSelector for the given type.
+func BeanSelectorForType[T any]() BeanSelector {
+	return BeanSelector{Type: reflect.TypeFor[T]()}
+}
+
+// TypeAndName returns the type and name of the bean.
+func (s BeanSelector) TypeAndName() (reflect.Type, string) {
+	return s.Type, s.Name
+}
+
+func (s BeanSelector) String() string {
+	var sb strings.Builder
+	sb.WriteString("{")
+	if s.Type != nil {
+		sb.WriteString("Type:")
+		sb.WriteString(s.Type.String())
+	}
+	if s.Name != "" {
+		if s.Type != nil {
+			sb.WriteString(",")
+		}
+		sb.WriteString("Name:")
+		sb.WriteString(s.Name)
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
 
 /********************************** condition ********************************/
 
-type CondBean interface {
-	ID() string
-	Name() string
-	TypeName() string
-	Type() reflect.Type
-}
-
-// CondContext defines some methods of IoC container that conditions use.
-type CondContext interface {
-	// Has returns whether the IoC container has a property.
-	Has(key string) bool
-	// Prop returns the property's value when the IoC container has it, or
-	// returns empty string when the IoC container doesn't have it.
-	Prop(key string, opts ...conf.GetOption) string
-	// Find returns bean definitions that matched with the bean selector.
-	Find(selector BeanSelector) ([]CondBean, error)
-}
-
-// Condition is used when registering a bean to determine whether it's valid.
+// Condition is a conditional logic interface used when registering beans.
 type Condition interface {
 	Matches(ctx CondContext) (bool, error)
 }
 
+// CondBean represents a bean with Name and Type.
+type CondBean interface {
+	Name() string
+	Type() reflect.Type
+}
+
+// CondContext defines methods for the IoC container used by conditions.
+type CondContext interface {
+	// Has checks whether the IoC container has a property with the given key.
+	Has(key string) bool
+	// Prop retrieves the value of a property from the IoC container.
+	Prop(key string, def ...string) string
+	// Find searches for bean definitions that match the provided BeanSelector.
+	Find(s BeanSelectorInterface) ([]CondBean, error)
+}
+
+// CondFunc is a function type that determines whether a condition is satisfied.
+type CondFunc func(ctx CondContext) (bool, error)
+
 /************************************* arg ***********************************/
 
-// Arg 用于为函数参数提供绑定值。可以是 bean.Selector 类型，表示注入 bean ；
-// 可以是 ${X:=Y} 形式的字符串，表示属性绑定或者注入 bean ；可以是 ValueArg
-// 类型，表示不从 IoC 容器获取而是用户传入的普通值；可以是 IndexArg 类型，表示
-// 带有下标的参数绑定；可以是 *optionArg 类型，用于为 Option 方法提供参数绑定。
-type Arg interface{}
+// Arg is used to provide binding values for function parameters.
+type Arg interface {
+	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
+}
 
-// ArgContext defines some methods of IoC container that Callable use.
+// ArgContext defines methods for the IoC container used by Callable types.
 type ArgContext interface {
-	// Matches returns true when the Condition returns true,
-	// and returns false when the Condition returns false.
+	// Matches checks if the given condition is met.
 	Matches(c Condition) (bool, error)
-	// Bind binds properties value by the "value" tag.
+	// Bind binds property values to the provided [reflect.Value].
 	Bind(v reflect.Value, tag string) error
-	// Wire wires dependent beans by the "autowire" tag.
+	// Wire wires dependent beans to the provided [reflect.Value].
 	Wire(v reflect.Value, tag string) error
 }
 
+// Callable represents an entity that can be invoked with an ArgContext.
 type Callable interface {
-	Arg(i int) (Arg, bool)
-	In(i int) (reflect.Type, bool)
 	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 
 /*********************************** conf ************************************/
 
-type Properties interface {
-	Data() map[string]string
-	Keys() []string
-	Has(key string) bool
-	SubKeys(key string) ([]string, error)
-	Get(key string, opts ...conf.GetOption) string
-	Resolve(s string) (string, error)
-	Bind(i interface{}, args ...conf.BindArg) error
-	CopyTo(out *conf.Properties) error
-}
+// Properties represents read-only configuration properties.
+type Properties = conf.ReadOnlyProperties
 
-// Refreshable 可动态刷新的对象
+// Refreshable represents an object that can be dynamically refreshed.
 type Refreshable interface {
+	// OnRefresh is called to refresh the properties when they change.
 	OnRefresh(prop Properties, param conf.BindParam) error
 }
 
 /*********************************** bean ************************************/
 
+// ConfigurationParam holds configuration parameters for bean setup.
 type ConfigurationParam struct {
-	Enable  bool     // 是否扫描成员方法
-	Include []string // 包含哪些成员方法
-	Exclude []string // 排除那些成员方法
+	Includes []string // List of methods to include
+	Excludes []string // List of methods to exclude
 }
 
+// BeanRegistration provides methods to configure and register bean metadata.
 type BeanRegistration interface {
-	ID() string
+	// Name returns the name of the bean.
+	Name() string
+	// Type returns the [reflect.Type] of the bean.
 	Type() reflect.Type
-	SetCaller(skip int)
+	// Value returns the [reflect.Value] of the bean.
+	Value() reflect.Value
+	// SetName sets the name of the bean.
 	SetName(name string)
-	SetOn(cond Condition)
-	SetDependsOn(selectors ...BeanSelector)
-	SetPrimary()
-	SetInit(fn interface{})
-	SetDestroy(fn interface{})
-	SetExport(exports ...interface{})
+	// SetInit sets the initialization function for the bean.
+	SetInit(fn BeanInitFunc)
+	// SetDestroy sets the destruction function for the bean.
+	SetDestroy(fn BeanDestroyFunc)
+	// SetCondition adds a condition for the bean.
+	SetCondition(conditions ...Condition)
+	// SetDependsOn sets the beans that this bean depends on.
+	SetDependsOn(selectors ...BeanSelectorInterface)
+	// SetExport defines the interfaces to be exported by the bean.
+	SetExport(exports ...reflect.Type)
+	// SetConfiguration applies the bean configuration.
 	SetConfiguration(param ...ConfigurationParam)
-	SetEnableRefresh(tag string)
+	// SetRefreshable marks the bean as refreshable with the given tag.
+	SetRefreshable(tag string)
 }
 
+// beanBuilder helps configure a bean during its creation.
 type beanBuilder[T any] struct {
 	b BeanRegistration
 }
 
+// TypeAndName returns the type and name of the bean.
+func (d *beanBuilder[T]) TypeAndName() (reflect.Type, string) {
+	r := d.BeanRegistration()
+	return r.Type(), r.Name()
+}
+
+// GetArgValue returns the value of the bean.
+func (d *beanBuilder[T]) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
+	return d.BeanRegistration().Value(), nil
+}
+
+// BeanRegistration returns the underlying BeanRegistration instance.
 func (d *beanBuilder[T]) BeanRegistration() BeanRegistration {
 	return d.b
 }
 
-func (d *beanBuilder[T]) ID() string {
-	return d.b.ID()
-}
-
-func (d *beanBuilder[T]) Type() reflect.Type {
-	return d.b.Type()
-}
-
+// Name sets the name of the bean.
 func (d *beanBuilder[T]) Name(name string) *T {
 	d.b.SetName(name)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// On 设置 bean 的 Condition。
-func (d *beanBuilder[T]) On(cond Condition) *T {
-	d.b.SetOn(cond)
-	return *(**T)(unsafe.Pointer(&d))
-}
-
-// DependsOn 设置 bean 的间接依赖项。
-func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
-	d.b.SetDependsOn(selectors...)
-	return *(**T)(unsafe.Pointer(&d))
-}
-
-// Primary 设置 bean 为主版本。
-func (d *beanBuilder[T]) Primary() *T {
-	d.b.SetPrimary()
-	return *(**T)(unsafe.Pointer(&d))
-}
-
-// Init 设置 bean 的初始化函数。
-func (d *beanBuilder[T]) Init(fn interface{}) *T {
+// Init sets the initialization function for the bean.
+func (d *beanBuilder[T]) Init(fn BeanInitFunc) *T {
 	d.b.SetInit(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Destroy 设置 bean 的销毁函数。
-func (d *beanBuilder[T]) Destroy(fn interface{}) *T {
+// Destroy sets the destruction function for the bean.
+func (d *beanBuilder[T]) Destroy(fn BeanDestroyFunc) *T {
 	d.b.SetDestroy(fn)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Export 设置 bean 的导出接口。
-func (d *beanBuilder[T]) Export(exports ...interface{}) *T {
+// Condition adds a condition to validate the bean.
+func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
+	d.b.SetCondition(conditions...)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// DependsOn sets the beans that this bean depends on.
+func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelectorInterface) *T {
+	d.b.SetDependsOn(selectors...)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// Export sets the interfaces that the bean will export.
+func (d *beanBuilder[T]) Export(exports ...reflect.Type) *T {
 	d.b.SetExport(exports...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Configuration 设置 bean 为配置类。
+// Configuration applies the configuration parameters to the bean.
 func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T {
 	d.b.SetConfiguration(param...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// EnableRefresh 设置 bean 为可刷新的。
-func (d *beanBuilder[T]) EnableRefresh(tag string) *T {
-	d.b.SetEnableRefresh(tag)
+// Refreshable marks the bean as refreshable with the provided tag.
+func (d *beanBuilder[T]) Refreshable(tag string) *T {
+	d.b.SetRefreshable(tag)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
+// RegisteredBean represents a bean that has been registered in the IoC container.
 type RegisteredBean struct {
 	beanBuilder[RegisteredBean]
 }
 
+// NewRegisteredBean creates a new RegisteredBean instance.
 func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 	return &RegisteredBean{
 		beanBuilder: beanBuilder[RegisteredBean]{d},
 	}
 }
 
-type UnregisteredBean struct {
-	beanBuilder[UnregisteredBean]
+// BeanDefinition represents a bean that has not yet been registered in the IoC container.
+type BeanDefinition struct {
+	beanBuilder[BeanDefinition]
 }
 
-func NewUnregisteredBean(d BeanRegistration) *UnregisteredBean {
-	return &UnregisteredBean{
-		beanBuilder: beanBuilder[UnregisteredBean]{d},
+// NewBeanDefinition creates a new BeanDefinition instance.
+func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
+	return &BeanDefinition{
+		beanBuilder: beanBuilder[BeanDefinition]{d},
 	}
 }
 
-/*********************************** ioc ************************************/
+/************************************ ioc ************************************/
 
-// Container ...
+// Container represents the modifiable aspects of an IoC (Inversion of Control) container.
+// It provides methods for registering, refreshing, and managing beans within the container.
 type Container interface {
+	// Object registers a bean using the provided object instance.
 	Object(i interface{}) *RegisteredBean
+	// Provide registers a bean using the provided constructor function and optional arguments.
 	Provide(ctor interface{}, args ...Arg) *RegisteredBean
-	Accept(b *UnregisteredBean) *RegisteredBean
-	Group(fn func(p Properties) ([]*UnregisteredBean, error))
+	// Register registers a bean using the provided bean definition.
+	Register(b *BeanDefinition) *RegisteredBean
+	// GroupRegister registers multiple beans by executing the given function that returns [*BeanDefinition]s.
+	GroupRegister(fn func(p Properties) ([]*BeanDefinition, error))
+	// RefreshProperties updates the properties of the container.
 	RefreshProperties(p Properties) error
+	// Refresh initializes and wires all beans in the container.
 	Refresh() error
-	SimplifyMemory()
+	// ReleaseUnusedMemory cleans up unused resources and releases memory.
+	ReleaseUnusedMemory()
+	// Close shuts down the container and cleans up all resources.
 	Close()
 }
 
-// Context ...
+// Context represents the unmodifiable (or runtime) aspects of an IoC container.
+// It provides methods for accessing properties, resolving values, and retrieving beans.
 type Context interface {
-	Context() context.Context
+	// Keys returns all the keys present in the container's properties.
 	Keys() []string
+	// Has checks if the specified key exists in the container's properties.
 	Has(key string) bool
+	// SubKeys returns the sub-keys under a specific key in the container's properties.
 	SubKeys(key string) ([]string, error)
-	Prop(key string, opts ...conf.GetOption) string
+	// Prop retrieves the value of the specified key from the container's properties.
+	Prop(key string, def ...string) string
+	// Resolve resolves placeholders or references (e.g., ${KEY}) in the given string to actual values.
 	Resolve(s string) (string, error)
-	Bind(i interface{}, opts ...conf.BindArg) error
-	Get(i interface{}, selectors ...BeanSelector) error
+	// Bind binds the value of the specified key to the provided struct or variable.
+	Bind(i interface{}, tag ...string) error
+	// Get retrieves a bean of the specified type using the provided tag.
+	Get(i interface{}, tag ...string) error
+	// Wire creates and returns a bean by wiring it with the provided constructor or object.
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
+	// Invoke calls the provided function with the specified arguments and returns the result.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
-	Go(fn func(ctx context.Context))
 }
 
-// ContextAware injects the Context into a struct as the field GSContext.
+// ContextAware is used to inject the container's Context into a bean.
 type ContextAware struct {
 	GSContext Context `autowire:""`
 }

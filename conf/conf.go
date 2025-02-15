@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import (
 	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
-	"github.com/go-spring/spring-core/conf/store"
+	"github.com/go-spring/spring-core/conf/storage"
 	"github.com/go-spring/spring-core/util"
 	"github.com/spf13/cast"
 )
@@ -85,35 +85,27 @@ func RegisterConverter[T any](fn Converter[T]) {
 	converters[t.Out(0)] = fn
 }
 
-// readOnlyProperties is the interface for read-only properties.
-type readOnlyProperties interface {
-
+// ReadOnlyProperties is the interface for read-only properties.
+type ReadOnlyProperties interface {
 	// Data returns key-value pairs of the properties.
 	Data() map[string]string
-
 	// Keys returns keys of the properties.
 	Keys() []string
-
 	// Has returns whether the key exists.
 	Has(key string) bool
-
 	// SubKeys returns the sorted sub keys of the key.
 	SubKeys(key string) ([]string, error)
-
-	// Get returns key's value, using Def to return a default value.
-	Get(key string, opts ...GetOption) string
-
+	// Get returns key's value.
+	Get(key string, def ...string) string
 	// Resolve resolves string that contains references.
 	Resolve(s string) (string, error)
-
 	// Bind binds properties into a value.
-	Bind(i interface{}, args ...BindArg) error
-
+	Bind(i interface{}, tag ...string) error
 	// CopyTo copies properties into another by override.
 	CopyTo(out *Properties) error
 }
 
-var _ readOnlyProperties = (*Properties)(nil)
+var _ ReadOnlyProperties = (*Properties)(nil)
 
 // Properties stores the data with map[string]string and the keys are case-sensitive,
 // you can get one of them by its key, or bind some of them to a value.
@@ -128,13 +120,13 @@ var _ readOnlyProperties = (*Properties)(nil)
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
 type Properties struct {
-	storage *store.Storage
+	storage *storage.Storage
 }
 
 // New creates empty *Properties.
 func New() *Properties {
 	return &Properties{
-		storage: store.NewStorage(),
+		storage: storage.NewStorage(),
 	}
 }
 
@@ -212,30 +204,13 @@ func (p *Properties) SubKeys(key string) ([]string, error) {
 	return p.storage.SubKeys(key)
 }
 
-type getArg struct {
-	def string
-}
-
-type GetOption func(arg *getArg)
-
-// Def returns v when key not exits.
-func Def(v string) GetOption {
-	return func(arg *getArg) {
-		arg.def = v
-	}
-}
-
 // Get returns key's value, using Def to return a default value.
-func (p *Properties) Get(key string, opts ...GetOption) string {
+func (p *Properties) Get(key string, def ...string) string {
 	val, ok := p.storage.Get(key)
-	if ok {
-		return val
+	if !ok && len(def) > 0 {
+		return def[0]
 	}
-	arg := getArg{}
-	for _, opt := range opts {
-		opt(&arg)
-	}
-	return arg.def
+	return val
 }
 
 // Set sets key's value to be a primitive type as int or string,
@@ -259,53 +234,13 @@ func (p *Properties) Resolve(s string) (string, error) {
 	return resolveString(p, s)
 }
 
-type BindArg interface {
-	getParam() (BindParam, error)
-}
-
-type paramArg struct {
-	param BindParam
-}
-
-func (tag paramArg) getParam() (BindParam, error) {
-	return tag.param, nil
-}
-
-type tagArg struct {
-	tag string
-}
-
-func (tag tagArg) getParam() (BindParam, error) {
-	var param BindParam
-	err := param.BindTag(tag.tag, "")
-	if err != nil {
-		return BindParam{}, err
-	}
-	return param, nil
-}
-
-// Key binds properties using one key.
-func Key(key string) BindArg {
-	return tagArg{tag: "${" + key + "}"}
-}
-
-// Tag binds properties using one tag.
-func Tag(tag string) BindArg {
-	return tagArg{tag: tag}
-}
-
-// Param binds properties using BindParam.
-func Param(param BindParam) BindArg {
-	return paramArg{param: param}
-}
-
 // Bind binds properties to a value, the bind value can be primitive type,
 // map, slice, struct. When binding to struct, the tag 'value' indicates
-// which properties should be bind. The 'value' tags are defined by
+// which properties should be bind. The 'value' tag are defined by
 // value:"${a:=b}>>splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *Properties) Bind(i interface{}, args ...BindArg) error {
+func (p *Properties) Bind(i interface{}, tag ...string) error {
 
 	var v reflect.Value
 	{
@@ -321,17 +256,19 @@ func (p *Properties) Bind(i interface{}, args ...BindArg) error {
 		}
 	}
 
-	if len(args) == 0 {
-		args = []BindArg{tagArg{tag: "${ROOT}"}}
-	}
-
 	t := v.Type()
 	typeName := t.Name()
 	if typeName == "" { // primitive type has no name
 		typeName = t.String()
 	}
 
-	param, err := args[0].getParam()
+	s := "${ROOT}"
+	if len(tag) > 0 {
+		s = tag[0]
+	}
+
+	var param BindParam
+	err := param.BindTag(s, "")
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,207 +21,207 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/go-spring/spring-core/conf/sysconf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	"github.com/go-spring/spring-core/gs/sysconf"
 )
 
 const (
-	Version = "go-spring@v1.1.3"
+	Version = "go-spring@v1.2.0.rc"
 	Website = "https://go-spring.com/"
-)
-
-type (
-	Arg              = gs.Arg
-	BeanSelector     = gs.BeanSelector
-	BeanInit         = gs_bean.BeanInit
-	BeanDestroy      = gs_bean.BeanDestroy
-	RegisteredBean   = gs.RegisteredBean
-	UnregisteredBean = gs.UnregisteredBean
-	CondContext      = gs.CondContext
-	Condition        = gs.Condition
-	Properties       = gs.Properties
-	Context          = gs.Context
-	ContextAware     = gs.ContextAware
-	Dync[T any]      = gs_dync.Value[T]
-	AppContext       = gs_app.AppContext
-	AppRunner        = gs_app.AppRunner
-	AppServer        = gs_app.AppServer
 )
 
 /************************************ arg ***********************************/
 
-// NilArg return a ValueArg with a value of nil.
+type Arg = gs.Arg
+
+// TagArg returns a TagArg with the specified tag.
+func TagArg(tag string) gs_arg.TagArg {
+	return gs_arg.TagArg{Tag: tag}
+}
+
+// NilArg returns a ValueArg with a nil value.
 func NilArg() gs_arg.ValueArg {
 	return gs_arg.Nil()
 }
 
-// ValueArg return a ValueArg with a value of v.
+// ValueArg returns a ValueArg with the specified value.
 func ValueArg(v interface{}) gs_arg.ValueArg {
 	return gs_arg.Value(v)
 }
 
-// IndexArg returns an IndexArg.
+// IndexArg returns an IndexArg with the specified index and argument.
 func IndexArg(n int, arg Arg) gs_arg.IndexArg {
 	return gs_arg.Index(n, arg)
 }
 
-// OptionArg 返回 Option 函数的参数绑定。
+// BindArg binds runtime arguments to a given function.
+func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
+	return gs_arg.MustBind(fn, args...)
+}
+
+// OptionArg returns an OptionArg for the specified function and arguments.
 func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
 	return gs_arg.Option(fn, args...)
-}
-
-func BindArg(fn interface{}, args []Arg, skip int) (*gs_arg.Callable, error) {
-	return gs_arg.Bind(fn, args, skip)
-}
-
-// MustBindArg 为 Option 方法绑定运行时参数。
-func MustBindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
-	return gs_arg.MustBind(fn, args...)
 }
 
 /************************************ cond ***********************************/
 
 type (
-	Conditional    = gs_cond.Conditional
-	PropertyOption = gs_cond.PropertyOption
+	CondBean    = gs.CondBean
+	CondFunc    = gs.CondFunc
+	Condition   = gs.Condition
+	CondContext = gs.CondContext
 )
 
-// OK returns a Condition that always returns true.
-func OK() Condition {
-	return gs_cond.OK()
+// OnFunc creates a Condition based on the provided function.
+func OnFunc(fn CondFunc) Condition {
+	return gs_cond.OnFunc(fn)
 }
 
-// Not returns a Condition that returns true when the given Condition returns false.
+// OnProperty creates a Condition based on a property name and options.
+func OnProperty(name string) gs_cond.OnPropertyInterface {
+	return gs_cond.OnProperty(name)
+}
+
+// OnMissingProperty creates a Condition that checks for a missing property.
+func OnMissingProperty(name string) Condition {
+	return gs_cond.OnMissingProperty(name)
+}
+
+// OnBean creates a Condition based on a BeanSelector.
+func OnBean(s BeanSelector) Condition {
+	return gs_cond.OnBean(s)
+}
+
+// OnMissingBean creates a Condition for when a specific bean is missing.
+func OnMissingBean(s BeanSelector) Condition {
+	return gs_cond.OnMissingBean(s)
+}
+
+// OnSingleBean creates a Condition for when only one instance of a bean exists.
+func OnSingleBean(s BeanSelector) Condition {
+	return gs_cond.OnSingleBean(s)
+}
+
+// RegisterExpressFunc registers a custom expression function.
+func RegisterExpressFunc(name string, fn interface{}) {
+	gs_cond.RegisterExpressFunc(name, fn)
+}
+
+// OnExpression creates a Condition based on a custom expression.
+func OnExpression(expression string) Condition {
+	return gs_cond.OnExpression(expression)
+}
+
+// Not creates a Condition that negates the given Condition.
 func Not(c Condition) Condition {
 	return gs_cond.Not(c)
 }
 
-// Or returns a Condition that returns true when any of the given Conditions returns true.
-func Or(cond ...Condition) Condition {
-	return gs_cond.Or(cond...)
+// Or creates a Condition that is true if any of the given Conditions are true.
+func Or(conditions ...Condition) Condition {
+	return gs_cond.Or(conditions...)
 }
 
-// And returns a Condition that returns true when all the given Conditions return true.
-func And(cond ...Condition) Condition {
-	return gs_cond.And(cond...)
+// And creates a Condition that is true if all the given Conditions are true.
+func And(conditions ...Condition) Condition {
+	return gs_cond.And(conditions...)
 }
 
-// None returns a Condition that returns true when none of the given Conditions returns true.
-func None(cond ...Condition) Condition {
-	return gs_cond.None(cond...)
+// None creates a Condition that is true if none of the given Conditions are true.
+func None(conditions ...Condition) Condition {
+	return gs_cond.None(conditions...)
 }
 
-func MatchIfMissing() PropertyOption {
-	return gs_cond.MatchIfMissing()
+// OnProfile creates a Condition based on the active profile.
+func OnProfile(profile string) Condition {
+	return OnProperty("spring.profiles.active").HavingValue(profile)
 }
 
-func HavingValue(havingValue string) PropertyOption {
-	return gs_cond.HavingValue(havingValue)
-}
+/************************************ ioc ************************************/
 
-func OnProperty(name string, options ...PropertyOption) *Conditional {
-	return gs_cond.OnProperty(name, options...)
-}
+type (
+	Context      = gs.Context
+	ContextAware = gs.ContextAware
+)
 
-func OnMissingProperty(name string) *Conditional {
-	return gs_cond.OnMissingProperty(name)
-}
+type (
+	Properties  = gs.Properties
+	Refreshable = gs.Refreshable
+	Dync[T any] = gs_dync.Value[T]
+)
 
-func OnBean(selector BeanSelector) *Conditional {
-	return gs_cond.OnBean(selector)
-}
+type (
+	RegisteredBean = gs.RegisteredBean
+	BeanDefinition = gs.BeanDefinition
+)
 
-func OnMissingBean(selector BeanSelector) *Conditional {
-	return gs_cond.OnMissingBean(selector)
-}
+type (
+	BeanSelector         = gs.BeanSelector
+	BeanInitFunc         = gs.BeanInitFunc
+	BeanDestroyFunc      = gs.BeanDestroyFunc
+	BeanInitInterface    = gs.BeanInitInterface
+	BeanDestroyInterface = gs.BeanDestroyInterface
+)
 
-func OnSingleBean(selector BeanSelector) *Conditional {
-	return gs_cond.OnSingleBean(selector)
-}
+// NewBean creates a new BeanDefinition.
+var NewBean = gs_core.NewBean
 
-func OnExpression(expression string) *Conditional {
-	return gs_cond.OnExpression(expression)
-}
-
-func OnMatches(fn func(ctx CondContext) (bool, error)) *Conditional {
-	return gs_cond.OnMatches(fn)
-}
-
-func OnProfile(profile string) *Conditional {
-	return gs_cond.OnProfile(profile)
+// BeanSelectorForType returns a BeanSelector for the given type.
+func BeanSelectorForType[T any]() BeanSelector {
+	return gs.BeanSelectorForType[T]()
 }
 
 /************************************ boot ***********************************/
 
 var boot *gs_app.Boot
 
-func bootRun() error {
-	if boot != nil {
-		if err := boot.Run(); err != nil {
-			return err
-		}
-		boot = nil // Boot 阶段结束，释放资源
-	}
-	return nil
-}
-
-func getBoot() *gs_app.Boot {
+// Boot initializes and returns a [*gs_app.Boot] instance.
+func Boot() *gs_app.Boot {
 	if boot == nil {
 		boot = gs_app.NewBoot()
 	}
 	return boot
 }
 
-func BootConfig() *gs_conf.BootConfig {
-	return getBoot().P
-}
-
-func BootObject(i interface{}) *gs.RegisteredBean {
-	b := gs_core.NewBean(reflect.ValueOf(i))
-	return getBoot().C.Accept(b)
-}
-
-func BootProvide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
-	b := gs_core.NewBean(ctor, args...)
-	return getBoot().C.Accept(b)
-}
-
-func BootAccept(bd *gs.UnregisteredBean) *gs.RegisteredBean {
-	return getBoot().C.Accept(bd)
-}
-
-func BootGroup(fn func(p gs.Properties) ([]*gs.UnregisteredBean, error)) {
-	getBoot().C.Group(fn)
-}
-
-func BootRunner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
-	bd := gs_core.NewBean(objOrCtor, ctorArgs...)
-	bd.Export((*AppRunner)(nil))
-	return getBoot().C.Accept(bd)
+// bootRun runs the boot process.
+func bootRun() error {
+	if boot != nil {
+		if err := boot.Run(); err != nil {
+			return err
+		}
+		boot = nil
+	}
+	return nil
 }
 
 /*********************************** app *************************************/
 
+type (
+	AppRunner  = gs_app.AppRunner
+	AppServer  = gs_app.AppServer
+	AppContext = gs_app.AppContext
+)
+
 var app = gs_app.NewApp()
 
-// Start 启动程序。
+// Start starts the app, usually for testing purposes.
 func Start() error {
 	return app.Start()
 }
 
-// Stop 停止程序。
+// Stop stops the app, usually for testing purposes.
 func Stop() {
 	app.Stop()
 }
 
-// Run 启动程序。
+// Run runs the app and waits for an interrupt signal to exit.
 func Run() error {
 	printBanner()
 	if err := bootRun(); err != nil {
@@ -230,69 +230,75 @@ func Run() error {
 	return app.Run()
 }
 
-// ShutDown 停止程序。
+// ShutDown shuts down the app with an optional message.
 func ShutDown(msg ...string) {
 	app.ShutDown(msg...)
 }
 
+// Config returns the app configuration.
 func Config() *gs_conf.AppConfig {
 	return app.P
 }
 
-// Object 参考 Container.Object 的解释。
-func Object(i interface{}) *RegisteredBean {
-	b := gs_core.NewBean(reflect.ValueOf(i))
-	return app.C.Accept(b)
-}
-
-// Provide 参考 Container.Provide 的解释。
-func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
-	b := gs_core.NewBean(ctor, args...)
-	return app.C.Accept(b)
-}
-
-// Accept 参考 Container.Accept 的解释。
-func Accept(b *UnregisteredBean) *RegisteredBean {
-	return app.C.Accept(b)
-}
-
-func Group(fn func(p Properties) ([]*UnregisteredBean, error)) {
-	app.C.Group(fn)
-}
-
-func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*AppRunner)(nil))
-	return app.C.Accept(b)
-}
-
-func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := gs_core.NewBean(objOrCtor, ctorArgs...)
-	b.Export((*AppServer)(nil))
-	return app.C.Accept(b)
-}
-
+// RefreshProperties refreshes the app configuration.
 func RefreshProperties(p Properties) error {
 	return app.C.RefreshProperties(p)
+}
+
+// Object registers a bean definition for a given object.
+func Object(i interface{}) *RegisteredBean {
+	b := NewBean(reflect.ValueOf(i))
+	return app.C.Register(b)
+}
+
+// Provide registers a bean definition for a given constructor.
+func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
+	b := NewBean(ctor, args...)
+	return app.C.Register(b)
+}
+
+// Register registers a bean definition.
+func Register(b *BeanDefinition) *RegisteredBean {
+	return app.C.Register(b)
+}
+
+// GroupRegister registers a group of bean definitions.
+func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
+	app.C.GroupRegister(fn)
+}
+
+// Runner registers a bean definition for an [AppRunner].
+func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
+	b := NewBean(objOrCtor, ctorArgs...).Export(
+		reflect.TypeFor[AppRunner](),
+	)
+	return app.C.Register(b)
+}
+
+// Server registers a bean definition for an [AppServer].
+func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
+	b := NewBean(objOrCtor, ctorArgs...).Export(
+		reflect.TypeFor[AppServer](),
+	)
+	return app.C.Register(b)
 }
 
 /********************************** banner ***********************************/
 
 var appBanner = `
-                                              (_)              
-  __ _    ___             ___   _ __    _ __   _   _ __     __ _ 
- / _' |  / _ \   ______  / __| | '_ \  | '__| | | | '_ \   / _' |
-| (_| | | (_) | |______| \__ \ | |_) | | |    | | | | | | | (_| |
- \__, |  \___/           |___/ | .__/  |_|    |_| |_| |_|  \__, |
-  __/ |                        | |                          __/ |
- |___/                         |_|                         |___/ 
+   ____    ___            ____    ____    ____    ___   _   _    ____ 
+  / ___|  / _ \          / ___|  |  _ \  |  _ \  |_ _| | \ | |  / ___|
+ | |  _  | | | |  _____  \___ \  | |_) | | |_) |  | |  |  \| | | |  _ 
+ | |_| | | |_| | |_____|  ___) | |  __/  |  _ <   | |  | |\  | | |_| |
+  \____|  \___/          |____/  |_|     |_| \_\ |___| |_| \_|  \____| 
 `
 
-// Banner 自定义 banner 字符串。
+// Banner sets a custom app banner.
 func Banner(banner string) {
 	appBanner = banner
 }
 
+// printBanner prints the app banner.
 func printBanner() {
 	if len(appBanner) == 0 {
 		return
@@ -326,16 +332,14 @@ func printBanner() {
 
 /********************************** utility **********************************/
 
+// AllowCircularReferences enables or disables circular references between beans.
 func AllowCircularReferences(enable bool) {
 	err := sysconf.Set("spring.allow-circular-references", enable)
-	if err != nil {
-		panic(err)
-	}
+	_ = err // Ignore error
 }
 
+// ForceAutowireIsNullable forces autowire to be nullable.
 func ForceAutowireIsNullable(enable bool) {
 	err := sysconf.Set("spring.force-autowire-is-nullable", enable)
-	if err != nil {
-		panic(err)
-	}
+	_ = err // Ignore error
 }

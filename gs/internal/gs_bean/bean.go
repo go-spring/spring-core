@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,301 +14,138 @@
  * limitations under the License.
  */
 
+// Package gs_bean provides the bean definition for the Go-Spring framework.
 package gs_bean
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
-	"runtime"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util"
 )
 
-var refreshableType = reflect.TypeFor[gs.Refreshable]()
-
+// BeanStatus represents the different lifecycle statuses of a bean.
 type BeanStatus int8
 
 const (
-	Deleted   = BeanStatus(-1)   // 已删除
-	Default   = BeanStatus(iota) // 未处理
-	Resolving                    // 正在决议
-	Resolved                     // 已决议
-	Creating                     // 正在创建
-	Created                      // 已创建
-	Wired                        // 注入完成
+	StatusDeleted   = BeanStatus(-1)   // Bean has been deleted.
+	StatusDefault   = BeanStatus(iota) // Default status of the bean.
+	StatusResolving                    // Bean is being resolved.
+	StatusResolved                     // Bean has been resolved.
+	StatusCreating                     // Bean is being created.
+	StatusCreated                      // Bean has been created.
+	StatusWired                        // Bean has been wired.
 )
 
-// GetStatusString 获取 bean 状态的字符串表示。
-func GetStatusString(status BeanStatus) string {
+// String returns a human-readable string of the bean status.
+func (status BeanStatus) String() string {
 	switch status {
-	case Deleted:
-		return "Deleted"
-	case Default:
-		return "Default"
-	case Resolving:
-		return "Resolving"
-	case Resolved:
-		return "Resolved"
-	case Creating:
-		return "Creating"
-	case Created:
-		return "Created"
-	case Wired:
-		return "Wired"
+	case StatusDeleted:
+		return "deleted"
+	case StatusDefault:
+		return "default"
+	case StatusResolving:
+		return "resolving"
+	case StatusResolved:
+		return "resolved"
+	case StatusCreating:
+		return "creating"
+	case StatusCreated:
+		return "created"
+	case StatusWired:
+		return "wired"
 	default:
-		return ""
+		return "unknown"
 	}
 }
 
-type BeanInit interface {
-	OnInit(ctx gs.Context) error
-}
+// refreshableType is the [reflect.Type] of the interface [gs.Refreshable].
+var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
-type BeanDestroy interface {
-	OnDestroy()
-}
-
+// BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f       gs.Callable       // 构造函数
-	cond    gs.Condition      // 判断条件
-	init    interface{}       // 初始化函数
-	destroy interface{}       // 销毁函数
-	depends []gs.BeanSelector // 间接依赖项
-	exports []reflect.Type    // 导出的接口
-	file    string            // 注册点所在文件
-	line    int               // 注册点所在行数
-	status  BeanStatus        // 状态
+	f          gs.Callable                // Callable for the bean (ctor or method).
+	init       gs.BeanInitFunc            // Initialization function for the bean.
+	destroy    gs.BeanDestroyFunc         // Destruction function for the bean.
+	dependsOn  []gs.BeanSelectorInterface // List of dependencies for the bean.
+	exports    []reflect.Type             // List of exported types for the bean.
+	conditions []gs.Condition             // List of conditions for the bean.
+	status     BeanStatus                 // Current status of the bean.
 
-	configuration gs.ConfigurationParam
+	file string // The file where the bean is defined.
+	line int    // The line number in the file where the bean is defined.
 
-	enableRefresh bool
-	refreshParam  conf.BindParam
+	configurationBean  bool                  // Whether the bean is a configuration bean.
+	configurationParam gs.ConfigurationParam // Configuration parameters for the bean.
+
+	refreshable bool   // Whether the bean can be refreshed.
+	refreshTag  string // Refresh tag for the bean.
 }
 
-func (d *BeanMetadata) SetStatus(status BeanStatus) {
-	d.status = status
-}
-
-func (d *BeanMetadata) Cond() gs.Condition {
-	return d.cond
-}
-
-func (d *BeanMetadata) Init() interface{} {
-	return d.init
-}
-
-func (d *BeanMetadata) Destroy() interface{} {
-	return d.destroy
-}
-
-func (d *BeanMetadata) Depends() []gs.BeanSelector {
-	return d.depends
-}
-
-func (d *BeanMetadata) Exports() []reflect.Type {
-	return d.exports
-}
-
-func (d *BeanMetadata) IsConfiguration() bool {
-	return d.configuration.Enable
-}
-
-func (d *BeanMetadata) GetIncludeMethod() []string {
-	return d.configuration.Include
-}
-
-func (d *BeanMetadata) GetExcludeMethod() []string {
-	return d.configuration.Exclude
-}
-
-func (d *BeanMetadata) EnableRefresh() bool {
-	return d.enableRefresh
-}
-
-func (d *BeanMetadata) RefreshParam() conf.BindParam {
-	return d.refreshParam
-}
-
-func (d *BeanMetadata) File() string {
-	return d.file
-}
-
-func (d *BeanMetadata) Line() int {
-	return d.line
-}
-
-// FileLine 返回 bean 的注册点。
-func (d *BeanMetadata) FileLine() string {
-	return fmt.Sprintf("%s:%d", d.file, d.line)
-}
-
-// Class 返回 bean 的类型描述。
-func (d *BeanMetadata) Class() string {
-	if d.f == nil {
-		return "object bean"
-	}
-	return "constructor bean"
-}
-
-type BeanRuntime struct {
-	v        reflect.Value // 值
-	t        reflect.Type  // 类型
-	name     string        // 名称
-	typeName string        // 原始类型的全限定名
-	primary  bool          // 是否为主版本
-}
-
-// ID 返回 bean 的 ID 。
-func (d *BeanRuntime) ID() string {
-	return d.typeName + ":" + d.name
-}
-
-// Name 返回 bean 的名称。
-func (d *BeanRuntime) Name() string {
-	return d.name
-}
-
-// TypeName 返回 bean 的原始类型的全限定名。
-func (d *BeanRuntime) TypeName() string {
-	return d.typeName
-}
-
-func (d *BeanRuntime) Callable() gs.Callable {
-	return nil
-}
-
-// Interface 返回 bean 的真实值。
-func (d *BeanRuntime) Interface() interface{} {
-	return d.v.Interface()
-}
-
-func (d *BeanRuntime) IsPrimary() bool {
-	return d.primary
-}
-
-func (d *BeanRuntime) Type() reflect.Type {
-	return d.t
-}
-
-func (d *BeanRuntime) Value() reflect.Value {
-	return d.v
-}
-
-func (d *BeanRuntime) Status() BeanStatus {
-	return Wired
-}
-
-func (d *BeanRuntime) Match(typeName string, beanName string) bool {
-
-	typeIsSame := false
-	if typeName == "" || d.typeName == typeName {
-		typeIsSame = true
-	}
-
-	nameIsSame := false
-	if beanName == "" || d.name == beanName {
-		nameIsSame = true
-	}
-
-	return typeIsSame && nameIsSame
-}
-
-func (d *BeanRuntime) String() string {
-	return d.name
-}
-
-// BeanDefinition bean 元数据。
-type BeanDefinition struct {
-	*BeanMetadata
-	*BeanRuntime
-}
-
-func (d *BeanDefinition) Callable() gs.Callable {
-	return d.f
-}
-
-func (d *BeanDefinition) Status() BeanStatus {
-	return d.status
-}
-
-func (d *BeanDefinition) String() string {
-	return fmt.Sprintf("%s name:%q %s", d.Class(), d.name, d.FileLine())
-}
-
-// SetName 设置 bean 的名称。
-func (d *BeanDefinition) SetName(name string) {
-	d.name = name
-}
-
-func (d *BeanDefinition) SetCaller(skip int) {
-	_, d.file, d.line, _ = runtime.Caller(skip)
-}
-
-// SetOn 设置 bean 的 Condition。
-func (d *BeanDefinition) SetOn(cond gs.Condition) {
-	if d.cond == nil {
-		d.cond = cond
-	} else {
-		d.cond = gs_cond.And(d.cond, cond)
-	}
-}
-
-// SetDependsOn 设置 bean 的间接依赖项。
-func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
-	d.depends = append(d.depends, selectors...)
-}
-
-// SetPrimary 设置 bean 为主版本。
-func (d *BeanDefinition) SetPrimary() {
-	d.primary = true
-}
-
-// validLifeCycleFunc 判断是否是合法的用于 bean 生命周期控制的函数，生命周期函数
-// 的要求：只能有一个入参并且必须是 bean 的类型，没有返回值或者只返回 error 类型值。
-func validLifeCycleFunc(fnType reflect.Type, beanValue reflect.Value) bool {
-	if !util.IsFuncType(fnType) {
+// validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
+func validLifeCycleFunc(fnType reflect.Type, beanType reflect.Type) bool {
+	if !util.IsFuncType(fnType) || fnType.NumIn() != 1 {
 		return false
 	}
-	if fnType.NumIn() != 1 || !util.HasReceiver(fnType, beanValue) {
+	if t := fnType.In(0); t.Kind() == reflect.Interface {
+		if !beanType.Implements(t) {
+			return false
+		}
+	} else if t != beanType {
 		return false
 	}
 	return util.ReturnNothing(fnType) || util.ReturnOnlyError(fnType)
 }
 
-// SetInit 设置 bean 的初始化函数。
-func (d *BeanDefinition) SetInit(fn interface{}) {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
+// Init returns the initialization function of the bean.
+func (d *BeanMetadata) Init() gs.BeanInitFunc {
+	return d.init
+}
+
+// SetInit sets the initialization function for the bean.
+func (d *BeanDefinition) SetInit(fn gs.BeanInitFunc) {
+	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
 		d.init = fn
 		return
 	}
-	panic(errors.New("init should be func(bean) or func(bean)error"))
+	panic("init should be func(bean) or func(bean)error")
 }
 
-// SetDestroy 设置 bean 的销毁函数。
-func (d *BeanDefinition) SetDestroy(fn interface{}) {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.Value()) {
+// Destroy returns the destruction function of the bean.
+func (d *BeanMetadata) Destroy() gs.BeanDestroyFunc {
+	return d.destroy
+}
+
+// SetDestroy sets the destruction function for the bean.
+func (d *BeanDefinition) SetDestroy(fn gs.BeanDestroyFunc) {
+	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
 		d.destroy = fn
 		return
 	}
-	panic(errors.New("destroy should be func(bean) or func(bean)error"))
+	panic("destroy should be func(bean) or func(bean)error")
 }
 
-// SetExport 设置 bean 的导出接口。
-func (d *BeanDefinition) SetExport(exports ...interface{}) {
-	for _, o := range exports {
-		t, ok := o.(reflect.Type)
-		if !ok {
-			t = reflect.TypeOf(o)
-			if t.Kind() == reflect.Ptr {
-				t = t.Elem()
-			}
-		}
+// DependsOn returns the list of dependencies for the bean.
+func (d *BeanMetadata) DependsOn() []gs.BeanSelectorInterface {
+	return d.dependsOn
+}
+
+// SetDependsOn sets the list of dependencies for the bean.
+func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelectorInterface) {
+	d.dependsOn = append(d.dependsOn, selectors...)
+}
+
+// Exports returns the list of exported types for the bean.
+func (d *BeanMetadata) Exports() []reflect.Type {
+	return d.exports
+}
+
+// SetExport sets the exported interfaces for the bean.
+func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
+	for _, t := range exports {
 		if t.Kind() != reflect.Interface {
-			panic(errors.New("only interface type can be exported"))
+			panic("only interface type can be exported")
 		}
 		exported := false
 		for _, export := range d.exports {
@@ -324,38 +161,159 @@ func (d *BeanDefinition) SetExport(exports ...interface{}) {
 	}
 }
 
+// Conditions returns the list of conditions for the bean.
+func (d *BeanMetadata) Conditions() []gs.Condition {
+	return d.conditions
+}
+
+// SetCondition adds a condition to the list of conditions for the bean.
+func (d *BeanDefinition) SetCondition(conditions ...gs.Condition) {
+	d.conditions = append(d.conditions, conditions...)
+}
+
+// ConfigurationBean returns whether the bean is a configuration bean.
+func (d *BeanMetadata) ConfigurationBean() bool {
+	return d.configurationBean
+}
+
+// ConfigurationParam returns the configuration parameters for the bean.
+func (d *BeanMetadata) ConfigurationParam() gs.ConfigurationParam {
+	return d.configurationParam
+}
+
+// SetConfiguration sets the configuration flag and parameters for the bean.
 func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
-	if len(param) > 0 {
-		d.configuration = param[0]
+	d.configurationBean = true
+	if len(param) == 0 {
+		return
 	}
-	d.configuration.Enable = true
+	x := param[0]
+	if len(x.Includes) > 0 {
+		d.configurationParam.Includes = x.Includes
+	}
+	if len(x.Excludes) > 0 {
+		d.configurationParam.Excludes = x.Excludes
+	}
 }
 
-func (d *BeanDefinition) SetEnableRefresh(tag string) {
+// Refreshable returns whether the bean is refreshable.
+func (d *BeanMetadata) Refreshable() bool {
+	return d.refreshable
+}
+
+// RefreshTag returns the refresh tag of the bean.
+func (d *BeanMetadata) RefreshTag() string {
+	return d.refreshTag
+}
+
+// SetRefreshable sets the refreshable flag and tag for the bean.
+func (d *BeanDefinition) SetRefreshable(tag string) {
 	if !d.Type().Implements(refreshableType) {
-		panic(errors.New("must implement dync.Refreshable interface"))
+		panic("must implement gs.Refreshable interface")
 	}
-	d.enableRefresh = true
-	err := d.refreshParam.BindTag(tag, "")
-	if err != nil {
-		panic(err)
-	}
+	d.refreshable = true
+	d.refreshTag = tag
 }
 
-// NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string, file string, line int) *BeanDefinition {
+// FileLine returns the file and line number for the bean.
+func (d *BeanMetadata) FileLine() (string, int) {
+	return d.file, d.line
+}
+
+// SetFileLine sets the file and line number for the bean.
+func (d *BeanDefinition) SetFileLine(file string, line int) {
+	d.file, d.line = file, line
+}
+
+// BeanRuntime holds runtime information about the bean.
+type BeanRuntime struct {
+	v    reflect.Value // The value of the bean.
+	t    reflect.Type  // The type of the bean.
+	name string        // The name of the bean.
+}
+
+// Name returns the name of the bean.
+func (d *BeanRuntime) Name() string {
+	return d.name
+}
+
+// Type returns the type of the bean.
+func (d *BeanRuntime) Type() reflect.Type {
+	return d.t
+}
+
+// Value returns the value of the bean as [reflect.Value].
+func (d *BeanRuntime) Value() reflect.Value {
+	return d.v
+}
+
+// Interface returns the underlying value of the bean.
+func (d *BeanRuntime) Interface() interface{} {
+	return d.v.Interface()
+}
+
+// Callable returns the callable for the bean.
+func (d *BeanRuntime) Callable() gs.Callable {
+	return nil
+}
+
+// Status returns the current status of the bean.
+func (d *BeanRuntime) Status() BeanStatus {
+	return StatusWired
+}
+
+// String returns a string representation of the bean.
+func (d *BeanRuntime) String() string {
+	return d.name
+}
+
+// BeanDefinition contains both metadata and runtime information of a bean.
+type BeanDefinition struct {
+	*BeanMetadata
+	*BeanRuntime
+}
+
+// NewBean creates a new bean definition.
+func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string) *BeanDefinition {
 	return &BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			f:      f,
-			file:   file,
-			line:   line,
-			status: Default,
+			status: StatusDefault,
 		},
 		BeanRuntime: &BeanRuntime{
-			t:        t,
-			v:        v,
-			name:     name,
-			typeName: util.TypeName(t),
+			t:    t,
+			v:    v,
+			name: name,
 		},
 	}
+}
+
+// Callable returns the callable for the bean.
+func (d *BeanDefinition) Callable() gs.Callable {
+	return d.f
+}
+
+// SetName sets the name of the bean.
+func (d *BeanDefinition) SetName(name string) {
+	d.name = name
+}
+
+// Status returns the current status of the bean.
+func (d *BeanDefinition) Status() BeanStatus {
+	return d.status
+}
+
+// SetStatus sets the current status of the bean.
+func (d *BeanMetadata) SetStatus(status BeanStatus) {
+	d.status = status
+}
+
+// TypeAndName returns the type and name of the bean.
+func (d *BeanDefinition) TypeAndName() (reflect.Type, string) {
+	return d.Type(), d.Name()
+}
+
+// String returns a string representation of the bean.
+func (d *BeanDefinition) String() string {
+	return fmt.Sprintf("name:%q %s:%d", d.name, d.file, d.line)
 }

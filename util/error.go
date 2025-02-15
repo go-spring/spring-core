@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package util
 
 import (
 	"errors"
-	"fmt"
 )
 
 // ForbiddenMethod throws this error when calling a method is prohibited.
@@ -26,34 +25,3 @@ var ForbiddenMethod = errors.New("forbidden method")
 
 // UnimplementedMethod throws this error when calling an unimplemented method.
 var UnimplementedMethod = errors.New("unimplemented method")
-
-var WrapFormat = func(err error, fileline string, msg string) error {
-	if err == nil {
-		return fmt.Errorf("%s %s", fileline, msg)
-	}
-	return fmt.Errorf("%s %s; %w", fileline, msg, err)
-}
-
-// Error returns an error with the file and line.
-// The file and line may be calculated at the compile time in the future.
-func Error(fileline string, text string) error {
-	return WrapFormat(nil, fileline, text)
-}
-
-// Errorf returns an error with the file and line.
-// The file and line may be calculated at the compile time in the future.
-func Errorf(fileline string, format string, a ...interface{}) error {
-	return WrapFormat(nil, fileline, fmt.Sprintf(format, a...))
-}
-
-// Wrap returns an error with the file and line.
-// The file and line may be calculated at the compile time in the future.
-func Wrap(err error, fileline string, text string) error {
-	return WrapFormat(err, fileline, text)
-}
-
-// Wrapf returns an error with the file and line.
-// The file and line may be calculated at the compile time in the future.
-func Wrapf(err error, fileline string, format string, a ...interface{}) error {
-	return WrapFormat(err, fileline, fmt.Sprintf(format, a...))
-}

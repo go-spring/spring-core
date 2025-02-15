@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,71 +14,101 @@
  * limitations under the License.
  */
 
-//go:generate mockgen -build_flags="-mod=mod" -package=cond -source=cond.go -destination=cond_mock.go
-
-// Package gs_cond provides many conditions used when registering bean.
+// Package gs_cond provides a set of conditions that can be used for evaluating and
+// combining logical conditions in a flexible way.
 package gs_cond
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/errutil"
 )
 
-type FuncCond func(ctx gs.CondContext) (bool, error)
+/********************************* OnFunc ************************************/
 
-func (c FuncCond) Matches(ctx gs.CondContext) (bool, error) {
-	return c(ctx)
+// onFunc is an implementation of [gs.Condition] that wraps a function.
+// It allows a condition to be evaluated based on the result of a function.
+type onFunc struct {
+	fn gs.CondFunc
 }
 
-// OK returns a Condition that always returns true.
-func OK() gs.Condition {
-	return FuncCond(func(ctx gs.CondContext) (bool, error) {
-		return true, nil
-	})
+// OnFunc creates a Conditional that evaluates using a custom function.
+func OnFunc(fn gs.CondFunc) gs.Condition {
+	return &onFunc{fn: fn}
 }
 
-// not is a Condition that negating to another.
-type not struct {
-	c gs.Condition
+func (c *onFunc) Matches(ctx gs.CondContext) (bool, error) {
+	ok, err := c.fn(ctx)
+	if err != nil {
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
+	}
+	return ok, nil
 }
 
-// Not returns a Condition that negating to another.
-func Not(c gs.Condition) gs.Condition {
-	return &not{c: c}
+func (c *onFunc) String() string {
+	_, _, fnName := util.FileLine(c.fn)
+	return fmt.Sprintf("OnFunc(fn=%s)", fnName)
 }
 
-func (c *not) Matches(ctx gs.CondContext) (bool, error) {
-	ok, err := c.c.Matches(ctx)
-	return !ok, err
+/******************************* OnProperty **********************************/
+
+// OnPropertyInterface defines the methods for evaluating a condition based on a property.
+// This interface provides flexibility for matching missing properties and checking their values.
+type OnPropertyInterface interface {
+	gs.Condition
+	MatchIfMissing() OnPropertyInterface
+	HavingValue(s string) OnPropertyInterface
 }
 
-// onProperty is a Condition that checks a property and its value.
+// onProperty evaluates a condition based on the existence and value of a property
+// in the context. It allows for complex matching behaviors such as matching missing
+// properties or evaluating expressions.
 type onProperty struct {
-	name           string
-	havingValue    string
-	matchIfMissing bool
+	name           string // The name of the property to check.
+	havingValue    string // The expected value or expression to match.
+	matchIfMissing bool   // Whether to match if the property is missing.
+}
+
+// OnProperty creates a condition based on the presence and value of a specified property.
+func OnProperty(name string) OnPropertyInterface {
+	return &onProperty{name: name}
+}
+
+// MatchIfMissing sets the condition to match if the property is missing.
+func (c *onProperty) MatchIfMissing() OnPropertyInterface {
+	c.matchIfMissing = true
+	return c
+}
+
+// HavingValue sets the expected value or expression to match.
+func (c *onProperty) HavingValue(s string) OnPropertyInterface {
+	c.havingValue = s
+	return c
 }
 
 func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 
+	// If the context doesn't have the property, handle accordingly.
 	if !ctx.Has(c.name) {
 		return c.matchIfMissing, nil
 	}
 
+	// If there's no expected value to match, simply return true (property exists).
 	if c.havingValue == "" {
 		return true, nil
 	}
 
+	// Retrieve the property's value and compare it with the expected value.
 	val := ctx.Prop(c.name)
 	if !strings.HasPrefix(c.havingValue, "expr:") {
 		return val == c.havingValue, nil
 	}
 
+	// If the expected value is an expression, evaluate it.
 	getValue := func(val string) interface{} {
 		if b, err := strconv.ParseBool(val); err == nil {
 			return b
@@ -94,88 +124,197 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 		}
 		return val
 	}
-	return evalExpr(c.havingValue[5:], getValue(val))
+
+	// Evaluate the expression and return the result.
+	ok, err := EvalExpr(c.havingValue[5:], getValue(val))
+	if err != nil {
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
+	}
+	return ok, nil
 }
 
-// onMissingProperty is a Condition that returns true when a property doesn't exist.
+func (c *onProperty) String() string {
+	var sb strings.Builder
+	sb.WriteString("OnProperty(name=")
+	sb.WriteString(c.name)
+	if c.havingValue != "" {
+		sb.WriteString(", havingValue=")
+		sb.WriteString(c.havingValue)
+	}
+	if c.matchIfMissing {
+		sb.WriteString(", matchIfMissing=true")
+	}
+	sb.WriteString(")")
+	return sb.String()
+}
+
+/*************************** OnMissingProperty *******************************/
+
+// onMissingProperty is a condition that matches when a specified property is
+// absent from the context.
 type onMissingProperty struct {
-	name string
+	name string // The name of the property to check for absence.
+}
+
+// OnMissingProperty creates a condition that matches if the specified property is missing.
+func OnMissingProperty(name string) gs.Condition {
+	return &onMissingProperty{name: name}
 }
 
 func (c *onMissingProperty) Matches(ctx gs.CondContext) (bool, error) {
 	return !ctx.Has(c.name), nil
 }
 
-// onBean is a Condition that returns true when finding more than one beans.
+func (c *onMissingProperty) String() string {
+	return fmt.Sprintf("OnMissingProperty(name=%s)", c.name)
+}
+
+/********************************* OnBean ************************************/
+
+// onBean checks for the existence of beans that match a selector.
+// It returns true if at least one bean matches the selector, and false otherwise.
 type onBean struct {
-	selector gs.BeanSelector
+	s gs.BeanSelectorInterface // The selector used to match beans in the context.
+}
+
+// OnBean creates a condition that evaluates to true if at least one bean matches the provided selector.
+func OnBean(s gs.BeanSelectorInterface) gs.Condition {
+	return &onBean{s: s}
 }
 
 func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
-	beans, err := ctx.Find(c.selector)
-	return len(beans) > 0, err
+	beans, err := ctx.Find(c.s)
+	if err != nil {
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
+	}
+	return len(beans) > 0, nil
 }
 
-// onMissingBean is a Condition that returns true when finding no beans.
+func (c *onBean) String() string {
+	return fmt.Sprintf("OnBean(selector=%s)", c.s)
+}
+
+/***************************** OnMissingBean *********************************/
+
+// onMissingBean checks for the absence of beans matching a selector.
+// It returns true if no beans match the selector, and false otherwise.
 type onMissingBean struct {
-	selector gs.BeanSelector
+	s gs.BeanSelectorInterface // The selector used to find beans.
+}
+
+// OnMissingBean creates a condition that evaluates to true if no beans match the provided selector.
+func OnMissingBean(s gs.BeanSelectorInterface) gs.Condition {
+	return &onMissingBean{s: s}
 }
 
 func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
-	beans, err := ctx.Find(c.selector)
-	return len(beans) == 0, err
+	beans, err := ctx.Find(c.s)
+	if err != nil {
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
+	}
+	return len(beans) == 0, nil
 }
 
-// onSingleBean is a Condition that returns true when finding only one bean.
+func (c *onMissingBean) String() string {
+	return fmt.Sprintf("OnMissingBean(selector=%s)", c.s)
+}
+
+/***************************** OnSingleBean **********************************/
+
+// onSingleBean checks if exactly one matching bean exists in the context.
+// It returns true if exactly one bean matches the selector, and false otherwise.
 type onSingleBean struct {
-	selector gs.BeanSelector
+	s gs.BeanSelectorInterface // The selector used to find beans.
+}
+
+// OnSingleBean creates a condition that evaluates to true if exactly one bean matches the provided selector.
+func OnSingleBean(s gs.BeanSelectorInterface) gs.Condition {
+	return &onSingleBean{s: s}
 }
 
 func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
-	beans, err := ctx.Find(c.selector)
-	return len(beans) == 1, err
+	beans, err := ctx.Find(c.s)
+	if err != nil {
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
+	}
+	return len(beans) == 1, nil
 }
 
-// onExpression is a Condition that returns true when an expression returns true.
+func (c *onSingleBean) String() string {
+	return fmt.Sprintf("OnSingleBean(selector=%s)", c.s)
+}
+
+/***************************** OnExpression **********************************/
+
+// onExpression evaluates a custom expression within the context. The expression should
+// return true or false, and the evaluation is expected to happen within the context.
 type onExpression struct {
-	expression string
+	expression string // The string expression to evaluate.
+}
+
+// OnExpression creates a condition that evaluates based on a custom string expression.
+// The expression is expected to return true or false.
+func OnExpression(expression string) gs.Condition {
+	return &onExpression{expression: expression}
 }
 
 func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
-	return false, util.UnimplementedMethod
+	err := util.UnimplementedMethod
+	return false, errutil.WrapError(err, "condition matches error: %s", c)
 }
 
-// Operator defines operation between conditions, including Or、And、None.
-type Operator int
-
-const (
-	opOr   = Operator(iota) // at least one of the conditions must be met.
-	opAnd                   // all conditions must be met.
-	opNone                  // all conditions must be not met.
-)
-
-// group is a Condition implemented by operation of Condition(s).
-type group struct {
-	op   Operator
-	cond []gs.Condition
+func (c *onExpression) String() string {
+	return fmt.Sprintf("OnExpression(expression=%s)", c.expression)
 }
 
-func Or(cond ...gs.Condition) gs.Condition {
-	return &group{op: opOr, cond: cond}
+/********************************** Not ***************************************/
+
+// onNot is a condition that negates another condition. It returns true if the wrapped
+// condition evaluates to false, and false if the wrapped condition evaluates to true.
+type onNot struct {
+	c gs.Condition // The condition to negate.
 }
 
-func And(cond ...gs.Condition) gs.Condition {
-	return &group{op: opAnd, cond: cond}
+// Not creates a condition that inverts the result of the provided condition.
+func Not(c gs.Condition) gs.Condition {
+	return &onNot{c: c}
 }
 
-func None(cond ...gs.Condition) gs.Condition {
-	return &group{op: opNone, cond: cond}
+func (c *onNot) Matches(ctx gs.CondContext) (bool, error) {
+	ok, err := c.c.Matches(ctx)
+	if err != nil {
+		return false, errutil.WrapError(err, "condition matches error: %s", c)
+	}
+	return !ok, nil
 }
 
-func (g *group) matchesOr(ctx gs.CondContext) (bool, error) {
-	for _, c := range g.cond {
+func (c *onNot) String() string {
+	return fmt.Sprintf("Not(%s)", c.c)
+}
+
+/********************************** Or ***************************************/
+
+// onOr is a condition that combines multiple conditions with an OR operator.
+// It evaluates to true if at least one condition is satisfied.
+type onOr struct {
+	conditions []gs.Condition // The list of conditions to evaluate with OR.
+}
+
+// Or combines multiple conditions with an OR operator, returning true if at
+// least one condition is satisfied.
+func Or(conditions ...gs.Condition) gs.Condition {
+	if n := len(conditions); n == 0 {
+		return nil
+	} else if n == 1 {
+		return conditions[0]
+	}
+	return &onOr{conditions: conditions}
+}
+
+func (g *onOr) Matches(ctx gs.CondContext) (bool, error) {
+	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
-			return false, err
+			return false, errutil.WrapError(err, "condition matches error: %s", g)
 		} else if ok {
 			return true, nil
 		}
@@ -183,10 +322,34 @@ func (g *group) matchesOr(ctx gs.CondContext) (bool, error) {
 	return false, nil
 }
 
-func (g *group) matchesAnd(ctx gs.CondContext) (bool, error) {
-	for _, c := range g.cond {
-		if ok, err := c.Matches(ctx); err != nil {
-			return false, err
+func (g *onOr) String() string {
+	return FormatGroup("Or", g.conditions)
+}
+
+/********************************* And ***************************************/
+
+// onAnd is a condition that combines multiple conditions with an AND operator.
+// It evaluates to true only if all conditions are satisfied.
+type onAnd struct {
+	conditions []gs.Condition // The list of conditions to evaluate with AND.
+}
+
+// And combines multiple conditions with an AND operator, returning true if
+// all conditions are satisfied.
+func And(conditions ...gs.Condition) gs.Condition {
+	if n := len(conditions); n == 0 {
+		return nil
+	} else if n == 1 {
+		return conditions[0]
+	}
+	return &onAnd{conditions: conditions}
+}
+
+func (g *onAnd) Matches(ctx gs.CondContext) (bool, error) {
+	for _, c := range g.conditions {
+		ok, err := c.Matches(ctx)
+		if err != nil {
+			return false, errutil.WrapError(err, "condition matches error: %s", g)
 		} else if !ok {
 			return false, nil
 		}
@@ -194,10 +357,33 @@ func (g *group) matchesAnd(ctx gs.CondContext) (bool, error) {
 	return true, nil
 }
 
-func (g *group) matchesNone(ctx gs.CondContext) (bool, error) {
-	for _, c := range g.cond {
+func (g *onAnd) String() string {
+	return FormatGroup("And", g.conditions)
+}
+
+/********************************** None *************************************/
+
+// onNone is a condition that combines multiple conditions with a NONE operator.
+// It evaluates to true only if none of the conditions are satisfied.
+type onNone struct {
+	conditions []gs.Condition // The list of conditions to evaluate with NONE.
+}
+
+// None combines multiple conditions with a NONE operator, returning true if
+// none of the conditions are satisfied.
+func None(conditions ...gs.Condition) gs.Condition {
+	if n := len(conditions); n == 0 {
+		return nil
+	} else if n == 1 {
+		return Not(conditions[0])
+	}
+	return &onNone{conditions: conditions}
+}
+
+func (g *onNone) Matches(ctx gs.CondContext) (bool, error) {
+	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
-			return false, err
+			return false, errutil.WrapError(err, "condition matches error: %s", g)
 		} else if ok {
 			return false, nil
 		}
@@ -205,220 +391,23 @@ func (g *group) matchesNone(ctx gs.CondContext) (bool, error) {
 	return true, nil
 }
 
-// Matches evaluates the group of conditions based on the specified operator.
-// - If the operator is Or, it returns true if at least one condition is satisfied.
-// - If the operator is And, it returns true if all conditions are satisfied.
-// - If the operator is None, it returns true if none of the conditions are satisfied.
-func (g *group) Matches(ctx gs.CondContext) (bool, error) {
-	if len(g.cond) == 0 {
-		return false, errors.New("no conditions in group")
-	}
-	switch g.op {
-	case opOr:
-		return g.matchesOr(ctx)
-	case opAnd:
-		return g.matchesAnd(ctx)
-	case opNone:
-		return g.matchesNone(ctx)
-	default:
-		return false, fmt.Errorf("error condition operator %d", g.op)
-	}
+func (g *onNone) String() string {
+	return FormatGroup("None", g.conditions)
 }
 
-// node is a Condition implemented by link of Condition(s).
-type node struct {
-	cond gs.Condition
-	op   Operator
-	next *node
-}
+/******************************* utilities ***********************************/
 
-func (n *node) Matches(ctx gs.CondContext) (bool, error) {
-
-	if n.cond == nil {
-		return true, nil
-	}
-
-	ok, err := n.cond.Matches(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	if n.next == nil {
-		return ok, nil
-	} else if n.next.cond == nil {
-		return false, errors.New("no condition in last node")
-	}
-
-	switch n.op {
-	case opOr:
-		if ok {
-			return ok, nil
-		} else {
-			return n.next.Matches(ctx)
+// FormatGroup generates a formatted string for a group of conditions (AND, OR, NONE).
+func FormatGroup(op string, conditions []gs.Condition) string {
+	var sb strings.Builder
+	sb.WriteString(op)
+	sb.WriteString("(")
+	for i, c := range conditions {
+		if i > 0 {
+			sb.WriteString(", ")
 		}
-	case opAnd:
-		if ok {
-			return n.next.Matches(ctx)
-		} else {
-			return false, nil
-		}
+		sb.WriteString(fmt.Sprint(c))
 	}
-
-	return false, fmt.Errorf("error condition operator %d", n.op)
-}
-
-// Conditional is a Condition implemented by link of Condition(s).
-type Conditional struct {
-	head *node
-	curr *node
-}
-
-// New returns a Condition implemented by link of Condition(s).
-func New() *Conditional {
-	n := &node{}
-	return &Conditional{head: n, curr: n}
-}
-
-func (c *Conditional) Matches(ctx gs.CondContext) (bool, error) {
-	return c.head.Matches(ctx)
-}
-
-// Or sets a Or operator.
-func (c *Conditional) Or() *Conditional {
-	n := &node{}
-	c.curr.op = opOr
-	c.curr.next = n
-	c.curr = n
-	return c
-}
-
-// And sets a And operator.
-func (c *Conditional) And() *Conditional {
-	n := &node{}
-	c.curr.op = opAnd
-	c.curr.next = n
-	c.curr = n
-	return c
-}
-
-// On returns a Conditional that starts with one Condition.
-func On(cond gs.Condition) *Conditional {
-	return New().On(cond)
-}
-
-// On adds one Condition.
-func (c *Conditional) On(cond gs.Condition) *Conditional {
-	if c.curr.cond != nil {
-		c.And()
-	}
-	c.curr.cond = cond
-	return c
-}
-
-type PropertyOption func(*onProperty)
-
-// MatchIfMissing sets a Condition to return true when property doesn't exist.
-func MatchIfMissing() PropertyOption {
-	return func(c *onProperty) {
-		c.matchIfMissing = true
-	}
-}
-
-// HavingValue sets a Condition to return true when property value equals to havingValue.
-func HavingValue(havingValue string) PropertyOption {
-	return func(c *onProperty) {
-		c.havingValue = havingValue
-	}
-}
-
-// OnProperty returns a Conditional that starts with a Condition that checks a property
-// and its value.
-func OnProperty(name string, options ...PropertyOption) *Conditional {
-	return New().OnProperty(name, options...)
-}
-
-// OnProperty adds a Condition that checks a property and its value.
-func (c *Conditional) OnProperty(name string, options ...PropertyOption) *Conditional {
-	cond := &onProperty{name: name}
-	for _, option := range options {
-		option(cond)
-	}
-	return c.On(cond)
-}
-
-// OnMissingProperty returns a Conditional that starts with a Condition that returns
-// true when property doesn't exist.
-func OnMissingProperty(name string) *Conditional {
-	return New().OnMissingProperty(name)
-}
-
-// OnMissingProperty adds a Condition that returns true when property doesn't exist.
-func (c *Conditional) OnMissingProperty(name string) *Conditional {
-	return c.On(&onMissingProperty{name: name})
-}
-
-// OnBean returns a Conditional that starts with a Condition that returns true when
-// finding more than one beans.
-func OnBean(selector gs.BeanSelector) *Conditional {
-	return New().OnBean(selector)
-}
-
-// OnBean adds a Condition that returns true when finding more than one beans.
-func (c *Conditional) OnBean(selector gs.BeanSelector) *Conditional {
-	return c.On(&onBean{selector: selector})
-}
-
-// OnMissingBean returns a Conditional that starts with a Condition that returns
-// true when finding no beans.
-func OnMissingBean(selector gs.BeanSelector) *Conditional {
-	return New().OnMissingBean(selector)
-}
-
-// OnMissingBean adds a Condition that returns true when finding no beans.
-func (c *Conditional) OnMissingBean(selector gs.BeanSelector) *Conditional {
-	return c.On(&onMissingBean{selector: selector})
-}
-
-// OnSingleBean returns a Conditional that starts with a Condition that returns
-// true when finding only one bean.
-func OnSingleBean(selector gs.BeanSelector) *Conditional {
-	return New().OnSingleBean(selector)
-}
-
-// OnSingleBean adds a Condition that returns true when finding only one bean.
-func (c *Conditional) OnSingleBean(selector gs.BeanSelector) *Conditional {
-	return c.On(&onSingleBean{selector: selector})
-}
-
-// OnExpression returns a Conditional that starts with a Condition that returns
-// true when an expression returns true.
-func OnExpression(expression string) *Conditional {
-	return New().OnExpression(expression)
-}
-
-// OnExpression adds a Condition that returns true when an expression returns true.
-func (c *Conditional) OnExpression(expression string) *Conditional {
-	return c.On(&onExpression{expression: expression})
-}
-
-// OnMatches returns a Conditional that starts with a Condition that returns true
-// when function returns true.
-func OnMatches(fn func(ctx gs.CondContext) (bool, error)) *Conditional {
-	return New().OnMatches(fn)
-}
-
-// OnMatches adds a Condition that returns true when function returns true.
-func (c *Conditional) OnMatches(fn func(ctx gs.CondContext) (bool, error)) *Conditional {
-	return c.On(FuncCond(fn))
-}
-
-// OnProfile returns a Conditional that starts with a Condition that returns true
-// when property value equals to profile.
-func OnProfile(profile string) *Conditional {
-	return New().OnProfile(profile)
-}
-
-// OnProfile adds a Condition that returns true when property value equals to profile.
-func (c *Conditional) OnProfile(profile string) *Conditional {
-	return c.OnProperty("spring.profiles.active", HavingValue(profile))
+	sb.WriteString(")")
+	return sb.String()
 }

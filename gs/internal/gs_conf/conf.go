@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/conf/sysconf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/sysconf"
 )
 
 /******************************** AppConfig **********************************/
@@ -185,7 +185,7 @@ func (p *PropertySources) getDefaultLocations(resolver *conf.Properties) (_ []st
 
 	var configDir string
 	if p.configType == ConfigTypeLocal {
-		configDir, err = resolver.Resolve("${spring.application.config.dir:=./conf}")
+		configDir, err = resolver.Resolve("${spring.app.config.dir:=./conf}")
 	} else if p.configType == ConfigTypeRemote {
 		configDir, err = resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
 	} else {

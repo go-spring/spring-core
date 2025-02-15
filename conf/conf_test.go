@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 the original author or authors.
+ * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,29 +87,29 @@ func TestProperties_Get(t *testing.T) {
 		assert.False(t, p.Has("NULL"))
 		assert.Equal(t, p.Get("NULL"), "")
 
-		v = p.Get("NULL", conf.Def("OK"))
+		v = p.Get("NULL", "OK")
 		assert.Equal(t, v, "OK")
 
 		v = p.Get("Int")
 		assert.Equal(t, v, "3")
 
 		var v2 int
-		err = p.Bind(&v2, conf.Key("Int"))
+		err = p.Bind(&v2, "${Int}")
 		assert.Nil(t, err)
 		assert.Equal(t, v2, 3)
 
 		var u2 uint
-		err = p.Bind(&u2, conf.Key("Uint"))
+		err = p.Bind(&u2, "${Uint}")
 		assert.Nil(t, err)
 		assert.Equal(t, u2, uint(3))
 
 		var u3 uint32
-		err = p.Bind(&u3, conf.Key("Uint"))
+		err = p.Bind(&u3, "${Uint}")
 		assert.Nil(t, err)
 		assert.Equal(t, u3, uint32(3))
 
 		var f2 float32
-		err = p.Bind(&f2, conf.Key("Float"))
+		err = p.Bind(&f2, "${Float}")
 		assert.Nil(t, err)
 		assert.Equal(t, f2, float32(3))
 
@@ -118,7 +118,7 @@ func TestProperties_Get(t *testing.T) {
 		assert.Equal(t, b, true)
 
 		var b2 bool
-		err = p.Bind(&b2, conf.Key("Bool"))
+		err = p.Bind(&b2, "${Bool}")
 		assert.Nil(t, err)
 		assert.Equal(t, b2, true)
 
@@ -146,12 +146,12 @@ func TestProperties_Get(t *testing.T) {
 		assert.Equal(t, d, time.Second*3)
 
 		var ti time.Time
-		err = p.Bind(&ti, conf.Key("Time"))
+		err = p.Bind(&ti, "${Time}")
 		assert.Nil(t, err)
 		assert.Equal(t, ti, time.Date(2020, 02, 04, 20, 02, 04, 0, time.UTC))
 
 		var ss2 []string
-		err = p.Bind(&ss2, conf.Key("StringSlice"))
+		err = p.Bind(&ss2, "${StringSlice}")
 		assert.Nil(t, err)
 		assert.Equal(t, ss2, []string{"3", "4"})
 	})
@@ -200,7 +200,7 @@ func TestProperties_Ref(t *testing.T) {
 	t.Run("not config", func(t *testing.T) {
 		p := conf.New()
 		err := p.Bind(&httpLog)
-		assert.Error(t, err, "property \\\"app.dir\\\" not exist")
+		assert.Error(t, err, "property key=app.dir not exist")
 	})
 
 	t.Run("config", func(t *testing.T) {
@@ -240,7 +240,7 @@ func TestBindSlice(t *testing.T) {
 	p := conf.New()
 	p.Set("a", []string{"1", "2"})
 	var ss []string
-	err := p.Bind(&ss, conf.Key("a"))
+	err := p.Bind(&ss, "${a}")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,19 +252,19 @@ func TestBindMap(t *testing.T) {
 	t.Run("", func(t *testing.T) {
 		var r [3]map[string]string
 		err := conf.New().Bind(&r)
-		assert.Error(t, err, ".*bind.go:.* bind \\[3]map\\[string]string error, target should be value type")
+		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
 		var r []map[string]string
 		err := conf.New().Bind(&r)
-		assert.Error(t, err, ".*bind.go:.* bind \\[]map\\[string]string error, target should be value type")
+		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
 		var r map[string]map[string]string
 		err := conf.New().Bind(&r)
-		assert.Error(t, err, ".*bind.go:.* bind map\\[string]map\\[string]string error, target should be value type")
+		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
 	m := map[string]interface{}{
@@ -277,36 +277,27 @@ func TestBindMap(t *testing.T) {
 	}
 
 	t.Run("", func(t *testing.T) {
-		type S struct {
-			M [3]map[string]string `value:"${}"`
-		}
-		var r map[string]S
+		var r map[string][3]map[string]string
 		p, err := conf.Map(m)
 		assert.Nil(t, err)
 		err = p.Bind(&r)
-		assert.Error(t, err, ".*bind.go:.* bind map\\[string]conf_test.S.M error, target should be value type")
+		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
-		type S struct {
-			M []map[string]string `value:"${}"`
-		}
-		var r map[string]S
+		var r map[string][]map[string]string
 		p, err := conf.Map(m)
 		assert.Nil(t, err)
 		err = p.Bind(&r)
-		assert.Error(t, err, ".*bind.go:.* bind map\\[string]conf_test.S.M error, target should be value type")
+		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
-		type S struct {
-			M map[string]map[string]string `value:"${}"`
-		}
-		var r map[string]S
+		var r map[string]map[string]map[string]string
 		p, err := conf.Map(m)
 		assert.Nil(t, err)
 		err = p.Bind(&r)
-		assert.Error(t, err, ".*bind.go:.* bind map\\[string]conf_test.S.M error, target should be value type")
+		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
@@ -327,7 +318,7 @@ func TestBindMap(t *testing.T) {
 		assert.Nil(t, err)
 		var r map[string]string
 		err = p.Bind(&r)
-		assert.Error(t, err, ".*bind.go:.* bind map\\[string]string error, .*bind.go:.* resolve property \"a\" error, property \"a\" isn't simple value")
+		assert.Error(t, err, "bind path=map\\[string]string type=string error << property key=a isn't simple value")
 	})
 
 	t.Run("", func(t *testing.T) {
@@ -341,7 +332,7 @@ func TestBindMap(t *testing.T) {
 		})
 		assert.Nil(t, err)
 		err = p.Bind(&r)
-		assert.Error(t, err, ".*bind.go:.* bind S error, .*bind.go:.* bind S.A error, property 'a' is value")
+		assert.Error(t, err, "bind path=S\\.A type=map\\[string]string error << property 'a' is value")
 	})
 
 	t.Run("", func(t *testing.T) {
@@ -362,7 +353,7 @@ func TestResolve(t *testing.T) {
 	err := p.Set("name", "Jim")
 	assert.Nil(t, err)
 	_, err = p.Resolve("my name is ${name")
-	assert.Error(t, err, ".*bind.go:.* resolve string \"my name is \\${name\" error, invalid syntax")
+	assert.Error(t, err, "resolve string \"my name is \\${name\" error: invalid syntax")
 	str, _ := p.Resolve("my name is ${name}")
 	assert.Equal(t, str, "my name is Jim")
 	str, _ = p.Resolve("my name is ${name}${name}")
@@ -398,7 +389,7 @@ func TestProperties_Set(t *testing.T) {
 		p := conf.New()
 		err := p.Set("m", nil)
 		assert.Nil(t, err)
-		assert.True(t, p.Has("m"))
+		assert.False(t, p.Has("m"))
 		assert.Equal(t, p.Get("m"), "")
 
 		err = p.Set("m", map[string]string{"a": "b"})
@@ -427,7 +418,7 @@ func TestProperties_Set(t *testing.T) {
 		p := conf.New()
 		err := p.Set("a", nil)
 		assert.Nil(t, err)
-		assert.True(t, p.Has("a"))
+		assert.False(t, p.Has("a"))
 		assert.Equal(t, p.Get("a"), "")
 		err = p.Set("a", []string{"b"})
 		assert.Nil(t, err)
@@ -491,7 +482,7 @@ func TestSplitter(t *testing.T) {
 	conf.RegisterConverter(PointConverter)
 	conf.RegisterSplitter("PointSplitter", PointSplitter)
 	var points []image.Point
-	err := conf.New().Bind(&points, conf.Tag("${:=(1,2)(3,4)}>>PointSplitter"))
+	err := conf.New().Bind(&points, "${:=(1,2)(3,4)}>>PointSplitter")
 	assert.Nil(t, err)
 	assert.Equal(t, points, []image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
 }
