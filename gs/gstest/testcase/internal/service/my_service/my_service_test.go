@@ -17,11 +17,15 @@
 package my_service_test
 
 import (
+	"context"
 	"os"
+	"sort"
 	"testing"
 
+	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/gstest"
 	"github.com/go-spring/spring-core/gs/gstest/testcase/internal/service/my_service"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestMain(m *testing.M) {
@@ -32,12 +36,42 @@ func TestMain(m *testing.M) {
 	os.Exit(gstest.Run(m))
 }
 
-func TestService(t *testing.T) {
-	var s *my_service.Service
-	if err := gstest.Get(&s); err != nil {
-		t.Fatal(err)
+func TestProp(t *testing.T) {
+	assert.True(t, sort.SearchStrings(gstest.Keys(), "spring.app.name") > 0)
+	assert.True(t, gstest.Has("spring.app.name"))
+	subKeys, err := gstest.SubKeys("spring")
+	assert.Nil(t, err)
+	assert.Equal(t, subKeys, []string{"app", "force-autowire-is-nullable"})
+	assert.Equal(t, gstest.Prop("spring.app.name"), "test_app")
+	str, err := gstest.Resolve("my_${spring.app.name}")
+	assert.Nil(t, err)
+	assert.Equal(t, str, "my_test_app")
+	var s string
+	err = gstest.Bind(&s, "${spring.app.name}")
+	assert.Nil(t, err)
+	assert.Equal(t, s, "test_app")
+}
+
+func TestBean(t *testing.T) {
+	{
+		var s *my_service.Service
+		assert.Nil(t, gstest.Get(&s))
+		assert.Nil(t, s.DoB(t.Context()))
 	}
-	if err := s.DoB(t.Context()); err != nil {
-		t.Fatal(err)
+	{
+		var s struct {
+			Service *my_service.Service `autowire:""`
+		}
+		_, err := gstest.Wire(&s)
+		assert.Nil(t, err)
+		assert.Nil(t, s.Service.DoB(t.Context()))
+		assert.Panic(t, func() { _ = s.Service.DoA(t.Context()) }, "ModelA is nil")
+	}
+	{
+		_, err := gstest.Invoke(func(ctx context.Context, s *my_service.Service) error {
+			assert.Panic(t, func() { _ = s.DoA(ctx) }, "ModelA is nil")
+			return s.DoB(ctx)
+		}, gs.ValueArg(t.Context()))
+		assert.Nil(t, err)
 	}
 }

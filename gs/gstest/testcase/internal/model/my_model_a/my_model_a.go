@@ -32,5 +32,5 @@ type ModelA struct {
 }
 
 func (m *ModelA) Do(ctx context.Context) error {
-	return nil
+	panic("ModelA is nil")
 }

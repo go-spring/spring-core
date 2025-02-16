@@ -36,8 +36,9 @@ func Init() error {
 
 // Run executes test cases and ensures shutdown of the app context.
 func Run(m *testing.M) (code int) {
-	defer func() { gs.Stop() }()
-	return m.Run()
+	code = m.Run()
+	gs.Stop()
+	return code
 }
 
 // Keys retrieves all the property keys.
