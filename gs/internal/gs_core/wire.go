@@ -831,7 +831,9 @@ func (c *Container) wireStructField(v reflect.Value, str string, stack *WiringSt
 		if err != nil {
 			return err
 		}
-		v.Set(b.Value())
+		if b != nil {
+			v.Set(b.Value())
+		}
 		return nil
 	}
 }

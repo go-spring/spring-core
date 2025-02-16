@@ -36,6 +36,7 @@ import (
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/goutil"
 	"github.com/go-spring/spring-core/util/syslog"
+	"github.com/spf13/cast"
 )
 
 type refreshState int
@@ -176,6 +177,9 @@ func (c *Container) Refresh() (err error) {
 	}
 
 	c.state = Refreshing
+
+	c.AllowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
+	c.ForceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
 	beansById, err := c.resolving.Refresh()
 	if err != nil {

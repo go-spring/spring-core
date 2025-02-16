@@ -34,7 +34,7 @@ type TagArg struct {
 }
 
 // Tag creates a TagArg with the given tag.
-func Tag(tag string) TagArg {
+func Tag(tag string) gs.Arg {
 	return TagArg{Tag: tag}
 }
 
@@ -71,7 +71,7 @@ type IndexArg struct {
 }
 
 // Index creates an IndexArg with the given index and argument.
-func Index(n int, arg gs.Arg) IndexArg {
+func Index(n int, arg gs.Arg) gs.Arg {
 	return IndexArg{Idx: n, Arg: arg}
 }
 
@@ -86,12 +86,12 @@ type ValueArg struct {
 }
 
 // Nil returns a ValueArg with a value of nil.
-func Nil() ValueArg {
+func Nil() gs.Arg {
 	return ValueArg{v: nil}
 }
 
 // Value returns a ValueArg with the specified value.
-func Value(v interface{}) ValueArg {
+func Value(v interface{}) gs.Arg {
 	return ValueArg{v: v}
 }
 

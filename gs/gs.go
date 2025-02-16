@@ -41,22 +41,22 @@ const (
 type Arg = gs.Arg
 
 // TagArg returns a TagArg with the specified tag.
-func TagArg(tag string) gs_arg.TagArg {
+func TagArg(tag string) Arg {
 	return gs_arg.TagArg{Tag: tag}
 }
 
 // NilArg returns a ValueArg with a nil value.
-func NilArg() gs_arg.ValueArg {
+func NilArg() Arg {
 	return gs_arg.Nil()
 }
 
 // ValueArg returns a ValueArg with the specified value.
-func ValueArg(v interface{}) gs_arg.ValueArg {
+func ValueArg(v interface{}) Arg {
 	return gs_arg.Value(v)
 }
 
 // IndexArg returns an IndexArg with the specified index and argument.
-func IndexArg(n int, arg Arg) gs_arg.IndexArg {
+func IndexArg(n int, arg Arg) Arg {
 	return gs_arg.Index(n, arg)
 }
 
@@ -73,7 +73,6 @@ func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
 /************************************ cond ***********************************/
 
 type (
-	CondBean    = gs.CondBean
 	CondFunc    = gs.CondFunc
 	Condition   = gs.Condition
 	CondContext = gs.CondContext
