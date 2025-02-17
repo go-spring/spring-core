@@ -17,8 +17,6 @@
 package my_service
 
 import (
-	"context"
-
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/gstest/testcase/internal/model/my_model_a"
 	"github.com/go-spring/spring-core/gs/gstest/testcase/internal/model/my_model_b"
@@ -31,12 +29,4 @@ func init() {
 type Service struct {
 	ModelA *my_model_a.ModelA `autowire:""`
 	ModelB *my_model_b.ModelB `autowire:""`
-}
-
-func (s *Service) DoA(ctx context.Context) error {
-	return s.ModelA.Do(ctx)
-}
-
-func (s *Service) DoB(ctx context.Context) error {
-	return s.ModelB.Do(ctx)
 }

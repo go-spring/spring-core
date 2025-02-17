@@ -17,8 +17,6 @@
 package my_model_b
 
 import (
-	"context"
-
 	"github.com/go-spring/spring-core/gs"
 )
 
@@ -27,8 +25,5 @@ func init() {
 }
 
 type ModelB struct {
-}
-
-func (m *ModelB) Do(ctx context.Context) error {
-	return nil
+	Value string `value:"${my_model_b.value:=456}"`
 }

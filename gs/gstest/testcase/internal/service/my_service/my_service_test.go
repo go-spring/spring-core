@@ -17,7 +17,6 @@
 package my_service_test
 
 import (
-	"context"
 	"os"
 	"sort"
 	"testing"
@@ -56,7 +55,8 @@ func TestBean(t *testing.T) {
 	{
 		var s *my_service.Service
 		assert.Nil(t, gstest.Get(&s))
-		assert.Nil(t, s.DoB(t.Context()))
+		assert.Nil(t, s.ModelA)
+		assert.Equal(t, s.ModelB.Value, "456")
 	}
 	{
 		var s struct {
@@ -64,14 +64,17 @@ func TestBean(t *testing.T) {
 		}
 		_, err := gstest.Wire(&s)
 		assert.Nil(t, err)
-		assert.Nil(t, s.Service.DoB(t.Context()))
-		assert.Panic(t, func() { _ = s.Service.DoA(t.Context()) }, "ModelA is nil")
+		assert.Nil(t, s.Service.ModelA)
+		assert.Equal(t, s.Service.ModelB.Value, "456")
 	}
 	{
-		_, err := gstest.Invoke(func(ctx context.Context, s *my_service.Service) error {
-			assert.Panic(t, func() { _ = s.DoA(ctx) }, "ModelA is nil")
-			return s.DoB(ctx)
-		}, gs.ValueArg(t.Context()))
+		ret, err := gstest.Invoke(func(i int, s *my_service.Service) error {
+			assert.Equal(t, i, 1000)
+			assert.Nil(t, s.ModelA)
+			assert.Equal(t, s.ModelB.Value, "456")
+			return nil
+		}, gs.ValueArg(1000))
 		assert.Nil(t, err)
+		assert.Equal(t, len(ret), 0)
 	}
 }

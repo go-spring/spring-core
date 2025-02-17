@@ -17,8 +17,6 @@
 package my_model_a
 
 import (
-	"context"
-
 	"github.com/go-spring/spring-core/gs"
 )
 
@@ -29,8 +27,5 @@ func init() {
 }
 
 type ModelA struct {
-}
-
-func (m *ModelA) Do(ctx context.Context) error {
-	panic("ModelA is nil")
+	Value string `value:"${my_model_a.value:=123}"`
 }
