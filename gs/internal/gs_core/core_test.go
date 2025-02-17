@@ -2936,10 +2936,6 @@ func (c *ConfigurationBean) NewChild() *ChildBean {
 	return &ChildBean{c.s}
 }
 
-func (c *ConfigurationBean) NewBean() *gs.BeanDefinition {
-	return gs_core.NewBean(&ChildBean{"100"}).Name("100")
-}
-
 func TestConfiguration(t *testing.T) {
 	c := gs_core.New()
 	c.Object(&ConfigurationBean{"123"}).Configuration(gs.ConfigurationParam{Excludes: []string{"NewBean"}}).Name("123")
@@ -2960,10 +2956,4 @@ func TestConfiguration(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, b.s, "456")
-	var i *ChildBean
-	err = ctx.GSContext.Get(&i, "100")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, i.s, "100")
 }
