@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package my_service_test
+package testcase_test
 
 import (
 	"os"
@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/gstest"
-	"github.com/go-spring/spring-core/gs/gstest/testcase/internal/service/my_service"
+	"github.com/go-spring/spring-core/gs/testcase/service/my_service"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
@@ -57,6 +57,8 @@ func TestBean(t *testing.T) {
 		assert.Nil(t, gstest.Get(&s))
 		assert.Nil(t, s.ModelA)
 		assert.Equal(t, s.ModelB.Value, "456")
+		assert.Equal(t, s.AppName, "test_app")
+		assert.Equal(t, s.SvrName, "svr_test")
 	}
 	{
 		var s struct {
@@ -66,12 +68,16 @@ func TestBean(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Nil(t, s.Service.ModelA)
 		assert.Equal(t, s.Service.ModelB.Value, "456")
+		assert.Equal(t, s.Service.AppName, "test_app")
+		assert.Equal(t, s.Service.SvrName, "svr_test")
 	}
 	{
 		ret, err := gstest.Invoke(func(i int, s *my_service.Service) error {
 			assert.Equal(t, i, 1000)
 			assert.Nil(t, s.ModelA)
 			assert.Equal(t, s.ModelB.Value, "456")
+			assert.Equal(t, s.AppName, "test_app")
+			assert.Equal(t, s.SvrName, "svr_test")
 			return nil
 		}, gs.ValueArg(1000))
 		assert.Nil(t, err)

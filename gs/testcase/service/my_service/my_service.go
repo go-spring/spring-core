@@ -14,4 +14,26 @@
  * limitations under the License.
  */
 
-package gs_test
+package my_service
+
+import (
+	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/gs/testcase/model/my_model_a"
+	"github.com/go-spring/spring-core/gs/testcase/model/my_model_b"
+)
+
+func init() {
+	gs.Provide(NewService, gs.ValueArg("svr_test"))
+}
+
+type Service struct {
+	SvrName string
+	AppName string             `value:"${spring.app.name:=test}"`
+	ModelA  *my_model_a.ModelA `autowire:""`
+	ModelB  *my_model_b.ModelB `autowire:""`
+	//DyncValue gs.Dync[int64]     `value:"${spring.app.name:=test}"`
+}
+
+func NewService(svrName string) *Service {
+	return &Service{SvrName: svrName}
+}
