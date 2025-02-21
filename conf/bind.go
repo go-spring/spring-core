@@ -399,19 +399,6 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 			}
 			continue
 		}
-
-		if util.IsPropBindingTarget(ft.Type) {
-			if subParam.Key == "" {
-				subParam.Key = ft.Name
-			} else {
-				subParam.Key = subParam.Key + "." + ft.Name
-			}
-			subParam.Key = strings.ToLower(subParam.Key)
-			subParam.Key = strings.ReplaceAll(subParam.Key, "_", ".")
-			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
-				return err // no wrap
-			}
-		}
 	}
 	return nil
 }
