@@ -72,7 +72,7 @@ func (b *Boot) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, err
 // Runner registers an AppRunner instance.
 func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(objOrCtor, ctorArgs...).Export(
-		reflect.TypeFor[AppRunner](),
+		gs.As[AppRunner](),
 	)
 	return b.c.Register(bd)
 }

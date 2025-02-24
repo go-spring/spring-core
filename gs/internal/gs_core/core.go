@@ -95,7 +95,7 @@ func New() gs.Container {
 		beansByType: make(map[reflect.Type][]BeanRuntime),
 	}
 	c.Object(c).Export(
-		reflect.TypeFor[gs.Context](),
+		gs.As[gs.Context](),
 	)
 	return c
 }

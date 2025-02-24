@@ -36,6 +36,11 @@ const (
 	Website = "https://go-spring.com/"
 )
 
+// As returns the [reflect.Type] of the given interface type.
+func As[T any]() reflect.Type {
+	return gs.As[T]()
+}
+
 /************************************ arg ***********************************/
 
 type Arg = gs.Arg
@@ -269,7 +274,7 @@ func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
 // Runner registers a bean definition for an [AppRunner].
 func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := NewBean(objOrCtor, ctorArgs...).Export(
-		reflect.TypeFor[AppRunner](),
+		As[AppRunner](),
 	)
 	return app.C.Register(b)
 }
@@ -277,7 +282,7 @@ func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 // Server registers a bean definition for an [AppServer].
 func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := NewBean(objOrCtor, ctorArgs...).Export(
-		reflect.TypeFor[AppServer](),
+		As[AppServer](),
 	)
 	return app.C.Register(b)
 }

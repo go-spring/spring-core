@@ -166,7 +166,7 @@ func TestApplicationContext_AutoWireBeans(t *testing.T) {
 
 	b := TestBincoreng{1}
 	c.Object(&b).Name("struct_ptr").Export(
-		reflect.TypeFor[fmt.Stringer](),
+		gs.As[fmt.Stringer](),
 	)
 
 	err := runTest(c, func(p gs.Context) {})
@@ -398,7 +398,7 @@ type ProxyGrouper struct {
 func TestApplicationContext_NestedBean(t *testing.T) {
 	c := gs_core.New()
 	c.Object(new(MyGrouper)).Export(
-		reflect.TypeFor[Grouper](),
+		gs.As[Grouper](),
 	)
 	c.Object(new(ProxyGrouper))
 	err := c.Refresh()
@@ -476,7 +476,7 @@ func TestApplicationContext_Get(t *testing.T) {
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo)).Export(
-			reflect.TypeFor[Grouper](),
+			gs.As[Grouper](),
 		)
 		err := runTest(c, func(p gs.Context) {
 
@@ -606,7 +606,7 @@ func TestApplicationContext_RegisterBeanFn(t *testing.T) {
 
 	// 用接口注册时实际使用的是原始类型
 	c.Object(Teacher(newHistoryTeacher(""))).Export(
-		reflect.TypeFor[Teacher](),
+		gs.As[Teacher](),
 	)
 
 	c.Provide(NewStudent, gs_arg.Tag(""), gs_arg.Tag("${room}")).Name("st1")
@@ -1810,10 +1810,10 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	t.Run("variable option interface param 1", func(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&Var{"v1"}).Name("v1").Export(
-			reflect.TypeFor[interface{}](),
+			gs.As[interface{}](),
 		)
 		c.Object(&Var{"v2"}).Name("v2").Export(
-			reflect.TypeFor[interface{}](),
+			gs.As[interface{}](),
 		)
 		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1")))
 		err := runTest(c, func(p gs.Context) {
@@ -1828,10 +1828,10 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	t.Run("variable option interface param 1", func(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&Var{"v1"}).Name("v1").Export(
-			reflect.TypeFor[interface{}](),
+			gs.As[interface{}](),
 		)
 		c.Object(&Var{"v2"}).Name("v2").Export(
-			reflect.TypeFor[interface{}](),
+			gs.As[interface{}](),
 		)
 		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
 		err := runTest(c, func(p gs.Context) {
@@ -2078,10 +2078,10 @@ func TestApplicationContext_FnArgCollectBean(t *testing.T) {
 	t.Run("interface type", func(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(newHistoryTeacher("t1")).Name("t1").Export(
-			reflect.TypeFor[Teacher](),
+			gs.As[Teacher](),
 		)
 		c.Provide(newHistoryTeacher("t2")).Name("t2").Export(
-			reflect.TypeFor[Teacher](),
+			gs.As[Teacher](),
 		)
 		c.Provide(func(teachers []Teacher) func() {
 			names := make([]string, 0)
@@ -2113,7 +2113,7 @@ func TestApplicationContext_BeanCache(t *testing.T) {
 	t.Run("not implement interface", func(t *testing.T) {
 		c := gs_core.New()
 		c.Object(func() {}).Export(
-			reflect.TypeFor[filter](),
+			gs.As[filter](),
 		)
 		err := c.Refresh()
 		assert.Error(t, err, "doesn't implement interface gs_core_test.filter")
@@ -2129,7 +2129,7 @@ func TestApplicationContext_BeanCache(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(func() filter { return new(filterImpl) }).Name("f1")
 		c.Object(new(filterImpl)).Export(
-			reflect.TypeFor[filter](),
+			gs.As[filter](),
 		).Name("f2")
 		c.Object(&server)
 

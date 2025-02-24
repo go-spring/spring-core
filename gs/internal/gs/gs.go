@@ -25,6 +25,15 @@ import (
 	"github.com/go-spring/spring-core/conf"
 )
 
+// As returns the [reflect.Type] of the given interface type.
+func As[T any]() reflect.Type {
+	t := reflect.TypeFor[T]()
+	if t.Kind() != reflect.Interface {
+		panic("T must be interface")
+	}
+	return t
+}
+
 // BeanInitFunc defines the prototype for initialization functions.
 // For example: `func(bean)` or `func(bean) error`.
 type BeanInitFunc = interface{}

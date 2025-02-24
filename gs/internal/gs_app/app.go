@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -149,9 +150,15 @@ func (app *App) Start() error {
 	// listens the cancel signal then stop the servers
 	c.Go(func(ctx context.Context) {
 		<-ctx.Done()
+		var wg sync.WaitGroup
 		for _, svr := range app.Servers {
-			svr.OnAppStop(ctx)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				svr.OnAppStop(ctx)
+			}()
 		}
+		wg.Wait()
 	})
 
 	app.C.ReleaseUnusedMemory()
