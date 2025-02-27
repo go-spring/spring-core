@@ -22,15 +22,23 @@ import (
 	"github.com/go-spring/spring-core/gs"
 )
 
-var ctx = &gs.ContextAware{}
+// GSContext is the global context for testing.
+var GSContext gs.Context
+
+// TestingContext is the context for testing.
+type TestingContext struct {
+	gs.ContextAware
+}
 
 func init() {
 	gs.ForceAutowireIsNullable(true)
+	gs.Object(&TestingContext{}).Init(func(tc *TestingContext) {
+		GSContext = tc.GSContext
+	})
 }
 
 // Init initializes the test environment.
 func Init() error {
-	gs.Object(ctx)
 	return gs.Start()
 }
 
@@ -41,47 +49,7 @@ func Run(m *testing.M) (code int) {
 	return code
 }
 
-// Keys retrieves all the property keys.
-func Keys() []string {
-	return ctx.GSContext.Keys()
-}
-
-// Has checks whether a specific property exists.
-func Has(key string) bool {
-	return ctx.GSContext.Has(key)
-}
-
-// SubKeys retrieves the sub-keys of a specified key.
-func SubKeys(key string) ([]string, error) {
-	return ctx.GSContext.SubKeys(key)
-}
-
-// Prop retrieves the value of a property specified by the key.
-func Prop(key string, def ...string) string {
-	return ctx.GSContext.Prop(key, def...)
-}
-
-// Resolve resolves a given string with placeholders.
-func Resolve(s string) (string, error) {
-	return ctx.GSContext.Resolve(s)
-}
-
-// Bind binds an object to the properties.
-func Bind(i interface{}, tag ...string) error {
-	return ctx.GSContext.Bind(i, tag...)
-}
-
-// Get retrieves an object using specified selectors.
-func Get(i interface{}, tag ...string) error {
-	return ctx.GSContext.Get(i, tag...)
-}
-
-// Wire injects dependencies into an object or constructor.
-func Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
-	return ctx.GSContext.Wire(objOrCtor, ctorArgs...)
-}
-
-// Invoke calls a function with arguments injected.
-func Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
-	return ctx.GSContext.Invoke(fn, args...)
+// Case calls a function with arguments injected.
+func Case(fn interface{}, args ...gs.Arg) {
+	_, _ = GSContext.Invoke(fn, args...)
 }

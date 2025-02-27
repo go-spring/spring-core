@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
@@ -217,11 +218,17 @@ var app = gs_app.NewApp()
 
 // Start starts the app, usually for testing purposes.
 func Start() error {
+	if !testing.Testing() {
+		panic("gs.Start() can only be called in testing mode")
+	}
 	return app.Start()
 }
 
 // Stop stops the app, usually for testing purposes.
 func Stop() {
+	if !testing.Testing() {
+		panic("gs.Stop() can only be called in testing mode")
+	}
 	app.Stop()
 }
 

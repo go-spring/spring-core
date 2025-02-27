@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package my_model_b
+package main
 
 import (
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/util/syslog"
+
+	_ "github.com/go-spring/spring-core/gs/testcase/app"
 )
 
-func init() {
-	gs.Object(&ModelB{})
-}
-
-type ModelB struct {
-	Value string `value:"${my_model_b.value:=456}"`
+func main() {
+	if err := gs.Run(); err != nil {
+		syslog.Errorf("app run failed: %s", err.Error())
+	}
 }

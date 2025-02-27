@@ -1,0 +1,48 @@
+package book_service
+
+import (
+	"os"
+	"testing"
+
+	"github.com/go-spring/spring-core/gs/gstest"
+	"github.com/go-spring/spring-core/gs/testcase/dao/book_dao"
+	"github.com/go-spring/spring-core/util/assert"
+)
+
+func TestMain(m *testing.M) {
+	err := gstest.Init()
+	if err != nil {
+		panic(err)
+	}
+	os.Exit(gstest.Run(m))
+}
+
+func TestBookService(t *testing.T) {
+	gstest.Case(func(s *BookService, o *book_dao.BookDao) {
+
+		books, err := s.ListBooks()
+		assert.Nil(t, err)
+		assert.Equal(t, len(books), 0)
+
+		err = s.SaveBook(book_dao.Book{SN: "1", Name: "Go Spring"})
+		assert.Nil(t, err)
+
+		books, err = s.ListBooks()
+		assert.Nil(t, err)
+		assert.Equal(t, len(books), 1)
+		assert.Equal(t, books[0].SN, "1")
+		assert.Equal(t, books[0].Name, "Go Spring")
+
+		book, err := s.GetBook("1")
+		assert.Nil(t, err)
+		assert.Equal(t, book.SN, "1")
+		assert.Equal(t, book.Name, "Go Spring")
+
+		err = s.DeleteBook("1")
+		assert.Nil(t, err)
+
+		books, err = s.ListBooks()
+		assert.Nil(t, err)
+		assert.Equal(t, len(books), 0)
+	})
+}

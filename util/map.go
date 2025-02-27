@@ -18,7 +18,7 @@ package util
 
 import (
 	"cmp"
-	"sort"
+	"slices"
 )
 
 // MapKeys returns the keys of the map m.
@@ -33,8 +33,6 @@ func MapKeys[M ~map[K]V, K comparable, V any](m M) []K {
 // OrderedMapKeys returns the keys of the map m in sorted order.
 func OrderedMapKeys[M ~map[K]V, K cmp.Ordered, V any](m M) []K {
 	r := MapKeys(m)
-	sort.Slice(r, func(i, j int) bool {
-		return r[i] < r[j]
-	})
+	slices.Sort(r)
 	return r
 }
