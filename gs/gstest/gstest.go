@@ -25,28 +25,57 @@ import (
 // GSContext is the global context for testing.
 var GSContext gs.Context
 
-// TestingContext is the context for testing.
-type TestingContext struct {
-	gs.ContextAware
-}
-
 func init() {
-	gs.ForceAutowireIsNullable(true)
-	gs.Object(&TestingContext{}).Init(func(tc *TestingContext) {
-		GSContext = tc.GSContext
+	gs.Object(&gs.ContextAware{}).Init(func(x *gs.ContextAware) {
+		GSContext = x.GSContext
 	})
 }
 
-// Init initializes the test environment.
-func Init() error {
-	return gs.Start()
+type runArg struct {
+	beforeRun func()
+	afterRun  func()
+}
+
+type RunOption func(arg *runArg)
+
+// BeforeRun specifies a function to be executed before all testcases.
+func BeforeRun(fn func()) RunOption {
+	return func(arg *runArg) {
+		arg.beforeRun = fn
+	}
+}
+
+// AfterRun specifies a function to be executed after all testcases.
+func AfterRun(fn func()) RunOption {
+	return func(arg *runArg) {
+		arg.afterRun = fn
+	}
 }
 
 // Run executes test cases and ensures shutdown of the app context.
-func Run(m *testing.M) (code int) {
-	code = m.Run()
+func Run(m *testing.M, opts ...RunOption) {
+	arg := &runArg{}
+	for _, opt := range opts {
+		opt(arg)
+	}
+
+	gs.ForceAutowireIsNullable(true)
+
+	if err := gs.Start(); err != nil {
+		panic(err)
+	}
+
+	if arg.beforeRun != nil {
+		arg.beforeRun()
+	}
+
+	m.Run()
+
+	if arg.afterRun != nil {
+		arg.afterRun()
+	}
+
 	gs.Stop()
-	return code
 }
 
 // Case calls a function with arguments injected.

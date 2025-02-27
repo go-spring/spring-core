@@ -1,7 +1,6 @@
 package book_dao
 
 import (
-	"os"
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/gstest"
@@ -9,11 +8,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	err := gstest.Init()
-	if err != nil {
-		panic(err)
-	}
-	os.Exit(gstest.Run(m))
+	gstest.Run(m)
 }
 
 func TestBookDao(t *testing.T) {
