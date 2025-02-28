@@ -17,13 +17,19 @@
 package main
 
 import (
+	"os"
+
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/util/syslog"
 
 	_ "github.com/go-spring/spring-core/gs/testcase/app"
+	_ "github.com/go-spring/spring-core/gs/testcase/biz"
 )
 
 func main() {
+	os.Unsetenv("_")
+	os.Unsetenv("TERM")
+	os.Unsetenv("TERM_SESSION_ID")
 	if err := gs.Run(); err != nil {
 		syslog.Errorf("app run failed: %s", err.Error())
 	}

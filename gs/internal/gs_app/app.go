@@ -25,42 +25,27 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/util/goutil"
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
-// AppContext provides a wrapper around the application's [gs.Context].
-// It offers controlled access to the internal context and is designed
-// to ensure safe usage in the application's lifecycle.
-type AppContext struct {
-	c gs.Context
-}
-
-// Unsafe exposes the underlying [gs.Context]. Using this method in new
-// goroutines is unsafe because [gs.Context] may release its resources
-// (e.g., bean definitions), making binding and injection operations invalid.
-func (p *AppContext) Unsafe() gs.Context {
-	return p.c
-}
-
-// Go executes a function in a new goroutine. The provided function will receive
-// a cancellation signal when the application begins shutting down.
-func (p *AppContext) Go(fn func(ctx context.Context)) {
-	p.c.(interface {
-		Go(fn func(ctx context.Context))
-	}).Go(fn)
-}
-
-// AppRunner defines an interface for tasks that should be executed after all
+// AppJob defines an interface for jobs that should be executed after all
 // beans are injected but before the application's servers are started.
-// It is commonly used to initialize background jobs or tasks.
+type AppJob interface {
+	Run()
+}
+
+// AppRunner defines an interface for runners that should be executed after all
+// beans are injected but before the application's servers are started.
 type AppRunner interface {
-	Run(ctx *AppContext)
+	Run()
 }
 
 // AppServer defines an interface for managing the lifecycle of application servers,
@@ -77,9 +62,12 @@ type App struct {
 	C gs.Container
 	P *gs_conf.AppConfig
 
-	exitChan chan struct{}
+	exiting   atomic.Bool
+	exitChan  chan struct{}
+	waitGroup sync.WaitGroup
 
 	Runners []AppRunner `autowire:"${spring.app.runners:=*?}"`
+	Jobs    []AppJob    `autowire:"${spring.app.jobs:=*?}"`
 	Servers []AppServer `autowire:"${spring.app.servers:=*?}"`
 }
 
@@ -139,40 +127,26 @@ func (app *App) Start() error {
 		return err
 	}
 
-	c := &AppContext{c: app.C.(gs.Context)}
-
 	// runs all runners
 	for _, r := range app.Runners {
-		r.Run(c)
+		r.Run()
+	}
+
+	// runs all jobs
+	for _, r := range app.Jobs {
+		app.Go(func() {
+			r.Run()
+		})
 	}
 
 	// starts all servers
 	for _, svr := range app.Servers {
-		c.Go(func(ctx context.Context) {
+		app.Go(func() {
 			if err := svr.Serve(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				app.ShutDown(fmt.Sprintf("server serve error: %s", err.Error()))
 			}
 		})
 	}
-
-	// listens the cancel signal then stop the servers
-	c.Go(func(ctx context.Context) {
-		<-ctx.Done()
-		timeout := time.Second * 5
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-		var wg sync.WaitGroup
-		for _, svr := range app.Servers {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if err := svr.Shutdown(ctx); err != nil {
-					syslog.Errorf("shutdown server failed: %s", err.Error())
-				}
-			}()
-		}
-		wg.Wait()
-	})
 
 	app.C.ReleaseUnusedMemory()
 	return nil
@@ -181,7 +155,39 @@ func (app *App) Start() error {
 // Stop gracefully stops the application. This method is used to clean up
 // resources and stop servers started by the Start method.
 func (app *App) Stop() {
+	timeout := time.Second * 5
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	waitChan := make(chan struct{})
+	goutil.Go(ctx, func(ctx context.Context) {
+		var wg sync.WaitGroup
+		for _, svr := range app.Servers {
+			wg.Add(1)
+			goutil.GoFunc(func() {
+				defer wg.Done()
+				if err := svr.Shutdown(ctx); err != nil {
+					syslog.Errorf("shutdown server failed: %s", err.Error())
+				}
+			})
+		}
+		wg.Wait()
+		app.waitGroup.Wait()
+		waitChan <- struct{}{}
+	})
+
+	select {
+	case <-waitChan:
+	case <-ctx.Done():
+		syslog.Infof("shutdown timeout")
+	}
+
 	app.C.Close()
+}
+
+// Exiting returns a boolean indicating whether the application is exiting.
+func (app *App) Exiting() bool {
+	return app.exiting.Load()
 }
 
 // ShutDown gracefully terminates the application. It should be used when
@@ -191,6 +197,16 @@ func (app *App) ShutDown(msg ...string) {
 	case <-app.exitChan:
 		// do nothing if the exit channel is already closed
 	default:
+		app.exiting.Store(true)
 		close(app.exitChan)
 	}
+}
+
+// Go starts a new goroutine to execute the given function.
+func (app *App) Go(fn func()) {
+	app.waitGroup.Add(1)
+	goutil.GoFunc(func() {
+		defer app.waitGroup.Done()
+		fn()
+	})
 }

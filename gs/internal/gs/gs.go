@@ -191,13 +191,12 @@ type beanBuilder[T any] struct {
 
 // TypeAndName returns the type and name of the bean.
 func (d *beanBuilder[T]) TypeAndName() (reflect.Type, string) {
-	r := d.BeanRegistration()
-	return r.Type(), r.Name()
+	return d.b.Type(), d.b.Name()
 }
 
 // GetArgValue returns the value of the bean.
 func (d *beanBuilder[T]) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
-	return d.BeanRegistration().Value(), nil
+	return d.b.Value(), nil
 }
 
 // BeanRegistration returns the underlying BeanRegistration instance.

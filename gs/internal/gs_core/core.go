@@ -17,7 +17,6 @@
 package gs_core
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -25,7 +24,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -34,7 +32,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/util"
-	"github.com/go-spring/spring-core/util/goutil"
 	"github.com/go-spring/spring-core/util/syslog"
 	"github.com/spf13/cast"
 )
@@ -72,9 +69,6 @@ type Container struct {
 	beansByName  map[string][]BeanRuntime // 用于查找未导出接口
 	beansByType  map[reflect.Type][]BeanRuntime
 	p            *gs_dync.Properties
-	ctx          context.Context
-	cancel       context.CancelFunc
-	wg           sync.WaitGroup
 	state        refreshState
 	destroyers   []func()
 	ContextAware bool
@@ -85,10 +79,7 @@ type Container struct {
 
 // New 创建 IoC 容器。
 func New() gs.Container {
-	ctx, cancel := context.WithCancel(context.Background())
 	c := &Container{
-		ctx:         ctx,
-		cancel:      cancel,
 		p:           gs_dync.New(),
 		resolving:   &resolvingStage{},
 		beansByName: make(map[string][]BeanRuntime),
@@ -364,20 +355,8 @@ func (c *Container) Run(fn interface{}, args ...gs.Arg) error {
 	return err
 }
 
-// Go runs the provided function in a new goroutine. When the container is closed,
-// the context.Context will be canceled.
-func (c *Container) Go(fn func(ctx context.Context)) {
-	c.wg.Add(1)
-	goutil.Go(c.ctx, func(ctx context.Context) {
-		defer c.wg.Done()
-		fn(ctx)
-	})
-}
-
 // Close closes the container and cleans up resources.
 func (c *Container) Close() {
-	c.cancel()
-	c.wg.Wait()
 	for _, f := range c.destroyers {
 		f()
 	}

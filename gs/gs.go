@@ -209,9 +209,9 @@ func bootRun() error {
 /*********************************** app *************************************/
 
 type (
-	AppRunner  = gs_app.AppRunner
-	AppServer  = gs_app.AppServer
-	AppContext = gs_app.AppContext
+	AppRunner = gs_app.AppRunner
+	AppJob    = gs_app.AppJob
+	AppServer = gs_app.AppServer
 )
 
 var app = gs_app.NewApp()
@@ -239,6 +239,11 @@ func Run() error {
 		return err
 	}
 	return app.Run()
+}
+
+// Exiting returns a boolean indicating whether the application is exiting.
+func Exiting() bool {
+	return app.Exiting()
 }
 
 // ShutDown shuts down the app with an optional message.
@@ -282,6 +287,14 @@ func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
 func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
 	b := NewBean(objOrCtor, ctorArgs...).Export(
 		As[AppRunner](),
+	)
+	return app.C.Register(b)
+}
+
+// Job registers a bean definition for an [AppJob].
+func Job(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
+	b := NewBean(objOrCtor, ctorArgs...).Export(
+		As[AppJob](),
 	)
 	return app.C.Register(b)
 }

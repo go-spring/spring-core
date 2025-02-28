@@ -99,7 +99,7 @@ func (b *Boot) Run() error {
 
 	// Execute all registered AppRunners.
 	for _, r := range b.Runners {
-		r.Run(&AppContext{b.c.(gs.Context)})
+		r.Run()
 	}
 
 	b.c.Close()
