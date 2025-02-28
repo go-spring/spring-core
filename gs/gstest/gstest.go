@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
 // GSContext is the global context for testing.
@@ -79,6 +80,7 @@ func Run(m *testing.M, opts ...RunOption) {
 }
 
 // Case calls a function with arguments injected.
-func Case(fn interface{}, args ...gs.Arg) {
-	_, _ = GSContext.Invoke(fn, args...)
+func Case(t *testing.T, fn interface{}, args ...gs.Arg) {
+	_, err := GSContext.Invoke(fn, args...)
+	assert.Nil(t, err)
 }

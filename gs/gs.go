@@ -168,11 +168,9 @@ type (
 )
 
 type (
-	BeanSelector         = gs.BeanSelector
-	BeanInitFunc         = gs.BeanInitFunc
-	BeanDestroyFunc      = gs.BeanDestroyFunc
-	BeanInitInterface    = gs.BeanInitInterface
-	BeanDestroyInterface = gs.BeanDestroyInterface
+	BeanSelector    = gs.BeanSelector
+	BeanInitFunc    = gs.BeanInitFunc
+	BeanDestroyFunc = gs.BeanDestroyFunc
 )
 
 // NewBean creates a new BeanDefinition.
@@ -209,9 +207,9 @@ func bootRun() error {
 /*********************************** app *************************************/
 
 type (
-	AppRunner = gs_app.AppRunner
-	AppJob    = gs_app.AppJob
-	AppServer = gs_app.AppServer
+	Runner = gs.Runner
+	Job    = gs.Job
+	Server = gs.Server
 )
 
 var app = gs_app.NewApp()
@@ -281,30 +279,6 @@ func Register(b *BeanDefinition) *RegisteredBean {
 // GroupRegister registers a group of bean definitions.
 func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
 	app.C.GroupRegister(fn)
-}
-
-// Runner registers a bean definition for an [AppRunner].
-func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := NewBean(objOrCtor, ctorArgs...).Export(
-		As[AppRunner](),
-	)
-	return app.C.Register(b)
-}
-
-// Job registers a bean definition for an [AppJob].
-func Job(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := NewBean(objOrCtor, ctorArgs...).Export(
-		As[AppJob](),
-	)
-	return app.C.Register(b)
-}
-
-// Server registers a bean definition for an [AppServer].
-func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := NewBean(objOrCtor, ctorArgs...).Export(
-		As[AppServer](),
-	)
-	return app.C.Register(b)
 }
 
 /********************************** banner ***********************************/

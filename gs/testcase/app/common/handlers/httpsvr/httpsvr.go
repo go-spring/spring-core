@@ -25,7 +25,7 @@ import (
 )
 
 func init() {
-	gs.Server(NewServer, gs.TagArg("${server}"))
+	gs.Provide(NewServer, gs.TagArg("${server}")).AsServer()
 }
 
 // ServerConfig ...
@@ -36,26 +36,19 @@ type ServerConfig struct {
 // Server ...
 type Server struct {
 	svr *http.Server
-	mux *http.ServeMux
 }
 
 // NewServer ...
-func NewServer(cfg ServerConfig) *Server {
+func NewServer(cfg ServerConfig, c *controller.Controller) *Server {
 	mux := http.NewServeMux()
-	svr := &http.Server{
+	mux.HandleFunc("GET /books", c.ListBooks)
+	mux.HandleFunc("GET /books/{id}", c.GetBook)
+	mux.HandleFunc("POST /books", c.SaveBook)
+	mux.HandleFunc("DELETE /books/{id}", c.DeleteBook)
+	return &Server{svr: &http.Server{
 		Addr:    cfg.Addr,
 		Handler: mux,
-	}
-	return &Server{svr: svr, mux: mux}
-}
-
-func (s *Server) OnBeanInit(ctx gs.Context) error {
-	return ctx.Run(func(c *controller.Controller) {
-		s.mux.HandleFunc("GET /books", c.ListBooks)
-		s.mux.HandleFunc("GET /books/{id}", c.GetBook)
-		s.mux.HandleFunc("POST /books", c.SaveBook)
-		s.mux.HandleFunc("DELETE /books/{id}", c.DeleteBook)
-	})
+	}}
 }
 
 func (s *Server) Serve() error {

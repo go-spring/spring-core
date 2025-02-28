@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	gs.Job(&Job{})
+	gs.Object(&Job{}).AsJob()
 }
 
 type Job struct {

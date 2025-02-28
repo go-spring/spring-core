@@ -36,26 +36,6 @@ import (
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
-// AppJob defines an interface for jobs that should be executed after all
-// beans are injected but before the application's servers are started.
-type AppJob interface {
-	Run()
-}
-
-// AppRunner defines an interface for runners that should be executed after all
-// beans are injected but before the application's servers are started.
-type AppRunner interface {
-	Run()
-}
-
-// AppServer defines an interface for managing the lifecycle of application servers,
-// such as HTTP, gRPC, Thrift, or MQ servers. Servers must implement methods for
-// starting and stopping gracefully.
-type AppServer interface {
-	Serve() error
-	Shutdown(ctx context.Context) error
-}
-
 // App represents the core application, managing its lifecycle, configuration,
 // and the injection of dependencies.
 type App struct {
@@ -66,9 +46,9 @@ type App struct {
 	exitChan  chan struct{}
 	waitGroup sync.WaitGroup
 
-	Runners []AppRunner `autowire:"${spring.app.runners:=*?}"`
-	Jobs    []AppJob    `autowire:"${spring.app.jobs:=*?}"`
-	Servers []AppServer `autowire:"${spring.app.servers:=*?}"`
+	Runners []gs.Runner `autowire:"${spring.app.runners:=*?}"`
+	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=*?}"`
+	Servers []gs.Server `autowire:"${spring.app.servers:=*?}"`
 }
 
 // NewApp creates and initializes a new application instance.

@@ -12,7 +12,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestBookDao(t *testing.T) {
-	gstest.Case(func(o *BookDao) {
+	gstest.Case(t, func(o *BookDao) {
 
 		books, err := o.ListBooks()
 		assert.Nil(t, err)

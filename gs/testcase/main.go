@@ -27,9 +27,9 @@ import (
 )
 
 func main() {
-	os.Unsetenv("_")
-	os.Unsetenv("TERM")
-	os.Unsetenv("TERM_SESSION_ID")
+	_ = os.Unsetenv("_")
+	_ = os.Unsetenv("TERM")
+	_ = os.Unsetenv("TERM_SESSION_ID")
 	if err := gs.Run(); err != nil {
 		syslog.Errorf("app run failed: %s", err.Error())
 	}

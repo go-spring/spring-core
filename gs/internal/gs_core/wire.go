@@ -138,14 +138,10 @@ func (s *WiringStack) getSortedDestroyers() ([]func(), error) {
 
 	destroy := func(v reflect.Value, fn interface{}) func() {
 		return func() {
-			if fn == nil {
-				v.Interface().(gs.BeanDestroyInterface).OnBeanDestroy()
-			} else {
-				fnValue := reflect.ValueOf(fn)
-				out := fnValue.Call([]reflect.Value{v})
-				if len(out) > 0 && !out[0].IsNil() {
-					syslog.Errorf("%s", out[0].Interface().(error).Error())
-				}
+			fnValue := reflect.ValueOf(fn)
+			out := fnValue.Call([]reflect.Value{v})
+			if len(out) > 0 && !out[0].IsNil() {
+				syslog.Errorf("%s", out[0].Interface().(error).Error())
 			}
 		}
 	}
@@ -525,7 +521,7 @@ func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) erro
 	}()
 
 	// Record the destroy function for the bean, if it exists.
-	if _, ok := b.Interface().(gs.BeanDestroyInterface); ok || b.Destroy() != nil {
+	if b.Destroy() != nil {
 		haveDestroy = true
 		d := stack.saveDestroyer(b)
 		if i := stack.destroyers.Back(); i != nil {
@@ -611,13 +607,6 @@ func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) erro
 		out := fnValue.Call([]reflect.Value{b.Value()})
 		if len(out) > 0 && !out[0].IsNil() {
 			return out[0].Interface().(error)
-		}
-	}
-
-	// If the bean implements the BeanInit interface, execute its OnBeanInit method.
-	if f, ok := b.Interface().(gs.BeanInitInterface); ok {
-		if err = f.OnBeanInit(c); err != nil {
-			return err
 		}
 	}
 

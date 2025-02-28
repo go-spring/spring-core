@@ -29,7 +29,7 @@ type Boot struct {
 	c gs.Container
 	p *gs_conf.BootConfig
 
-	Runners []AppRunner `autowire:"${spring.boot.runners:=*?}"`
+	Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`
 }
 
 // NewBoot creates a new Boot instance.
@@ -67,14 +67,6 @@ func (b *Boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 // GroupRegister registers a group of BeanDefinitions.
 func (b *Boot) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
 	b.c.GroupRegister(fn)
-}
-
-// Runner registers an AppRunner instance.
-func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
-	bd := gs_core.NewBean(objOrCtor, ctorArgs...).Export(
-		gs.As[AppRunner](),
-	)
-	return b.c.Register(bd)
 }
 
 // Run executes the application's bootstrap process.

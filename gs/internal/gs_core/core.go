@@ -305,13 +305,6 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 		return nil, err
 	}
 
-	// 如果 bean 实现了 BeanInit 接口，则执行其 OnInit 方法。
-	if f, ok := b.Interface().(gs.BeanInitInterface); ok {
-		if err = f.OnBeanInit(c); err != nil {
-			return nil, err
-		}
-	}
-
 	return b.Interface(), nil
 }
 
@@ -347,12 +340,6 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 		a = append(a, v.Interface())
 	}
 	return a, nil
-}
-
-// Run runs the provided function with the specified arguments.
-func (c *Container) Run(fn interface{}, args ...gs.Arg) error {
-	_, err := c.Invoke(fn, args...)
-	return err
 }
 
 // Close closes the container and cleans up resources.

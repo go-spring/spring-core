@@ -18,6 +18,7 @@
 package gs
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"unsafe"
@@ -41,16 +42,6 @@ type BeanInitFunc = interface{}
 // BeanDestroyFunc defines the prototype for destroy functions.
 // For example: `func(bean)` or `func(bean) error`.
 type BeanDestroyFunc = interface{}
-
-// BeanInitInterface defines an interface for bean initialization.
-type BeanInitInterface interface {
-	OnBeanInit(ctx Context) error
-}
-
-// BeanDestroyInterface defines an interface for bean destruction.
-type BeanDestroyInterface interface {
-	OnBeanDestroy()
-}
 
 // BeanSelectorInterface is an interface for selecting beans.
 type BeanSelectorInterface interface {
@@ -150,6 +141,28 @@ type Refreshable interface {
 	OnRefresh(prop Properties, param conf.BindParam) error
 }
 
+/*********************************** app ************************************/
+
+// Runner defines an interface for runners that should be executed after all
+// beans are injected but before the application's servers are started.
+type Runner interface {
+	Run()
+}
+
+// Job defines an interface for jobs that should be executed after all
+// beans are injected but before the application's servers are started.
+type Job interface {
+	Run()
+}
+
+// Server defines an interface for managing the lifecycle of application servers,
+// such as HTTP, gRPC, Thrift, or MQ servers. Servers must implement methods for
+// starting and stopping gracefully.
+type Server interface {
+	Serve() error
+	Shutdown(ctx context.Context) error
+}
+
 /*********************************** bean ************************************/
 
 // ConfigurationParam holds configuration parameters for bean setup.
@@ -231,6 +244,24 @@ func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
 // DependsOn sets the beans that this bean depends on.
 func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelectorInterface) *T {
 	d.b.SetDependsOn(selectors...)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// AsRunner marks the bean as a Runner.
+func (d *beanBuilder[T]) AsRunner() *T {
+	d.b.SetExport(As[Runner]())
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// AsJob marks the bean as a Job.
+func (d *beanBuilder[T]) AsJob() *T {
+	d.b.SetExport(As[Job]())
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// AsServer marks the bean as a Server.
+func (d *beanBuilder[T]) AsServer() *T {
+	d.b.SetExport(As[Server]())
 	return *(**T)(unsafe.Pointer(&d))
 }
 
@@ -320,8 +351,6 @@ type Context interface {
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
 	// Invoke calls the provided function with the specified arguments and returns the result.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
-	// Run ...
-	Run(fn interface{}, args ...Arg) error
 }
 
 // ContextAware is used to inject the container's Context into a bean.

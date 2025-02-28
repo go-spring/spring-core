@@ -13,7 +13,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestBookService(t *testing.T) {
-	gstest.Case(func(s *BookService, o *book_dao.BookDao) {
+	gstest.Case(t, func(s *BookService, o *book_dao.BookDao) {
 		assert.NotNil(t, o)
 
 		books, err := s.ListBooks()
