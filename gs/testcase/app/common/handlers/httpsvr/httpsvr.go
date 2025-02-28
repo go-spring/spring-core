@@ -18,12 +18,10 @@ package httpsvr
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/testcase/app/controller"
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
 func init() {
@@ -51,28 +49,20 @@ func NewServer(cfg ServerConfig) *Server {
 	return &Server{svr: svr, mux: mux}
 }
 
-func (s *Server) OnAppStart(ctx *gs.AppContext) {
-
-	var c *controller.Controller
-	if err := ctx.Unsafe().Get(&c); err != nil {
-		gs.ShutDown(fmt.Sprintf("get controller error: %v", err))
-		return
-	}
-
-	s.mux.HandleFunc("GET /books", c.ListBooks)
-	s.mux.HandleFunc("GET /books/{id}", c.GetBook)
-	s.mux.HandleFunc("POST /books", c.SaveBook)
-	s.mux.HandleFunc("DELETE /books/{id}", c.DeleteBook)
-
-	ctx.Go(func(ctx context.Context) {
-		if err := s.svr.ListenAndServe(); err != nil {
-			gs.ShutDown(fmt.Sprintf("server listen error: %v", err))
-		}
+func (s *Server) OnBeanInit(ctx gs.Context) error {
+	_, err := ctx.Invoke(func(c *controller.Controller) {
+		s.mux.HandleFunc("GET /books", c.ListBooks)
+		s.mux.HandleFunc("GET /books/{id}", c.GetBook)
+		s.mux.HandleFunc("POST /books", c.SaveBook)
+		s.mux.HandleFunc("DELETE /books/{id}", c.DeleteBook)
 	})
+	return err
 }
 
-func (s *Server) OnAppStop(ctx context.Context) {
-	if err := s.svr.Shutdown(ctx); err != nil {
-		syslog.Errorf("shutdown server failed: %s", err.Error())
-	}
+func (s *Server) Serve() error {
+	return s.svr.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.svr.Shutdown(ctx)
 }

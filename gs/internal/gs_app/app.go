@@ -19,15 +19,19 @@ package gs_app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 // AppContext provides a wrapper around the application's [gs.Context].
@@ -63,8 +67,8 @@ type AppRunner interface {
 // such as HTTP, gRPC, Thrift, or MQ servers. Servers must implement methods for
 // starting and stopping gracefully.
 type AppServer interface {
-	OnAppStart(ctx *AppContext)
-	OnAppStop(ctx context.Context)
+	Serve() error
+	Shutdown(ctx context.Context) error
 }
 
 // App represents the core application, managing its lifecycle, configuration,
@@ -144,18 +148,27 @@ func (app *App) Start() error {
 
 	// starts all servers
 	for _, svr := range app.Servers {
-		svr.OnAppStart(c)
+		c.Go(func(ctx context.Context) {
+			if err := svr.Serve(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				app.ShutDown(fmt.Sprintf("server serve error: %s", err.Error()))
+			}
+		})
 	}
 
 	// listens the cancel signal then stop the servers
 	c.Go(func(ctx context.Context) {
 		<-ctx.Done()
+		timeout := time.Second * 5
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
 		var wg sync.WaitGroup
 		for _, svr := range app.Servers {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				svr.OnAppStop(ctx)
+				if err := svr.Shutdown(ctx); err != nil {
+					syslog.Errorf("shutdown server failed: %s", err.Error())
+				}
 			}()
 		}
 		wg.Wait()
