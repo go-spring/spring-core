@@ -50,13 +50,12 @@ func NewServer(cfg ServerConfig) *Server {
 }
 
 func (s *Server) OnBeanInit(ctx gs.Context) error {
-	_, err := ctx.Invoke(func(c *controller.Controller) {
+	return ctx.Run(func(c *controller.Controller) {
 		s.mux.HandleFunc("GET /books", c.ListBooks)
 		s.mux.HandleFunc("GET /books/{id}", c.GetBook)
 		s.mux.HandleFunc("POST /books", c.SaveBook)
 		s.mux.HandleFunc("DELETE /books/{id}", c.DeleteBook)
 	})
-	return err
 }
 
 func (s *Server) Serve() error {

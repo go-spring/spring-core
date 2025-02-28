@@ -358,6 +358,12 @@ func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error
 	return a, nil
 }
 
+// Run runs the provided function with the specified arguments.
+func (c *Container) Run(fn interface{}, args ...gs.Arg) error {
+	_, err := c.Invoke(fn, args...)
+	return err
+}
+
 // Go runs the provided function in a new goroutine. When the container is closed,
 // the context.Context will be canceled.
 func (c *Container) Go(fn func(ctx context.Context)) {

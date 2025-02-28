@@ -321,6 +321,8 @@ type Context interface {
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
 	// Invoke calls the provided function with the specified arguments and returns the result.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
+	// Run ...
+	Run(fn interface{}, args ...Arg) error
 }
 
 // ContextAware is used to inject the container's Context into a bean.

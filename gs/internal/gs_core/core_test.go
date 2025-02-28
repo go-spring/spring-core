@@ -2657,7 +2657,7 @@ func TestApplicationContext_Invoke(t *testing.T) {
 			fn := func(f func(), version string) {
 				fmt.Println("version:", version)
 			}
-			_, _ = p.Invoke(fn, gs_arg.Tag(""), gs_arg.Tag("${version}"))
+			_ = p.Run(fn, gs_arg.Tag(""), gs_arg.Tag("${version}"))
 		})
 		assert.Nil(t, err)
 	})
