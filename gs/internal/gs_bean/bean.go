@@ -126,6 +126,24 @@ func (d *BeanDefinition) SetDestroy(fn gs.BeanDestroyFunc) {
 	panic("destroy should be func(bean) or func(bean)error")
 }
 
+// SetInitMethod sets the initialization function for the bean by method name.
+func (d *BeanDefinition) SetInitMethod(method string) {
+	m, ok := d.t.MethodByName(method)
+	if !ok {
+		panic(fmt.Sprintf("method %s not found on type %s", method, d.t))
+	}
+	d.SetInit(m.Func.Interface())
+}
+
+// SetDestroyMethod sets the destruction function for the bean by method name.
+func (d *BeanDefinition) SetDestroyMethod(method string) {
+	m, ok := d.t.MethodByName(method)
+	if !ok {
+		panic(fmt.Sprintf("method %s not found on type %s", method, d.t))
+	}
+	d.SetDestroy(m.Func.Interface())
+}
+
 // DependsOn returns the list of dependencies for the bean.
 func (d *BeanMetadata) DependsOn() []gs.BeanSelectorInterface {
 	return d.dependsOn

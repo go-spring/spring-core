@@ -185,6 +185,10 @@ type BeanRegistration interface {
 	SetInit(fn BeanInitFunc)
 	// SetDestroy sets the destruction function for the bean.
 	SetDestroy(fn BeanDestroyFunc)
+	// SetInitMethod sets the initialization function for the bean by method name.
+	SetInitMethod(method string)
+	// SetDestroyMethod sets the destruction function for the bean by method name.
+	SetDestroyMethod(method string)
 	// SetCondition adds a condition for the bean.
 	SetCondition(conditions ...Condition)
 	// SetDependsOn sets the beans that this bean depends on.
@@ -232,6 +236,18 @@ func (d *beanBuilder[T]) Init(fn BeanInitFunc) *T {
 // Destroy sets the destruction function for the bean.
 func (d *beanBuilder[T]) Destroy(fn BeanDestroyFunc) *T {
 	d.b.SetDestroy(fn)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// InitMethod sets the initialization function for the bean by method name.
+func (d *beanBuilder[T]) InitMethod(method string) *T {
+	d.b.SetInitMethod(method)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// DestroyMethod sets the destruction function for the bean by method name.
+func (d *beanBuilder[T]) DestroyMethod(method string) *T {
+	d.b.SetDestroyMethod(method)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
