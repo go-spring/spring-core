@@ -14,23 +14,8 @@
  * limitations under the License.
  */
 
-package main
+package app
 
 import (
-	"os"
-
-	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/util/syslog"
-
-	_ "github.com/go-spring/spring-core/gs/testcase/app"
-	_ "github.com/go-spring/spring-core/gs/testcase/biz"
+	_ "github.com/go-spring/spring-core/gs/example/app/common/handlers/httpsvr"
 )
-
-func main() {
-	_ = os.Unsetenv("_")
-	_ = os.Unsetenv("TERM")
-	_ = os.Unsetenv("TERM_SESSION_ID")
-	if err := gs.Run(); err != nil {
-		syslog.Errorf("app run failed: %s", err.Error())
-	}
-}

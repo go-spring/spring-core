@@ -87,6 +87,12 @@ func New() gs.Container {
 	}
 }
 
+// Mock mocks the bean with the given object.
+func (c *Container) Mock(obj interface{}, target gs.BeanSelectorInterface) {
+	x := BeanMock{Object: obj, Target: target}
+	c.resolving.mocks = append(c.resolving.mocks, x)
+}
+
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
 func (c *Container) Object(i interface{}) *gs.RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
@@ -311,7 +317,13 @@ func (c *Container) Close() {
 	}
 }
 
+type BeanMock struct {
+	Object interface{}
+	Target gs.BeanSelectorInterface
+}
+
 type resolvingStage struct {
+	mocks      []BeanMock
 	beans      []*gs_bean.BeanDefinition
 	groupFuncs []GroupFunc
 	p          gs.Properties

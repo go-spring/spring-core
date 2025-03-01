@@ -21,7 +21,7 @@ import (
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/testcase/app/controller"
+	"github.com/go-spring/spring-core/gs/example/app/controller"
 )
 
 func init() {

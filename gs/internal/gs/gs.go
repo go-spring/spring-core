@@ -331,6 +331,8 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 // Container represents the modifiable aspects of an IoC (Inversion of Control) container.
 // It provides methods for registering, refreshing, and managing beans within the container.
 type Container interface {
+	// Mock mocks the bean with the given object.
+	Mock(obj interface{}, target BeanSelectorInterface)
 	// Register registers a bean using the provided bean definition.
 	Register(b *BeanDefinition) *RegisteredBean
 	// GroupRegister registers multiple beans by executing the given function that returns [*BeanDefinition]s.

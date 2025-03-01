@@ -2,7 +2,7 @@ package book_service
 
 import (
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/testcase/dao/book_dao"
+	"github.com/go-spring/spring-core/gs/example/dao/book_dao"
 )
 
 func init() {

@@ -3,10 +3,14 @@ package book_service
 import (
 	"testing"
 
+	"github.com/go-spring/spring-core/gs/example/dao/book_dao"
 	"github.com/go-spring/spring-core/gs/gstest"
-	"github.com/go-spring/spring-core/gs/testcase/dao/book_dao"
 	"github.com/go-spring/spring-core/util/assert"
 )
+
+func init() {
+	gstest.MockFor[*book_dao.BookDao]().With(nil)
+}
 
 func TestMain(m *testing.M) {
 	gstest.Run(m)

@@ -24,6 +24,23 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
+// BeanMock is a mock for bean.
+type BeanMock struct {
+	selector gs.BeanSelector
+}
+
+// MockFor creates a mock for bean.
+func MockFor[T any](name ...string) BeanMock {
+	return BeanMock{
+		selector: gs.BeanSelectorFor[T](name...),
+	}
+}
+
+// With registers a mock bean.
+func (m BeanMock) With(obj interface{}) {
+	gs_app.App.C.Mock(obj, m.selector)
+}
+
 type runArg struct {
 	beforeRun func()
 	afterRun  func()
