@@ -55,8 +55,11 @@ type BeanSelector struct {
 }
 
 // BeanSelectorFor returns a BeanSelector for the given type.
-func BeanSelectorFor[T any]() BeanSelector {
-	return BeanSelector{Type: reflect.TypeFor[T]()}
+func BeanSelectorFor[T any](name ...string) BeanSelector {
+	if len(name) == 0 {
+		return BeanSelector{Type: reflect.TypeFor[T]()}
+	}
+	return BeanSelector{Type: reflect.TypeFor[T](), Name: name[0]}
 }
 
 // TypeAndName returns the type and name of the bean.
@@ -328,10 +331,6 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 // Container represents the modifiable aspects of an IoC (Inversion of Control) container.
 // It provides methods for registering, refreshing, and managing beans within the container.
 type Container interface {
-	// Object registers a bean using the provided object instance.
-	Object(i interface{}) *RegisteredBean
-	// Provide registers a bean using the provided constructor function and optional arguments.
-	Provide(ctor interface{}, args ...Arg) *RegisteredBean
 	// Register registers a bean using the provided bean definition.
 	Register(b *BeanDefinition) *RegisteredBean
 	// GroupRegister registers multiple beans by executing the given function that returns [*BeanDefinition]s.
@@ -340,31 +339,10 @@ type Container interface {
 	RefreshProperties(p Properties) error
 	// Refresh initializes and wires all beans in the container.
 	Refresh() error
-	// ReleaseUnusedMemory cleans up unused resources and releases memory.
-	ReleaseUnusedMemory()
-	// Close shuts down the container and cleans up all resources.
-	Close()
-}
-
-// Context represents the unmodifiable (or runtime) aspects of an IoC container.
-// It provides methods for accessing properties, resolving values, and retrieving beans.
-type Context interface {
-	// Keys returns all the keys present in the container's properties.
-	Keys() []string
-	// Has checks if the specified key exists in the container's properties.
-	Has(key string) bool
-	// SubKeys returns the sub-keys under a specific key in the container's properties.
-	SubKeys(key string) ([]string, error)
-	// Prop retrieves the value of the specified key from the container's properties.
-	Prop(key string, def ...string) string
-	// Resolve resolves placeholders or references (e.g., ${KEY}) in the given string to actual values.
-	Resolve(s string) (string, error)
-	// Bind binds the value of the specified key to the provided struct or variable.
-	Bind(i interface{}, tag ...string) error
-	// Get retrieves a bean of the specified type using the provided tag.
-	Get(i interface{}, tag ...string) error
 	// Wire creates and returns a bean by wiring it with the provided constructor or object.
 	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
 	// Invoke calls the provided function with the specified arguments and returns the result.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
+	// Close shuts down the container and cleans up all resources.
+	Close()
 }

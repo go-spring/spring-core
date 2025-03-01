@@ -38,7 +38,7 @@ func NewBootstrap() *Bootstrap {
 		c: gs_core.New(),
 		p: gs_conf.NewBootConfig(),
 	}
-	b.c.Object(b)
+	b.c.Register(gs_core.NewBean(b))
 	return b
 }
 

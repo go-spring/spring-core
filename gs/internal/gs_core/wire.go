@@ -173,11 +173,11 @@ func NewArgContext(c *Container, stack *WiringStack) *ArgContext {
 }
 
 func (a *ArgContext) Has(key string) bool {
-	return a.c.Has(key)
+	return a.c.p.Data().Has(key)
 }
 
 func (a *ArgContext) Prop(key string, def ...string) string {
-	return a.c.Prop(key, def...)
+	return a.c.p.Data().Get(key, def...)
 }
 
 func (a *ArgContext) Find(s gs.BeanSelectorInterface) ([]gs.CondBean, error) {

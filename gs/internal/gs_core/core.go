@@ -112,36 +112,6 @@ func (c *Container) GroupRegister(fn GroupFunc) {
 	c.resolving.groupFuncs = append(c.resolving.groupFuncs, fn)
 }
 
-// Keys returns all keys present in the container's properties.
-func (c *Container) Keys() []string {
-	return c.p.Data().Keys()
-}
-
-// Has checks if a key exists in the container's properties.
-func (c *Container) Has(key string) bool {
-	return c.p.Data().Has(key)
-}
-
-// SubKeys returns sub-keys under the specified key in the container's properties.
-func (c *Container) SubKeys(key string) ([]string, error) {
-	return c.p.Data().SubKeys(key)
-}
-
-// Prop retrieves the value of the specified key from the container's properties.
-func (c *Container) Prop(key string, def ...string) string {
-	return c.p.Data().Get(key, def...)
-}
-
-// Resolve resolves placeholders or references in the given string.
-func (c *Container) Resolve(s string) (string, error) {
-	return c.p.Data().Resolve(s)
-}
-
-// Bind binds the value of the specified key to the provided struct or variable.
-func (c *Container) Bind(i interface{}, tag ...string) error {
-	return c.p.Data().Bind(i, tag...)
-}
-
 // RefreshProperties updates the properties of the container.
 func (c *Container) RefreshProperties(p gs.Properties) error {
 	return c.p.Refresh(p)
@@ -235,16 +205,7 @@ func (c *Container) Refresh() (err error) {
 			c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
 		}
 	}
-	c.resolving = nil
 
-	c.state = Refreshed
-	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
-		len(beansById), time.Now().Sub(start))
-	return nil
-}
-
-// ReleaseUnusedMemory releases unused memory by cleaning up unnecessary resources.
-func (c *Container) ReleaseUnusedMemory() {
 	if !testing.Testing() {
 		if c.p.ObjectsCount() == 0 {
 			c.p = nil
@@ -252,6 +213,12 @@ func (c *Container) ReleaseUnusedMemory() {
 		c.beansByName = nil
 		c.beansByType = nil
 	}
+	c.resolving = nil
+
+	c.state = Refreshed
+	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
+		len(beansById), time.Now().Sub(start))
+	return nil
 }
 
 // Get retrieves a bean of the specified type using the provided selector.

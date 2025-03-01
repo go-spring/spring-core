@@ -24,9 +24,6 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
-// GSContext is the global context for testing.
-var GSContext gs.Context
-
 type runArg struct {
 	beforeRun func()
 	afterRun  func()
@@ -55,7 +52,6 @@ func Run(m *testing.M, opts ...RunOption) {
 		opt(arg)
 	}
 
-	GSContext = gs_app.App.C.(gs.Context)
 	gs.ForceAutowireIsNullable(true)
 
 	err := gs_app.App.Start()
@@ -76,8 +72,14 @@ func Run(m *testing.M, opts ...RunOption) {
 	gs_app.App.Stop()
 }
 
+// Wire injects dependencies into the object.
+func Wire(t *testing.T, obj interface{}) {
+	_, err := gs_app.App.C.Wire(obj)
+	assert.Nil(t, err)
+}
+
 // Case calls a function with arguments injected.
 func Case(t *testing.T, fn interface{}, args ...gs.Arg) {
-	_, err := GSContext.Invoke(fn, args...)
+	_, err := gs_app.App.C.Invoke(fn, args...)
 	assert.Nil(t, err)
 }

@@ -151,7 +151,6 @@ func OnProfile(profile string) Condition {
 /************************************ ioc ************************************/
 
 type (
-	Context     = gs.Context
 	Properties  = gs.Properties
 	Refreshable = gs.Refreshable
 	Dync[T any] = gs_dync.Value[T]
@@ -172,8 +171,8 @@ type (
 var NewBean = gs_core.NewBean
 
 // BeanSelectorFor returns a BeanSelector for the given type.
-func BeanSelectorFor[T any]() BeanSelector {
-	return gs.BeanSelectorFor[T]()
+func BeanSelectorFor[T any](name ...string) BeanSelector {
+	return gs.BeanSelectorFor[T](name...)
 }
 
 /************************************ boot ***********************************/

@@ -60,7 +60,7 @@ func NewApplication() *Application {
 		P:        gs_conf.NewAppConfig(),
 		exitChan: make(chan struct{}),
 	}
-	app.C.Object(app)
+	app.C.Register(gs_core.NewBean(app))
 	return app
 }
 
@@ -130,7 +130,6 @@ func (app *Application) Start() error {
 		})
 	}
 
-	app.C.ReleaseUnusedMemory()
 	return nil
 }
 
