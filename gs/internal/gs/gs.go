@@ -54,8 +54,8 @@ type BeanSelector struct {
 	Name string       // Name of the bean
 }
 
-// BeanSelectorForType returns a BeanSelector for the given type.
-func BeanSelectorForType[T any]() BeanSelector {
+// BeanSelectorFor returns a BeanSelector for the given type.
+func BeanSelectorFor[T any]() BeanSelector {
 	return BeanSelector{Type: reflect.TypeFor[T]()}
 }
 

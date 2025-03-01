@@ -36,9 +36,11 @@ import (
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
-// App represents the core application, managing its lifecycle, configuration,
+var App = NewApplication()
+
+// Application represents the core application, managing its lifecycle, configuration,
 // and the injection of dependencies.
-type App struct {
+type Application struct {
 	C gs.Container
 	P *gs_conf.AppConfig
 
@@ -51,9 +53,9 @@ type App struct {
 	Servers []gs.Server `autowire:"${spring.app.servers:=*?}"`
 }
 
-// NewApp creates and initializes a new application instance.
-func NewApp() *App {
-	app := &App{
+// NewApplication creates and initializes a new application instance.
+func NewApplication() *Application {
+	app := &Application{
 		C:        gs_core.New(),
 		P:        gs_conf.NewAppConfig(),
 		exitChan: make(chan struct{}),
@@ -66,7 +68,7 @@ func NewApp() *App {
 // (e.g., SIGINT, SIGTERM). When a signal is received, it shuts down
 // the application gracefully. Use ShutDown but not Stop to end
 // the application lifecycle.
-func (app *App) Run() error {
+func (app *Application) Run() error {
 	if err := app.Start(); err != nil {
 		return err
 	}
@@ -88,7 +90,7 @@ func (app *App) Run() error {
 // Start initializes and starts the application. It loads configuration properties,
 // refreshes the IoC container, performs dependency injection, and runs runners
 // and servers.
-func (app *App) Start() error {
+func (app *Application) Start() error {
 	// loads the layered app properties
 	p, err := app.P.Refresh()
 	if err != nil {
@@ -134,7 +136,7 @@ func (app *App) Start() error {
 
 // Stop gracefully stops the application. This method is used to clean up
 // resources and stop servers started by the Start method.
-func (app *App) Stop() {
+func (app *Application) Stop() {
 	timeout := time.Second * 5
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -166,13 +168,13 @@ func (app *App) Stop() {
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
-func (app *App) Exiting() bool {
+func (app *Application) Exiting() bool {
 	return app.exiting.Load()
 }
 
 // ShutDown gracefully terminates the application. It should be used when
 // shutting down the application started by Run.
-func (app *App) ShutDown(msg ...string) {
+func (app *Application) ShutDown(msg ...string) {
 	select {
 	case <-app.exitChan:
 		// do nothing if the exit channel is already closed
@@ -183,7 +185,7 @@ func (app *App) ShutDown(msg ...string) {
 }
 
 // Go starts a new goroutine to execute the given function.
-func (app *App) Go(fn func()) {
+func (app *Application) Go(fn func()) {
 	app.waitGroup.Add(1)
 	goutil.GoFunc(func() {
 		defer app.waitGroup.Done()

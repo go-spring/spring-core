@@ -24,17 +24,17 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
-// Boot is the bootstrapper of the application.
-type Boot struct {
+// Bootstrap is the bootstrapper of the application.
+type Bootstrap struct {
 	c gs.Container
 	p *gs_conf.BootConfig
 
 	Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`
 }
 
-// NewBoot creates a new Boot instance.
-func NewBoot() *Boot {
-	b := &Boot{
+// NewBootstrap creates a new Bootstrap instance.
+func NewBootstrap() *Bootstrap {
+	b := &Bootstrap{
 		c: gs_core.New(),
 		p: gs_conf.NewBootConfig(),
 	}
@@ -43,34 +43,34 @@ func NewBoot() *Boot {
 }
 
 // Config returns the boot configuration.
-func (b *Boot) Config() *gs_conf.BootConfig {
+func (b *Bootstrap) Config() *gs_conf.BootConfig {
 	return b.p
 }
 
 // Object registers an object bean.
-func (b *Boot) Object(i interface{}) *gs.RegisteredBean {
+func (b *Bootstrap) Object(i interface{}) *gs.RegisteredBean {
 	bd := gs_core.NewBean(reflect.ValueOf(i))
 	return b.c.Register(bd)
 }
 
 // Provide registers a bean using a constructor function.
-func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+func (b *Bootstrap) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(ctor, args...)
 	return b.c.Register(bd)
 }
 
 // Register registers a BeanDefinition instance.
-func (b *Boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
+func (b *Bootstrap) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 	return b.c.Register(bd)
 }
 
 // GroupRegister registers a group of BeanDefinitions.
-func (b *Boot) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
+func (b *Bootstrap) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
 	b.c.GroupRegister(fn)
 }
 
 // Run executes the application's bootstrap process.
-func (b *Boot) Run() error {
+func (b *Bootstrap) Run() error {
 	// Refresh the boot configuration.
 	p, err := b.p.Refresh()
 	if err != nil {

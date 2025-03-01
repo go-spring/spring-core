@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
@@ -54,10 +55,10 @@ func Run(m *testing.M, opts ...RunOption) {
 		opt(arg)
 	}
 
+	GSContext = gs_app.App.C.(gs.Context)
 	gs.ForceAutowireIsNullable(true)
 
-	var err error
-	GSContext, err = gs.Start()
+	err := gs_app.App.Start()
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +73,7 @@ func Run(m *testing.M, opts ...RunOption) {
 		arg.afterRun()
 	}
 
-	gs.Stop()
+	gs_app.App.Stop()
 }
 
 // Case calls a function with arguments injected.

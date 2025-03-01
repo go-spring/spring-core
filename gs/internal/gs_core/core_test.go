@@ -703,7 +703,7 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanFour)).DependsOn(
-			gs.BeanSelectorForType[*BeanOne](),
+			gs.BeanSelectorFor[*BeanOne](),
 			gs.BeanSelector{Name: "BeanZero"},
 		)
 		err := c.Refresh()

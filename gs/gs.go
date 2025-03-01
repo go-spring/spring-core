@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
@@ -172,32 +171,21 @@ type (
 // NewBean creates a new BeanDefinition.
 var NewBean = gs_core.NewBean
 
-// BeanSelectorForType returns a BeanSelector for the given type.
-func BeanSelectorForType[T any]() BeanSelector {
-	return gs.BeanSelectorForType[T]()
+// BeanSelectorFor returns a BeanSelector for the given type.
+func BeanSelectorFor[T any]() BeanSelector {
+	return gs.BeanSelectorFor[T]()
 }
 
 /************************************ boot ***********************************/
 
-var boot *gs_app.Boot
+var bootstrap *gs_app.Bootstrap
 
-// Boot initializes and returns a [*gs_app.Boot] instance.
-func Boot() *gs_app.Boot {
-	if boot == nil {
-		boot = gs_app.NewBoot()
+// Bootstrap initializes and returns a [*gs_app.Bootstrap] instance.
+func Bootstrap() *gs_app.Bootstrap {
+	if bootstrap == nil {
+		bootstrap = gs_app.NewBootstrap()
 	}
-	return boot
-}
-
-// bootRun runs the boot process.
-func bootRun() error {
-	if boot != nil {
-		if err := boot.Run(); err != nil {
-			return err
-		}
-		boot = nil
-	}
-	return nil
+	return bootstrap
 }
 
 /*********************************** app *************************************/
@@ -208,76 +196,58 @@ type (
 	Server = gs.Server
 )
 
-var app = gs_app.NewApp()
-
-// Start starts the app, usually for testing purposes.
-func Start() (Context, error) {
-	if !testing.Testing() {
-		panic("gs.Start() can only be called in testing mode")
-	}
-	if err := app.Start(); err != nil {
-		return nil, err
-	}
-	return app.C.(Context), nil
-}
-
-// Stop stops the app, usually for testing purposes.
-func Stop() {
-	if !testing.Testing() {
-		panic("gs.Stop() can only be called in testing mode")
-	}
-	app.Stop()
-}
-
 // Run runs the app and waits for an interrupt signal to exit.
 func Run() error {
 	printBanner()
-	if err := bootRun(); err != nil {
-		return err
+	if bootstrap != nil {
+		if err := bootstrap.Run(); err != nil {
+			return err
+		}
+		bootstrap = nil
 	}
-	return app.Run()
+	return gs_app.App.Run()
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
 func Exiting() bool {
-	return app.Exiting()
+	return gs_app.App.Exiting()
 }
 
 // ShutDown shuts down the app with an optional message.
 func ShutDown(msg ...string) {
-	app.ShutDown(msg...)
+	gs_app.App.ShutDown(msg...)
 }
 
 // Config returns the app configuration.
 func Config() *gs_conf.AppConfig {
-	return app.P
+	return gs_app.App.P
 }
 
 // RefreshProperties refreshes the app configuration.
 func RefreshProperties(p Properties) error {
-	return app.C.RefreshProperties(p)
+	return gs_app.App.C.RefreshProperties(p)
 }
 
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
-	return app.C.Register(b)
+	return gs_app.App.C.Register(b)
 }
 
 // Provide registers a bean definition for a given constructor.
 func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
 	b := NewBean(ctor, args...)
-	return app.C.Register(b)
+	return gs_app.App.C.Register(b)
 }
 
 // Register registers a bean definition.
 func Register(b *BeanDefinition) *RegisteredBean {
-	return app.C.Register(b)
+	return gs_app.App.C.Register(b)
 }
 
 // GroupRegister registers a group of bean definitions.
 func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
-	app.C.GroupRegister(fn)
+	gs_app.App.C.GroupRegister(fn)
 }
 
 /********************************** banner ***********************************/

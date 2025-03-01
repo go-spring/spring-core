@@ -39,19 +39,19 @@ func TestConditionString(t *testing.T) {
 	c = gs_cond.OnBean(gs.BeanSelector{Name: "a"})
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector={Name:a})`)
 
-	c = gs_cond.OnBean(gs.BeanSelectorForType[error]())
+	c = gs_cond.OnBean(gs.BeanSelectorFor[error]())
 	assert.Equal(t, fmt.Sprint(c), `OnBean(selector={Type:error})`)
 
 	c = gs_cond.OnMissingBean(gs.BeanSelector{Name: "a"})
 	assert.Equal(t, fmt.Sprint(c), `OnMissingBean(selector={Name:a})`)
 
-	c = gs_cond.OnMissingBean(gs.BeanSelectorForType[error]())
+	c = gs_cond.OnMissingBean(gs.BeanSelectorFor[error]())
 	assert.Equal(t, fmt.Sprint(c), `OnMissingBean(selector={Type:error})`)
 
 	c = gs_cond.OnSingleBean(gs.BeanSelector{Name: "a"})
 	assert.Equal(t, fmt.Sprint(c), `OnSingleBean(selector={Name:a})`)
 
-	c = gs_cond.OnSingleBean(gs.BeanSelectorForType[error]())
+	c = gs_cond.OnSingleBean(gs.BeanSelectorFor[error]())
 	assert.Equal(t, fmt.Sprint(c), `OnSingleBean(selector={Type:error})`)
 
 	c = gs_cond.OnExpression("a")
