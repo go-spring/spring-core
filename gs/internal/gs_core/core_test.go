@@ -59,12 +59,12 @@ func container(t *testing.T, fn func(p *conf.Properties, c *gs_core.Container) e
 }
 
 func runTest(c gs.Container, fn func(gs.Context)) error {
-	type PandoraAware struct{}
-	c.Provide(func(p gs.Context) PandoraAware {
-		fn(p)
-		return PandoraAware{}
-	})
-	return c.Refresh()
+	err := c.Refresh()
+	if err != nil {
+		return err
+	}
+	fn(c.(gs.Context))
+	return nil
 }
 
 func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
@@ -1076,30 +1076,6 @@ func TestApplicationContext_Collect(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, len(rcs), 2)
 		})
-		assert.Nil(t, err)
-	})
-
-	t.Run("", func(t *testing.T) {
-		prop := conf.New()
-		prop.Set("redis.endpoints", "redis://localhost:6379")
-
-		c := gs_core.New()
-		c.Object(new(RecoresCluster)).Name("a")
-		c.Object(new(RecoresCluster)).Name("b")
-		c.Provide(func(p gs.Context) func() {
-
-			var rcs []*RecoresCluster
-			err := p.Get(&rcs)
-
-			assert.Nil(t, err)
-			assert.Equal(t, len(rcs), 2)
-			assert.Equal(t, rcs[0].Endpoints, "redis://localhost:6379")
-
-			return func() {}
-		})
-
-		c.RefreshProperties(prop)
-		err := c.Refresh()
 		assert.Nil(t, err)
 	})
 }
@@ -2780,28 +2756,6 @@ func TestDestroyDependence(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-type ContextAware struct {
-	gs.ContextAware
-}
-
-func (c *ContextAware) Echo(str string) string {
-	return c.GSContext.Prop("prefix") + " " + str + "!"
-}
-
-func TestContextAware(t *testing.T) {
-	prop := conf.New()
-	prop.Set("prefix", "hello")
-
-	c := gs_core.New()
-	b := c.Object(new(ContextAware))
-
-	c.RefreshProperties(prop)
-	err := c.Refresh()
-	assert.Nil(t, err)
-	a := b.BeanRegistration().(*gs_bean.BeanDefinition).Interface().(*ContextAware)
-	assert.Equal(t, a.Echo("gopher"), "hello gopher!")
-}
-
 type DynamicConfig struct {
 	Int   gs_dync.Value[int64]             `value:"${int:=3}" expr:"$<6"`
 	Float gs_dync.Value[float64]           `value:"${float:=1.2}"`
@@ -2940,20 +2894,7 @@ func TestConfiguration(t *testing.T) {
 	c := gs_core.New()
 	c.Object(&ConfigurationBean{"123"}).Configuration(gs.ConfigurationParam{Excludes: []string{"NewBean"}}).Name("123")
 	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration().Name("456")
-	ctx := &gs.ContextAware{}
-	c.Object(ctx)
 	if err := c.Refresh(); err != nil {
 		t.Fatal(err)
 	}
-	var b *ChildBean
-	err := ctx.GSContext.Get(&b, "123_NewChild")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, b.s, "123")
-	err = ctx.GSContext.Get(&b, "456_NewChild")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, b.s, "456")
 }

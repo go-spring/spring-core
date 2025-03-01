@@ -24,6 +24,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -65,13 +66,12 @@ type BeanRuntime interface {
 // go-spring 严格区分了这两种概念，在描述对 bean 的处理时要么单独使用依赖注入或属
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
-	resolving    *resolvingStage
-	beansByName  map[string][]BeanRuntime // 用于查找未导出接口
-	beansByType  map[reflect.Type][]BeanRuntime
-	p            *gs_dync.Properties
-	state        refreshState
-	destroyers   []func()
-	ContextAware bool
+	resolving   *resolvingStage
+	beansByName map[string][]BeanRuntime // 用于查找未导出接口
+	beansByType map[reflect.Type][]BeanRuntime
+	p           *gs_dync.Properties
+	state       refreshState
+	destroyers  []func()
 
 	AllowCircularReferences bool `value:"${spring.allow-circular-references:=false}"`
 	ForceAutowireIsNullable bool `value:"${spring.force-autowire-is-nullable:=false}"`
@@ -79,16 +79,12 @@ type Container struct {
 
 // New 创建 IoC 容器。
 func New() gs.Container {
-	c := &Container{
+	return &Container{
 		p:           gs_dync.New(),
 		resolving:   &resolvingStage{},
 		beansByName: make(map[string][]BeanRuntime),
 		beansByType: make(map[reflect.Type][]BeanRuntime),
 	}
-	c.Object(c).Export(
-		gs.As[gs.Context](),
-	)
-	return c
 }
 
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
@@ -249,14 +245,13 @@ func (c *Container) Refresh() (err error) {
 
 // ReleaseUnusedMemory releases unused memory by cleaning up unnecessary resources.
 func (c *Container) ReleaseUnusedMemory() {
-	if !c.ContextAware { // 保留核心数据
+	if !testing.Testing() {
 		if c.p.ObjectsCount() == 0 {
 			c.p = nil
 		}
 		c.beansByName = nil
 		c.beansByType = nil
 	}
-	c.resolving = nil
 }
 
 // Get retrieves a bean of the specified type using the provided selector.

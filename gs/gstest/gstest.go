@@ -26,12 +26,6 @@ import (
 // GSContext is the global context for testing.
 var GSContext gs.Context
 
-func init() {
-	gs.Object(&gs.ContextAware{}).Init(func(x *gs.ContextAware) {
-		GSContext = x.GSContext
-	})
-}
-
 type runArg struct {
 	beforeRun func()
 	afterRun  func()
@@ -62,7 +56,9 @@ func Run(m *testing.M, opts ...RunOption) {
 
 	gs.ForceAutowireIsNullable(true)
 
-	if err := gs.Start(); err != nil {
+	var err error
+	GSContext, err = gs.Start()
+	if err != nil {
 		panic(err)
 	}
 

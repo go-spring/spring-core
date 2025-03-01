@@ -152,11 +152,7 @@ func OnProfile(profile string) Condition {
 /************************************ ioc ************************************/
 
 type (
-	Context      = gs.Context
-	ContextAware = gs.ContextAware
-)
-
-type (
+	Context     = gs.Context
 	Properties  = gs.Properties
 	Refreshable = gs.Refreshable
 	Dync[T any] = gs_dync.Value[T]
@@ -215,11 +211,14 @@ type (
 var app = gs_app.NewApp()
 
 // Start starts the app, usually for testing purposes.
-func Start() error {
+func Start() (Context, error) {
 	if !testing.Testing() {
 		panic("gs.Start() can only be called in testing mode")
 	}
-	return app.Start()
+	if err := app.Start(); err != nil {
+		return nil, err
+	}
+	return app.C.(Context), nil
 }
 
 // Stop stops the app, usually for testing purposes.

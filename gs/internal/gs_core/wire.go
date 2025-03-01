@@ -33,10 +33,6 @@ import (
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
-var (
-	GsContextType = reflect.TypeOf((*gs.Context)(nil)).Elem()
-)
-
 /************************************ destroyer ******************************/
 
 // destroyer stores beans with destroy functions and their call order.
@@ -710,10 +706,6 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, watchRefresh boo
 				f := lazyField{v: fv, path: fieldPath, tag: tag}
 				stack.lazyFields = append(stack.lazyFields, f)
 			} else {
-				// Handle context-aware injection.
-				if ft.Type == GsContextType {
-					c.ContextAware = true
-				}
 				if err := c.wireStructField(fv, tag, stack); err != nil {
 					return fmt.Errorf("%q wired error: %w", fieldPath, err)
 				}

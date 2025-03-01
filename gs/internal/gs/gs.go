@@ -352,8 +352,3 @@ type Context interface {
 	// Invoke calls the provided function with the specified arguments and returns the result.
 	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
 }
-
-// ContextAware is used to inject the container's Context into a bean.
-type ContextAware struct {
-	GSContext Context `autowire:""`
-}
