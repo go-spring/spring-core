@@ -177,6 +177,15 @@ func (p *PropertySources) Reset() {
 
 // AddLocation adds a location.
 func (p *PropertySources) AddLocation(location ...string) {
+	for _, s := range location {
+		info, err := os.Stat(s)
+		if err != nil {
+			panic(err)
+		}
+		if info.IsDir() {
+			panic("location should be a file")
+		}
+	}
 	p.locations = append(p.locations, location...)
 }
 

@@ -222,6 +222,10 @@ func (c *Container) Refresh() (err error) {
 // Wire wires the bean with the given object.
 func (c *Container) Wire(obj interface{}) error {
 
+	if !testing.Testing() {
+		return errors.New("not allowed to call Wire method in non-test mode")
+	}
+
 	stack := NewWiringStack()
 	defer func() {
 		if len(stack.beans) > 0 {
