@@ -222,11 +222,6 @@ func Config() *gs_conf.AppConfig {
 	return gs_app.App.P
 }
 
-// RefreshProperties refreshes the app configuration.
-func RefreshProperties(p Properties) error {
-	return gs_app.App.C.RefreshProperties(p)
-}
-
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
@@ -247,6 +242,11 @@ func Register(b *BeanDefinition) *RegisteredBean {
 // GroupRegister registers a group of bean definitions.
 func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
 	gs_app.App.C.GroupRegister(fn)
+}
+
+// RefreshProperties refreshes the app configuration.
+func RefreshProperties(p Properties) error {
+	return gs_app.App.C.RefreshProperties(p)
 }
 
 /********************************** banner ***********************************/

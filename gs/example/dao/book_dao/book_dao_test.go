@@ -8,35 +8,40 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	gstest.Run(m)
+	gstest.TestMain(m)
 }
 
 func TestBookDao(t *testing.T) {
-	gstest.Case(t, func(o *BookDao) {
 
-		books, err := o.ListBooks()
-		assert.Nil(t, err)
-		assert.Equal(t, len(books), 0)
+	x := gstest.Wire(t, new(struct {
+		BookDao *BookDao `autowire:""`
+	}))
 
-		err = o.SaveBook(Book{SN: "1", Name: "Go Spring"})
-		assert.Equal(t, err, nil)
+	o := x.BookDao
+	assert.NotNil(t, o)
 
-		books, err = o.ListBooks()
-		assert.Nil(t, err)
-		assert.Equal(t, len(books), 1)
-		assert.Equal(t, books[0].SN, "1")
-		assert.Equal(t, books[0].Name, "Go Spring")
+	books, err := o.ListBooks()
+	assert.Nil(t, err)
+	assert.Equal(t, len(books), 0)
 
-		book, err := o.GetBook("1")
-		assert.Nil(t, err)
-		assert.Equal(t, book.SN, "1")
-		assert.Equal(t, book.Name, "Go Spring")
+	err = o.SaveBook(Book{SN: "1", Name: "Go Spring"})
+	assert.Equal(t, err, nil)
 
-		err = o.DeleteBook("1")
-		assert.Nil(t, err)
+	books, err = o.ListBooks()
+	assert.Nil(t, err)
+	assert.Equal(t, len(books), 1)
+	assert.Equal(t, books[0].SN, "1")
+	assert.Equal(t, books[0].Name, "Go Spring")
 
-		books, err = o.ListBooks()
-		assert.Nil(t, err)
-		assert.Equal(t, len(books), 0)
-	})
+	book, err := o.GetBook("1")
+	assert.Nil(t, err)
+	assert.Equal(t, book.SN, "1")
+	assert.Equal(t, book.Name, "Go Spring")
+
+	err = o.DeleteBook("1")
+	assert.Nil(t, err)
+
+	books, err = o.ListBooks()
+	assert.Nil(t, err)
+	assert.Equal(t, len(books), 0)
 }

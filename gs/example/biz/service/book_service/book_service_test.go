@@ -8,41 +8,42 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
-func init() {
-	gstest.MockFor[*book_dao.BookDao]().With(nil)
-}
-
 func TestMain(m *testing.M) {
-	gstest.Run(m)
+	gstest.TestMain(m)
 }
 
 func TestBookService(t *testing.T) {
-	gstest.Case(t, func(s *BookService, o *book_dao.BookDao) {
-		assert.NotNil(t, o)
 
-		books, err := s.ListBooks()
-		assert.Nil(t, err)
-		assert.Equal(t, len(books), 0)
+	x := gstest.Wire(t, new(struct {
+		Service *BookService      `autowire:""`
+		BookDao *book_dao.BookDao `autowire:""`
+	}))
 
-		err = s.SaveBook(book_dao.Book{SN: "1", Name: "Go Spring"})
-		assert.Nil(t, err)
+	s, o := x.Service, x.BookDao
+	assert.NotNil(t, o)
 
-		books, err = s.ListBooks()
-		assert.Nil(t, err)
-		assert.Equal(t, len(books), 1)
-		assert.Equal(t, books[0].SN, "1")
-		assert.Equal(t, books[0].Name, "Go Spring")
+	books, err := s.ListBooks()
+	assert.Nil(t, err)
+	assert.Equal(t, len(books), 0)
 
-		book, err := s.GetBook("1")
-		assert.Nil(t, err)
-		assert.Equal(t, book.SN, "1")
-		assert.Equal(t, book.Name, "Go Spring")
+	err = s.SaveBook(book_dao.Book{SN: "1", Name: "Go Spring"})
+	assert.Nil(t, err)
 
-		err = s.DeleteBook("1")
-		assert.Nil(t, err)
+	books, err = s.ListBooks()
+	assert.Nil(t, err)
+	assert.Equal(t, len(books), 1)
+	assert.Equal(t, books[0].SN, "1")
+	assert.Equal(t, books[0].Name, "Go Spring")
 
-		books, err = s.ListBooks()
-		assert.Nil(t, err)
-		assert.Equal(t, len(books), 0)
-	})
+	book, err := s.GetBook("1")
+	assert.Nil(t, err)
+	assert.Equal(t, book.SN, "1")
+	assert.Equal(t, book.Name, "Go Spring")
+
+	err = s.DeleteBook("1")
+	assert.Nil(t, err)
+
+	books, err = s.ListBooks()
+	assert.Nil(t, err)
+	assert.Equal(t, len(books), 0)
 }

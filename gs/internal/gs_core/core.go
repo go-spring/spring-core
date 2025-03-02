@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -142,12 +141,13 @@ func (c *Container) Refresh() (err error) {
 	c.AllowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
 	c.ForceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
-	beansById, err := c.resolving.Refresh()
+	err = c.resolving.Refresh()
 	if err != nil {
 		return err
 	}
 
 	// registers all beans
+	var beans []*gs_bean.BeanDefinition
 	for _, b := range c.resolving.beans {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
@@ -157,6 +157,7 @@ func (c *Container) Refresh() (err error) {
 		for _, t := range b.Exports() {
 			c.beansByType[t] = append(c.beansByType[t], b)
 		}
+		beans = append(beans, b)
 	}
 
 	stack := NewWiringStack()
@@ -167,17 +168,10 @@ func (c *Container) Refresh() (err error) {
 		}
 	}()
 
-	// injects all beans in ascending order of their IDs
-	{
-		var keys []string
-		for s := range beansById {
-			keys = append(keys, s)
-		}
-		sort.Strings(keys)
-		for _, s := range keys {
-			if err = c.wireBean(beansById[s], stack); err != nil {
-				return err
-			}
+	// injects all beans
+	for _, b := range beans {
+		if err = c.wireBean(b, stack); err != nil {
+			return err
 		}
 	}
 
@@ -223,7 +217,7 @@ func (c *Container) Refresh() (err error) {
 
 	c.state = Refreshed
 	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
-		len(beansById), time.Now().Sub(start))
+		len(beans), time.Now().Sub(start))
 	return nil
 }
 
@@ -356,31 +350,36 @@ func (c *resolvingStage) RefreshInit() error {
 	return nil
 }
 
-func (c *resolvingStage) Refresh() (beansById map[string]*gs_bean.BeanDefinition, err error) {
+func (c *resolvingStage) Refresh() error {
 
 	// resolves all beans on their condition.
 	for _, b := range c.beans {
-		if err = c.resolveBean(b); err != nil {
-			return nil, err
+		if err := c.resolveBean(b); err != nil {
+			return err
 		}
 	}
 
+	type BeanID struct {
+		s string
+		t reflect.Type
+	}
+
 	// caches all beans by id and checks for duplicates.
-	beansById = make(map[string]*gs_bean.BeanDefinition)
+	beansByID := make(map[BeanID]*gs_bean.BeanDefinition)
 	for _, b := range c.beans {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
 		if b.Status() != gs_bean.StatusResolved {
-			return nil, fmt.Errorf("unexpected status %d", b.Status())
+			return fmt.Errorf("unexpected status %d", b.Status())
 		}
-		beanID := b.Name()
-		if d, ok := beansById[beanID]; ok {
-			return nil, fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
+		beanID := BeanID{b.Name(), b.Type()}
+		if d, ok := beansByID[beanID]; ok {
+			return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
 		}
-		beansById[beanID] = b
+		beansByID[beanID] = b
 	}
-	return beansById, nil
+	return nil
 }
 
 func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
