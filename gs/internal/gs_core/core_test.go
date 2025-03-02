@@ -1101,10 +1101,12 @@ func TestApplicationContext_Collect(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var rcs []*RecoresCluster
-			// err := p.Wire(&rcs)
-			// assert.Nil(t, err)
-			// assert.Equal(t, len(rcs), 2)
+			var rcs struct {
+				Value []*RecoresCluster `autowire:""`
+			}
+			err := p.Wire(&rcs)
+			assert.Nil(t, err)
+			assert.Equal(t, len(rcs.Value), 2)
 		})
 		assert.Nil(t, err)
 	})
@@ -1220,12 +1222,14 @@ func TestOptionConstructorArg(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var cls *ClassRoom
-			// err := p.Wire(&cls)
-			// assert.Nil(t, err)
-			// assert.Equal(t, len(cls.students), 0)
-			// assert.Equal(t, cls.className, "default")
-			// assert.Equal(t, cls.President, "CaiYuanPei")
+			var cls struct {
+				Value *ClassRoom `autowire:""`
+			}
+			err := p.Wire(&cls)
+			assert.Nil(t, err)
+			assert.Equal(t, len(cls.Value.students), 0)
+			assert.Equal(t, cls.Value.className, "default")
+			assert.Equal(t, cls.Value.President, "CaiYuanPei")
 		})
 		assert.Nil(t, err)
 	})
@@ -1239,13 +1243,15 @@ func TestOptionConstructorArg(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var cls *ClassRoom
-			// err := p.Wire(&cls)
-			// assert.Nil(t, err)
-			// assert.Equal(t, cls.floor, 3)
-			// assert.Equal(t, len(cls.students), 0)
-			// assert.Equal(t, cls.className, "二年级03班")
-			// assert.Equal(t, cls.President, "CaiYuanPei")
+			var cls struct {
+				Value *ClassRoom `autowire:""`
+			}
+			err := p.Wire(&cls)
+			assert.Nil(t, err)
+			assert.Equal(t, cls.Value.floor, 3)
+			assert.Equal(t, len(cls.Value.students), 0)
+			assert.Equal(t, cls.Value.className, "二年级03班")
+			assert.Equal(t, cls.Value.President, "CaiYuanPei")
 		})
 		assert.Nil(t, err)
 	})
@@ -1262,13 +1268,15 @@ func TestOptionConstructorArg(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var cls *ClassRoom
-			// err := p.Wire(&cls)
-			// assert.Nil(t, err)
-			// assert.Equal(t, cls.floor, 0)
-			// assert.Equal(t, len(cls.students), 2)
-			// assert.Equal(t, cls.className, "default")
-			// assert.Equal(t, cls.President, "CaiYuanPei")
+			var cls struct {
+				Value *ClassRoom `autowire:""`
+			}
+			err := p.Wire(&cls)
+			assert.Nil(t, err)
+			assert.Equal(t, cls.Value.floor, 0)
+			assert.Equal(t, len(cls.Value.students), 2)
+			assert.Equal(t, cls.Value.className, "default")
+			assert.Equal(t, cls.Value.President, "CaiYuanPei")
 		})
 		assert.Nil(t, err)
 	})
@@ -1291,14 +1299,16 @@ func TestOptionConstructorArg(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var cls *ClassRoom
-			// err := p.Wire(&cls)
-			// assert.Nil(t, err)
-			// assert.Equal(t, cls.floor, 3)
-			// assert.Equal(t, len(cls.students), 2)
-			// assert.Equal(t, cls.className, "二年级06班")
-			// assert.Equal(t, cls.President, "CaiYuanPei")
-			// assert.Equal(t, cls.builder.param, "1")
+			var cls struct {
+				Value *ClassRoom `autowire:""`
+			}
+			err := p.Wire(&cls)
+			assert.Nil(t, err)
+			assert.Equal(t, cls.Value.floor, 3)
+			assert.Equal(t, len(cls.Value.students), 2)
+			assert.Equal(t, cls.Value.className, "二年级06班")
+			assert.Equal(t, cls.Value.President, "CaiYuanPei")
+			assert.Equal(t, cls.Value.builder.param, "1")
 		})
 		assert.Nil(t, err)
 	})
@@ -1357,17 +1367,21 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 
-			// var s *Server
-			// err := p.Wire(&s)
-			// assert.Nil(t, err)
-			// assert.Equal(t, s.Version, "1.0.0")
-			//
-			// s.Version = "2.0.0"
-			//
-			// var consumer *Consumer
-			// err = p.Wire(&consumer)
-			// assert.Nil(t, err)
-			// assert.Equal(t, consumer.s.Version, "2.0.0")
+			var s struct {
+				Value *Server `autowire:""`
+			}
+			err := p.Wire(&s)
+			assert.Nil(t, err)
+			assert.Equal(t, s.Value.Version, "1.0.0")
+
+			s.Value.Version = "2.0.0"
+
+			var consumer struct {
+				Value *Consumer `autowire:""`
+			}
+			err = p.Wire(&consumer)
+			assert.Nil(t, err)
+			assert.Equal(t, consumer.Value.s.Version, "2.0.0")
 		})
 		assert.Nil(t, err)
 	})
@@ -1383,13 +1397,17 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 
-			// var s *Server
-			// err := p.Wire(&s)
-			// assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Server\"")
-			//
-			// var consumer *Consumer
-			// err = p.Wire(&consumer)
-			// assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Consumer\"")
+			var s struct {
+				Value *Server `autowire:""`
+			}
+			err := p.Wire(&s)
+			assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Server\"")
+
+			var consumer struct {
+				Value *Consumer `autowire:""`
+			}
+			err = p.Wire(&consumer)
+			assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Consumer\"")
 		})
 		assert.Nil(t, err)
 	})
@@ -1405,17 +1423,21 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 
-			// var s *Server
-			// err := p.Wire(&s)
-			// assert.Nil(t, err)
-			// assert.Equal(t, s.Version, "1.0.0")
-			//
-			// s.Version = "2.0.0"
-			//
-			// var consumer *Consumer
-			// err = p.Wire(&consumer)
-			// assert.Nil(t, err)
-			// assert.Equal(t, consumer.s.Version, "2.0.0")
+			var s struct {
+				Value *Server `autowire:""`
+			}
+			err := p.Wire(&s)
+			assert.Nil(t, err)
+			assert.Equal(t, s.Value.Version, "1.0.0")
+
+			s.Value.Version = "2.0.0"
+
+			var consumer struct {
+				Value *Consumer `autowire:""`
+			}
+			err = p.Wire(&consumer)
+			assert.Nil(t, err)
+			assert.Equal(t, consumer.Value.s.Version, "2.0.0")
 		})
 		assert.Nil(t, err)
 	})
@@ -1432,19 +1454,23 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 
-			// var si ServerInterface
-			// err := p.Wire(&si)
-			// assert.Nil(t, err)
-			//
-			// s := si.(*Server)
-			// assert.Equal(t, s.Version, "1.0.0")
-			//
-			// s.Version = "2.0.0"
-			//
-			// var consumer *Consumer
-			// err = p.Wire(&consumer)
-			// assert.Nil(t, err)
-			// assert.Equal(t, consumer.s.Version, "2.0.0")
+			var si struct {
+				Value ServerInterface `autowire:""`
+			}
+			err := p.Wire(&si)
+			assert.Nil(t, err)
+
+			s := si.Value.(*Server)
+			assert.Equal(t, s.Version, "1.0.0")
+
+			s.Version = "2.0.0"
+
+			var consumer struct {
+				Value *Consumer `autowire:""`
+			}
+			err = p.Wire(&consumer)
+			assert.Nil(t, err)
+			assert.Equal(t, consumer.Value.s.Version, "2.0.0")
 		})
 		assert.Nil(t, err)
 	})
@@ -1501,10 +1527,12 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var s *Server
-			// err := p.Wire(&s)
-			// assert.Nil(t, err)
-			// assert.Equal(t, s.Version, "1.0.0")
+			var s struct {
+				Value *Server `autowire:""`
+			}
+			err := p.Wire(&s)
+			assert.Nil(t, err)
+			assert.Equal(t, s.Value.Version, "1.0.0")
 		})
 		assert.Nil(t, err)
 	})
@@ -1520,17 +1548,21 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 
-			// var s *Server
-			// err := p.Wire(&s)
-			// assert.Nil(t, err)
-			// assert.Equal(t, s.Version, "1.0.0")
-			//
-			// s.Version = "2.0.0"
-			//
-			// var consumer *Consumer
-			// err = p.Wire(&consumer)
-			// assert.Nil(t, err)
-			// assert.Equal(t, consumer.s.Version, "2.0.0")
+			var s struct {
+				Value *Server `autowire:""`
+			}
+			err := p.Wire(&s)
+			assert.Nil(t, err)
+			assert.Equal(t, s.Value.Version, "1.0.0")
+
+			s.Value.Version = "2.0.0"
+
+			var consumer struct {
+				Value *Consumer `autowire:""`
+			}
+			err = p.Wire(&consumer)
+			assert.Nil(t, err)
+			assert.Equal(t, consumer.Value.s.Version, "2.0.0")
 		})
 		assert.Nil(t, err)
 	})
@@ -1559,17 +1591,21 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 
-			// var s *Server
-			// err := p.Wire(&s)
-			// assert.Nil(t, err)
-			// assert.Equal(t, s.Version, "1.0.0")
-			//
-			// s.Version = "2.0.0"
-			//
-			// var consumer *Consumer
-			// err = p.Wire(&consumer)
-			// assert.Nil(t, err)
-			// assert.Equal(t, consumer.s.Version, "2.0.0")
+			var s struct {
+				Value *Server `autowire:""`
+			}
+			err := p.Wire(&s)
+			assert.Nil(t, err)
+			assert.Equal(t, s.Value.Version, "1.0.0")
+
+			s.Value.Version = "2.0.0"
+
+			var consumer struct {
+				Value *Consumer `autowire:""`
+			}
+			err = p.Wire(&consumer)
+			assert.Nil(t, err)
+			assert.Equal(t, consumer.Value.s.Version, "2.0.0")
 		})
 		assert.Nil(t, err)
 	})
@@ -1761,11 +1797,13 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var obj *VarObj
-			// err := p.Wire(&obj)
-			// assert.Nil(t, err)
-			// assert.Equal(t, len(obj.v), 0)
-			// assert.Equal(t, obj.s, "<nil>")
+			var obj struct {
+				Value *VarObj `autowire:""`
+			}
+			err := p.Wire(&obj)
+			assert.Nil(t, err)
+			assert.Equal(t, len(obj.Value.v), 0)
+			assert.Equal(t, obj.Value.s, "<nil>")
 		})
 		assert.Nil(t, err)
 	})
@@ -1781,12 +1819,14 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var obj *VarObj
-			// err := p.Wire(&obj)
-			// assert.Nil(t, err)
-			// assert.Equal(t, len(obj.v), 1)
-			// assert.Equal(t, obj.v[0].name, "v1")
-			// assert.Equal(t, obj.s, "description")
+			var obj struct {
+				Value *VarObj `autowire:""`
+			}
+			err := p.Wire(&obj)
+			assert.Nil(t, err)
+			assert.Equal(t, len(obj.Value.v), 1)
+			assert.Equal(t, obj.Value.v[0].name, "v1")
+			assert.Equal(t, obj.Value.s, "description")
 		})
 		assert.Nil(t, err)
 	})
@@ -1802,13 +1842,15 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var obj *VarObj
-			// err := p.Wire(&obj)
-			// assert.Nil(t, err)
-			// assert.Equal(t, len(obj.v), 2)
-			// assert.Equal(t, obj.v[0].name, "v1")
-			// assert.Equal(t, obj.v[1].name, "v2")
-			// assert.Equal(t, obj.s, "description")
+			var obj struct {
+				Value *VarObj `autowire:""`
+			}
+			err := p.Wire(&obj)
+			assert.Nil(t, err)
+			assert.Equal(t, len(obj.Value.v), 2)
+			assert.Equal(t, obj.Value.v[0].name, "v1")
+			assert.Equal(t, obj.Value.v[1].name, "v2")
+			assert.Equal(t, obj.Value.s, "description")
 		})
 		assert.Nil(t, err)
 	})
@@ -1823,10 +1865,12 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		)
 		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1")))
 		err := runTest(c, func(p GSContext) {
-			// var obj *VarInterfaceObj
-			// err := p.Wire(&obj)
-			// assert.Nil(t, err)
-			// assert.Equal(t, len(obj.v), 1)
+			var obj struct {
+				Value *VarInterfaceObj `autowire:""`
+			}
+			err := p.Wire(&obj)
+			assert.Nil(t, err)
+			assert.Equal(t, len(obj.Value.v), 1)
 		})
 		assert.Nil(t, err)
 	})
@@ -1841,10 +1885,12 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		)
 		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
 		err := runTest(c, func(p GSContext) {
-			// var obj *VarInterfaceObj
-			// err := p.Wire(&obj)
-			// assert.Nil(t, err)
-			// assert.Equal(t, len(obj.v), 2)
+			var obj struct {
+				Value *VarInterfaceObj `autowire:""`
+			}
+			err := p.Wire(&obj)
+			assert.Nil(t, err)
+			assert.Equal(t, len(obj.Value.v), 2)
 		})
 		assert.Nil(t, err)
 	})
@@ -1892,9 +1938,11 @@ func TestApplicationContext_Close(t *testing.T) {
 		d := new(callDestroy)
 		c.Object(d).Destroy((*callDestroy).Destroy)
 		err := runTest(c, func(p GSContext) {
-			// var d *callDestroy
-			// err := p.Wire(&d)
-			// assert.Nil(t, err)
+			var d struct {
+				Value *callDestroy `autowire:""`
+			}
+			err := p.Wire(&d)
+			assert.Nil(t, err)
 		})
 		assert.Nil(t, err)
 		c.Close()
@@ -1909,9 +1957,11 @@ func TestApplicationContext_Close(t *testing.T) {
 			d := &callDestroy{i: 1}
 			c.Object(d).Destroy((*callDestroy).DestroyWithError)
 			err := runTest(c, func(p GSContext) {
-				// var d *callDestroy
-				// err := p.Wire(&d)
-				// assert.Nil(t, err)
+				var d struct {
+					Value *callDestroy `autowire:""`
+				}
+				err := p.Wire(&d)
+				assert.Nil(t, err)
 			})
 			assert.Nil(t, err)
 			c.Close()
@@ -1924,9 +1974,11 @@ func TestApplicationContext_Close(t *testing.T) {
 			d := &callDestroy{}
 			c.Object(d).Destroy((*callDestroy).DestroyWithError)
 			err := runTest(c, func(p GSContext) {
-				// var d *callDestroy
-				// err := p.Wire(&d)
-				// assert.Nil(t, err)
+				var d struct {
+					Value *callDestroy `autowire:""`
+				}
+				err := p.Wire(&d)
+				assert.Nil(t, err)
 			})
 			assert.Nil(t, err)
 			c.Close()
@@ -1938,9 +1990,11 @@ func TestApplicationContext_Close(t *testing.T) {
 		c := newContainer()
 		bd := c.Provide(func() destroyable { return new(callDestroy) }).Destroy(destroyable.Destroy)
 		err := runTest(c, func(p GSContext) {
-			// var d destroyable
-			// err := p.Wire(&d)
-			// assert.Nil(t, err)
+			var d struct {
+				Value destroyable `autowire:""`
+			}
+			err := p.Wire(&d)
+			assert.Nil(t, err)
 		})
 		assert.Nil(t, err)
 		c.Close()
@@ -1955,9 +2009,11 @@ func TestApplicationContext_Close(t *testing.T) {
 			c := newContainer()
 			bd := c.Provide(func() destroyable { return &callDestroy{i: 1} }).Destroy(destroyable.DestroyWithError)
 			err := runTest(c, func(p GSContext) {
-				// var d destroyable
-				// err := p.Wire(&d)
-				// assert.Nil(t, err)
+				var d struct {
+					Value destroyable `autowire:""`
+				}
+				err := p.Wire(&d)
+				assert.Nil(t, err)
 			})
 			assert.Nil(t, err)
 			c.Close()
@@ -1975,9 +2031,11 @@ func TestApplicationContext_Close(t *testing.T) {
 
 			c.RefreshProperties(prop)
 			err := runTest(c, func(p GSContext) {
-				// var d destroyable
-				// err := p.Wire(&d)
-				// assert.Nil(t, err)
+				var d struct {
+					Value destroyable `autowire:""`
+				}
+				err := p.Wire(&d)
+				assert.Nil(t, err)
 			})
 			assert.Nil(t, err)
 			c.Close()
@@ -2006,13 +2064,17 @@ func TestApplicationContext_NestedAutowireBean(t *testing.T) {
 	})
 	err := runTest(c, func(p GSContext) {
 
-		// var b *NestedAutowireBean
-		// err := p.Wire(&b)
-		// assert.Nil(t, err)
-		//
-		// var b0 *PtrNestedAutowireBean
-		// err = p.Wire(&b0)
-		// assert.Nil(t, err)
+		var b struct {
+			Value *NestedAutowireBean `autowire:""`
+		}
+		err := p.Wire(&b)
+		assert.Nil(t, err)
+
+		var b0 struct {
+			Value *PtrNestedAutowireBean `autowire:""`
+		}
+		err = p.Wire(&b0)
+		assert.Nil(t, err)
 	})
 	assert.Nil(t, err)
 }
@@ -2050,11 +2112,13 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var channel *wxChannel
-			// err := p.Wire(&channel)
-			// assert.Nil(t, err)
-			// assert.Equal(t, channel.enable, true)
-			// assert.Equal(t, channel.AutoCreate, true)
+			var channel struct {
+				Value *wxChannel `autowire:""`
+			}
+			err := p.Wire(&channel)
+			assert.Nil(t, err)
+			assert.Equal(t, channel.Value.enable, true)
+			assert.Equal(t, channel.Value.AutoCreate, true)
 		})
 		assert.Nil(t, err)
 	})
@@ -2069,11 +2133,13 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var channel *WXChannel
-			// err := p.Wire(&channel)
-			// assert.Nil(t, err)
-			// assert.True(t, channel.Enable)
-			// assert.True(t, channel.AutoCreate)
+			var channel struct {
+				Value *WXChannel `autowire:""`
+			}
+			err := p.Wire(&channel)
+			assert.Nil(t, err)
+			assert.True(t, channel.Value.Enable)
+			assert.True(t, channel.Value.AutoCreate)
 		})
 		assert.Nil(t, err)
 	})
@@ -2318,13 +2384,15 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var cls *ClassRoom
-			// err := p.Wire(&cls)
-			// assert.Nil(t, err)
-			// assert.Equal(t, cls.floor, 0)
-			// assert.Equal(t, len(cls.students), 0)
-			// assert.Equal(t, cls.className, "default")
-			// assert.Equal(t, cls.President, "CaiYuanPei")
+			var cls struct {
+				Value *ClassRoom `autowire:""`
+			}
+			err := p.Wire(&cls)
+			assert.Nil(t, err)
+			assert.Equal(t, cls.Value.floor, 0)
+			assert.Equal(t, len(cls.Value.students), 0)
+			assert.Equal(t, cls.Value.className, "default")
+			assert.Equal(t, cls.Value.President, "CaiYuanPei")
 		})
 		assert.Nil(t, err)
 	})
