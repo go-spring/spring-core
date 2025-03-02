@@ -31,7 +31,7 @@ func TestBind(t *testing.T) {
 	t.Run("zero argument", func(t *testing.T) {
 		c := container(t, nil)
 		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
 		fn := func() {}
 		p, err := gs_arg.Bind(fn, []gs.Arg{})
 		if err != nil {
@@ -47,7 +47,7 @@ func TestBind(t *testing.T) {
 	t.Run("one value argument", func(t *testing.T) {
 		c := container(t, nil)
 		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
@@ -71,7 +71,7 @@ func TestBind(t *testing.T) {
 			return p.Set("a.b.c", 3)
 		})
 		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
@@ -99,7 +99,7 @@ func TestBind(t *testing.T) {
 			return nil
 		})
 		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
 		expectInt := 0
 		fn := func(v *st) {
 			expectInt = v.i
@@ -127,7 +127,7 @@ func TestBind(t *testing.T) {
 			return nil
 		})
 		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container), stack)
+		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
 		expectInt := 0
 		fn := func(v *st) {
 			expectInt = v.i

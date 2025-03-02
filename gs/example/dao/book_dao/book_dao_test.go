@@ -13,11 +13,7 @@ func TestMain(m *testing.M) {
 
 func TestBookDao(t *testing.T) {
 
-	x := gstest.Wire(t, new(struct {
-		BookDao *BookDao `autowire:""`
-	}))
-
-	o := x.BookDao
+	o := gstest.Get[*BookDao](t)
 	assert.NotNil(t, o)
 
 	books, err := o.ListBooks()

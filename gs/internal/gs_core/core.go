@@ -62,25 +62,25 @@ type BeanRuntime interface {
 // go-spring 严格区分了这两种概念，在描述对 bean 的处理时要么单独使用依赖注入或属
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
-	resolving   *Resolving
-	beansByName map[string][]BeanRuntime // 用于查找未导出接口
-	beansByType map[reflect.Type][]BeanRuntime
-	p           *gs_dync.Properties
-	state       refreshState
-	destroyers  []func()
-
-	AllowCircularReferences bool `value:"${spring.allow-circular-references:=false}"`
-	ForceAutowireIsNullable bool `value:"${spring.force-autowire-is-nullable:=false}"`
+	state     refreshState
+	resolving *Resolving
+	wiring    *Wiring
 }
 
 // New 创建 IoC 容器。
 func New() gs.Container {
 	return &Container{
-		p:           gs_dync.New(),
-		resolving:   &Resolving{},
-		beansByName: make(map[string][]BeanRuntime),
-		beansByType: make(map[reflect.Type][]BeanRuntime),
+		resolving: &Resolving{},
+		wiring: &Wiring{
+			p:           gs_dync.New(),
+			beansByName: make(map[string][]BeanRuntime),
+			beansByType: make(map[reflect.Type][]BeanRuntime),
+		},
 	}
+}
+
+func (c *Container) Wiring() *Wiring {
+	return c.wiring
 }
 
 // Mock mocks the bean with the given object.
@@ -116,7 +116,7 @@ func (c *Container) GroupRegister(fn gs.GroupFunc) {
 
 // RefreshProperties updates the properties of the container.
 func (c *Container) RefreshProperties(p gs.Properties) error {
-	return c.p.Refresh(p)
+	return c.wiring.p.Refresh(p)
 }
 
 // Refresh initializes and wires all beans in the container.
@@ -127,17 +127,17 @@ func (c *Container) Refresh() (err error) {
 	c.state = RefreshInit
 	start := time.Now()
 
-	err = c.resolving.RefreshInit(c.p.Data())
+	err = c.resolving.RefreshInit(c.wiring.p.Data())
 	if err != nil {
 		return err
 	}
 
 	c.state = Refreshing
 
-	c.AllowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
-	c.ForceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
+	c.wiring.AllowCircularReferences = cast.ToBool(c.wiring.p.Data().Get("spring.allow-circular-references"))
+	c.wiring.ForceAutowireIsNullable = cast.ToBool(c.wiring.p.Data().Get("spring.force-autowire-is-nullable"))
 
-	err = c.resolving.Refresh(c.p.Data())
+	err = c.resolving.Refresh(c.wiring.p.Data())
 	if err != nil {
 		return err
 	}
@@ -148,10 +148,10 @@ func (c *Container) Refresh() (err error) {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
-		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
+		c.wiring.beansByName[b.Name()] = append(c.wiring.beansByName[b.Name()], b)
+		c.wiring.beansByType[b.Type()] = append(c.wiring.beansByType[b.Type()], b)
 		for _, t := range b.Exports() {
-			c.beansByType[t] = append(c.beansByType[t], b)
+			c.wiring.beansByType[t] = append(c.wiring.beansByType[t], b)
 		}
 		beans = append(beans, b)
 	}
@@ -165,17 +165,19 @@ func (c *Container) Refresh() (err error) {
 	}()
 
 	// injects all beans
+	c.wiring.state = Refreshing
 	for _, b := range beans {
-		if err = c.wireBean(b, stack); err != nil {
+		if err = c.wiring.wireBean(b, stack); err != nil {
 			return err
 		}
 	}
+	c.wiring.state = Refreshed
 
-	if c.AllowCircularReferences {
+	if c.wiring.AllowCircularReferences {
 		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
-			if err = c.wireStructField(f.v, tag, stack); err != nil {
+			if err = c.wiring.wireStructField(f.v, tag, stack); err != nil {
 				return fmt.Errorf("%q wired error: %s", f.path, err.Error())
 			}
 		}
@@ -183,31 +185,31 @@ func (c *Container) Refresh() (err error) {
 		return errors.New("found circular references in beans")
 	}
 
-	c.destroyers, err = stack.getSortedDestroyers()
+	c.wiring.destroyers, err = stack.getSortedDestroyers()
 	if err != nil {
 		return err
 	}
 
 	// registers all beans
-	c.beansByName = make(map[string][]BeanRuntime)
-	c.beansByType = make(map[reflect.Type][]BeanRuntime)
+	c.wiring.beansByName = make(map[string][]BeanRuntime)
+	c.wiring.beansByType = make(map[reflect.Type][]BeanRuntime)
 	for _, b := range c.resolving.beans {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
-		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
+		c.wiring.beansByName[b.Name()] = append(c.wiring.beansByName[b.Name()], b.BeanRuntime)
+		c.wiring.beansByType[b.Type()] = append(c.wiring.beansByType[b.Type()], b.BeanRuntime)
 		for _, t := range b.Exports() {
-			c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
+			c.wiring.beansByType[t] = append(c.wiring.beansByType[t], b.BeanRuntime)
 		}
 	}
 
 	if !testing.Testing() {
-		if c.p.ObjectsCount() == 0 {
-			c.p = nil
+		if c.wiring.p.ObjectsCount() == 0 {
+			c.wiring.p = nil
 		}
-		c.beansByName = nil
-		c.beansByType = nil
+		c.wiring.beansByName = nil
+		c.wiring.beansByType = nil
 	}
 	c.resolving = nil
 
@@ -229,12 +231,12 @@ func (c *Container) Wire(obj interface{}) error {
 
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
-	return c.wireBeanValue(v, t, false, stack)
+	return c.wiring.wireBeanValue(v, t, false, stack)
 }
 
 // Close closes the container and cleans up resources.
 func (c *Container) Close() {
-	for _, f := range c.destroyers {
+	for _, f := range c.wiring.destroyers {
 		f()
 	}
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/syslog"
@@ -163,12 +164,12 @@ func (s *WiringStack) getSortedDestroyers() ([]func(), error) {
 
 // ArgContext holds a Container and a WiringStack to manage dependency injection.
 type ArgContext struct {
-	c     *Container
+	c     *Wiring
 	stack *WiringStack
 }
 
 // NewArgContext creates a new ArgContext with a given Container and WiringStack.
-func NewArgContext(c *Container, stack *WiringStack) *ArgContext {
+func NewArgContext(c *Wiring, stack *WiringStack) *ArgContext {
 	return &ArgContext{c: c, stack: stack}
 }
 
@@ -262,8 +263,20 @@ func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, e
 	return
 }
 
+type Wiring struct {
+	state refreshState
+
+	beansByName map[string][]BeanRuntime // 用于查找未导出接口
+	beansByType map[reflect.Type][]BeanRuntime
+	p           *gs_dync.Properties
+	destroyers  []func()
+
+	AllowCircularReferences bool
+	ForceAutowireIsNullable bool
+}
+
 // findBeans finds beans based on a given selector.
-func (c *Container) findBeans(s gs.BeanSelectorInterface) ([]BeanRuntime, error) {
+func (c *Wiring) findBeans(s gs.BeanSelectorInterface) ([]BeanRuntime, error) {
 	t, name := s.TypeAndName()
 	var beans []BeanRuntime
 	if t != nil {
@@ -286,7 +299,7 @@ func (c *Container) findBeans(s gs.BeanSelectorInterface) ([]BeanRuntime, error)
 
 // getSingleBean retrieves the bean corresponding to the specified tag and assigns it to `v`.
 // `v` should be an uninitialized value.
-func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (BeanRuntime, error) {
+func (c *Wiring) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (BeanRuntime, error) {
 
 	// Check if the type of `v` is a valid bean receiver type.
 	if !util.IsBeanInjectionTarget(t) {
@@ -371,7 +384,7 @@ func (c *Container) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (Be
 
 // getMultiBeans collects beans into the given slice or map value `v`.
 // It supports dependency injection by resolving matching beans based on tags.
-func (c *Container) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *WiringStack) ([]BeanRuntime, error) {
+func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *WiringStack) ([]BeanRuntime, error) {
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Map {
 		return nil, fmt.Errorf("should be slice or map in collection mode")
@@ -495,7 +508,7 @@ func (c *Container) getBeans(t reflect.Type, tags []wireTag, nullable bool, stac
 // It also tracks its injection path. If the bean has an initialization function, it
 // is executed after the injection is completed. If the bean depends on other beans,
 // it attempts to instantiate and inject those dependencies first.
-func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) error {
+func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) error {
 
 	// Check if the bean is deleted.
 	if b.Status() == gs_bean.StatusDeleted {
@@ -614,7 +627,7 @@ func (c *Container) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) erro
 
 // getBeanValue retrieves the value of a bean. If it is a constructor bean,
 // it executes the constructor and returns the result.
-func (c *Container) getBeanValue(b BeanRuntime, stack *WiringStack) (reflect.Value, error) {
+func (c *Wiring) getBeanValue(b BeanRuntime, stack *WiringStack) (reflect.Value, error) {
 
 	// If the bean has no callable function, return its value directly.
 	if b.Callable() == nil {
@@ -655,7 +668,7 @@ func (c *Container) getBeanValue(b BeanRuntime, stack *WiringStack) (reflect.Val
 }
 
 // wireValue binds properties and injects dependencies into the value v. v should already be initialized.
-func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, watchRefresh bool, stack *WiringStack) error {
+func (c *Wiring) wireBeanValue(v reflect.Value, t reflect.Type, watchRefresh bool, stack *WiringStack) error {
 
 	// Dereference pointer types and adjust the target type.
 	if v.Kind() == reflect.Ptr {
@@ -679,7 +692,7 @@ func (c *Container) wireBeanValue(v reflect.Value, t reflect.Type, watchRefresh 
 }
 
 // wireStruct performs dependency injection for a struct.
-func (c *Container) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, opt conf.BindParam, stack *WiringStack) error {
+func (c *Wiring) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, opt conf.BindParam, stack *WiringStack) error {
 	// Loop through each field of the struct.
 	for i := 0; i < t.NumField(); i++ {
 		ft := t.Field(i)
@@ -750,7 +763,7 @@ func (c *Container) wireStruct(v reflect.Value, t reflect.Type, watchRefresh boo
 }
 
 // wireField performs dependency injection by tag.
-func (c *Container) wireStructField(v reflect.Value, str string, stack *WiringStack) error {
+func (c *Wiring) wireStructField(v reflect.Value, str string, stack *WiringStack) error {
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		{

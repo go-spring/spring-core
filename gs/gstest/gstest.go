@@ -89,6 +89,14 @@ func TestMain(m *testing.M, opts ...RunOption) {
 	gs_app.App.Stop()
 }
 
+// Get gets the bean from the app context.
+func Get[T any](t *testing.T) T {
+	var s struct {
+		Value T `autowire:""`
+	}
+	return Wire(t, &s).Value
+}
+
 // Wire injects dependencies into the object.
 func Wire[T any](t *testing.T, obj T) T {
 	err := gs_app.App.C.Wire(obj)
