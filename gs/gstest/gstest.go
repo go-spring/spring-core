@@ -24,6 +24,23 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
+// BeanMock is a mock for bean.
+type BeanMock struct {
+	selector gs.BeanSelector
+}
+
+// MockFor creates a mock for bean.
+func MockFor[T any](name ...string) BeanMock {
+	return BeanMock{
+		selector: gs.BeanSelectorFor[T](name...),
+	}
+}
+
+// With registers a mock bean.
+func (m BeanMock) With(obj interface{}) {
+	gs_app.App.C.Mock(obj, m.selector)
+}
+
 type runArg struct {
 	beforeRun func()
 	afterRun  func()
@@ -74,7 +91,7 @@ func TestMain(m *testing.M, opts ...RunOption) {
 
 // Wire injects dependencies into the object.
 func Wire[T any](t *testing.T, obj T) T {
-	_, err := gs_app.App.C.Wire(obj)
+	err := gs_app.App.C.Wire(obj)
 	assert.Nil(t, err)
 	return obj
 }

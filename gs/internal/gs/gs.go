@@ -341,10 +341,10 @@ type Container interface {
 	RefreshProperties(p Properties) error
 	// Refresh initializes and wires all beans in the container.
 	Refresh() error
-	// Wire creates and returns a bean by wiring it with the provided constructor or object.
-	Wire(objOrCtor interface{}, ctorArgs ...Arg) (interface{}, error)
-	// Invoke calls the provided function with the specified arguments and returns the result.
-	Invoke(fn interface{}, args ...Arg) ([]interface{}, error)
+	// Wire wires the given object, injecting dependencies into its fields and methods.
+	Wire(obj interface{}) error
 	// Close shuts down the container and cleans up all resources.
 	Close()
 }
+
+type GroupFunc = func(p Properties) ([]*BeanDefinition, error)

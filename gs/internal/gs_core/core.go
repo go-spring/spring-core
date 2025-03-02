@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -45,8 +44,6 @@ const (
 	Refreshed                           // 已刷新
 )
 
-type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
-
 type BeanRuntime interface {
 	Name() string
 	Type() reflect.Type
@@ -65,7 +62,7 @@ type BeanRuntime interface {
 // go-spring 严格区分了这两种概念，在描述对 bean 的处理时要么单独使用依赖注入或属
 // 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
-	resolving   *resolvingStage
+	resolving   *Resolving
 	beansByName map[string][]BeanRuntime // 用于查找未导出接口
 	beansByType map[reflect.Type][]BeanRuntime
 	p           *gs_dync.Properties
@@ -80,7 +77,7 @@ type Container struct {
 func New() gs.Container {
 	return &Container{
 		p:           gs_dync.New(),
-		resolving:   &resolvingStage{},
+		resolving:   &Resolving{},
 		beansByName: make(map[string][]BeanRuntime),
 		beansByType: make(map[reflect.Type][]BeanRuntime),
 	}
@@ -113,8 +110,8 @@ func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	return gs.NewRegisteredBean(b.BeanRegistration())
 }
 
-func (c *Container) GroupRegister(fn GroupFunc) {
-	c.resolving.groupFuncs = append(c.resolving.groupFuncs, fn)
+func (c *Container) GroupRegister(fn gs.GroupFunc) {
+	c.resolving.group = append(c.resolving.group, fn)
 }
 
 // RefreshProperties updates the properties of the container.
@@ -130,8 +127,7 @@ func (c *Container) Refresh() (err error) {
 	c.state = RefreshInit
 	start := time.Now()
 
-	c.resolving.p = c.p.Data()
-	err = c.resolving.RefreshInit()
+	err = c.resolving.RefreshInit(c.p.Data())
 	if err != nil {
 		return err
 	}
@@ -141,7 +137,7 @@ func (c *Container) Refresh() (err error) {
 	c.AllowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
 	c.ForceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
-	err = c.resolving.Refresh()
+	err = c.resolving.Refresh(c.p.Data())
 	if err != nil {
 		return err
 	}
@@ -221,33 +217,8 @@ func (c *Container) Refresh() (err error) {
 	return nil
 }
 
-// Get retrieves a bean of the specified type using the provided selector.
-func (c *Container) Get(i interface{}, tag ...string) error {
-	if i == nil {
-		return errors.New("i can't be nil")
-	}
-	v := reflect.ValueOf(i)
-	if v.Kind() != reflect.Ptr {
-		return errors.New("i must be pointer")
-	}
-	stack := NewWiringStack()
-	defer func() {
-		if len(stack.beans) > 0 {
-			syslog.Infof("wiring path %s", stack.path())
-		}
-	}()
-	var s string
-	if len(tag) > 0 {
-		s = tag[0]
-	}
-	return c.wireStructField(v.Elem(), s, stack)
-}
-
-// Wire creates and returns a wired bean using the provided object or constructor function.
-func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
-
-	x := NewBean(objOrCtor, ctorArgs...)
-	b := x.BeanRegistration().(*gs_bean.BeanDefinition)
+// Wire wires the bean with the given object.
+func (c *Container) Wire(obj interface{}) error {
 
 	stack := NewWiringStack()
 	defer func() {
@@ -256,52 +227,9 @@ func (c *Container) Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}
 		}
 	}()
 
-	v, err := c.getBeanValue(b, stack)
-	if err != nil {
-		return nil, err
-	}
-
-	t := v.Type()
-	err = c.wireBeanValue(v, t, false, stack)
-	if err != nil {
-		return nil, err
-	}
-
-	return b.Interface(), nil
-}
-
-// Invoke calls the provided function with the specified arguments.
-func (c *Container) Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
-
-	if !util.IsFuncType(reflect.TypeOf(fn)) {
-		return nil, errors.New("fn should be func type")
-	}
-
-	stack := NewWiringStack()
-
-	defer func() {
-		if len(stack.beans) > 0 {
-			syslog.Infof("wiring path %s", stack.path())
-		}
-	}()
-
-	_, file, line, _ := runtime.Caller(1)
-	r, err := gs_arg.Bind(fn, args)
-	if err != nil {
-		return nil, err
-	}
-	r.SetFileLine(file, line)
-
-	ret, err := r.Call(NewArgContext(c, stack))
-	if err != nil {
-		return nil, err
-	}
-
-	var a []interface{}
-	for _, v := range ret {
-		a = append(a, v.Interface())
-	}
-	return a, nil
+	t := reflect.TypeOf(obj)
+	v := reflect.ValueOf(obj)
+	return c.wireBeanValue(v, t, false, stack)
 }
 
 // Close closes the container and cleans up resources.
@@ -316,17 +244,16 @@ type BeanMock struct {
 	Target gs.BeanSelectorInterface
 }
 
-type resolvingStage struct {
-	mocks      []BeanMock
-	beans      []*gs_bean.BeanDefinition
-	groupFuncs []GroupFunc
-	p          gs.Properties
+type Resolving struct {
+	mocks []BeanMock
+	beans []*gs_bean.BeanDefinition
+	group []gs.GroupFunc
 }
 
-func (c *resolvingStage) RefreshInit() error {
+func (c *Resolving) RefreshInit(p gs.Properties) error {
 	// processes all group functions to register beans.
-	for _, fn := range c.groupFuncs {
-		beans, err := fn(c.p)
+	for _, fn := range c.group {
+		beans, err := fn(p)
 		if err != nil {
 			return err
 		}
@@ -350,11 +277,12 @@ func (c *resolvingStage) RefreshInit() error {
 	return nil
 }
 
-func (c *resolvingStage) Refresh() error {
+func (c *Resolving) Refresh(p gs.Properties) error {
 
 	// resolves all beans on their condition.
+	ctx := &CondContext{p: p, c: c}
 	for _, b := range c.beans {
-		if err := c.resolveBean(b); err != nil {
+		if err := ctx.resolveBean(b); err != nil {
 			return err
 		}
 	}
@@ -382,7 +310,7 @@ func (c *resolvingStage) Refresh() error {
 	return nil
 }
 
-func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
+func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
 	var (
 		includes []*regexp.Regexp
 		excludes []*regexp.Regexp
@@ -452,8 +380,13 @@ func (c *resolvingStage) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_be
 	return newBeans, nil
 }
 
+type CondContext struct {
+	c *Resolving
+	p gs.Properties
+}
+
 // resolveBean determines the validity of the bean.
-func (c *resolvingStage) resolveBean(b *gs_bean.BeanDefinition) error {
+func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error {
 	if b.Status() >= gs_bean.StatusResolving {
 		return nil
 	}
@@ -470,20 +403,20 @@ func (c *resolvingStage) resolveBean(b *gs_bean.BeanDefinition) error {
 	return nil
 }
 
-func (c *resolvingStage) Has(key string) bool {
+func (c *CondContext) Has(key string) bool {
 	return c.p.Has(key)
 }
 
-func (c *resolvingStage) Prop(key string, def ...string) string {
+func (c *CondContext) Prop(key string, def ...string) string {
 	return c.p.Get(key, def...)
 }
 
 // Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
 // 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *resolvingStage) Find(s gs.BeanSelectorInterface) ([]gs.CondBean, error) {
+func (c *CondContext) Find(s gs.BeanSelectorInterface) ([]gs.CondBean, error) {
 	t, name := s.TypeAndName()
 	var result []gs.CondBean
-	for _, b := range c.beans {
+	for _, b := range c.c.beans {
 		if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
