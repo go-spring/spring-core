@@ -74,6 +74,15 @@ func runTest(c *gs_core.Container, fn func(GSContext)) error {
 	return nil
 }
 
+func Get[T any](t *testing.T, ctx GSContext) T {
+	var s struct {
+		Value T `autowire:""`
+	}
+	err := ctx.Wire(&s)
+	assert.Nil(t, err)
+	return s.Value
+}
+
 func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
 	// assert.Panic(t, func() {
 	// 	c := gs.New()
@@ -442,12 +451,12 @@ func (t *BeanThree) String() string {
 // 		err := runTest(c, func(p GSContext) {
 // 			{
 // 				var s fmt.Stringer
-// 				err := p.Get(s)
+// 				err := p.Wire(s)
 // 				assert.Error(t, err, "i can't be nil")
 // 			}
 // 			{
 // 				var s fmt.Stringer
-// 				err := p.Get(&s)
+// 				err := p.Wire(&s)
 // 				assert.Error(t, err, "can't find bean, bean:\"\"")
 // 			}
 // 		})
@@ -464,27 +473,27 @@ func (t *BeanThree) String() string {
 // 		err := runTest(c, func(p GSContext) {
 //
 // 			var two *BeanTwo
-// 			err := p.Get(&two)
+// 			err := p.Wire(&two)
 // 			assert.Nil(t, err)
 //
 // 			var grouper Grouper
-// 			err = p.Get(&grouper)
+// 			err = p.Wire(&grouper)
 // 			assert.Nil(t, err)
 //
-// 			err = p.Get(&two)
+// 			err = p.Wire(&two)
 // 			assert.Nil(t, err)
 //
-// 			err = p.Get(&grouper)
+// 			err = p.Wire(&grouper)
 // 			assert.Nil(t, err)
 //
-// 			err = p.Get(&two, "BeanTwo")
+// 			err = p.Wire(&two, "BeanTwo")
 // 			assert.Nil(t, err)
 //
-// 			err = p.Get(&grouper, "BeanTwo")
+// 			err = p.Wire(&grouper, "BeanTwo")
 // 			assert.Nil(t, err)
 //
 // 			var three *BeanThree
-// 			err = p.Get(&three)
+// 			err = p.Wire(&three)
 // 			assert.Error(t, err, "can't find bean, bean:\"\"")
 // 		})
 // 		assert.Nil(t, err)
@@ -604,37 +613,44 @@ func TestApplicationContext_RegisterBeanFn(t *testing.T) {
 	c.RefreshProperties(prop)
 	err := runTest(c, func(p GSContext) {
 
-		// var st1 *Student
-		// err := p.Get(&st1, "st1")
-		// _ = err
-		//
-		// // assert.Nil(t, err)
-		// // fmt.Println("::", cast.ToString(st1))
-		// // assert.Equal(t, st1.Room, p.Prop("room"))
-		//
-		// var st2 *Student
-		// err = p.Get(&st2, "st2")
-		//
-		// // assert.Nil(t, err)
-		// // fmt.Println("::", cast.ToString(st2))
-		// // assert.Equal(t, st2.Room, p.Prop("room"))
-		//
-		// fmt.Printf("%x\n", reflect.ValueOf(st1).Pointer())
-		// fmt.Printf("%x\n", reflect.ValueOf(st2).Pointer())
-		//
-		// var st3 *Student
-		// err = p.Get(&st3, "st3")
-		//
-		// // assert.Nil(t, err)
-		// // fmt.Println("::", cast.ToString(st3))
-		// // assert.Equal(t, st3.Room, p.Prop("room"))
-		//
-		// var st4 *Student
-		// err = p.Get(&st4, "st4")
-		//
-		// // assert.Nil(t, err)
-		// // fmt.Println("::", cast.ToString(st4))
-		// // assert.Equal(t, st4.Room, p.Prop("room"))
+		var st1 struct {
+			Value *Student `autowire:"st1"`
+		}
+		err := p.Wire(&st1)
+		_ = err
+
+		// assert.Nil(t, err)
+		// fmt.Println("::", cast.ToString(st1))
+		// assert.Equal(t, st1.Room, p.Prop("room"))
+
+		var st2 struct {
+			Value *Student `autowire:"st2"`
+		}
+		err = p.Wire(&st2)
+
+		// assert.Nil(t, err)
+		// fmt.Println("::", cast.ToString(st2))
+		// assert.Equal(t, st2.Room, p.Prop("room"))
+
+		assert.NotSame(t, st1.Value, st2.Value)
+
+		var st3 struct {
+			Value *Student `autowire:"st3"`
+		}
+		err = p.Wire(&st3)
+
+		// assert.Nil(t, err)
+		// fmt.Println("::", cast.ToString(st3))
+		// assert.Equal(t, st3.Room, p.Prop("room"))
+
+		var st4 struct {
+			Value *Student `autowire:"st4"`
+		}
+		err = p.Wire(&st4)
+
+		// assert.Nil(t, err)
+		// fmt.Println("::", cast.ToString(st4))
+		// assert.Equal(t, st4.Room, p.Prop("room"))
 	})
 	assert.Nil(t, err)
 }
@@ -645,9 +661,11 @@ func TestApplicationContext_Profile(t *testing.T) {
 		c := newContainer()
 		c.Object(&BeanZero{5})
 		err := runTest(c, func(p GSContext) {
-			// var b *BeanZero
-			// err := p.Get(&b)
-			// assert.Nil(t, err)
+			var b struct {
+				Value *BeanZero `autowire:""`
+			}
+			err := p.Wire(&b)
+			assert.Nil(t, err)
 		})
 		assert.Nil(t, err)
 	})
@@ -661,9 +679,11 @@ func TestApplicationContext_Profile(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var b *BeanZero
-			// err := p.Get(&b)
-			// assert.Nil(t, err)
+			var b struct {
+				Value *BeanZero `autowire:""`
+			}
+			err := p.Wire(&b)
+			assert.Nil(t, err)
 		})
 		assert.Nil(t, err)
 	})
@@ -766,15 +786,19 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 
-			// var m Manager
-			// err := p.Get(&m)
-			// assert.Nil(t, err)
-			//
-			// // 因为用户是按照接口注册的，所以理论上在依赖
-			// // 系统中用户并不关心接口对应的真实类型是什么。
-			// var lm *localManager
-			// err = p.Get(&lm)
-			// assert.Error(t, err, "can't find bean, bean:\"\"")
+			var m struct {
+				Value Manager `autowire:""`
+			}
+			err := p.Wire(&m)
+			assert.Nil(t, err)
+
+			// 因为用户是按照接口注册的，所以理论上在依赖
+			// 系统中用户并不关心接口对应的真实类型是什么。
+			var lm struct {
+				Value *localManager `autowire:""`
+			}
+			err = p.Wire(&lm)
+			assert.Error(t, err, "can't find bean, bean:\"\"")
 		})
 		assert.Nil(t, err)
 	})
@@ -789,13 +813,17 @@ func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
 		c.Provide(NewManager)
 		err := runTest(c, func(p GSContext) {
 
-			// var m Manager
-			// err := p.Get(&m)
-			// assert.Nil(t, err)
-			//
-			// var lm *localManager
-			// err = p.Get(&lm)
-			// assert.Error(t, err, "can't find bean, bean:\"\"")
+			var m struct {
+				Value Manager `autowire:""`
+			}
+			err := p.Wire(&m)
+			assert.Nil(t, err)
+
+			var lm struct {
+				Value *localManager `autowire:""`
+			}
+			err = p.Wire(&lm)
+			assert.Error(t, err, "can't find bean, bean:\"\"")
 		})
 		assert.Nil(t, err)
 	})
@@ -887,10 +915,12 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		c := newContainer()
 		c.Object(new(callDestroy)).Init((*callDestroy).Init)
 		err := runTest(c, func(p GSContext) {
-			// var d *callDestroy
-			// err := p.Get(&d)
-			// assert.Nil(t, err)
-			// assert.True(t, d.inited)
+			var d struct {
+				Value *callDestroy `autowire:""`
+			}
+			err := p.Wire(&d)
+			assert.Nil(t, err)
+			assert.True(t, d.Value.inited)
 		})
 		assert.Nil(t, err)
 	})
@@ -912,10 +942,12 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var d *callDestroy
-			// err := p.Get(&d)
-			// assert.Nil(t, err)
-			// assert.True(t, d.inited)
+			var d struct {
+				Value *callDestroy `autowire:""`
+			}
+			err := p.Wire(&d)
+			assert.Nil(t, err)
+			assert.True(t, d.Value.inited)
 		})
 		assert.Nil(t, err)
 	})
@@ -924,10 +956,12 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		c := newContainer()
 		c.Provide(func() destroyable { return new(callDestroy) }).Init(destroyable.Init)
 		err := runTest(c, func(p GSContext) {
-			// var d destroyable
-			// err := p.Get(&d)
-			// assert.Nil(t, err)
-			// assert.True(t, d.(*callDestroy).inited)
+			var d struct {
+				Value destroyable `autowire:""`
+			}
+			err := p.Wire(&d)
+			assert.Nil(t, err)
+			assert.True(t, d.Value.(*callDestroy).inited)
 		})
 		assert.Nil(t, err)
 	})
@@ -949,10 +983,12 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
-			// var d destroyable
-			// err := p.Get(&d)
-			// assert.Nil(t, err)
-			// assert.True(t, d.(*callDestroy).inited)
+			var d struct {
+				Value destroyable `autowire:""`
+			}
+			err := p.Wire(&d)
+			assert.Nil(t, err)
+			assert.True(t, d.Value.(*callDestroy).inited)
 		})
 		assert.Nil(t, err)
 	})
@@ -961,10 +997,12 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		c := newContainer()
 		c.Object(new(nestedCallDestroy)).Init((*nestedCallDestroy).Init)
 		err := runTest(c, func(p GSContext) {
-			// var d *nestedCallDestroy
-			// err := p.Get(&d)
-			// assert.Nil(t, err)
-			// assert.True(t, d.inited)
+			var d struct {
+				Value *nestedCallDestroy `autowire:""`
+			}
+			err := p.Wire(&d)
+			assert.Nil(t, err)
+			assert.True(t, d.Value.inited)
 		})
 		assert.Nil(t, err)
 	})
@@ -975,10 +1013,12 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 			destroyable: new(callDestroy),
 		}).Init((*nestedDestroyable).Init)
 		err := runTest(c, func(p GSContext) {
-			// var d *nestedDestroyable
-			// err := p.Get(&d)
-			// assert.Nil(t, err)
-			// assert.True(t, d.destroyable.(*callDestroy).inited)
+			var d struct {
+				Value *nestedDestroyable `autowire:""`
+			}
+			err := p.Wire(&d)
+			assert.Nil(t, err)
+			assert.True(t, d.Value.destroyable.(*callDestroy).inited)
 		})
 		assert.Nil(t, err)
 	})
@@ -997,10 +1037,12 @@ func TestApplicationContext_ValueBincoreng(t *testing.T) {
 
 	c.RefreshProperties(prop)
 	err := runTest(c, func(p GSContext) {
-		// var cluster *RecoresCluster
-		// err := p.Get(&cluster)
-		// fmt.Println(cluster)
-		// assert.Nil(t, err)
+		var cluster struct {
+			Value *RecoresCluster `autowire:""`
+		}
+		err := p.Wire(&cluster)
+		fmt.Println(cluster)
+		assert.Nil(t, err)
 	})
 	assert.Nil(t, err)
 }
@@ -1019,9 +1061,11 @@ func TestApplicationContext_Collect(t *testing.T) {
 	t.Run("", func(t *testing.T) {
 		c := newContainer()
 		err := runTest(c, func(ctx GSContext) {
-			// var Events []ServerInterface
-			// err := ctx.Get(&Events)
-			// assert.Error(t, err, "no beans collected for \"\"")
+			var Events struct {
+				Events []ServerInterface `autowire:""`
+			}
+			err := ctx.Wire(&Events)
+			assert.Error(t, err, "no beans collected for \"\"")
 		})
 		assert.Nil(t, err)
 	})
@@ -1038,9 +1082,11 @@ func TestApplicationContext_Collect(t *testing.T) {
 	t.Run("", func(t *testing.T) {
 		c := newContainer()
 		err := runTest(c, func(ctx GSContext) {
-			// var Events []ServerInterface
-			// err := ctx.Get(&Events, "?")
-			// assert.Nil(t, err)
+			var Events struct {
+				Events []ServerInterface `autowire:"?"`
+			}
+			err := ctx.Wire(&Events)
+			assert.Nil(t, err)
 		})
 		assert.Nil(t, err)
 	})
@@ -1056,7 +1102,7 @@ func TestApplicationContext_Collect(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var rcs []*RecoresCluster
-			// err := p.Get(&rcs)
+			// err := p.Wire(&rcs)
 			// assert.Nil(t, err)
 			// assert.Equal(t, len(rcs), 2)
 		})
@@ -1175,7 +1221,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var cls *ClassRoom
-			// err := p.Get(&cls)
+			// err := p.Wire(&cls)
 			// assert.Nil(t, err)
 			// assert.Equal(t, len(cls.students), 0)
 			// assert.Equal(t, cls.className, "default")
@@ -1194,7 +1240,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var cls *ClassRoom
-			// err := p.Get(&cls)
+			// err := p.Wire(&cls)
 			// assert.Nil(t, err)
 			// assert.Equal(t, cls.floor, 3)
 			// assert.Equal(t, len(cls.students), 0)
@@ -1217,7 +1263,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var cls *ClassRoom
-			// err := p.Get(&cls)
+			// err := p.Wire(&cls)
 			// assert.Nil(t, err)
 			// assert.Equal(t, cls.floor, 0)
 			// assert.Equal(t, len(cls.students), 2)
@@ -1246,7 +1292,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var cls *ClassRoom
-			// err := p.Get(&cls)
+			// err := p.Wire(&cls)
 			// assert.Nil(t, err)
 			// assert.Equal(t, cls.floor, 3)
 			// assert.Equal(t, len(cls.students), 2)
@@ -1312,14 +1358,14 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var s *Server
-			// err := p.Get(&s)
+			// err := p.Wire(&s)
 			// assert.Nil(t, err)
 			// assert.Equal(t, s.Version, "1.0.0")
 			//
 			// s.Version = "2.0.0"
 			//
 			// var consumer *Consumer
-			// err = p.Get(&consumer)
+			// err = p.Wire(&consumer)
 			// assert.Nil(t, err)
 			// assert.Equal(t, consumer.s.Version, "2.0.0")
 		})
@@ -1338,11 +1384,11 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var s *Server
-			// err := p.Get(&s)
+			// err := p.Wire(&s)
 			// assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Server\"")
 			//
 			// var consumer *Consumer
-			// err = p.Get(&consumer)
+			// err = p.Wire(&consumer)
 			// assert.Error(t, err, "can't find bean, bean:\"\" type:\"\\*gs_core_test.Consumer\"")
 		})
 		assert.Nil(t, err)
@@ -1360,14 +1406,14 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var s *Server
-			// err := p.Get(&s)
+			// err := p.Wire(&s)
 			// assert.Nil(t, err)
 			// assert.Equal(t, s.Version, "1.0.0")
 			//
 			// s.Version = "2.0.0"
 			//
 			// var consumer *Consumer
-			// err = p.Get(&consumer)
+			// err = p.Wire(&consumer)
 			// assert.Nil(t, err)
 			// assert.Equal(t, consumer.s.Version, "2.0.0")
 		})
@@ -1387,7 +1433,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var si ServerInterface
-			// err := p.Get(&si)
+			// err := p.Wire(&si)
 			// assert.Nil(t, err)
 			//
 			// s := si.(*Server)
@@ -1396,7 +1442,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 			// s.Version = "2.0.0"
 			//
 			// var consumer *Consumer
-			// err = p.Get(&consumer)
+			// err = p.Wire(&consumer)
 			// assert.Nil(t, err)
 			// assert.Equal(t, consumer.s.Version, "2.0.0")
 		})
@@ -1456,7 +1502,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var s *Server
-			// err := p.Get(&s)
+			// err := p.Wire(&s)
 			// assert.Nil(t, err)
 			// assert.Equal(t, s.Version, "1.0.0")
 		})
@@ -1475,14 +1521,14 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var s *Server
-			// err := p.Get(&s)
+			// err := p.Wire(&s)
 			// assert.Nil(t, err)
 			// assert.Equal(t, s.Version, "1.0.0")
 			//
 			// s.Version = "2.0.0"
 			//
 			// var consumer *Consumer
-			// err = p.Get(&consumer)
+			// err = p.Wire(&consumer)
 			// assert.Nil(t, err)
 			// assert.Equal(t, consumer.s.Version, "2.0.0")
 		})
@@ -1514,14 +1560,14 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var s *Server
-			// err := p.Get(&s)
+			// err := p.Wire(&s)
 			// assert.Nil(t, err)
 			// assert.Equal(t, s.Version, "1.0.0")
 			//
 			// s.Version = "2.0.0"
 			//
 			// var consumer *Consumer
-			// err = p.Get(&consumer)
+			// err = p.Wire(&consumer)
 			// assert.Nil(t, err)
 			// assert.Equal(t, consumer.s.Version, "2.0.0")
 		})
@@ -1716,7 +1762,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var obj *VarObj
-			// err := p.Get(&obj)
+			// err := p.Wire(&obj)
 			// assert.Nil(t, err)
 			// assert.Equal(t, len(obj.v), 0)
 			// assert.Equal(t, obj.s, "<nil>")
@@ -1736,7 +1782,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var obj *VarObj
-			// err := p.Get(&obj)
+			// err := p.Wire(&obj)
 			// assert.Nil(t, err)
 			// assert.Equal(t, len(obj.v), 1)
 			// assert.Equal(t, obj.v[0].name, "v1")
@@ -1757,7 +1803,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var obj *VarObj
-			// err := p.Get(&obj)
+			// err := p.Wire(&obj)
 			// assert.Nil(t, err)
 			// assert.Equal(t, len(obj.v), 2)
 			// assert.Equal(t, obj.v[0].name, "v1")
@@ -1778,7 +1824,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1")))
 		err := runTest(c, func(p GSContext) {
 			// var obj *VarInterfaceObj
-			// err := p.Get(&obj)
+			// err := p.Wire(&obj)
 			// assert.Nil(t, err)
 			// assert.Equal(t, len(obj.v), 1)
 		})
@@ -1796,7 +1842,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
 		err := runTest(c, func(p GSContext) {
 			// var obj *VarInterfaceObj
-			// err := p.Get(&obj)
+			// err := p.Wire(&obj)
 			// assert.Nil(t, err)
 			// assert.Equal(t, len(obj.v), 2)
 		})
@@ -1847,7 +1893,7 @@ func TestApplicationContext_Close(t *testing.T) {
 		c.Object(d).Destroy((*callDestroy).Destroy)
 		err := runTest(c, func(p GSContext) {
 			// var d *callDestroy
-			// err := p.Get(&d)
+			// err := p.Wire(&d)
 			// assert.Nil(t, err)
 		})
 		assert.Nil(t, err)
@@ -1864,7 +1910,7 @@ func TestApplicationContext_Close(t *testing.T) {
 			c.Object(d).Destroy((*callDestroy).DestroyWithError)
 			err := runTest(c, func(p GSContext) {
 				// var d *callDestroy
-				// err := p.Get(&d)
+				// err := p.Wire(&d)
 				// assert.Nil(t, err)
 			})
 			assert.Nil(t, err)
@@ -1879,7 +1925,7 @@ func TestApplicationContext_Close(t *testing.T) {
 			c.Object(d).Destroy((*callDestroy).DestroyWithError)
 			err := runTest(c, func(p GSContext) {
 				// var d *callDestroy
-				// err := p.Get(&d)
+				// err := p.Wire(&d)
 				// assert.Nil(t, err)
 			})
 			assert.Nil(t, err)
@@ -1893,7 +1939,7 @@ func TestApplicationContext_Close(t *testing.T) {
 		bd := c.Provide(func() destroyable { return new(callDestroy) }).Destroy(destroyable.Destroy)
 		err := runTest(c, func(p GSContext) {
 			// var d destroyable
-			// err := p.Get(&d)
+			// err := p.Wire(&d)
 			// assert.Nil(t, err)
 		})
 		assert.Nil(t, err)
@@ -1910,7 +1956,7 @@ func TestApplicationContext_Close(t *testing.T) {
 			bd := c.Provide(func() destroyable { return &callDestroy{i: 1} }).Destroy(destroyable.DestroyWithError)
 			err := runTest(c, func(p GSContext) {
 				// var d destroyable
-				// err := p.Get(&d)
+				// err := p.Wire(&d)
 				// assert.Nil(t, err)
 			})
 			assert.Nil(t, err)
@@ -1930,7 +1976,7 @@ func TestApplicationContext_Close(t *testing.T) {
 			c.RefreshProperties(prop)
 			err := runTest(c, func(p GSContext) {
 				// var d destroyable
-				// err := p.Get(&d)
+				// err := p.Wire(&d)
 				// assert.Nil(t, err)
 			})
 			assert.Nil(t, err)
@@ -1961,11 +2007,11 @@ func TestApplicationContext_NestedAutowireBean(t *testing.T) {
 	err := runTest(c, func(p GSContext) {
 
 		// var b *NestedAutowireBean
-		// err := p.Get(&b)
+		// err := p.Wire(&b)
 		// assert.Nil(t, err)
 		//
 		// var b0 *PtrNestedAutowireBean
-		// err = p.Get(&b0)
+		// err = p.Wire(&b0)
 		// assert.Nil(t, err)
 	})
 	assert.Nil(t, err)
@@ -2005,7 +2051,7 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var channel *wxChannel
-			// err := p.Get(&channel)
+			// err := p.Wire(&channel)
 			// assert.Nil(t, err)
 			// assert.Equal(t, channel.enable, true)
 			// assert.Equal(t, channel.AutoCreate, true)
@@ -2024,7 +2070,7 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var channel *WXChannel
-			// err := p.Get(&channel)
+			// err := p.Wire(&channel)
 			// assert.Nil(t, err)
 			// assert.True(t, channel.Enable)
 			// assert.True(t, channel.AutoCreate)
@@ -2252,7 +2298,7 @@ func TestDefaultSpringContext(t *testing.T) {
 	//
 	// 	err := runTest(c, func(p GSContext) {
 	// 		var b *BeanZero
-	// 		err := p.Get(&b)
+	// 		err := p.Wire(&b)
 	// 		assert.Error(t, err, "can't find bean, bean:\"\"")
 	// 	})
 	// 	assert.Nil(t, err)
@@ -2273,7 +2319,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var cls *ClassRoom
-			// err := p.Get(&cls)
+			// err := p.Wire(&cls)
 			// assert.Nil(t, err)
 			// assert.Equal(t, cls.floor, 0)
 			// assert.Equal(t, len(cls.students), 0)
@@ -2299,7 +2345,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p GSContext) {
 			// var cls *ClassRoom
-			// err := p.Get(&cls)
+			// err := p.Wire(&cls)
 			// assert.Nil(t, err)
 			// assert.Equal(t, cls.floor, 0)
 			// assert.Equal(t, len(cls.students), 0)
@@ -2321,12 +2367,12 @@ func TestDefaultSpringContext(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var s *Server
-			// err := p.Get(&s)
+			// err := p.Wire(&s)
 			// assert.Nil(t, err)
 			// assert.Equal(t, s.Version, "1.0.0")
 			//
 			// var consumer *Consumer
-			// err = p.Get(&consumer)
+			// err = p.Wire(&consumer)
 			// assert.Error(t, err, "can't find bean, bean:\"\"")
 		})
 		assert.Nil(t, err)
@@ -2343,11 +2389,11 @@ func TestDefaultSpringContext(t *testing.T) {
 //	c.Refresh()
 //
 //	var s *Server
-//	ok := p.Get(&s)
+//	ok := p.Wire(&s)
 //	util.Equal(t, ok, false)
 //
 //	var c *Consumer
-//	ok = p.Get(&c)
+//	ok = p.Wire(&c)
 //	util.Equal(t, ok, false)
 // }
 
@@ -2377,10 +2423,10 @@ func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	err := runTest(c, func(p GSContext) {
 
 		// var two *BeanTwo
-		// err := p.Get(&two)
+		// err := p.Wire(&two)
 		// assert.Nil(t, err)
 		//
-		// err = p.Get(&two, "another_two")
+		// err = p.Wire(&two, "another_two")
 		// assert.Error(t, err, "can't find bean, bean:\"another_two\"")
 	})
 	assert.Nil(t, err)
@@ -2396,10 +2442,10 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var two *BeanTwo
-			// err := p.Get(&two)
+			// err := p.Wire(&two)
 			// assert.Nil(t, err)
 			//
-			// err = p.Get(&two, "another_two")
+			// err = p.Wire(&two, "another_two")
 			// assert.Nil(t, err)
 		})
 		assert.Nil(t, err)
@@ -2656,12 +2702,12 @@ func TestMapCollection(t *testing.T) {
 		err := runTest(c, func(p GSContext) {
 
 			// var vSlice []*mapValue
-			// err := p.Get(&vSlice)
+			// err := p.Wire(&vSlice)
 			// assert.Nil(t, err)
 			// fmt.Println(vSlice)
 			//
 			// var vMap map[string]*mapValue
-			// err = p.Get(&vMap)
+			// err = p.Wire(&vMap)
 			// assert.Nil(t, err)
 			// fmt.Println(vMap)
 		})
