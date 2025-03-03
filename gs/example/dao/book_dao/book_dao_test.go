@@ -1,17 +1,27 @@
 package book_dao
 
 import (
+	"os"
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/gstest"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
+func init() {
+	_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "../../conf")
+}
+
 func TestMain(m *testing.M) {
 	gstest.TestMain(m)
 }
 
 func TestBookDao(t *testing.T) {
+
+	x := gstest.Wire(t, &struct {
+		SvrAddr string `value:"${server.addr}"`
+	}{})
+	assert.Equal(t, x.SvrAddr, "0.0.0.0:9090")
 
 	o := gstest.Get[*BookDao](t)
 	assert.NotNil(t, o)
