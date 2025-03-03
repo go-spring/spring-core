@@ -17,21 +17,24 @@
 package gs_core_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/gs/internal/gs_core/wiring"
+	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestBind(t *testing.T) {
 
 	t.Run("zero argument", func(t *testing.T) {
-		c := container(t, nil)
-		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
+		stack := wiring.NewWiringStack()
+		ctx := wiring.NewArgContext(&wiring.Wiring{}, stack)
 		fn := func() {}
 		p, err := gs_arg.Bind(fn, []gs.Arg{})
 		if err != nil {
@@ -45,9 +48,8 @@ func TestBind(t *testing.T) {
 	})
 
 	t.Run("one value argument", func(t *testing.T) {
-		c := container(t, nil)
-		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
+		stack := wiring.NewWiringStack()
+		ctx := wiring.NewArgContext(&wiring.Wiring{}, stack)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
@@ -67,11 +69,17 @@ func TestBind(t *testing.T) {
 	})
 
 	t.Run("one ctx value argument", func(t *testing.T) {
-		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
-			return p.Set("a.b.c", 3)
-		})
-		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
+		x := gs_dync.New()
+		prop, err := conf.Map(map[string]interface{}{"a.b.c": 3})
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = x.Refresh(prop)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stack := wiring.NewWiringStack()
+		ctx := wiring.NewArgContext(&wiring.Wiring{P: x}, stack)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
@@ -94,12 +102,18 @@ func TestBind(t *testing.T) {
 		type st struct {
 			i int
 		}
-		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
-			c.Object(&st{3}).Name("a")
-			return nil
-		})
-		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
+		b := gs_core.NewBean(&st{3}).Name("a").BeanRegistration().(*gs_bean.BeanDefinition).BeanRuntime
+		stack := wiring.NewWiringStack()
+		ctx := wiring.NewArgContext(&wiring.Wiring{
+			BeansByName: map[string][]wiring.BeanRuntime{
+				"a": {b},
+			},
+			BeansByType: map[reflect.Type][]wiring.BeanRuntime{
+				reflect.TypeOf(&st{}): {b},
+			},
+			P:     gs_dync.New(),
+			State: wiring.Refreshed,
+		}, stack)
 		expectInt := 0
 		fn := func(v *st) {
 			expectInt = v.i
@@ -122,12 +136,18 @@ func TestBind(t *testing.T) {
 		type st struct {
 			i int
 		}
-		c := container(t, func(p *conf.Properties, c *gs_core.Container) error {
-			c.Object(&st{3}).Name("a")
-			return nil
-		})
-		stack := gs_core.NewWiringStack()
-		ctx := gs_core.NewArgContext(c.(*gs_core.Container).Wiring(), stack)
+		b := gs_core.NewBean(&st{3}).Name("a").BeanRegistration().(*gs_bean.BeanDefinition).BeanRuntime
+		stack := wiring.NewWiringStack()
+		ctx := wiring.NewArgContext(&wiring.Wiring{
+			BeansByName: map[string][]wiring.BeanRuntime{
+				"a": {b},
+			},
+			BeansByType: map[reflect.Type][]wiring.BeanRuntime{
+				reflect.TypeOf(&st{}): {b},
+			},
+			P:     gs_dync.New(),
+			State: wiring.Refreshed,
+		}, stack)
 		expectInt := 0
 		fn := func(v *st) {
 			expectInt = v.i
