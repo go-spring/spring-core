@@ -25,19 +25,19 @@ import (
 )
 
 // BeanMock is a mock for bean.
-type BeanMock struct {
+type BeanMock[T any] struct {
 	selector gs.BeanSelector
 }
 
 // MockFor creates a mock for bean.
-func MockFor[T any](name ...string) BeanMock {
-	return BeanMock{
+func MockFor[T any](name ...string) BeanMock[T] {
+	return BeanMock[T]{
 		selector: gs.BeanSelectorFor[T](name...),
 	}
 }
 
 // With registers a mock bean.
-func (m BeanMock) With(obj interface{}) {
+func (m BeanMock[T]) With(obj T) {
 	gs_app.App.C.Mock(obj, m.selector)
 }
 

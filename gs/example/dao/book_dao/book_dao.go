@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	gs.Object(&BookDao{store: map[string]Book{}})
+	gs.Object(&BookDao{Store: map[string]Book{}})
 }
 
 type Book struct {
@@ -18,25 +18,25 @@ type Book struct {
 }
 
 type BookDao struct {
-	store map[string]Book
+	Store map[string]Book
 }
 
 func (dao *BookDao) ListBooks() ([]Book, error) {
-	r := slices.Collect(maps.Values(dao.store))
+	r := slices.Collect(maps.Values(dao.Store))
 	return r, nil
 }
 
 func (dao *BookDao) GetBook(sn string) (Book, error) {
-	r, _ := dao.store[sn]
+	r, _ := dao.Store[sn]
 	return r, nil
 }
 
 func (dao *BookDao) SaveBook(book Book) error {
-	dao.store[book.SN] = book
+	dao.Store[book.SN] = book
 	return nil
 }
 
 func (dao *BookDao) DeleteBook(sn string) error {
-	delete(dao.store, sn)
+	delete(dao.Store, sn)
 	return nil
 }

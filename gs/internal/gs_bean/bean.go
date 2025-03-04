@@ -306,6 +306,20 @@ func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string) *BeanD
 	}
 }
 
+// SetMock sets the mock object for the bean.
+func (d *BeanDefinition) SetMock(obj interface{}) {
+	*d = BeanDefinition{
+		BeanMetadata: &BeanMetadata{
+			exports: d.exports,
+		},
+		BeanRuntime: &BeanRuntime{
+			t:    reflect.TypeOf(obj),
+			v:    reflect.ValueOf(obj),
+			name: d.name,
+		},
+	}
+}
+
 // Callable returns the callable for the bean.
 func (d *BeanDefinition) Callable() gs.Callable {
 	return d.f

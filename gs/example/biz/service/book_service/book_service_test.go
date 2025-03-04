@@ -10,6 +10,11 @@ import (
 )
 
 func init() {
+	gstest.MockFor[*book_dao.BookDao]().With(&book_dao.BookDao{
+		Store: map[string]book_dao.Book{
+			"0": {SN: "0", Name: "Go Programing"},
+		},
+	})
 	gs.Config().LocalFile.AddLocation("../../../conf/application.properties")
 }
 
@@ -32,16 +37,16 @@ func TestBookService(t *testing.T) {
 
 	books, err := s.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 0)
+	assert.Equal(t, len(books), 1)
 
 	err = s.SaveBook(book_dao.Book{SN: "1", Name: "Go Spring"})
 	assert.Nil(t, err)
 
 	books, err = s.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 1)
-	assert.Equal(t, books[0].SN, "1")
-	assert.Equal(t, books[0].Name, "Go Spring")
+	assert.Equal(t, len(books), 2)
+	assert.Equal(t, books[1].SN, "1")
+	assert.Equal(t, books[1].Name, "Go Spring")
 
 	book, err := s.GetBook("1")
 	assert.Nil(t, err)
@@ -53,5 +58,5 @@ func TestBookService(t *testing.T) {
 
 	books, err = s.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 0)
+	assert.Equal(t, len(books), 1)
 }

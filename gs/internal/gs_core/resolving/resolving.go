@@ -41,12 +41,100 @@ func (c *Resolving) RefreshInit(p gs.Properties) error {
 		if !b.ConfigurationBean() {
 			continue
 		}
+		var foundMock BeanMock
+		for _, x := range c.Mocks {
+			t, s := x.Target.TypeAndName()
+			if t != b.Type() { // type is not same
+				continue
+			}
+			if s != "" && s != b.Name() { // name is not equal
+				continue
+			}
+			foundMock = x
+			break
+		}
+		if foundMock.Target != nil {
+			b.SetMock(foundMock.Object)
+			continue
+		}
 		newBeans, err := c.scanConfiguration(b)
 		if err != nil {
 			return err
 		}
 		c.Beans = append(c.Beans, newBeans...)
 	}
+
+	for _, x := range c.Mocks {
+		var found []*gs_bean.BeanDefinition
+		t, s := x.Target.TypeAndName()
+		vt := reflect.TypeOf(x.Object)
+		switch t.Kind() {
+		case reflect.Interface:
+			for _, b := range c.Beans {
+				if b.Type().Kind() == reflect.Interface {
+					if t != b.Type() { // type is not same
+						foundType := false
+						for _, et := range b.Exports() {
+							if et == t {
+								foundType = true
+								break
+							}
+						}
+						if foundType {
+							return fmt.Errorf("found unimplemented interfaces")
+						}
+						continue
+					}
+					for _, et := range b.Exports() {
+						if !vt.Implements(et) {
+							return fmt.Errorf("found unimplemented interfaces")
+						}
+					}
+				} else {
+					foundType := false
+					for _, et := range b.Exports() {
+						if et == t {
+							foundType = true
+							break
+						}
+					}
+					if !foundType {
+						continue
+					}
+					if len(b.Exports()) > 1 {
+						return fmt.Errorf("found unimplemented interfaces")
+					}
+				}
+				if s != "" && s != b.Name() { // name is not equal
+					continue
+				}
+				found = append(found, b)
+			}
+		default:
+			for _, b := range c.Beans {
+				if t != b.Type() { // type is not same
+					continue
+				}
+				for _, et := range b.Exports() {
+					if !vt.Implements(et) {
+						return fmt.Errorf("found unimplemented interfaces")
+					}
+				}
+				if s != "" && s != b.Name() { // name is not equal
+					continue
+				}
+				found = append(found, b)
+			}
+		}
+		if len(found) == 0 {
+			continue
+		}
+		if len(found) > 1 {
+			return fmt.Errorf("found duplicate mocked beans")
+		}
+		found[0].SetMock(x.Object)
+	}
+
 	return nil
 }
 
