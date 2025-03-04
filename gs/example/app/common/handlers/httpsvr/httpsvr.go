@@ -21,7 +21,6 @@ import (
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/example/app/controller"
 )
 
 func init() {
@@ -39,12 +38,7 @@ type Server struct {
 }
 
 // NewServer ...
-func NewServer(cfg ServerConfig, c *controller.Controller) *Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /books", c.ListBooks)
-	mux.HandleFunc("GET /books/{id}", c.GetBook)
-	mux.HandleFunc("POST /books", c.SaveBook)
-	mux.HandleFunc("DELETE /books/{id}", c.DeleteBook)
+func NewServer(cfg ServerConfig, mux *http.ServeMux) *Server {
 	return &Server{svr: &http.Server{
 		Addr:    cfg.Addr,
 		Handler: mux,

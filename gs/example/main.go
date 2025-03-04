@@ -24,6 +24,7 @@ import (
 
 	_ "github.com/go-spring/spring-core/gs/example/app"
 	_ "github.com/go-spring/spring-core/gs/example/biz"
+	_ "github.com/go-spring/spring-core/gs/example/idl"
 )
 
 func main() {
