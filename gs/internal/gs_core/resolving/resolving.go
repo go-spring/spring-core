@@ -14,7 +14,7 @@ import (
 
 type BeanMock struct {
 	Object interface{}
-	Target gs.BeanSelectorInterface
+	Target gs.BeanSelector
 }
 
 type Resolving struct {
@@ -186,7 +186,7 @@ func (c *CondContext) Prop(key string, def ...string) string {
 
 // Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
 // 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
-func (c *CondContext) Find(s gs.BeanSelectorInterface) ([]gs.CondBean, error) {
+func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 	t, name := s.TypeAndName()
 	var result []gs.CondBean
 	for _, b := range c.c.Beans {

@@ -53,7 +53,7 @@ type Container struct {
 }
 
 // New 创建 IoC 容器。
-func New() gs.Container {
+func New() *Container {
 	return &Container{
 		resolving: &resolving.Resolving{},
 		wiring: &wiring.Wiring{
@@ -65,7 +65,7 @@ func New() gs.Container {
 }
 
 // Mock mocks the bean with the given object.
-func (c *Container) Mock(obj interface{}, target gs.BeanSelectorInterface) {
+func (c *Container) Mock(obj interface{}, target gs.BeanSelector) {
 	x := resolving.BeanMock{Object: obj, Target: target}
 	c.resolving.Mocks = append(c.resolving.Mocks, x)
 }

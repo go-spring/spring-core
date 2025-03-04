@@ -101,7 +101,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		// Check if the function is a method and set a condition if needed
 		method := strings.LastIndexByte(fnInfo.Name(), ')') > 0
 		if method {
-			var s gs.BeanSelectorInterface = gs.BeanSelector{Type: in0}
+			var s gs.BeanSelector = gs.BeanSelectorImpl{Type: in0}
 			if len(ctorArgs) > 0 {
 				switch a := ctorArgs[0].(type) {
 				case *gs.RegisteredBean:

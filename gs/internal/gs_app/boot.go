@@ -26,7 +26,7 @@ import (
 
 // Bootstrap is the bootstrapper of the application.
 type Bootstrap struct {
-	c gs.Container
+	c *gs_core.Container
 	p *gs_conf.BootConfig
 
 	Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`

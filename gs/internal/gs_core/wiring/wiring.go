@@ -201,7 +201,7 @@ func (a *ArgContext) Prop(key string, def ...string) string {
 	return a.c.P.Data().Get(key, def...)
 }
 
-func (a *ArgContext) Find(s gs.BeanSelectorInterface) ([]gs.CondBean, error) {
+func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 	beans, err := a.c.findBeans(s)
 	if err != nil {
 		return nil, err
@@ -365,7 +365,7 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 }
 
 // findBeans finds beans based on a given selector.
-func (c *Wiring) findBeans(s gs.BeanSelectorInterface) ([]BeanRuntime, error) {
+func (c *Wiring) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 	t, name := s.TypeAndName()
 	var beans []BeanRuntime
 	if t != nil {

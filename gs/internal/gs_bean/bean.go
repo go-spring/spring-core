@@ -65,13 +65,13 @@ var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f          gs.Callable                // Callable for the bean (ctor or method).
-	init       gs.BeanInitFunc            // Initialization function for the bean.
-	destroy    gs.BeanDestroyFunc         // Destruction function for the bean.
-	dependsOn  []gs.BeanSelectorInterface // List of dependencies for the bean.
-	exports    []reflect.Type             // List of exported types for the bean.
-	conditions []gs.Condition             // List of conditions for the bean.
-	status     BeanStatus                 // Current status of the bean.
+	f          gs.Callable        // Callable for the bean (ctor or method).
+	init       gs.BeanInitFunc    // Initialization function for the bean.
+	destroy    gs.BeanDestroyFunc // Destruction function for the bean.
+	dependsOn  []gs.BeanSelector  // List of dependencies for the bean.
+	exports    []reflect.Type     // List of exported types for the bean.
+	conditions []gs.Condition     // List of conditions for the bean.
+	status     BeanStatus         // Current status of the bean.
 
 	file string // The file where the bean is defined.
 	line int    // The line number in the file where the bean is defined.
@@ -145,12 +145,12 @@ func (d *BeanDefinition) SetDestroyMethod(method string) {
 }
 
 // DependsOn returns the list of dependencies for the bean.
-func (d *BeanMetadata) DependsOn() []gs.BeanSelectorInterface {
+func (d *BeanMetadata) DependsOn() []gs.BeanSelector {
 	return d.dependsOn
 }
 
 // SetDependsOn sets the list of dependencies for the bean.
-func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelectorInterface) {
+func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
 	d.dependsOn = append(d.dependsOn, selectors...)
 }
 

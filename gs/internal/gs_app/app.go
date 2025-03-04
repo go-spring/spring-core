@@ -41,7 +41,7 @@ var App = NewApplication()
 // Application represents the core application, managing its lifecycle, configuration,
 // and the injection of dependencies.
 type Application struct {
-	C gs.Container
+	C *gs_core.Container
 	P *gs_conf.AppConfig
 
 	exiting   atomic.Bool

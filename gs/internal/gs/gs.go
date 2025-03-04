@@ -43,31 +43,31 @@ type BeanInitFunc = interface{}
 // For example: `func(bean)` or `func(bean) error`.
 type BeanDestroyFunc = interface{}
 
-// BeanSelectorInterface is an interface for selecting beans.
-type BeanSelectorInterface interface {
+// BeanSelector is an interface for selecting beans.
+type BeanSelector interface {
 	TypeAndName() (reflect.Type, string)
 }
 
-// BeanSelector is an identifier for a bean.
-type BeanSelector struct {
+// BeanSelectorImpl is an identifier for a bean.
+type BeanSelectorImpl struct {
 	Type reflect.Type // Type of the bean
 	Name string       // Name of the bean
 }
 
-// BeanSelectorFor returns a BeanSelector for the given type.
+// BeanSelectorFor returns a BeanSelectorImpl for the given type.
 func BeanSelectorFor[T any](name ...string) BeanSelector {
 	if len(name) == 0 {
-		return BeanSelector{Type: reflect.TypeFor[T]()}
+		return BeanSelectorImpl{Type: reflect.TypeFor[T]()}
 	}
-	return BeanSelector{Type: reflect.TypeFor[T](), Name: name[0]}
+	return BeanSelectorImpl{Type: reflect.TypeFor[T](), Name: name[0]}
 }
 
 // TypeAndName returns the type and name of the bean.
-func (s BeanSelector) TypeAndName() (reflect.Type, string) {
+func (s BeanSelectorImpl) TypeAndName() (reflect.Type, string) {
 	return s.Type, s.Name
 }
 
-func (s BeanSelector) String() string {
+func (s BeanSelectorImpl) String() string {
 	var sb strings.Builder
 	sb.WriteString("{")
 	if s.Type != nil {
@@ -105,7 +105,7 @@ type CondContext interface {
 	// Prop retrieves the value of a property from the IoC container.
 	Prop(key string, def ...string) string
 	// Find searches for bean definitions that match the provided BeanSelector.
-	Find(s BeanSelectorInterface) ([]CondBean, error)
+	Find(s BeanSelector) ([]CondBean, error)
 }
 
 // CondFunc is a function type that determines whether a condition is satisfied.
@@ -195,7 +195,7 @@ type BeanRegistration interface {
 	// SetCondition adds a condition for the bean.
 	SetCondition(conditions ...Condition)
 	// SetDependsOn sets the beans that this bean depends on.
-	SetDependsOn(selectors ...BeanSelectorInterface)
+	SetDependsOn(selectors ...BeanSelector)
 	// SetExport defines the interfaces to be exported by the bean.
 	SetExport(exports ...reflect.Type)
 	// SetConfiguration applies the bean configuration.
@@ -261,7 +261,7 @@ func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
 }
 
 // DependsOn sets the beans that this bean depends on.
-func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelectorInterface) *T {
+func (d *beanBuilder[T]) DependsOn(selectors ...BeanSelector) *T {
 	d.b.SetDependsOn(selectors...)
 	return *(**T)(unsafe.Pointer(&d))
 }
@@ -327,24 +327,5 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 }
 
 /************************************ ioc ************************************/
-
-// Container represents the modifiable aspects of an IoC (Inversion of Control) container.
-// It provides methods for registering, refreshing, and managing beans within the container.
-type Container interface {
-	// Mock mocks the bean with the given object.
-	Mock(obj interface{}, target BeanSelectorInterface)
-	// Register registers a bean using the provided bean definition.
-	Register(b *BeanDefinition) *RegisteredBean
-	// GroupRegister registers multiple beans by executing the given function that returns [*BeanDefinition]s.
-	GroupRegister(fn func(p Properties) ([]*BeanDefinition, error))
-	// RefreshProperties updates the properties of the container.
-	RefreshProperties(p Properties) error
-	// Refresh initializes and wires all beans in the container.
-	Refresh() error
-	// Wire wires the given object, injecting dependencies into its fields and methods.
-	Wire(obj interface{}) error
-	// Close shuts down the container and cleans up all resources.
-	Close()
-}
 
 type GroupFunc = func(p Properties) ([]*BeanDefinition, error)

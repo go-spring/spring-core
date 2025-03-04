@@ -174,11 +174,11 @@ func (c *onMissingProperty) String() string {
 // onBean checks for the existence of beans that match a selector.
 // It returns true if at least one bean matches the selector, and false otherwise.
 type onBean struct {
-	s gs.BeanSelectorInterface // The selector used to match beans in the context.
+	s gs.BeanSelector // The selector used to match beans in the context.
 }
 
 // OnBean creates a condition that evaluates to true if at least one bean matches the provided selector.
-func OnBean(s gs.BeanSelectorInterface) gs.Condition {
+func OnBean(s gs.BeanSelector) gs.Condition {
 	return &onBean{s: s}
 }
 
@@ -199,11 +199,11 @@ func (c *onBean) String() string {
 // onMissingBean checks for the absence of beans matching a selector.
 // It returns true if no beans match the selector, and false otherwise.
 type onMissingBean struct {
-	s gs.BeanSelectorInterface // The selector used to find beans.
+	s gs.BeanSelector // The selector used to find beans.
 }
 
 // OnMissingBean creates a condition that evaluates to true if no beans match the provided selector.
-func OnMissingBean(s gs.BeanSelectorInterface) gs.Condition {
+func OnMissingBean(s gs.BeanSelector) gs.Condition {
 	return &onMissingBean{s: s}
 }
 
@@ -224,11 +224,11 @@ func (c *onMissingBean) String() string {
 // onSingleBean checks if exactly one matching bean exists in the context.
 // It returns true if exactly one bean matches the selector, and false otherwise.
 type onSingleBean struct {
-	s gs.BeanSelectorInterface // The selector used to find beans.
+	s gs.BeanSelector // The selector used to find beans.
 }
 
 // OnSingleBean creates a condition that evaluates to true if exactly one bean matches the provided selector.
-func OnSingleBean(s gs.BeanSelectorInterface) gs.Condition {
+func OnSingleBean(s gs.BeanSelector) gs.Condition {
 	return &onSingleBean{s: s}
 }
 
