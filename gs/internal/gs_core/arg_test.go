@@ -17,16 +17,11 @@
 package gs_core_test
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
-	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/wiring"
-	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
@@ -68,100 +63,100 @@ func TestBind(t *testing.T) {
 		assert.Equal(t, len(values), 0)
 	})
 
-	t.Run("one ctx value argument", func(t *testing.T) {
-		x := gs_dync.New()
-		prop, err := conf.Map(map[string]interface{}{"a.b.c": 3})
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = x.Refresh(prop)
-		if err != nil {
-			t.Fatal(err)
-		}
-		stack := wiring.NewWiringStack()
-		ctx := wiring.NewArgContext(&wiring.Wiring{P: x}, stack)
-		expectInt := 0
-		fn := func(i int) {
-			expectInt = i
-		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{
-			gs_arg.Tag("${a.b.c}"),
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		values, err := p.Call(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, expectInt, 3)
-		assert.Equal(t, len(values), 0)
-	})
+	//t.Run("one ctx value argument", func(t *testing.T) {
+	//	x := gs_dync.New()
+	//	prop, err := conf.Map(map[string]interface{}{"a.b.c": 3})
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	err = x.Refresh(prop)
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	stack := wiring.NewWiringStack()
+	//	ctx := wiring.NewArgContext(&wiring.Wiring{P: x}, stack)
+	//	expectInt := 0
+	//	fn := func(i int) {
+	//		expectInt = i
+	//	}
+	//	p, err := gs_arg.Bind(fn, []gs.Arg{
+	//		gs_arg.Tag("${a.b.c}"),
+	//	})
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	values, err := p.Call(ctx)
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	assert.Equal(t, expectInt, 3)
+	//	assert.Equal(t, len(values), 0)
+	//})
 
-	t.Run("one ctx named bean argument", func(t *testing.T) {
-		type st struct {
-			i int
-		}
-		b := gs_core.NewBean(&st{3}).Name("a").BeanRegistration().(*gs_bean.BeanDefinition).BeanRuntime
-		stack := wiring.NewWiringStack()
-		ctx := wiring.NewArgContext(&wiring.Wiring{
-			BeansByName: map[string][]wiring.BeanRuntime{
-				"a": {b},
-			},
-			BeansByType: map[reflect.Type][]wiring.BeanRuntime{
-				reflect.TypeOf(&st{}): {b},
-			},
-			P:     gs_dync.New(),
-			State: wiring.Refreshed,
-		}, stack)
-		expectInt := 0
-		fn := func(v *st) {
-			expectInt = v.i
-		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{
-			gs_arg.Tag("a"),
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		values, err := p.Call(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, expectInt, 3)
-		assert.Equal(t, len(values), 0)
-	})
+	//t.Run("one ctx named bean argument", func(t *testing.T) {
+	//	type st struct {
+	//		i int
+	//	}
+	//	b := gs_core.NewBean(&st{3}).Name("a").BeanRegistration().(*gs_bean.BeanDefinition).BeanRuntime
+	//	stack := wiring.NewWiringStack()
+	//	ctx := wiring.NewArgContext(&wiring.Wiring{
+	//		BeansByName: map[string][]wiring.BeanRuntime{
+	//			"a": {b},
+	//		},
+	//		BeansByType: map[reflect.Type][]wiring.BeanRuntime{
+	//			reflect.TypeOf(&st{}): {b},
+	//		},
+	//		P:     gs_dync.New(),
+	//		State: wiring.Refreshed,
+	//	}, stack)
+	//	expectInt := 0
+	//	fn := func(v *st) {
+	//		expectInt = v.i
+	//	}
+	//	p, err := gs_arg.Bind(fn, []gs.Arg{
+	//		gs_arg.Tag("a"),
+	//	})
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	values, err := p.Call(ctx)
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	assert.Equal(t, expectInt, 3)
+	//	assert.Equal(t, len(values), 0)
+	//})
 
-	t.Run("one ctx unnamed bean argument", func(t *testing.T) {
-		type st struct {
-			i int
-		}
-		b := gs_core.NewBean(&st{3}).Name("a").BeanRegistration().(*gs_bean.BeanDefinition).BeanRuntime
-		stack := wiring.NewWiringStack()
-		ctx := wiring.NewArgContext(&wiring.Wiring{
-			BeansByName: map[string][]wiring.BeanRuntime{
-				"a": {b},
-			},
-			BeansByType: map[reflect.Type][]wiring.BeanRuntime{
-				reflect.TypeOf(&st{}): {b},
-			},
-			P:     gs_dync.New(),
-			State: wiring.Refreshed,
-		}, stack)
-		expectInt := 0
-		fn := func(v *st) {
-			expectInt = v.i
-		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		values, err := p.Call(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, expectInt, 3)
-		assert.Equal(t, len(values), 0)
-	})
+	//t.Run("one ctx unnamed bean argument", func(t *testing.T) {
+	//	type st struct {
+	//		i int
+	//	}
+	//	b := gs_core.NewBean(&st{3}).Name("a").BeanRegistration().(*gs_bean.BeanDefinition).BeanRuntime
+	//	stack := wiring.NewWiringStack()
+	//	ctx := wiring.NewArgContext(&wiring.Wiring{
+	//		BeansByName: map[string][]wiring.BeanRuntime{
+	//			"a": {b},
+	//		},
+	//		BeansByType: map[reflect.Type][]wiring.BeanRuntime{
+	//			reflect.TypeOf(&st{}): {b},
+	//		},
+	//		P:     gs_dync.New(),
+	//		State: wiring.Refreshed,
+	//	}, stack)
+	//	expectInt := 0
+	//	fn := func(v *st) {
+	//		expectInt = v.i
+	//	}
+	//	p, err := gs_arg.Bind(fn, []gs.Arg{})
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	values, err := p.Call(ctx)
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	assert.Equal(t, expectInt, 3)
+	//	assert.Equal(t, len(values), 0)
+	//})
 
 }

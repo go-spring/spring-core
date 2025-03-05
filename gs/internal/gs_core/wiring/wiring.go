@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"testing"
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -194,11 +195,11 @@ func NewArgContext(c *Wiring, stack *WiringStack) *ArgContext {
 }
 
 func (a *ArgContext) Has(key string) bool {
-	return a.c.P.Data().Has(key)
+	return a.c.p.Data().Has(key)
 }
 
 func (a *ArgContext) Prop(key string, def ...string) string {
-	return a.c.P.Data().Get(key, def...)
+	return a.c.p.Data().Get(key, def...)
 }
 
 func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
@@ -220,7 +221,7 @@ func (a *ArgContext) Matches(c gs.Condition) (bool, error) {
 
 // Bind binds a value to a specific tag in the container.
 func (a *ArgContext) Bind(v reflect.Value, tag string) error {
-	return a.c.P.Data().Bind(v, tag)
+	return a.c.p.Data().Bind(v, tag)
 }
 
 // Wire wires a value based on a specific tag in the container.
@@ -284,21 +285,46 @@ func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, e
 }
 
 type Wiring struct {
-	State refreshState
+	state refreshState
 
-	BeansByName map[string][]BeanRuntime // 用于查找未导出接口
-	BeansByType map[reflect.Type][]BeanRuntime
-	P           *gs_dync.Properties
-	Destroyers  []func()
+	beansByName map[string][]BeanRuntime // 用于查找未导出接口
+	beansByType map[reflect.Type][]BeanRuntime
 
-	AllowCircularReferences bool
-	ForceAutowireIsNullable bool
+	p *gs_dync.Properties
+
+	destroyers []func()
+
+	allowCircularReferences bool
+	forceAutowireIsNullable bool
+}
+
+func New() *Wiring {
+	return &Wiring{
+		p:           gs_dync.New(),
+		beansByName: make(map[string][]BeanRuntime),
+		beansByType: make(map[reflect.Type][]BeanRuntime),
+	}
+}
+
+func (c *Wiring) Properties() gs.Properties {
+	return c.p.Data()
+}
+
+func (c *Wiring) RefreshProperties(p gs.Properties) error {
+	return c.p.Refresh(p)
+}
+
+// Close closes the container and cleans up resources.
+func (c *Wiring) Close() {
+	for _, f := range c.destroyers {
+		f()
+	}
 }
 
 func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 
-	c.AllowCircularReferences = cast.ToBool(c.P.Data().Get("spring.allow-circular-references"))
-	c.ForceAutowireIsNullable = cast.ToBool(c.P.Data().Get("spring.force-autowire-is-nullable"))
+	c.allowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
+	c.forceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
 	// registers all beans
 	var beans []*gs_bean.BeanDefinition
@@ -306,10 +332,10 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		c.BeansByName[b.Name()] = append(c.BeansByName[b.Name()], b)
-		c.BeansByType[b.Type()] = append(c.BeansByType[b.Type()], b)
+		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
+		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 		for _, t := range b.Exports() {
-			c.BeansByType[t] = append(c.BeansByType[t], b)
+			c.beansByType[t] = append(c.beansByType[t], b)
 		}
 		beans = append(beans, b)
 	}
@@ -323,15 +349,15 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 	}()
 
 	// injects all beans
-	c.State = Refreshing
+	c.state = Refreshing
 	for _, b := range beans {
 		if err = c.wireBean(b, stack); err != nil {
 			return err
 		}
 	}
-	c.State = Refreshed
+	c.state = Refreshed
 
-	if c.AllowCircularReferences {
+	if c.allowCircularReferences {
 		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
@@ -343,23 +369,31 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 		return errors.New("found circular references in beans")
 	}
 
-	c.Destroyers, err = stack.getSortedDestroyers()
+	c.destroyers, err = stack.getSortedDestroyers()
 	if err != nil {
 		return err
 	}
 
 	// registers all beans
-	c.BeansByName = make(map[string][]BeanRuntime)
-	c.BeansByType = make(map[reflect.Type][]BeanRuntime)
+	c.beansByName = make(map[string][]BeanRuntime)
+	c.beansByType = make(map[reflect.Type][]BeanRuntime)
 	for _, b := range inputBeans {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		c.BeansByName[b.Name()] = append(c.BeansByName[b.Name()], b.BeanRuntime)
-		c.BeansByType[b.Type()] = append(c.BeansByType[b.Type()], b.BeanRuntime)
+		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
+		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
 		for _, t := range b.Exports() {
-			c.BeansByType[t] = append(c.BeansByType[t], b.BeanRuntime)
+			c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
 		}
+	}
+
+	if !testing.Testing() {
+		if c.p.ObjectsCount() == 0 {
+			c.p = nil
+		}
+		c.beansByName = nil
+		c.beansByType = nil
 	}
 	return nil
 }
@@ -369,11 +403,11 @@ func (c *Wiring) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 	t, name := s.TypeAndName()
 	var beans []BeanRuntime
 	if t != nil {
-		beans = c.BeansByType[t]
+		beans = c.beansByType[t]
 	}
 	if name != "" {
 		if beans == nil {
-			beans = c.BeansByName[name]
+			beans = c.beansByName[name]
 		}
 		var ret []BeanRuntime
 		for _, b := range beans {
@@ -397,7 +431,7 @@ func (c *Wiring) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (BeanR
 
 	var foundBeans []BeanRuntime
 	// Iterate through all beans of the given type and match against the tag.
-	for _, b := range c.BeansByType[t] {
+	for _, b := range c.beansByType[t] {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
@@ -408,7 +442,7 @@ func (c *Wiring) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (BeanR
 
 	// When a specific bean name is provided, find it by name.
 	if t.Kind() == reflect.Interface && tag.beanName != "" {
-		for _, b := range c.BeansByName[tag.beanName] {
+		for _, b := range c.beansByName[tag.beanName] {
 			if b.Status() == gs_bean.StatusDeleted {
 				continue
 			}
@@ -456,7 +490,7 @@ func (c *Wiring) getBean(t reflect.Type, tag wireTag, stack *WiringStack) (BeanR
 	b := foundBeans[0]
 
 	// Ensure the found bean has completed dependency injection.
-	switch c.State {
+	switch c.state {
 	case Refreshing:
 		if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
 			return nil, err
@@ -485,7 +519,7 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
 	}
 
 	var beans []BeanRuntime
-	beans = c.BeansByType[et]
+	beans = c.beansByType[et]
 
 	// Filter out deleted beans
 	{
@@ -577,7 +611,7 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
 
 	// Wire the beans based on the current state of the container
 	for _, b := range beans {
-		switch c.State {
+		switch c.state {
 		case Refreshing:
 			if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
 				return nil, err
@@ -605,7 +639,7 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) error {
 	}
 
 	// If the container is refreshed and the bean is already wired, do nothing.
-	if c.State == Refreshed && b.Status() == gs_bean.StatusWired {
+	if c.state == Refreshed && b.Status() == gs_bean.StatusWired {
 		return nil
 	}
 
@@ -687,7 +721,7 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *WiringStack) error {
 		if err != nil {
 			return err
 		}
-		if err = c.P.RefreshBean(i, param, true); err != nil {
+		if err = c.p.RefreshBean(i, param, true); err != nil {
 			return err
 		}
 		watchRefresh = false
@@ -833,7 +867,7 @@ func (c *Wiring) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, 
 				}
 			} else {
 				// Refresh field value if needed.
-				err := c.P.RefreshField(fv.Addr(), subParam, watchRefresh)
+				err := c.p.RefreshField(fv.Addr(), subParam, watchRefresh)
 				if err != nil {
 					return err
 				}
@@ -859,7 +893,7 @@ func (c *Wiring) wireStructField(v reflect.Value, str string, stack *WiringStack
 			var tags []wireTag
 			if str != "" && str != "?" {
 				for _, s := range strings.Split(str, ",") {
-					g, err := parseWireTag(c.P.Data(), s, true)
+					g, err := parseWireTag(c.p.Data(), s, true)
 					if err != nil {
 						return err
 					}
@@ -867,7 +901,7 @@ func (c *Wiring) wireStructField(v reflect.Value, str string, stack *WiringStack
 				}
 			}
 			nullable := str == "?"
-			if c.ForceAutowireIsNullable {
+			if c.forceAutowireIsNullable {
 				for i := 0; i < len(tags); i++ {
 					tags[i].nullable = true
 				}
@@ -899,11 +933,11 @@ func (c *Wiring) wireStructField(v reflect.Value, str string, stack *WiringStack
 			return nil
 		}
 	default:
-		tag, err := parseWireTag(c.P.Data(), str, true)
+		tag, err := parseWireTag(c.p.Data(), str, true)
 		if err != nil {
 			return err
 		}
-		if c.ForceAutowireIsNullable {
+		if c.forceAutowireIsNullable {
 			tag.nullable = true
 		}
 		// Ensure the provided value `v` is valid.

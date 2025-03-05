@@ -26,7 +26,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/resolving"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/wiring"
-	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
@@ -55,19 +54,14 @@ type Container struct {
 // New 创建 IoC 容器。
 func New() *Container {
 	return &Container{
-		resolving: &resolving.Resolving{},
-		wiring: &wiring.Wiring{
-			P:           gs_dync.New(),
-			BeansByName: make(map[string][]wiring.BeanRuntime),
-			BeansByType: make(map[reflect.Type][]wiring.BeanRuntime),
-		},
+		resolving: resolving.New(),
+		wiring:    wiring.New(),
 	}
 }
 
 // Mock mocks the bean with the given object.
 func (c *Container) Mock(obj interface{}, target gs.BeanSelector) {
-	x := resolving.BeanMock{Object: obj, Target: target}
-	c.resolving.Mocks = append(c.resolving.Mocks, x)
+	c.resolving.Mock(obj, target)
 }
 
 // Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
@@ -86,18 +80,18 @@ func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	x := b.BeanRegistration().(*gs_bean.BeanDefinition)
 	r := gs.NewRegisteredBean(b.BeanRegistration())
 	if c.state < Refreshing {
-		c.resolving.Beans = append(c.resolving.Beans, x)
+		c.resolving.Register(x)
 	}
 	return r
 }
 
-func (c *Container) GroupRegister(fn gs.GroupFunc) {
-	c.resolving.Funcs = append(c.resolving.Funcs, fn)
+func (c *Container) GroupRegister(fn resolving.GroupFunc) {
+	c.resolving.GroupRegister(fn)
 }
 
 // RefreshProperties updates the properties of the container.
 func (c *Container) RefreshProperties(p gs.Properties) error {
-	return c.wiring.P.Refresh(p)
+	return c.wiring.RefreshProperties(p)
 }
 
 // Refresh initializes and wires all beans in the container.
@@ -108,36 +102,27 @@ func (c *Container) Refresh() (err error) {
 	c.state = RefreshInit
 	start := time.Now()
 
-	err = c.resolving.RefreshInit(c.wiring.P.Data())
+	err = c.resolving.RefreshInit(c.wiring.Properties())
 	if err != nil {
 		return err
 	}
 
 	c.state = Refreshing
 
-	err = c.resolving.Refresh(c.wiring.P.Data())
+	beans, err := c.resolving.Refresh(c.wiring.Properties())
 	if err != nil {
 		return err
 	}
 
-	countOfBeans := len(c.resolving.Beans)
-	err = c.wiring.Refresh(c.resolving.Beans)
+	err = c.wiring.Refresh(beans)
 	if err != nil {
 		return err
 	}
 
-	if !testing.Testing() {
-		if c.wiring.P.ObjectsCount() == 0 {
-			c.wiring.P = nil
-		}
-		c.wiring.BeansByName = nil
-		c.wiring.BeansByType = nil
-	}
 	c.resolving = nil
-
 	c.state = Refreshed
 	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
-		countOfBeans, time.Now().Sub(start))
+		len(beans), time.Now().Sub(start))
 	return nil
 }
 
@@ -162,7 +147,5 @@ func (c *Container) Wire(obj interface{}) error {
 
 // Close closes the container and cleans up resources.
 func (c *Container) Close() {
-	for _, f := range c.wiring.Destroyers {
-		f()
-	}
+	c.wiring.Close()
 }

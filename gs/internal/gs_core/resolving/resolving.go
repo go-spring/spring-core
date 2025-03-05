@@ -12,37 +12,56 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
+type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
+
 type BeanMock struct {
 	Object interface{}
 	Target gs.BeanSelector
 }
 
 type Resolving struct {
-	Mocks []BeanMock
-	Beans []*gs_bean.BeanDefinition
-	Funcs []gs.GroupFunc
+	mocks []BeanMock
+	beans []*gs_bean.BeanDefinition
+	funcs []GroupFunc
+}
+
+func New() *Resolving {
+	return &Resolving{}
+}
+
+func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) {
+	x := BeanMock{Object: obj, Target: target}
+	c.mocks = append(c.mocks, x)
+}
+
+func (c *Resolving) Register(b *gs_bean.BeanDefinition) {
+	c.beans = append(c.beans, b)
+}
+
+func (c *Resolving) GroupRegister(fn GroupFunc) {
+	c.funcs = append(c.funcs, fn)
 }
 
 func (c *Resolving) RefreshInit(p gs.Properties) error {
 	// processes all group functions to register beans.
-	for _, fn := range c.Funcs {
+	for _, fn := range c.funcs {
 		beans, err := fn(p)
 		if err != nil {
 			return err
 		}
 		for _, b := range beans {
 			d := b.BeanRegistration().(*gs_bean.BeanDefinition)
-			c.Beans = append(c.Beans, d)
+			c.beans = append(c.beans, d)
 		}
 	}
 
 	// processes configuration beans to register beans.
-	for _, b := range c.Beans {
+	for _, b := range c.beans {
 		if !b.ConfigurationBean() {
 			continue
 		}
 		var foundMock BeanMock
-		for _, x := range c.Mocks {
+		for _, x := range c.mocks {
 			t, s := x.Target.TypeAndName()
 			if t != b.Type() { // type is not same
 				continue
@@ -61,16 +80,16 @@ func (c *Resolving) RefreshInit(p gs.Properties) error {
 		if err != nil {
 			return err
 		}
-		c.Beans = append(c.Beans, newBeans...)
+		c.beans = append(c.beans, newBeans...)
 	}
 
-	for _, x := range c.Mocks {
+	for _, x := range c.mocks {
 		var found []*gs_bean.BeanDefinition
 		t, s := x.Target.TypeAndName()
 		vt := reflect.TypeOf(x.Object)
 		switch t.Kind() {
 		case reflect.Interface:
-			for _, b := range c.Beans {
+			for _, b := range c.beans {
 				if b.Type().Kind() == reflect.Interface {
 					if t != b.Type() { // type is not same
 						foundType := false
@@ -111,7 +130,7 @@ func (c *Resolving) RefreshInit(p gs.Properties) error {
 				found = append(found, b)
 			}
 		default:
-			for _, b := range c.Beans {
+			for _, b := range c.beans {
 				if t != b.Type() { // type is not same
 					continue
 				}
@@ -138,13 +157,13 @@ func (c *Resolving) RefreshInit(p gs.Properties) error {
 	return nil
 }
 
-func (c *Resolving) Refresh(p gs.Properties) error {
+func (c *Resolving) Refresh(p gs.Properties) ([]*gs_bean.BeanDefinition, error) {
 
 	// resolves all beans on their condition.
 	ctx := &CondContext{p: p, c: c}
-	for _, b := range c.Beans {
+	for _, b := range c.beans {
 		if err := ctx.resolveBean(b); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -155,20 +174,20 @@ func (c *Resolving) Refresh(p gs.Properties) error {
 
 	// caches all beans by id and checks for duplicates.
 	beansByID := make(map[BeanID]*gs_bean.BeanDefinition)
-	for _, b := range c.Beans {
+	for _, b := range c.beans {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
 		if b.Status() != gs_bean.StatusResolved {
-			return fmt.Errorf("unexpected status %d", b.Status())
+			return nil, fmt.Errorf("unexpected status %d", b.Status())
 		}
 		beanID := BeanID{b.Name(), b.Type()}
 		if d, ok := beansByID[beanID]; ok {
-			return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
+			return nil, fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
 		}
 		beansByID[beanID] = b
 	}
-	return nil
+	return c.beans, nil
 }
 
 func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
@@ -277,7 +296,7 @@ func (c *CondContext) Prop(key string, def ...string) string {
 func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 	t, name := s.TypeAndName()
 	var result []gs.CondBean
-	for _, b := range c.c.Beans {
+	for _, b := range c.c.beans {
 		if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted {
 			continue
 		}

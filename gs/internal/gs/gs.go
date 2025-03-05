@@ -325,7 +325,3 @@ func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 		beanBuilder: beanBuilder[BeanDefinition]{d},
 	}
 }
-
-/************************************ ioc ************************************/
-
-type GroupFunc = func(p Properties) ([]*BeanDefinition, error)
