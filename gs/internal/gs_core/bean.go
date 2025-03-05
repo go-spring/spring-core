@@ -56,7 +56,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	}
 
 	var f gs.Callable
-	_, file, line, _ := runtime.Caller(2)
+	_, file, line, _ := runtime.Caller(1)
 
 	// If objOrCtor is a function (not from reflect.Value),
 	// process it as a constructor

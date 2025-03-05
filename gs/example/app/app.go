@@ -17,6 +17,7 @@
 package app
 
 import (
-	_ "github.com/go-spring/spring-core/gs/example/app/common/handlers/httpsvr"
+	_ "github.com/go-spring/spring-core/gs/example/app/common/handlers/log"
+	_ "github.com/go-spring/spring-core/gs/example/app/common/httpsvr"
 	_ "github.com/go-spring/spring-core/gs/example/app/controller"
 )

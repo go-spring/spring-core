@@ -1,6 +1,8 @@
 package book_service
 
 import (
+	"log/slog"
+
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/example/dao/book_dao"
 )
@@ -11,6 +13,7 @@ func init() {
 
 type BookService struct {
 	BookDao *book_dao.BookDao `autowire:""`
+	Logger  *slog.Logger      `autowire:"biz"`
 }
 
 func (s *BookService) ListBooks() ([]book_dao.Book, error) {

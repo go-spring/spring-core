@@ -28,7 +28,7 @@ import (
 func TestBind(t *testing.T) {
 
 	t.Run("zero argument", func(t *testing.T) {
-		stack := wiring.NewWiringStack()
+		stack := wiring.NewStack()
 		ctx := wiring.NewArgContext(&wiring.Wiring{}, stack)
 		fn := func() {}
 		p, err := gs_arg.Bind(fn, []gs.Arg{})
@@ -43,7 +43,7 @@ func TestBind(t *testing.T) {
 	})
 
 	t.Run("one value argument", func(t *testing.T) {
-		stack := wiring.NewWiringStack()
+		stack := wiring.NewStack()
 		ctx := wiring.NewArgContext(&wiring.Wiring{}, stack)
 		expectInt := 0
 		fn := func(i int) {

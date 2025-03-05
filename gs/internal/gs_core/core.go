@@ -133,7 +133,7 @@ func (c *Container) Wire(obj interface{}) error {
 		return errors.New("not allowed to call Wire method in non-test mode")
 	}
 
-	stack := wiring.NewWiringStack()
+	stack := wiring.NewStack()
 	defer func() {
 		if len(stack.Beans) > 0 {
 			syslog.Infof("wiring path %s", stack.Path())

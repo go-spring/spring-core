@@ -1,6 +1,7 @@
 package book_dao
 
 import (
+	"log/slog"
 	"maps"
 	"slices"
 
@@ -18,7 +19,8 @@ type Book struct {
 }
 
 type BookDao struct {
-	Store map[string]Book
+	Store  map[string]Book
+	Logger *slog.Logger `autowire:"dao"`
 }
 
 func (dao *BookDao) ListBooks() ([]Book, error) {

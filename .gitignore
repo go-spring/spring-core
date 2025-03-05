@@ -1,3 +1,5 @@
 .DS_Store
 vendor/
 .idea/
+
+gs/example/log/*.log
