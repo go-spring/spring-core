@@ -149,13 +149,13 @@ type Refreshable interface {
 // Runner defines an interface for runners that should be executed after all
 // beans are injected but before the application's servers are started.
 type Runner interface {
-	Run()
+	Run() error
 }
 
 // Job defines an interface for jobs that should be executed after all
 // beans are injected but before the application's servers are started.
 type Job interface {
-	Run(ctx context.Context)
+	Run(ctx context.Context) error
 }
 
 // Server defines an interface for managing the lifecycle of application servers,

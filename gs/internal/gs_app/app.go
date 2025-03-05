@@ -70,7 +70,7 @@ func NewApplication() *Application {
 // the application gracefully. Use ShutDown but not Stop to end
 // the application lifecycle.
 func (app *Application) Run() error {
-	app.C.Register(gs_core.NewBean(app))
+	app.C.Object(app)
 
 	if err := app.Start(); err != nil {
 		return err
@@ -114,13 +114,17 @@ func (app *Application) Start() error {
 
 	// runs all runners
 	for _, r := range app.Runners {
-		r.Run()
+		if err := r.Run(); err != nil {
+			return err
+		}
 	}
 
 	// runs all jobs
 	for _, r := range app.Jobs {
 		app.Go(func() {
-			r.Run(app.ctx)
+			if err := r.Run(app.ctx); err != nil {
+				app.ShutDown(fmt.Sprintf("job run error: %s", err.Error()))
+			}
 		})
 	}
 

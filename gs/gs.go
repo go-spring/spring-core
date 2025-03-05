@@ -177,10 +177,10 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 
 /************************************ boot ***********************************/
 
-var bootstrap *gs_app.Bootstrap
+var bootstrap gs_app.Bootstrap
 
 // Bootstrap initializes and returns a [*gs_app.Bootstrap] instance.
-func Bootstrap() *gs_app.Bootstrap {
+func Bootstrap() gs_app.Bootstrap {
 	if bootstrap == nil {
 		bootstrap = gs_app.NewBootstrap()
 	}
@@ -199,7 +199,7 @@ type (
 func Run() error {
 	printBanner()
 	if bootstrap != nil {
-		if err := bootstrap.Run(); err != nil {
+		if err := bootstrap.(interface{ Run() error }).Run(); err != nil {
 			return err
 		}
 		bootstrap = nil

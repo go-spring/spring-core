@@ -15,12 +15,12 @@ func init() {
 type Job struct {
 }
 
-func (x *Job) Run(ctx context.Context) {
+func (x *Job) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
 			fmt.Println("job exit")
-			return
+			return nil
 		case <-time.After(time.Second * 5):
 			fmt.Println("job sleep end")
 		}

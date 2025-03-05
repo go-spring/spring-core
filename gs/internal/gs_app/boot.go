@@ -24,8 +24,15 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
-// Bootstrap is the bootstrapper of the application.
-type Bootstrap struct {
+type Bootstrap interface {
+	Config() *gs_conf.BootConfig
+	Object(i interface{}) *gs.RegisteredBean
+	Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
+	Register(bd *gs.BeanDefinition) *gs.RegisteredBean
+}
+
+// bootstrap is the bootstrapper of the application.
+type bootstrap struct {
 	c *gs_core.Container
 	p *gs_conf.BootConfig
 
@@ -33,44 +40,39 @@ type Bootstrap struct {
 }
 
 // NewBootstrap creates a new Bootstrap instance.
-func NewBootstrap() *Bootstrap {
-	b := &Bootstrap{
+func NewBootstrap() Bootstrap {
+	return &bootstrap{
 		c: gs_core.New(),
 		p: gs_conf.NewBootConfig(),
 	}
-	b.c.Register(gs_core.NewBean(b))
-	return b
 }
 
 // Config returns the boot configuration.
-func (b *Bootstrap) Config() *gs_conf.BootConfig {
+func (b *bootstrap) Config() *gs_conf.BootConfig {
 	return b.p
 }
 
 // Object registers an object bean.
-func (b *Bootstrap) Object(i interface{}) *gs.RegisteredBean {
+func (b *bootstrap) Object(i interface{}) *gs.RegisteredBean {
 	bd := gs_core.NewBean(reflect.ValueOf(i))
 	return b.c.Register(bd)
 }
 
 // Provide registers a bean using a constructor function.
-func (b *Bootstrap) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+func (b *bootstrap) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(ctor, args...)
 	return b.c.Register(bd)
 }
 
 // Register registers a BeanDefinition instance.
-func (b *Bootstrap) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
+func (b *bootstrap) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 	return b.c.Register(bd)
 }
 
-// GroupRegister registers a group of BeanDefinitions.
-func (b *Bootstrap) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
-	b.c.GroupRegister(fn)
-}
-
 // Run executes the application's bootstrap process.
-func (b *Bootstrap) Run() error {
+func (b *bootstrap) Run() error {
+	b.c.Object(b)
+
 	// Refresh the boot configuration.
 	p, err := b.p.Refresh()
 	if err != nil {
@@ -91,7 +93,9 @@ func (b *Bootstrap) Run() error {
 
 	// Execute all registered AppRunners.
 	for _, r := range b.Runners {
-		r.Run()
+		if err := r.Run(); err != nil {
+			return err
+		}
 	}
 
 	b.c.Close()
