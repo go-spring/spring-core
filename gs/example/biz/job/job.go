@@ -1,6 +1,7 @@
 package job
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -14,13 +15,14 @@ func init() {
 type Job struct {
 }
 
-func (x *Job) Run() {
+func (x *Job) Run(ctx context.Context) {
 	for {
-		if gs.Exiting() {
-			fmt.Println("job exit 3")
+		select {
+		case <-ctx.Done():
+			fmt.Println("job exit")
 			return
+		case <-time.After(time.Second * 5):
+			fmt.Println("job sleep end")
 		}
-		time.Sleep(time.Second * 5)
-		fmt.Println("job sleep end")
 	}
 }

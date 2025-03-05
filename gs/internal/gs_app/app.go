@@ -44,9 +44,10 @@ type Application struct {
 	C *gs_core.Container
 	P *gs_conf.AppConfig
 
-	exiting   atomic.Bool
-	exitChan  chan struct{}
-	waitGroup sync.WaitGroup
+	exiting atomic.Bool
+	ctx     context.Context
+	cancel  context.CancelFunc
+	wg      sync.WaitGroup
 
 	Runners []gs.Runner `autowire:"${spring.app.runners:=*?}"`
 	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=*?}"`
@@ -55,13 +56,13 @@ type Application struct {
 
 // NewApplication creates and initializes a new application instance.
 func NewApplication() *Application {
-	app := &Application{
-		C:        gs_core.New(),
-		P:        gs_conf.NewAppConfig(),
-		exitChan: make(chan struct{}),
+	ctx, cancel := context.WithCancel(context.Background())
+	return &Application{
+		C:      gs_core.New(),
+		P:      gs_conf.NewAppConfig(),
+		ctx:    ctx,
+		cancel: cancel,
 	}
-	app.C.Register(gs_core.NewBean(app))
-	return app
 }
 
 // Run starts the application and listens for termination signals
@@ -69,6 +70,8 @@ func NewApplication() *Application {
 // the application gracefully. Use ShutDown but not Stop to end
 // the application lifecycle.
 func (app *Application) Run() error {
+	app.C.Register(gs_core.NewBean(app))
+
 	if err := app.Start(); err != nil {
 		return err
 	}
@@ -82,7 +85,7 @@ func (app *Application) Run() error {
 	}()
 
 	// waits for the shutdown signal
-	<-app.exitChan
+	<-app.ctx.Done()
 	app.Stop()
 	return nil
 }
@@ -117,14 +120,14 @@ func (app *Application) Start() error {
 	// runs all jobs
 	for _, r := range app.Jobs {
 		app.Go(func() {
-			r.Run()
+			r.Run(app.ctx)
 		})
 	}
 
 	// starts all servers
 	for _, svr := range app.Servers {
 		app.Go(func() {
-			if err := svr.Serve(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := svr.Serve(app.ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				app.ShutDown(fmt.Sprintf("server serve error: %s", err.Error()))
 			}
 		})
@@ -136,12 +139,11 @@ func (app *Application) Start() error {
 // Stop gracefully stops the application. This method is used to clean up
 // resources and stop servers started by the Start method.
 func (app *Application) Stop() {
-	timeout := time.Second * 5
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
 	waitChan := make(chan struct{})
-	goutil.Go(ctx, func(ctx context.Context) {
+	goutil.GoFunc(func() {
 		var wg sync.WaitGroup
 		for _, svr := range app.Servers {
 			wg.Add(1)
@@ -153,17 +155,17 @@ func (app *Application) Stop() {
 			})
 		}
 		wg.Wait()
-		app.waitGroup.Wait()
+		app.wg.Wait()
+		app.C.Close()
 		waitChan <- struct{}{}
 	})
 
 	select {
 	case <-waitChan:
+		syslog.Infof("shutdown complete")
 	case <-ctx.Done():
 		syslog.Infof("shutdown timeout")
 	}
-
-	app.C.Close()
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
@@ -174,20 +176,15 @@ func (app *Application) Exiting() bool {
 // ShutDown gracefully terminates the application. It should be used when
 // shutting down the application started by Run.
 func (app *Application) ShutDown(msg ...string) {
-	select {
-	case <-app.exitChan:
-		// do nothing if the exit channel is already closed
-	default:
-		app.exiting.Store(true)
-		close(app.exitChan)
-	}
+	app.exiting.Store(true)
+	app.cancel()
 }
 
 // Go starts a new goroutine to execute the given function.
 func (app *Application) Go(fn func()) {
-	app.waitGroup.Add(1)
+	app.wg.Add(1)
 	goutil.GoFunc(func() {
-		defer app.waitGroup.Done()
+		defer app.wg.Done()
 		fn()
 	})
 }

@@ -155,14 +155,14 @@ type Runner interface {
 // Job defines an interface for jobs that should be executed after all
 // beans are injected but before the application's servers are started.
 type Job interface {
-	Run()
+	Run(ctx context.Context)
 }
 
 // Server defines an interface for managing the lifecycle of application servers,
 // such as HTTP, gRPC, Thrift, or MQ servers. Servers must implement methods for
 // starting and stopping gracefully.
 type Server interface {
-	Serve() error
+	Serve(ctx context.Context) error
 	Shutdown(ctx context.Context) error
 }
 

@@ -45,7 +45,7 @@ func NewServer(cfg ServerConfig, mux *http.ServeMux) *Server {
 	}}
 }
 
-func (s *Server) Serve() error {
+func (s *Server) Serve(_ context.Context) error {
 	return s.svr.ListenAndServe()
 }
 
