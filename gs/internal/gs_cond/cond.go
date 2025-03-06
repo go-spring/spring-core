@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_cond provides a set of conditions that can be used for evaluating and
-// combining logical conditions in a flexible way.
 package gs_cond
 
 import (
@@ -41,6 +39,7 @@ func OnFunc(fn gs.CondFunc) gs.Condition {
 	return &onFunc{fn: fn}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onFunc) Matches(ctx gs.CondContext) (bool, error) {
 	ok, err := c.fn(ctx)
 	if err != nil {
@@ -90,6 +89,7 @@ func (c *onProperty) HavingValue(s string) OnPropertyInterface {
 	return c
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 
 	// If the context doesn't have the property, handle accordingly.
@@ -108,7 +108,6 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 		return val == c.havingValue, nil
 	}
 
-	// If the expected value is an expression, evaluate it.
 	getValue := func(val string) interface{} {
 		if b, err := strconv.ParseBool(val); err == nil {
 			return b
@@ -161,6 +160,7 @@ func OnMissingProperty(name string) gs.Condition {
 	return &onMissingProperty{name: name}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onMissingProperty) Matches(ctx gs.CondContext) (bool, error) {
 	return !ctx.Has(c.name), nil
 }
@@ -182,6 +182,7 @@ func OnBean(s gs.BeanSelector) gs.Condition {
 	return &onBean{s: s}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
@@ -207,6 +208,7 @@ func OnMissingBean(s gs.BeanSelector) gs.Condition {
 	return &onMissingBean{s: s}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
@@ -232,6 +234,7 @@ func OnSingleBean(s gs.BeanSelector) gs.Condition {
 	return &onSingleBean{s: s}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
@@ -258,6 +261,7 @@ func OnExpression(expression string) gs.Condition {
 	return &onExpression{expression: expression}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
 	err := util.UnimplementedMethod
 	return false, errutil.WrapError(err, "condition matches error: %s", c)
@@ -280,6 +284,7 @@ func Not(c gs.Condition) gs.Condition {
 	return &onNot{c: c}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onNot) Matches(ctx gs.CondContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	if err != nil {
@@ -311,6 +316,7 @@ func Or(conditions ...gs.Condition) gs.Condition {
 	return &onOr{conditions: conditions}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (g *onOr) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
@@ -345,6 +351,7 @@ func And(conditions ...gs.Condition) gs.Condition {
 	return &onAnd{conditions: conditions}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (g *onAnd) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.conditions {
 		ok, err := c.Matches(ctx)
@@ -380,6 +387,7 @@ func None(conditions ...gs.Condition) gs.Condition {
 	return &onNone{conditions: conditions}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (g *onNone) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {

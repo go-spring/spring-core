@@ -28,15 +28,16 @@ import (
 
 /******************************** AppConfig **********************************/
 
-// AppConfig is a layered app configuration.
+// AppConfig represents a layered application configuration.
 type AppConfig struct {
-	LocalFile   *PropertySources
-	RemoteFile  *PropertySources
-	RemoteProp  gs.Properties
-	Environment *Environment
-	CommandArgs *CommandArgs
+	LocalFile   *PropertySources // Configuration sources from local files.
+	RemoteFile  *PropertySources // Configuration sources from remote files.
+	RemoteProp  gs.Properties    // Remote properties.
+	Environment *Environment     // Environment variables as configuration source.
+	CommandArgs *CommandArgs     // Command line arguments as configuration source.
 }
 
+// NewAppConfig creates a new instance of AppConfig.
 func NewAppConfig() *AppConfig {
 	return &AppConfig{
 		LocalFile:   NewPropertySources(ConfigTypeLocal, "application"),
@@ -59,9 +60,8 @@ func merge(out *conf.Properties, sources ...interface {
 	return nil
 }
 
-// Refresh merges all layers into a properties as read-only.
+// Refresh merges all layers of configurations into a read-only properties.
 func (c *AppConfig) Refresh() (gs.Properties, error) {
-
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)
 	if err != nil {
@@ -101,13 +101,14 @@ func (c *AppConfig) Refresh() (gs.Properties, error) {
 
 /******************************** BootConfig *********************************/
 
-// BootConfig is a layered boot configuration.
+// BootConfig represents a layered boot configuration.
 type BootConfig struct {
-	LocalFile   *PropertySources
-	Environment *Environment
-	CommandArgs *CommandArgs
+	LocalFile   *PropertySources // Configuration sources from local files.
+	Environment *Environment     // Environment variables as configuration source.
+	CommandArgs *CommandArgs     // Command line arguments as configuration source.
 }
 
+// NewBootConfig creates a new instance of BootConfig.
 func NewBootConfig() *BootConfig {
 	return &BootConfig{
 		LocalFile:   NewPropertySources(ConfigTypeLocal, "bootstrap"),
@@ -116,7 +117,7 @@ func NewBootConfig() *BootConfig {
 	}
 }
 
-// Refresh merges all layers into a properties as read-only.
+// Refresh merges all layers of configurations into a read-only properties.
 func (c *BootConfig) Refresh() (gs.Properties, error) {
 
 	p := sysconf.Clone()
@@ -149,6 +150,7 @@ func (c *BootConfig) Refresh() (gs.Properties, error) {
 
 /****************************** PropertySources ******************************/
 
+// ConfigType defines the type of configuration: local or remote.
 type ConfigType string
 
 const (
@@ -156,13 +158,14 @@ const (
 	ConfigTypeRemote ConfigType = "remote"
 )
 
-// PropertySources is a collection of files.
+// PropertySources is a collection of configuration files.
 type PropertySources struct {
-	configType ConfigType
-	configName string
-	extraFiles []string
+	configType ConfigType // Type of the configuration (local or remote).
+	configName string     // Name of the configuration.
+	extraFiles []string   // Extra files to be included in the configuration.
 }
 
+// NewPropertySources creates a new instance of PropertySources.
 func NewPropertySources(configType ConfigType, configName string) *PropertySources {
 	return &PropertySources{
 		configType: configType,
@@ -170,12 +173,12 @@ func NewPropertySources(configType ConfigType, configName string) *PropertySourc
 	}
 }
 
-// Reset resets the files.
+// Reset resets all the extra files.
 func (p *PropertySources) Reset() {
 	p.extraFiles = nil
 }
 
-// AddFile adds a file.
+// AddFile adds a or more than one extra files.
 func (p *PropertySources) AddFile(files ...string) {
 	for _, f := range files {
 		info, err := os.Stat(f)
@@ -189,7 +192,7 @@ func (p *PropertySources) AddFile(files ...string) {
 	p.extraFiles = append(p.extraFiles, files...)
 }
 
-// getDefaultFiles returns the default files.
+// getDefaultFiles returns the default configuration files based on the configuration type and active profiles.
 func (p *PropertySources) getDefaultFiles(resolver *conf.Properties) (_ []string, err error) {
 
 	var configDir string
@@ -231,7 +234,7 @@ func (p *PropertySources) getDefaultFiles(resolver *conf.Properties) (_ []string
 	return files, nil
 }
 
-// loadFiles loads all files and returns a list of properties.
+// loadFiles loads all configuration files and returns them as a list of Properties.
 func (p *PropertySources) loadFiles(resolver *conf.Properties) (ret []*conf.Properties, err error) {
 	files, err := p.getDefaultFiles(resolver)
 	if err != nil {

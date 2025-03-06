@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_dync provides dynamic properties and refreshable objects.
 package gs_dync
 
 import (
@@ -127,7 +126,6 @@ func (p *Properties) Refresh(prop gs.Properties) (err error) {
 		}
 	}
 
-	// Refresh objects based on changed keys.
 	keys := make([]string, 0, len(changes))
 	for k := range changes {
 		keys = append(keys, k)
@@ -153,6 +151,7 @@ func (p *Properties) refreshKeys(keys []string) (err error) {
 		}
 	}
 
+	// Sort and collect objects that need updating.
 	updateObjects := make([]*refreshObject, 0, len(updateIndexes))
 	{
 		ints := make([]int, 0, len(updateIndexes))

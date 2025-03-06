@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_bean provides the bean definition for the Go-Spring framework.
 package gs_bean
 
 import (
@@ -62,27 +61,27 @@ func (status BeanStatus) String() string {
 	}
 }
 
-// refreshableType is the [reflect.Type] of the interface [gs.Refreshable].
+// refreshableType is the [reflect.Type] of the [gs.Refreshable] interface.
 var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f          *gs_arg.Callable   // Callable for the bean (ctor or method).
-	init       gs.BeanInitFunc    // Initialization function for the bean.
-	destroy    gs.BeanDestroyFunc // Destruction function for the bean.
-	dependsOn  []gs.BeanSelector  // List of dependencies for the bean.
-	exports    []reflect.Type     // List of exported types for the bean.
-	conditions []gs.Condition     // List of conditions for the bean.
-	status     BeanStatus         // Current status of the bean.
+	f          *gs_arg.Callable
+	init       gs.BeanInitFunc
+	destroy    gs.BeanDestroyFunc
+	dependsOn  []gs.BeanSelector
+	exports    []reflect.Type
+	conditions []gs.Condition
+	status     BeanStatus
 
-	file string // The file where the bean is defined.
-	line int    // The line number in the file where the bean is defined.
+	file string
+	line int
 
-	configurationBean  bool                  // Whether the bean is a configuration bean.
-	configurationParam gs.ConfigurationParam // Configuration parameters for the bean.
+	configurationBean  bool
+	configurationParam gs.ConfigurationParam
 
-	refreshable bool   // Whether the bean can be refreshed.
-	refreshTag  string // Refresh tag for the bean.
+	refreshable bool
+	refreshTag  string
 }
 
 // validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
@@ -252,7 +251,7 @@ func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *
 	}
 }
 
-// SetMock sets the mock object for the bean.
+// SetMock sets the mock object for the bean, replacing its runtime information.
 func (d *BeanDefinition) SetMock(obj interface{}) {
 	*d = BeanDefinition{
 		BeanMetadata: &BeanMetadata{
