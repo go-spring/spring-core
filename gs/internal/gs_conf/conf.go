@@ -156,11 +156,11 @@ const (
 	ConfigTypeRemote ConfigType = "remote"
 )
 
-// PropertySources is a collection of locations.
+// PropertySources is a collection of files.
 type PropertySources struct {
 	configType ConfigType
 	configName string
-	locations  []string
+	extraFiles []string
 }
 
 func NewPropertySources(configType ConfigType, configName string) *PropertySources {
@@ -170,27 +170,27 @@ func NewPropertySources(configType ConfigType, configName string) *PropertySourc
 	}
 }
 
-// Reset resets the locations.
+// Reset resets the files.
 func (p *PropertySources) Reset() {
-	p.locations = nil
+	p.extraFiles = nil
 }
 
-// AddLocation adds a location.
-func (p *PropertySources) AddLocation(location ...string) {
-	for _, s := range location {
-		info, err := os.Stat(s)
+// AddFile adds a file.
+func (p *PropertySources) AddFile(files ...string) {
+	for _, f := range files {
+		info, err := os.Stat(f)
 		if err != nil {
 			panic(err)
 		}
 		if info.IsDir() {
-			panic("location should be a file")
+			panic("should be a file")
 		}
 	}
-	p.locations = append(p.locations, location...)
+	p.extraFiles = append(p.extraFiles, files...)
 }
 
-// getDefaultLocations returns the default locations.
-func (p *PropertySources) getDefaultLocations(resolver *conf.Properties) (_ []string, err error) {
+// getDefaultFiles returns the default files.
+func (p *PropertySources) getDefaultFiles(resolver *conf.Properties) (_ []string, err error) {
 
 	var configDir string
 	if p.configType == ConfigTypeLocal {
@@ -204,7 +204,7 @@ func (p *PropertySources) getDefaultLocations(resolver *conf.Properties) (_ []st
 		return nil, err
 	}
 
-	locations := []string{
+	files := []string{
 		fmt.Sprintf("%s/%s.properties", configDir, p.configName),
 		fmt.Sprintf("%s/%s.yaml", configDir, p.configName),
 		fmt.Sprintf("%s/%s.toml", configDir, p.configName),
@@ -219,7 +219,7 @@ func (p *PropertySources) getDefaultLocations(resolver *conf.Properties) (_ []st
 		ss := strings.Split(activeProfiles, ",")
 		for _, s := range ss {
 			if s = strings.TrimSpace(s); s != "" {
-				locations = append(locations, []string{
+				files = append(files, []string{
 					fmt.Sprintf("%s/%s-%s.properties", configDir, p.configName, s),
 					fmt.Sprintf("%s/%s-%s.yaml", configDir, p.configName, s),
 					fmt.Sprintf("%s/%s-%s.toml", configDir, p.configName, s),
@@ -228,18 +228,17 @@ func (p *PropertySources) getDefaultLocations(resolver *conf.Properties) (_ []st
 			}
 		}
 	}
-	return locations, nil
+	return files, nil
 }
 
-// loadFiles loads all locations and returns a list of properties.
-func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properties, error) {
-	locations, err := p.getDefaultLocations(resolver)
+// loadFiles loads all files and returns a list of properties.
+func (p *PropertySources) loadFiles(resolver *conf.Properties) (ret []*conf.Properties, err error) {
+	files, err := p.getDefaultFiles(resolver)
 	if err != nil {
 		return nil, err
 	}
-	locations = append(locations, p.locations...)
-	var files []*conf.Properties
-	for _, s := range locations {
+	files = append(files, p.extraFiles...)
+	for _, s := range files {
 		filename, err := resolver.Resolve(s)
 		if err != nil {
 			return nil, err
@@ -251,7 +250,7 @@ func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properti
 			}
 			return nil, err
 		}
-		files = append(files, c)
+		ret = append(ret, c)
 	}
-	return files, nil
+	return
 }

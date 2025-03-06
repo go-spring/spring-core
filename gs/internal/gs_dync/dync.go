@@ -31,7 +31,7 @@ import (
 )
 
 // Value represents a thread-safe object that can dynamically refresh its value.
-type Value[T interface{}] struct {
+type Value[T any] struct {
 	v atomic.Value
 }
 
