@@ -20,8 +20,10 @@ package gs_bean
 import (
 	"fmt"
 	"reflect"
+	"runtime"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -65,7 +67,7 @@ var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f          gs.Callable        // Callable for the bean (ctor or method).
+	f          *gs_arg.Callable   // Callable for the bean (ctor or method).
 	init       gs.BeanInitFunc    // Initialization function for the bean.
 	destroy    gs.BeanDestroyFunc // Destruction function for the bean.
 	dependsOn  []gs.BeanSelector  // List of dependencies for the bean.
@@ -168,6 +170,15 @@ func (d *BeanMetadata) RefreshTag() string {
 	return d.refreshTag
 }
 
+// SetCaller sets the caller for the bean.
+func (d *BeanMetadata) SetCaller(skip int) {
+	_, file, line, _ := runtime.Caller(skip)
+	if d.f != nil {
+		d.f.SetFileLine(file, line)
+	}
+	d.file, d.line = file, line
+}
+
 // FileLine returns the file and line number for the bean.
 func (d *BeanMetadata) FileLine() (string, int) {
 	return d.file, d.line
@@ -206,7 +217,7 @@ func (d *BeanRuntime) Interface() interface{} {
 }
 
 // Callable returns the callable for the bean.
-func (d *BeanRuntime) Callable() gs.Callable {
+func (d *BeanRuntime) Callable() *gs_arg.Callable {
 	return nil
 }
 
@@ -227,7 +238,7 @@ type BeanDefinition struct {
 }
 
 // NewBean creates a new bean definition.
-func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string) *BeanDefinition {
+func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition {
 	return &BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			f:      f,
@@ -256,7 +267,7 @@ func (d *BeanDefinition) SetMock(obj interface{}) {
 }
 
 // Callable returns the callable for the bean.
-func (d *BeanDefinition) Callable() gs.Callable {
+func (d *BeanDefinition) Callable() *gs_arg.Callable {
 	return d.f
 }
 

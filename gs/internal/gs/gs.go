@@ -118,7 +118,7 @@ type Arg interface {
 	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
 }
 
-// ArgContext defines methods for the IoC container used by Callable types.
+// ArgContext defines methods for the IoC container used by Arg types.
 type ArgContext interface {
 	// Matches checks if the given condition is met.
 	Matches(c Condition) (bool, error)
@@ -126,11 +126,6 @@ type ArgContext interface {
 	Bind(v reflect.Value, tag string) error
 	// Wire wires dependent beans to the provided [reflect.Value].
 	Wire(v reflect.Value, tag string) error
-}
-
-// Callable represents an entity that can be invoked with an ArgContext.
-type Callable interface {
-	Call(ctx ArgContext) ([]reflect.Value, error)
 }
 
 /*********************************** conf ************************************/
@@ -162,7 +157,7 @@ type Job interface {
 // such as HTTP, gRPC, Thrift, or MQ servers. Servers must implement methods for
 // starting and stopping gracefully.
 type Server interface {
-	Serve(ctx context.Context) error
+	Serve() error
 	Shutdown(ctx context.Context) error
 }
 
@@ -202,6 +197,8 @@ type BeanRegistration interface {
 	SetConfiguration(param ...ConfigurationParam)
 	// SetRefreshable marks the bean as refreshable with the given tag.
 	SetRefreshable(tag string)
+	// SetCaller sets the caller information for the bean.
+	SetCaller(skip int)
 }
 
 // beanBuilder helps configure a bean during its creation.
@@ -299,6 +296,12 @@ func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T {
 // Refreshable marks the bean as refreshable with the provided tag.
 func (d *beanBuilder[T]) Refreshable(tag string) *T {
 	d.b.SetRefreshable(tag)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// Caller sets the caller information for the bean.
+func (d *beanBuilder[T]) Caller(skip int) *T {
+	d.b.SetCaller(skip)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

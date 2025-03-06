@@ -55,7 +55,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		panic("bean can't be nil")
 	}
 
-	var f gs.Callable
+	var f *gs_arg.Callable
 	_, file, line, _ := runtime.Caller(1)
 
 	// If objOrCtor is a function (not from reflect.Value),
@@ -69,7 +69,8 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		}
 
 		// Bind the constructor arguments
-		f = gs_arg.MustBind(objOrCtor, ctorArgs...).SetFileLine(file, line)
+		f = gs_arg.MustBind(objOrCtor, ctorArgs...)
+		f.SetFileLine(file, line)
 
 		var in0 reflect.Type
 		if t.NumIn() > 0 {

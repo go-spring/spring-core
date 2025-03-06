@@ -28,6 +28,7 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
@@ -41,7 +42,7 @@ type BeanRuntime interface {
 	Type() reflect.Type
 	Value() reflect.Value
 	Interface() interface{}
-	Callable() gs.Callable
+	Callable() *gs_arg.Callable
 	Status() gs_bean.BeanStatus
 	String() string
 }

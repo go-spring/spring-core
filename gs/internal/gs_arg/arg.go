@@ -251,7 +251,8 @@ func Option(fn CallableFunc, args ...gs.Arg) *OptionArg {
 
 	_, file, line, _ := runtime.Caller(1)
 	r := MustBind(fn, args...)
-	return &OptionArg{r: r.SetFileLine(file, line)}
+	r.SetFileLine(file, line)
+	return &OptionArg{r: r}
 }
 
 // Condition sets a condition for invoking the option function.
@@ -294,8 +295,9 @@ func MustBind(fn CallableFunc, args ...gs.Arg) *Callable {
 	if err != nil {
 		panic(err)
 	}
-	_, file, line, _ := runtime.Caller(1)
-	return r.SetFileLine(file, line)
+	_, file, line, _ := runtime.Caller(2)
+	r.SetFileLine(file, line)
+	return r
 }
 
 // Bind creates a Callable by binding arguments to a function.
@@ -309,9 +311,8 @@ func Bind(fn CallableFunc, args []gs.Arg) (*Callable, error) {
 }
 
 // SetFileLine sets the file and line number of the function call.
-func (r *Callable) SetFileLine(file string, line int) *Callable {
+func (r *Callable) SetFileLine(file string, line int) {
 	r.fileLine = fmt.Sprintf("%s:%d", file, line)
-	return r
 }
 
 // Call invokes the function with its bound arguments processed in the IoC container.

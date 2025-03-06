@@ -121,7 +121,7 @@ func (app *Application) Start() error {
 
 	// runs all jobs
 	for _, r := range app.Jobs {
-		app.Go(func() {
+		goutil.GoFunc(func() {
 			if err := r.Run(app.ctx); err != nil {
 				app.ShutDown(fmt.Sprintf("job run error: %s", err.Error()))
 			}
@@ -130,8 +130,10 @@ func (app *Application) Start() error {
 
 	// starts all servers
 	for _, svr := range app.Servers {
-		app.Go(func() {
-			if err := svr.Serve(app.ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		app.wg.Add(1)
+		goutil.GoFunc(func() {
+			defer app.wg.Done()
+			if err := svr.Serve(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				app.ShutDown(fmt.Sprintf("server serve error: %s", err.Error()))
 			}
 		})
@@ -148,17 +150,13 @@ func (app *Application) Stop() {
 
 	waitChan := make(chan struct{})
 	goutil.GoFunc(func() {
-		var wg sync.WaitGroup
 		for _, svr := range app.Servers {
-			wg.Add(1)
 			goutil.GoFunc(func() {
-				defer wg.Done()
 				if err := svr.Shutdown(ctx); err != nil {
 					syslog.Errorf("shutdown server failed: %s", err.Error())
 				}
 			})
 		}
-		wg.Wait()
 		app.wg.Wait()
 		app.C.Close()
 		waitChan <- struct{}{}
@@ -182,13 +180,4 @@ func (app *Application) Exiting() bool {
 func (app *Application) ShutDown(msg ...string) {
 	app.exiting.Store(true)
 	app.cancel()
-}
-
-// Go starts a new goroutine to execute the given function.
-func (app *Application) Go(fn func()) {
-	app.wg.Add(1)
-	goutil.GoFunc(func() {
-		defer app.wg.Done()
-		fn()
-	})
 }
