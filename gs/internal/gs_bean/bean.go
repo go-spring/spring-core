@@ -103,45 +103,9 @@ func (d *BeanMetadata) Init() gs.BeanInitFunc {
 	return d.init
 }
 
-// SetInit sets the initialization function for the bean.
-func (d *BeanDefinition) SetInit(fn gs.BeanInitFunc) {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
-		d.init = fn
-		return
-	}
-	panic("init should be func(bean) or func(bean)error")
-}
-
 // Destroy returns the destruction function of the bean.
 func (d *BeanMetadata) Destroy() gs.BeanDestroyFunc {
 	return d.destroy
-}
-
-// SetDestroy sets the destruction function for the bean.
-func (d *BeanDefinition) SetDestroy(fn gs.BeanDestroyFunc) {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
-		d.destroy = fn
-		return
-	}
-	panic("destroy should be func(bean) or func(bean)error")
-}
-
-// SetInitMethod sets the initialization function for the bean by method name.
-func (d *BeanDefinition) SetInitMethod(method string) {
-	m, ok := d.t.MethodByName(method)
-	if !ok {
-		panic(fmt.Sprintf("method %s not found on type %s", method, d.t))
-	}
-	d.SetInit(m.Func.Interface())
-}
-
-// SetDestroyMethod sets the destruction function for the bean by method name.
-func (d *BeanDefinition) SetDestroyMethod(method string) {
-	m, ok := d.t.MethodByName(method)
-	if !ok {
-		panic(fmt.Sprintf("method %s not found on type %s", method, d.t))
-	}
-	d.SetDestroy(m.Func.Interface())
 }
 
 // DependsOn returns the list of dependencies for the bean.
@@ -150,7 +114,7 @@ func (d *BeanMetadata) DependsOn() []gs.BeanSelector {
 }
 
 // SetDependsOn sets the list of dependencies for the bean.
-func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelector) {
+func (d *BeanMetadata) SetDependsOn(selectors ...gs.BeanSelector) {
 	d.dependsOn = append(d.dependsOn, selectors...)
 }
 
@@ -159,33 +123,13 @@ func (d *BeanMetadata) Exports() []reflect.Type {
 	return d.exports
 }
 
-// SetExport sets the exported interfaces for the bean.
-func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
-	for _, t := range exports {
-		if t.Kind() != reflect.Interface {
-			panic("only interface type can be exported")
-		}
-		exported := false
-		for _, export := range d.exports {
-			if t == export {
-				exported = true
-				break
-			}
-		}
-		if exported {
-			continue
-		}
-		d.exports = append(d.exports, t)
-	}
-}
-
 // Conditions returns the list of conditions for the bean.
 func (d *BeanMetadata) Conditions() []gs.Condition {
 	return d.conditions
 }
 
 // SetCondition adds a condition to the list of conditions for the bean.
-func (d *BeanDefinition) SetCondition(conditions ...gs.Condition) {
+func (d *BeanMetadata) SetCondition(conditions ...gs.Condition) {
 	d.conditions = append(d.conditions, conditions...)
 }
 
@@ -224,22 +168,13 @@ func (d *BeanMetadata) RefreshTag() string {
 	return d.refreshTag
 }
 
-// SetRefreshable sets the refreshable flag and tag for the bean.
-func (d *BeanDefinition) SetRefreshable(tag string) {
-	if !d.Type().Implements(refreshableType) {
-		panic("must implement gs.Refreshable interface")
-	}
-	d.refreshable = true
-	d.refreshTag = tag
-}
-
 // FileLine returns the file and line number for the bean.
 func (d *BeanMetadata) FileLine() (string, int) {
 	return d.file, d.line
 }
 
 // SetFileLine sets the file and line number for the bean.
-func (d *BeanDefinition) SetFileLine(file string, line int) {
+func (d *BeanMetadata) SetFileLine(file string, line int) {
 	d.file, d.line = file, line
 }
 
@@ -336,8 +271,73 @@ func (d *BeanDefinition) Status() BeanStatus {
 }
 
 // SetStatus sets the current status of the bean.
-func (d *BeanMetadata) SetStatus(status BeanStatus) {
+func (d *BeanDefinition) SetStatus(status BeanStatus) {
 	d.status = status
+}
+
+// SetInit sets the initialization function for the bean.
+func (d *BeanDefinition) SetInit(fn gs.BeanInitFunc) {
+	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
+		d.init = fn
+		return
+	}
+	panic("init should be func(bean) or func(bean)error")
+}
+
+// SetDestroy sets the destruction function for the bean.
+func (d *BeanDefinition) SetDestroy(fn gs.BeanDestroyFunc) {
+	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
+		d.destroy = fn
+		return
+	}
+	panic("destroy should be func(bean) or func(bean)error")
+}
+
+// SetInitMethod sets the initialization function for the bean by method name.
+func (d *BeanDefinition) SetInitMethod(method string) {
+	m, ok := d.t.MethodByName(method)
+	if !ok {
+		panic(fmt.Sprintf("method %s not found on type %s", method, d.t))
+	}
+	d.SetInit(m.Func.Interface())
+}
+
+// SetDestroyMethod sets the destruction function for the bean by method name.
+func (d *BeanDefinition) SetDestroyMethod(method string) {
+	m, ok := d.t.MethodByName(method)
+	if !ok {
+		panic(fmt.Sprintf("method %s not found on type %s", method, d.t))
+	}
+	d.SetDestroy(m.Func.Interface())
+}
+
+// SetExport sets the exported interfaces for the bean.
+func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
+	for _, t := range exports {
+		if t.Kind() != reflect.Interface {
+			panic("only interface type can be exported")
+		}
+		exported := false
+		for _, export := range d.exports {
+			if t == export {
+				exported = true
+				break
+			}
+		}
+		if exported {
+			continue
+		}
+		d.exports = append(d.exports, t)
+	}
+}
+
+// SetRefreshable sets the refreshable flag and tag for the bean.
+func (d *BeanDefinition) SetRefreshable(tag string) {
+	if !d.Type().Implements(refreshableType) {
+		panic("must implement gs.Refreshable interface")
+	}
+	d.refreshable = true
+	d.refreshTag = tag
 }
 
 // TypeAndName returns the type and name of the bean.
