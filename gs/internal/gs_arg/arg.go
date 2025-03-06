@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_arg provides a set of tools for working with function arguments.
 package gs_arg
 
 import (
@@ -243,7 +242,6 @@ type OptionArg struct {
 
 // Option creates a binding for an option function argument.
 func Option(fn CallableFunc, args ...gs.Arg) *OptionArg {
-
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func || t.NumOut() != 1 {
 		panic(errors.New("invalid option func"))
@@ -261,6 +259,7 @@ func (arg *OptionArg) Condition(conditions ...gs.Condition) *OptionArg {
 	return arg
 }
 
+// GetArgValue retrieves the function's return value if conditions are met.
 func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 
 	// Checks if the condition is met.
@@ -283,10 +282,10 @@ func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Va
 
 // Callable wraps a function and its binding arguments.
 type Callable struct {
-	fn       CallableFunc // The function to be called.
-	fnType   reflect.Type // The type of the function.
-	argList  *ArgList     // The argument list for the function.
-	fileLine string       // File and line number where the function is defined.
+	fn       CallableFunc
+	fnType   reflect.Type
+	argList  *ArgList
+	fileLine string
 }
 
 // MustBind binds arguments to a function and panics if an error occurs.
@@ -317,7 +316,6 @@ func (r *Callable) SetFileLine(file string, line int) {
 
 // Call invokes the function with its bound arguments processed in the IoC container.
 func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
-
 	in, err := r.argList.get(ctx)
 	if err != nil {
 		return nil, err
@@ -339,6 +337,7 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 	return out, nil
 }
 
+// GetArgValue retrieves the result of calling the function.
 func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 	if results, err := r.Call(ctx); err != nil {
 		return reflect.Value{}, err

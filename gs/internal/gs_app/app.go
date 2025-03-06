@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_app provides a framework for building and managing Go-Spring applications.
 package gs_app
 
 import (
@@ -38,8 +37,8 @@ import (
 
 var App = NewApplication()
 
-// Application represents the core application, managing its lifecycle, configuration,
-// and the injection of dependencies.
+// Application represents the core application, managing its lifecycle,
+// configuration, and dependency injection.
 type Application struct {
 	C *gs_core.Container
 	P *gs_conf.AppConfig
@@ -66,9 +65,8 @@ func NewApplication() *Application {
 }
 
 // Run starts the application and listens for termination signals
-// (e.g., SIGINT, SIGTERM). When a signal is received, it shuts down
-// the application gracefully. Use ShutDown but not Stop to end
-// the application lifecycle.
+// (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
+// a graceful shutdown.
 func (app *Application) Run() error {
 	app.C.Object(app)
 
@@ -90,9 +88,9 @@ func (app *Application) Run() error {
 	return nil
 }
 
-// Start initializes and starts the application. It loads configuration properties,
-// refreshes the IoC container, performs dependency injection, and runs runners
-// and servers.
+// Start initializes and starts the application. It performs configuration
+// loading, IoC container refreshing, dependency injection, and runs
+// runners, jobs and servers.
 func (app *Application) Start() error {
 	// loads the layered app properties
 	p, err := app.P.Refresh()
@@ -142,8 +140,8 @@ func (app *Application) Start() error {
 	return nil
 }
 
-// Stop gracefully stops the application. This method is used to clean up
-// resources and stop servers started by the Start method.
+// Stop gracefully shuts down the application, ensuring all servers and
+// resources are properly closed.
 func (app *Application) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
@@ -175,8 +173,8 @@ func (app *Application) Exiting() bool {
 	return app.exiting.Load()
 }
 
-// ShutDown gracefully terminates the application. It should be used when
-// shutting down the application started by Run.
+// ShutDown gracefully terminates the application. This method should
+// be called to trigger a proper shutdown process.
 func (app *Application) ShutDown(msg ...string) {
 	app.exiting.Store(true)
 	app.cancel()

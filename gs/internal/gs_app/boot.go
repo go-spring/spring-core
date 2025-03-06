@@ -24,6 +24,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
+// Bootstrap defines the interface for application bootstrapping.
 type Bootstrap interface {
 	Config() *gs_conf.BootConfig
 	Object(i interface{}) *gs.RegisteredBean
@@ -91,7 +92,7 @@ func (b *bootstrap) Run() error {
 		return err
 	}
 
-	// Execute all registered AppRunners.
+	// Execute all registered runners.
 	for _, r := range b.Runners {
 		if err := r.Run(); err != nil {
 			return err

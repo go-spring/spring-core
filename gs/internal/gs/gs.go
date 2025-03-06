@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs provides all the concepts required for Go-Spring implementation.
 package gs
 
 import (
@@ -27,6 +26,8 @@ import (
 )
 
 // As returns the [reflect.Type] of the given interface type.
+// It ensures that the provided generic type parameter T is an interface.
+// If T is not an interface, the function panics.
 func As[T any]() reflect.Type {
 	t := reflect.TypeFor[T]()
 	if t.Kind() != reflect.Interface {
@@ -36,25 +37,27 @@ func As[T any]() reflect.Type {
 }
 
 // BeanInitFunc defines the prototype for initialization functions.
-// For example: `func(bean)` or `func(bean) error`.
+// Examples: `func(bean)` or `func(bean) error`.
 type BeanInitFunc = interface{}
 
-// BeanDestroyFunc defines the prototype for destroy functions.
-// For example: `func(bean)` or `func(bean) error`.
+// BeanDestroyFunc defines the prototype for destruction functions.
+// Examples: `func(bean)` or `func(bean) error`.
 type BeanDestroyFunc = interface{}
 
 // BeanSelector is an interface for selecting beans.
 type BeanSelector interface {
+	// TypeAndName returns the type and name of the bean.
 	TypeAndName() (reflect.Type, string)
 }
 
-// BeanSelectorImpl is an identifier for a bean.
+// BeanSelectorImpl is an implementation of BeanSelector.
 type BeanSelectorImpl struct {
-	Type reflect.Type // Type of the bean
-	Name string       // Name of the bean
+	Type reflect.Type // The type of the bean
+	Name string       // The name of the bean
 }
 
 // BeanSelectorFor returns a BeanSelectorImpl for the given type.
+// If a name is provided, it is set; otherwise, only the type is used.
 func BeanSelectorFor[T any](name ...string) BeanSelector {
 	if len(name) == 0 {
 		return BeanSelectorImpl{Type: reflect.TypeFor[T]()}
@@ -87,8 +90,10 @@ func (s BeanSelectorImpl) String() string {
 
 /********************************** condition ********************************/
 
-// Condition is a conditional logic interface used when registering beans.
+// Condition is an interface used for defining conditional logic
+// when registering beans in the IoC container.
 type Condition interface {
+	// Matches checks whether the condition is satisfied.
 	Matches(ctx CondContext) (bool, error)
 }
 
@@ -104,7 +109,7 @@ type CondContext interface {
 	Has(key string) bool
 	// Prop retrieves the value of a property from the IoC container.
 	Prop(key string, def ...string) string
-	// Find searches for bean definitions that match the provided BeanSelector.
+	// Find searches for bean definitions matching the given BeanSelector.
 	Find(s BeanSelector) ([]CondBean, error)
 }
 
@@ -113,8 +118,9 @@ type CondFunc func(ctx CondContext) (bool, error)
 
 /************************************* arg ***********************************/
 
-// Arg is used to provide binding values for function parameters.
+// Arg is an interface for retrieving argument values in function parameter binding.
 type Arg interface {
+	// GetArgValue retrieves the argument value based on the type.
 	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
 }
 
@@ -141,21 +147,21 @@ type Refreshable interface {
 
 /*********************************** app ************************************/
 
-// Runner defines an interface for runners that should be executed after all
-// beans are injected but before the application's servers are started.
+// Runner defines an interface for components that should run after
+// all beans are injected but before the application servers start.
 type Runner interface {
 	Run() error
 }
 
-// Job defines an interface for jobs that should be executed after all
-// beans are injected but before the application's servers are started.
+// Job defines an interface for components that run tasks with a given context
+// after all beans are injected but before the application servers start.
 type Job interface {
 	Run(ctx context.Context) error
 }
 
 // Server defines an interface for managing the lifecycle of application servers,
-// such as HTTP, gRPC, Thrift, or MQ servers. Servers must implement methods for
-// starting and stopping gracefully.
+// such as HTTP, gRPC, Thrift, or MQ servers. It includes methods for starting
+// and shutting down the server gracefully.
 type Server interface {
 	Serve() error
 	Shutdown(ctx context.Context) error
@@ -163,41 +169,27 @@ type Server interface {
 
 /*********************************** bean ************************************/
 
-// ConfigurationParam holds configuration parameters for bean setup.
+// ConfigurationParam holds parameters for bean setup configuration.
 type ConfigurationParam struct {
-	Includes []string // List of methods to include
-	Excludes []string // List of methods to exclude
+	Includes []string // Methods to include
+	Excludes []string // Methods to exclude
 }
 
-// BeanRegistration provides methods to configure and register bean metadata.
+// BeanRegistration provides methods for configuring and registering bean metadata.
 type BeanRegistration interface {
-	// Name returns the name of the bean.
 	Name() string
-	// Type returns the [reflect.Type] of the bean.
 	Type() reflect.Type
-	// Value returns the [reflect.Value] of the bean.
 	Value() reflect.Value
-	// SetName sets the name of the bean.
 	SetName(name string)
-	// SetInit sets the initialization function for the bean.
 	SetInit(fn BeanInitFunc)
-	// SetDestroy sets the destruction function for the bean.
 	SetDestroy(fn BeanDestroyFunc)
-	// SetInitMethod sets the initialization function for the bean by method name.
 	SetInitMethod(method string)
-	// SetDestroyMethod sets the destruction function for the bean by method name.
 	SetDestroyMethod(method string)
-	// SetCondition adds a condition for the bean.
 	SetCondition(conditions ...Condition)
-	// SetDependsOn sets the beans that this bean depends on.
 	SetDependsOn(selectors ...BeanSelector)
-	// SetExport defines the interfaces to be exported by the bean.
 	SetExport(exports ...reflect.Type)
-	// SetConfiguration applies the bean configuration.
 	SetConfiguration(param ...ConfigurationParam)
-	// SetRefreshable marks the bean as refreshable with the given tag.
 	SetRefreshable(tag string)
-	// SetCaller sets the caller information for the bean.
 	SetCaller(skip int)
 }
 
@@ -251,7 +243,7 @@ func (d *beanBuilder[T]) DestroyMethod(method string) *T {
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// Condition adds a condition to validate the bean.
+// Condition sets the conditions for the bean.
 func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
 	d.b.SetCondition(conditions...)
 	return *(**T)(unsafe.Pointer(&d))
@@ -317,7 +309,7 @@ func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 	}
 }
 
-// BeanDefinition represents a bean that has not yet been registered in the IoC container.
+// BeanDefinition represents a bean that has not yet been registered.
 type BeanDefinition struct {
 	beanBuilder[BeanDefinition]
 }
