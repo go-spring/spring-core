@@ -190,9 +190,10 @@ func Bootstrap() gs_app.Bootstrap {
 /*********************************** app *************************************/
 
 type (
-	Runner = gs.Runner
-	Job    = gs.Job
-	Server = gs.Server
+	Runner      = gs.Runner
+	Job         = gs.Job
+	Server      = gs.Server
+	ReadySignal = gs.ReadySignal
 )
 
 // Run runs the app and waits for an interrupt signal to exit.
@@ -213,8 +214,8 @@ func Exiting() bool {
 }
 
 // ShutDown shuts down the app with an optional message.
-func ShutDown(msg ...string) {
-	gs_app.App.ShutDown(msg...)
+func ShutDown() {
+	gs_app.App.ShutDown()
 }
 
 // Config returns the app configuration.

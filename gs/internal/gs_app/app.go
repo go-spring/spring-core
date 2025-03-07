@@ -19,7 +19,6 @@ package gs_app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -79,7 +78,8 @@ func (app *Application) Run() error {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		sig := <-ch
-		app.ShutDown(fmt.Sprintf("Received signal: %v", sig))
+		syslog.Infof("Received signal: %v", sig)
+		app.ShutDown()
 	}()
 
 	// waits for the shutdown signal
@@ -118,25 +118,51 @@ func (app *Application) Start() error {
 	}
 
 	// runs all jobs
-	for _, r := range app.Jobs {
+	for _, job := range app.Jobs {
 		goutil.GoFunc(func() {
-			if err := r.Run(app.ctx); err != nil {
-				app.ShutDown(fmt.Sprintf("job run error: %s", err.Error()))
+			defer func() {
+				if r := recover(); r != nil {
+					app.ShutDown()
+					panic(r)
+				}
+			}()
+			if err := job.Run(app.ctx); err != nil {
+				syslog.Errorf("job run error: %s", err.Error())
+				app.ShutDown()
 			}
 		})
 	}
+
+	sig := NewReadySignal()
 
 	// starts all servers
 	for _, svr := range app.Servers {
+		sig.Add()
 		app.wg.Add(1)
 		goutil.GoFunc(func() {
 			defer app.wg.Done()
-			if err := svr.Serve(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				app.ShutDown(fmt.Sprintf("server serve error: %s", err.Error()))
+			defer func() {
+				if r := recover(); r != nil {
+					sig.Intercept()
+					app.ShutDown()
+					panic(r)
+				}
+			}()
+			err := svr.ListenAndServe(sig)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				syslog.Errorf("server serve error: %s", err.Error())
+				sig.Intercept()
+				app.ShutDown()
 			}
 		})
 	}
 
+	sig.Wait()
+	if sig.Intercepted() {
+		return nil
+	}
+	syslog.Infof("ready to serve requests")
+	sig.Close()
 	return nil
 }
 
@@ -175,7 +201,7 @@ func (app *Application) Exiting() bool {
 
 // ShutDown gracefully terminates the application. This method should
 // be called to trigger a proper shutdown process.
-func (app *Application) ShutDown(msg ...string) {
+func (app *Application) ShutDown() {
 	app.exiting.Store(true)
 	app.cancel()
 }

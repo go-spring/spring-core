@@ -18,6 +18,7 @@ package httpsvr
 
 import (
 	"context"
+	"net"
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
@@ -29,8 +30,10 @@ func init() {
 
 // ServerConfig ...
 type ServerConfig struct {
-	Addr string `value:"${addr}"`
+	Addr string `value:"${addr:=0.0.0.0:9090}"`
 }
+
+var _ gs.Server = (*Server)(nil)
 
 // Server ...
 type Server struct {
@@ -45,8 +48,13 @@ func NewServer(cfg ServerConfig, mux *http.ServeMux) *Server {
 	}}
 }
 
-func (s *Server) Serve() error {
-	return s.svr.ListenAndServe()
+func (s *Server) ListenAndServe(sig gs.ReadySignal) error {
+	ln, err := net.Listen("tcp", s.svr.Addr)
+	if err != nil {
+		return err
+	}
+	<-sig.TriggerAndWait()
+	return s.svr.Serve(ln)
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {

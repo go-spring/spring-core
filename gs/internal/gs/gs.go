@@ -159,11 +159,17 @@ type Job interface {
 	Run(ctx context.Context) error
 }
 
+// ReadySignal defines an interface for components that can trigger a signal
+// when the application is ready to serve requests.
+type ReadySignal interface {
+	TriggerAndWait() <-chan struct{}
+}
+
 // Server defines an interface for managing the lifecycle of application servers,
 // such as HTTP, gRPC, Thrift, or MQ servers. It includes methods for starting
 // and shutting down the server gracefully.
 type Server interface {
-	Serve() error
+	ListenAndServe(sig ReadySignal) error
 	Shutdown(ctx context.Context) error
 }
 
