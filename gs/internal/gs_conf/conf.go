@@ -162,6 +162,7 @@ const (
 type PropertySources struct {
 	configType ConfigType // Type of the configuration (local or remote).
 	configName string     // Name of the configuration.
+	extraDirs  []string   // Extra directories to be included in the configuration.
 	extraFiles []string   // Extra files to be included in the configuration.
 }
 
@@ -178,6 +179,20 @@ func (p *PropertySources) Reset() {
 	p.extraFiles = nil
 }
 
+// AddDir adds a or more than one extra directories.
+func (p *PropertySources) AddDir(dirs ...string) {
+	for _, d := range dirs {
+		info, err := os.Stat(d)
+		if err != nil {
+			panic(err)
+		}
+		if !info.IsDir() {
+			panic("should be a directory")
+		}
+	}
+	p.extraDirs = append(p.extraDirs, dirs...)
+}
+
 // AddFile adds a or more than one extra files.
 func (p *PropertySources) AddFile(files ...string) {
 	for _, f := range files {
@@ -192,26 +207,25 @@ func (p *PropertySources) AddFile(files ...string) {
 	p.extraFiles = append(p.extraFiles, files...)
 }
 
-// getDefaultFiles returns the default configuration files based on the configuration type and active profiles.
-func (p *PropertySources) getDefaultFiles(resolver *conf.Properties) (_ []string, err error) {
-
-	var configDir string
+// getDefaultDir returns the default configuration directory based on the configuration type.
+func (p *PropertySources) getDefaultDir(resolver *conf.Properties) (configDir string, err error) {
 	if p.configType == ConfigTypeLocal {
-		configDir, err = resolver.Resolve("${spring.app.config.dir:=./conf}")
+		return resolver.Resolve("${spring.app.config.dir:=./conf}")
 	} else if p.configType == ConfigTypeRemote {
-		configDir, err = resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
+		return resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
 	} else {
-		return nil, fmt.Errorf("unknown config type: %s", p.configType)
+		return "", fmt.Errorf("unknown config type: %s", p.configType)
 	}
-	if err != nil {
-		return nil, err
-	}
+}
+
+// getFiles returns the list of configuration files based on the configuration directory and active profiles.
+func (p *PropertySources) getFiles(dir string, resolver *conf.Properties) (_ []string, err error) {
 
 	files := []string{
-		fmt.Sprintf("%s/%s.properties", configDir, p.configName),
-		fmt.Sprintf("%s/%s.yaml", configDir, p.configName),
-		fmt.Sprintf("%s/%s.toml", configDir, p.configName),
-		fmt.Sprintf("%s/%s.json", configDir, p.configName),
+		fmt.Sprintf("%s/%s.properties", dir, p.configName),
+		fmt.Sprintf("%s/%s.yaml", dir, p.configName),
+		fmt.Sprintf("%s/%s.toml", dir, p.configName),
+		fmt.Sprintf("%s/%s.json", dir, p.configName),
 	}
 
 	activeProfiles, err := resolver.Resolve("${spring.profiles.active:=}")
@@ -223,10 +237,10 @@ func (p *PropertySources) getDefaultFiles(resolver *conf.Properties) (_ []string
 		for _, s := range ss {
 			if s = strings.TrimSpace(s); s != "" {
 				files = append(files, []string{
-					fmt.Sprintf("%s/%s-%s.properties", configDir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.yaml", configDir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.toml", configDir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.json", configDir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.properties", dir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.yaml", dir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.toml", dir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.json", dir, p.configName, s),
 				}...)
 			}
 		}
@@ -235,12 +249,30 @@ func (p *PropertySources) getDefaultFiles(resolver *conf.Properties) (_ []string
 }
 
 // loadFiles loads all configuration files and returns them as a list of Properties.
-func (p *PropertySources) loadFiles(resolver *conf.Properties) (ret []*conf.Properties, err error) {
-	files, err := p.getDefaultFiles(resolver)
-	if err != nil {
-		return nil, err
+func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properties, error) {
+	var files []string
+	{
+		defaultDir, err := p.getDefaultDir(resolver)
+		if err != nil {
+			return nil, err
+		}
+		tempFiles, err := p.getFiles(defaultDir, resolver)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, tempFiles...)
+	}
+
+	for _, dir := range p.extraDirs {
+		tempFiles, err := p.getFiles(dir, resolver)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, tempFiles...)
 	}
 	files = append(files, p.extraFiles...)
+
+	var ret []*conf.Properties
 	for _, s := range files {
 		filename, err := resolver.Resolve(s)
 		if err != nil {
@@ -255,5 +287,5 @@ func (p *PropertySources) loadFiles(resolver *conf.Properties) (ret []*conf.Prop
 		}
 		ret = append(ret, c)
 	}
-	return
+	return ret, nil
 }
