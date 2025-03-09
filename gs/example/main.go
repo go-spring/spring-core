@@ -27,6 +27,10 @@ import (
 	_ "github.com/go-spring/spring-core/gs/example/idl"
 )
 
+func init() {
+	gs.SetActiveProfiles("online")
+}
+
 func main() {
 	_ = os.Unsetenv("_")
 	_ = os.Unsetenv("TERM")

@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -348,6 +349,12 @@ func (d *BeanDefinition) SetRefreshable(tag string) {
 	}
 	d.refreshable = true
 	d.refreshTag = tag
+}
+
+// OnProfiles sets the conditions for the bean based on the active profiles.
+func (d *BeanDefinition) OnProfiles(profiles string) {
+	c := gs_cond.OnProperty("spring.profiles.active").HavingValue(profiles)
+	d.conditions = append(d.conditions, c)
 }
 
 // TypeAndName returns the type and name of the bean.

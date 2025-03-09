@@ -143,11 +143,6 @@ func None(conditions ...Condition) Condition {
 	return gs_cond.None(conditions...)
 }
 
-// OnProfile creates a Condition based on the active profile.
-func OnProfile(profile string) Condition {
-	return OnProperty("spring.profiles.active").HavingValue(profile)
-}
-
 /************************************ ioc ************************************/
 
 type (
@@ -298,6 +293,12 @@ func printBanner() {
 }
 
 /********************************** utility **********************************/
+
+// SetActiveProfiles sets the active profiles for the app.
+func SetActiveProfiles(profiles string) {
+	err := sysconf.Set("spring.profiles.active", profiles)
+	_ = err // Ignore error
+}
 
 // AllowCircularReferences enables or disables circular references between beans.
 func AllowCircularReferences(enable bool) {

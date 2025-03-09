@@ -24,6 +24,10 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
+func init() {
+	gs.SetActiveProfiles("test")
+}
+
 // BeanMock is a mock for bean.
 type BeanMock[T any] struct {
 	selector gs.BeanSelector

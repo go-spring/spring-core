@@ -197,6 +197,7 @@ type BeanRegistration interface {
 	SetConfiguration(param ...ConfigurationParam)
 	SetRefreshable(tag string)
 	SetCaller(skip int)
+	OnProfiles(profiles string)
 }
 
 // beanBuilder helps configure a bean during its creation.
@@ -300,6 +301,12 @@ func (d *beanBuilder[T]) Refreshable(tag string) *T {
 // Caller sets the caller information for the bean.
 func (d *beanBuilder[T]) Caller(skip int) *T {
 	d.b.SetCaller(skip)
+	return *(**T)(unsafe.Pointer(&d))
+}
+
+// OnProfiles sets the profiles that the bean will be active in.
+func (d *beanBuilder[T]) OnProfiles(profiles string) *T {
+	d.b.OnProfiles(profiles)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

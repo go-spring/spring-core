@@ -2,5 +2,7 @@
 vendor/
 .idea/
 
-!gs/example/conf/.keep
 gs/example/log/*.log
+gs/example/conf/
+!gs/example/conf/.keep
+!gs/example/conf/application-test.properties

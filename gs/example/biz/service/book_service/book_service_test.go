@@ -15,7 +15,7 @@ func init() {
 			"0": {SN: "0", Name: "Go Programing"},
 		},
 	})
-	gs.Config().LocalFile.AddFile("../../../conf/application.properties")
+	gs.Config().LocalFile.AddDir("../../../conf")
 }
 
 func TestMain(m *testing.M) {
