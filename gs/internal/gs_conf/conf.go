@@ -40,8 +40,8 @@ type AppConfig struct {
 // NewAppConfig creates a new instance of AppConfig.
 func NewAppConfig() *AppConfig {
 	return &AppConfig{
-		LocalFile:   NewPropertySources(ConfigTypeLocal, "application"),
-		RemoteFile:  NewPropertySources(ConfigTypeRemote, "application"),
+		LocalFile:   NewPropertySources(ConfigTypeLocal, "app"),
+		RemoteFile:  NewPropertySources(ConfigTypeRemote, "app"),
 		Environment: NewEnvironment(),
 		CommandArgs: NewCommandArgs(),
 	}
@@ -111,7 +111,7 @@ type BootConfig struct {
 // NewBootConfig creates a new instance of BootConfig.
 func NewBootConfig() *BootConfig {
 	return &BootConfig{
-		LocalFile:   NewPropertySources(ConfigTypeLocal, "bootstrap"),
+		LocalFile:   NewPropertySources(ConfigTypeLocal, "boot"),
 		Environment: NewEnvironment(),
 		CommandArgs: NewCommandArgs(),
 	}

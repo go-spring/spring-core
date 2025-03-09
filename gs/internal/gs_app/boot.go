@@ -24,54 +24,54 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
-// Bootstrap defines the interface for application bootstrapping.
-type Bootstrap interface {
+// Boot defines the interface for application bootstrapping.
+type Boot interface {
 	Config() *gs_conf.BootConfig
 	Object(i interface{}) *gs.RegisteredBean
 	Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
 	Register(bd *gs.BeanDefinition) *gs.RegisteredBean
 }
 
-// bootstrap is the bootstrapper of the application.
-type bootstrap struct {
+// boot is the bootstrapper of the application.
+type boot struct {
 	c *gs_core.Container
 	p *gs_conf.BootConfig
 
 	Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`
 }
 
-// NewBootstrap creates a new Bootstrap instance.
-func NewBootstrap() Bootstrap {
-	return &bootstrap{
+// NewBoot creates a new Boot instance.
+func NewBoot() Boot {
+	return &boot{
 		c: gs_core.New(),
 		p: gs_conf.NewBootConfig(),
 	}
 }
 
 // Config returns the boot configuration.
-func (b *bootstrap) Config() *gs_conf.BootConfig {
+func (b *boot) Config() *gs_conf.BootConfig {
 	return b.p
 }
 
 // Object registers an object bean.
-func (b *bootstrap) Object(i interface{}) *gs.RegisteredBean {
+func (b *boot) Object(i interface{}) *gs.RegisteredBean {
 	bd := gs_core.NewBean(reflect.ValueOf(i))
 	return b.c.Register(bd)
 }
 
 // Provide registers a bean using a constructor function.
-func (b *bootstrap) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+func (b *boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	bd := gs_core.NewBean(ctor, args...)
 	return b.c.Register(bd)
 }
 
 // Register registers a BeanDefinition instance.
-func (b *bootstrap) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
+func (b *boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 	return b.c.Register(bd)
 }
 
-// Run executes the application's bootstrap process.
-func (b *bootstrap) Run() error {
+// Run executes the application's boot process.
+func (b *boot) Run() error {
 	b.c.Object(b)
 
 	// Refresh the boot configuration.

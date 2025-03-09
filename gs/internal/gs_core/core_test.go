@@ -49,7 +49,7 @@ func runTest(c *gs_core.Container, fn func(*gs_core.Container)) error {
 	return nil
 }
 
-func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
+func TestRegisterBeanFrozen(t *testing.T) {
 	// assert.Panic(t, func() {
 	// 	c := gs.New()
 	// 	c.Object(func() {}).Init(func(f func()) {
@@ -59,7 +59,7 @@ func TestApplicationContext_RegisterBeanFrozen(t *testing.T) {
 	// }, "should call before Refresh")
 }
 
-func TestApplicationContext(t *testing.T) {
+func TestContext(t *testing.T) {
 
 	// ///////////////////////////////////////
 	// 自定义数据类型
@@ -139,7 +139,7 @@ type TestObject struct {
 	MapByNam2 map[string]fmt.Stringer `autowire:"struct_ptr?"`
 }
 
-func TestApplicationContext_AutoWireBeans(t *testing.T) {
+func TestAutoWireBeans(t *testing.T) {
 
 	c := gs_core.New()
 
@@ -201,7 +201,7 @@ type Setting struct {
 	// FloatSlice  []float64 `value:"${float_slice}"`
 }
 
-func TestApplicationContext_ValueTag(t *testing.T) {
+func TestValueTag(t *testing.T) {
 	c := gs_core.New()
 
 	p := conf.New()
@@ -269,7 +269,7 @@ func (s *PrototypeBeanService) Service(name string) {
 	fmt.Println(s.Provide.New(name).Greeting())
 }
 
-func TestApplicationContext_PrototypeBean(t *testing.T) {
+func TestPrototypeBean(t *testing.T) {
 	c := gs_core.New()
 
 	greetingService := &GreetingService{}
@@ -329,8 +329,8 @@ type DbConfig struct {
 	DB []DB `value:"${db}"`
 }
 
-func TestApplicationContext_TypeConverter(t *testing.T) {
-	prop, _ := conf.Load("testdata/config/application.yaml")
+func TestTypeConverter(t *testing.T) {
+	prop, _ := conf.Load("testdata/config/app.yaml")
 
 	c := gs_core.New()
 
@@ -377,7 +377,7 @@ type ProxyGrouper struct {
 	Grouper `autowire:""`
 }
 
-func TestApplicationContext_NestedBean(t *testing.T) {
+func TestNestedBean(t *testing.T) {
 	c := gs_core.New()
 	c.Object(new(MyGrouper)).Export(
 		gs.As[Grouper](),
@@ -410,7 +410,7 @@ func (t *BeanThree) String() string {
 	return ""
 }
 
-// func TestApplicationContext_Get(t *testing.T) {
+// func TestGet(t *testing.T) {
 //
 // 	t.Run("panic", func(t *testing.T) {
 // 		c := gs_core.New()
@@ -466,7 +466,7 @@ func (t *BeanThree) String() string {
 // 	})
 // }
 
-// func TestApplicationContext_FindByName(t *testing.T) {
+// func TestFindByName(t *testing.T) {
 //
 //	c := runTest(c,func(p gs.Context) {})
 //	c.Object(&BeanZero{5})
@@ -556,7 +556,7 @@ func NewPtrStudent(teacher Teacher, room string) *Student {
 	}
 }
 
-func TestApplicationContext_RegisterBeanFn(t *testing.T) {
+func TestRegisterBeanFn(t *testing.T) {
 	prop := conf.New()
 	prop.Set("room", "Class 3 Grade 1")
 
@@ -621,7 +621,7 @@ func TestApplicationContext_RegisterBeanFn(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestApplicationContext_Profile(t *testing.T) {
+func TestProfile(t *testing.T) {
 
 	t.Run("bean:_c:", func(t *testing.T) {
 		c := gs_core.New()
@@ -657,7 +657,7 @@ func TestApplicationContext_Profile(t *testing.T) {
 
 type BeanFour struct{}
 
-func TestApplicationContext_DependsOn(t *testing.T) {
+func TestDependsOn(t *testing.T) {
 
 	t.Run("random", func(t *testing.T) {
 		c := gs_core.New()
@@ -681,7 +681,7 @@ func TestApplicationContext_DependsOn(t *testing.T) {
 	})
 }
 
-func TestApplicationContext_Duplicate(t *testing.T) {
+func TestDuplicate(t *testing.T) {
 	t.Run("duplicate", func(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&BeanZero{5})
@@ -740,7 +740,7 @@ func (m localManager) Cluster() string {
 	return "local"
 }
 
-func TestApplicationContext_RegisterBeanFn2(t *testing.T) {
+func TestRegisterBeanFn2(t *testing.T) {
 
 	t.Run("ptr manager", func(t *testing.T) {
 		prop := conf.New()
@@ -994,7 +994,7 @@ type RecoresCluster struct {
 	Endpoints string `value:"${redis.endpoints}"`
 }
 
-func TestApplicationContext_ValueBincoreng(t *testing.T) {
+func TestValueBincoreng(t *testing.T) {
 	prop := conf.New()
 	prop.Set("redis.endpoints", "redis://localhost:6379")
 
@@ -1013,7 +1013,7 @@ func TestApplicationContext_ValueBincoreng(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestApplicationContext_Collect(t *testing.T) {
+func TestCollect(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
 		c := gs_core.New()
@@ -1320,7 +1320,7 @@ type Service struct {
 	Consumer *Consumer `autowire:""`
 }
 
-func TestApplicationContext_RegisterMethodBean(t *testing.T) {
+func TestRegisterMethodBean(t *testing.T) {
 
 	t.Run("method bean", func(t *testing.T) {
 		prop := conf.New()
@@ -1590,7 +1590,7 @@ func TestApplicationContext_RegisterMethodBean(t *testing.T) {
 	})
 }
 
-func TestApplicationContext_UserDefinedTypeProperty(t *testing.T) {
+func TestUserDefinedTypeProperty(t *testing.T) {
 
 	type level int
 
@@ -1637,7 +1637,7 @@ type CircleC struct {
 	A *CircleA `autowire:""`
 }
 
-func TestApplicationContext_CircleAutowire(t *testing.T) {
+func TestCircleAutowire(t *testing.T) {
 
 	// 直接创建的 Object 直接发生循环依赖是没有关系的。
 	t.Run("", func(t *testing.T) {
@@ -1750,7 +1750,7 @@ func NewNilVarObj(i interface{}, options ...VarOptionFunc) *VarObj {
 	return &VarObj{opt.v, fmt.Sprint(i)}
 }
 
-func TestApplicationContext_RegisterOptionBean(t *testing.T) {
+func TestRegisterOptionBean(t *testing.T) {
 
 	t.Run("nil param 0", func(t *testing.T) {
 		prop := conf.New()
@@ -1862,7 +1862,7 @@ func TestApplicationContext_RegisterOptionBean(t *testing.T) {
 	})
 }
 
-func TestApplicationContext_Close(t *testing.T) {
+func TestClose(t *testing.T) {
 
 	// t.Run("destroy type", func(t *testing.T) {
 	//
@@ -2022,7 +2022,7 @@ type PtrNestedAutowireBean struct {
 	*SubNestedAutowireBean
 }
 
-func TestApplicationContext_NestedAutowireBean(t *testing.T) {
+func TestNestedAutowireBean(t *testing.T) {
 	c := gs_core.New()
 	c.Object(new(NestedAutowireBean))
 	c.Object(&PtrNestedAutowireBean{
@@ -2065,7 +2065,7 @@ type wxChannel struct {
 	baseChannel `value:"${sdk.wx}"`
 }
 
-func TestApplicationContext_NestValueField(t *testing.T) {
+func TestNestValueField(t *testing.T) {
 
 	t.Run("private", func(t *testing.T) {
 
@@ -2111,7 +2111,7 @@ func TestApplicationContext_NestValueField(t *testing.T) {
 	})
 }
 
-func TestApplicationContext_FnArgCollectBean(t *testing.T) {
+func TestFnArgCollectBean(t *testing.T) {
 
 	t.Run("interface type", func(t *testing.T) {
 		c := gs_core.New()
@@ -2146,7 +2146,7 @@ func (_ *filterImpl) Filter(input string) string {
 	return input
 }
 
-func TestApplicationContext_BeanCache(t *testing.T) {
+func TestBeanCache(t *testing.T) {
 
 	t.Run("not implement interface", func(t *testing.T) {
 		c := gs_core.New()
@@ -2186,7 +2186,7 @@ func (i Integer) Value() int {
 	return int(i)
 }
 
-func TestApplicationContext_IntInterface(t *testing.T) {
+func TestIntInterface(t *testing.T) {
 	c := gs_core.New()
 	c.Provide(func() IntInterface { return Integer(5) })
 	err := c.Refresh()
@@ -2210,7 +2210,7 @@ type ArrayProperties struct {
 	Time     []time.Time     `value:"${time.array:=}"`
 }
 
-func TestApplicationContext_Properties(t *testing.T) {
+func TestProperties(t *testing.T) {
 
 	t.Run("array properties", func(t *testing.T) {
 		b := new(ArrayProperties)
@@ -2263,7 +2263,7 @@ type Second2Destroy struct {
 type ThirdDestroy struct {
 }
 
-func TestApplicationContext_Destroy(t *testing.T) {
+func TestDestroy(t *testing.T) {
 
 	destroyIndex := 0
 	destroyArray := []int{0, 0, 0, 0}
@@ -2308,7 +2308,7 @@ func TestApplicationContext_Destroy(t *testing.T) {
 //
 // func (factory *ObjFactory) NewObj(i int) *Obj { return &Obj{i: i} }
 //
-// func TestApplicationContext_CreateBean(t *testing.T) {
+// func TestCreateBean(t *testing.T) {
 // 	c := gs_core.New()
 // 	c.Object(&ObjFactory{})
 // 	err := runTest(c, func(p *gs_core.Container) {
@@ -2666,7 +2666,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 //	assert.False(t, c2.Matches(c))
 // }
 
-// func TestApplicationContext_Invoke(t *testing.T) {
+// func TestInvoke(t *testing.T) {
 //
 // 	// t.Run("not run", func(t *testing.T) {
 // 	// 	prop := conf.New()

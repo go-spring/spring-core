@@ -34,11 +34,12 @@ import (
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
-var App = NewApplication()
+// GS is the global application instance.
+var GS = NewApp()
 
-// Application represents the core application, managing its lifecycle,
+// App represents the core application, managing its lifecycle,
 // configuration, and dependency injection.
-type Application struct {
+type App struct {
 	C *gs_core.Container
 	P *gs_conf.AppConfig
 
@@ -52,10 +53,10 @@ type Application struct {
 	Servers []gs.Server `autowire:"${spring.app.servers:=*?}"`
 }
 
-// NewApplication creates and initializes a new application instance.
-func NewApplication() *Application {
+// NewApp creates and initializes a new application instance.
+func NewApp() *App {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Application{
+	return &App{
 		C:      gs_core.New(),
 		P:      gs_conf.NewAppConfig(),
 		ctx:    ctx,
@@ -66,7 +67,7 @@ func NewApplication() *Application {
 // Run starts the application and listens for termination signals
 // (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
 // a graceful shutdown.
-func (app *Application) Run() error {
+func (app *App) Run() error {
 	app.C.Object(app)
 
 	if err := app.Start(); err != nil {
@@ -91,7 +92,7 @@ func (app *Application) Run() error {
 // Start initializes and starts the application. It performs configuration
 // loading, IoC container refreshing, dependency injection, and runs
 // runners, jobs and servers.
-func (app *Application) Start() error {
+func (app *App) Start() error {
 	// loads the layered app properties
 	p, err := app.P.Refresh()
 	if err != nil {
@@ -168,7 +169,7 @@ func (app *Application) Start() error {
 
 // Stop gracefully shuts down the application, ensuring all servers and
 // resources are properly closed.
-func (app *Application) Stop() {
+func (app *App) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
@@ -195,13 +196,13 @@ func (app *Application) Stop() {
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
-func (app *Application) Exiting() bool {
+func (app *App) Exiting() bool {
 	return app.exiting.Load()
 }
 
 // ShutDown gracefully terminates the application. This method should
 // be called to trigger a proper shutdown process.
-func (app *Application) ShutDown() {
+func (app *App) ShutDown() {
 	app.exiting.Store(true)
 	app.cancel()
 }

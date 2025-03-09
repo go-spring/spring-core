@@ -172,14 +172,14 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 
 /************************************ boot ***********************************/
 
-var bootstrap gs_app.Bootstrap
+var boot gs_app.Boot
 
-// Bootstrap initializes and returns a [*gs_app.Bootstrap] instance.
-func Bootstrap() gs_app.Bootstrap {
-	if bootstrap == nil {
-		bootstrap = gs_app.NewBootstrap()
+// Boot initializes and returns a [*gs_app.Boot] instance.
+func Boot() gs_app.Boot {
+	if boot == nil {
+		boot = gs_app.NewBoot()
 	}
-	return bootstrap
+	return boot
 }
 
 /*********************************** app *************************************/
@@ -194,55 +194,55 @@ type (
 // Run runs the app and waits for an interrupt signal to exit.
 func Run() error {
 	printBanner()
-	if bootstrap != nil {
-		if err := bootstrap.(interface{ Run() error }).Run(); err != nil {
+	if boot != nil {
+		if err := boot.(interface{ Run() error }).Run(); err != nil {
 			return err
 		}
-		bootstrap = nil
+		boot = nil
 	}
-	return gs_app.App.Run()
+	return gs_app.GS.Run()
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
 func Exiting() bool {
-	return gs_app.App.Exiting()
+	return gs_app.GS.Exiting()
 }
 
 // ShutDown shuts down the app with an optional message.
 func ShutDown() {
-	gs_app.App.ShutDown()
+	gs_app.GS.ShutDown()
 }
 
 // Config returns the app configuration.
 func Config() *gs_conf.AppConfig {
-	return gs_app.App.P
+	return gs_app.GS.P
 }
 
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
-	return gs_app.App.C.Register(b)
+	return gs_app.GS.C.Register(b)
 }
 
 // Provide registers a bean definition for a given constructor.
 func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
 	b := NewBean(ctor, args...)
-	return gs_app.App.C.Register(b)
+	return gs_app.GS.C.Register(b)
 }
 
 // Register registers a bean definition.
 func Register(b *BeanDefinition) *RegisteredBean {
-	return gs_app.App.C.Register(b)
+	return gs_app.GS.C.Register(b)
 }
 
 // GroupRegister registers a group of bean definitions.
 func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
-	gs_app.App.C.GroupRegister(fn)
+	gs_app.GS.C.GroupRegister(fn)
 }
 
 // RefreshProperties refreshes the app configuration.
 func RefreshProperties(p Properties) error {
-	return gs_app.App.C.RefreshProperties(p)
+	return gs_app.GS.C.RefreshProperties(p)
 }
 
 /********************************** banner ***********************************/

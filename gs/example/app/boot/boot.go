@@ -1,4 +1,4 @@
-package bootstrap
+package boot
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	gs.Bootstrap().Object(&Runner{}).AsRunner().OnProfiles("online")
+	gs.Boot().Object(&Runner{}).AsRunner().OnProfiles("online")
 }
 
 type Runner struct{}
@@ -27,6 +27,6 @@ log.biz.dir=./log
 log.dao.name=dao.log
 log.dao.dir=./log`
 
-	const file = "conf/application-online.properties"
+	const file = "conf/app-online.properties"
 	return os.WriteFile(file, []byte(data), os.ModePerm)
 }

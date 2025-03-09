@@ -32,9 +32,9 @@ import (
 func TestProperties_Load(t *testing.T) {
 
 	p := conf.New()
-	err := p.Load("testdata/config/application.yaml")
+	err := p.Load("testdata/config/app.yaml")
 	assert.Nil(t, err)
-	err = p.Load("testdata/config/application.properties")
+	err = p.Load("testdata/config/app.properties")
 	assert.Nil(t, err)
 
 	for _, k := range p.Keys() {
