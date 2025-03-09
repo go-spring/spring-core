@@ -2,7 +2,5 @@
 vendor/
 .idea/
 
-gs/example/log/*.log
-gs/example/conf/
-!gs/example/conf/.keep
-!gs/example/conf/application-test.properties
+gs/examples/bookman/log/*.log
+gs/examples/bookman/conf/app-online.properties

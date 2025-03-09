@@ -22,9 +22,9 @@ import (
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/util/syslog"
 
-	_ "github.com/go-spring/spring-core/gs/example/app"
-	_ "github.com/go-spring/spring-core/gs/example/biz"
-	_ "github.com/go-spring/spring-core/gs/example/idl"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/app"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/biz"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/idl"
 )
 
 func init() {

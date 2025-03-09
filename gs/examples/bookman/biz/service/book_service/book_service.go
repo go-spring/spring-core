@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/example/dao/book_dao"
+	"github.com/go-spring/spring-core/gs/examples/bookman/dao/book_dao"
 )
 
 func init() {

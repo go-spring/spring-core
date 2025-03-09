@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-spring/spring-core/gs/example/biz/service/book_service"
-	"github.com/go-spring/spring-core/gs/example/dao/book_dao"
+	"github.com/go-spring/spring-core/gs/examples/bookman/biz/service/book_service"
+	"github.com/go-spring/spring-core/gs/examples/bookman/dao/book_dao"
 )
 
 type BookController struct {

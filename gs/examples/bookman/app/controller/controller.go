@@ -2,7 +2,7 @@ package controller
 
 import (
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/example/idl"
+	"github.com/go-spring/spring-core/gs/examples/bookman/idl"
 )
 
 func init() {

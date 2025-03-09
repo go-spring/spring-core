@@ -17,8 +17,8 @@
 package app
 
 import (
-	_ "github.com/go-spring/spring-core/gs/example/app/boot"
-	_ "github.com/go-spring/spring-core/gs/example/app/common/handlers/log"
-	_ "github.com/go-spring/spring-core/gs/example/app/common/httpsvr"
-	_ "github.com/go-spring/spring-core/gs/example/app/controller"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/app/boot"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/app/common/handlers/log"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/app/common/httpsvr"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/app/controller"
 )
