@@ -42,7 +42,7 @@ func MockFor[T any](name ...string) BeanMock[T] {
 
 // With registers a mock bean.
 func (m BeanMock[T]) With(obj T) {
-	gs_app.App.C.Mock(obj, m.selector)
+	gs_app.GS.C.Mock(obj, m.selector)
 }
 
 type runArg struct {
@@ -75,7 +75,7 @@ func TestMain(m *testing.M, opts ...RunOption) {
 
 	gs.ForceAutowireIsNullable(true)
 
-	err := gs_app.App.Start()
+	err := gs_app.GS.Start()
 	if err != nil {
 		panic(err)
 	}
@@ -90,7 +90,7 @@ func TestMain(m *testing.M, opts ...RunOption) {
 		arg.afterRun()
 	}
 
-	gs_app.App.Stop()
+	gs_app.GS.Stop()
 }
 
 // Get gets the bean from the app context.
@@ -103,7 +103,7 @@ func Get[T any](t *testing.T) T {
 
 // Wire injects dependencies into the object.
 func Wire[T any](t *testing.T, obj T) T {
-	err := gs_app.App.C.Wire(obj)
+	err := gs_app.GS.C.Wire(obj)
 	assert.Nil(t, err)
 	return obj
 }
