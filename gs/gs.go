@@ -99,18 +99,33 @@ func OnMissingProperty(name string) Condition {
 }
 
 // OnBean creates a Condition based on a BeanSelector.
-func OnBean(s BeanSelector) Condition {
-	return gs_cond.OnBean(s)
+func OnBean[T any](name ...string) Condition {
+	return gs_cond.OnBean[T](name...)
+}
+
+// OnBeanSelector creates a Condition based on a BeanSelector.
+func OnBeanSelector(s BeanSelector) Condition {
+	return gs_cond.OnBeanSelector(s)
 }
 
 // OnMissingBean creates a Condition for when a specific bean is missing.
-func OnMissingBean(s BeanSelector) Condition {
-	return gs_cond.OnMissingBean(s)
+func OnMissingBean[T any](name ...string) Condition {
+	return gs_cond.OnMissingBean[T](name...)
+}
+
+// OnMissingBeanSelector creates a Condition for when a specific bean is missing.
+func OnMissingBeanSelector(s BeanSelector) Condition {
+	return gs_cond.OnMissingBeanSelector(s)
 }
 
 // OnSingleBean creates a Condition for when only one instance of a bean exists.
-func OnSingleBean(s BeanSelector) Condition {
-	return gs_cond.OnSingleBean(s)
+func OnSingleBean[T any](name ...string) Condition {
+	return gs_cond.OnSingleBean[T](name...)
+}
+
+// OnSingleBeanSelector creates a Condition for when only one instance of a bean exists.
+func OnSingleBeanSelector(s BeanSelector) Condition {
+	return gs_cond.OnSingleBeanSelector(s)
 }
 
 // RegisterExpressFunc registers a custom expression function.

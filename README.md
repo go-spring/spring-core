@@ -1,6 +1,5 @@
 # spring-core
 
-
 # 介绍
 
 Go-Spring 是为 Go 开发者打造的轻量级微服务框架，灵感来源于 Java 的 Spring 和 Spring Boot。
@@ -14,14 +13,18 @@ Go-Spring 是为 Go 开发者打造的轻量级微服务框架，灵感来源于
 # 快速开始
 
 ### 安装
+
 通过 Go Modules 获取最新版本：
+
 ```
 go get github.com/go-spring/spring-core@develop
 ```
 
 ### 最小示例
+
 下面是一个最简单的示例，展示了如何注册一个 Bean、绑定属性以及启动应用：
-```
+
+```go
 package main
 
 import (
@@ -53,7 +56,7 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Set the application name in the configuration.
-	_ = sysconf.Set("spring.app.name", "test")
+	_ = sysconf.Set("spring.app.name", "go-spring")
 
 	// Start the Go-Spring application. If it fails, log the error.
 	if err := gs.Run(); err != nil {

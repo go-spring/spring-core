@@ -45,7 +45,7 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Set the application name in the configuration.
-	_ = sysconf.Set("spring.app.name", "test")
+	_ = sysconf.Set("spring.app.name", "go-spring")
 
 	// Start the Go-Spring application. If it fails, log the error.
 	if err := gs.Run(); err != nil {

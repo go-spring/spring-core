@@ -25,6 +25,9 @@ import (
 	"github.com/go-spring/spring-core/conf"
 )
 
+// anyType is the [reflect.Type] of the [any] type.
+var anyType = reflect.TypeFor[any]()
+
 // As returns the [reflect.Type] of the given interface type.
 // It ensures that the provided generic type parameter T is an interface.
 // If T is not an interface, the function panics.
@@ -73,12 +76,12 @@ func (s BeanSelectorImpl) TypeAndName() (reflect.Type, string) {
 func (s BeanSelectorImpl) String() string {
 	var sb strings.Builder
 	sb.WriteString("{")
-	if s.Type != nil {
+	if s.Type != nil && s.Type != anyType {
 		sb.WriteString("Type:")
 		sb.WriteString(s.Type.String())
 	}
 	if s.Name != "" {
-		if s.Type != nil {
+		if sb.Len() > 1 {
 			sb.WriteString(",")
 		}
 		sb.WriteString("Name:")

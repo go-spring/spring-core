@@ -177,8 +177,15 @@ type onBean struct {
 	s gs.BeanSelector // The selector used to match beans in the context.
 }
 
-// OnBean creates a condition that evaluates to true if at least one bean matches the provided selector.
-func OnBean(s gs.BeanSelector) gs.Condition {
+// OnBean creates a condition that evaluates to true if at least one bean
+// matches the specified type and name.
+func OnBean[T any](name ...string) gs.Condition {
+	return &onBean{s: gs.BeanSelectorFor[T](name...)}
+}
+
+// OnBeanSelector creates a condition that evaluates to true if at least one
+// bean matches the provided selector.
+func OnBeanSelector(s gs.BeanSelector) gs.Condition {
 	return &onBean{s: s}
 }
 
@@ -203,8 +210,15 @@ type onMissingBean struct {
 	s gs.BeanSelector // The selector used to find beans.
 }
 
-// OnMissingBean creates a condition that evaluates to true if no beans match the provided selector.
-func OnMissingBean(s gs.BeanSelector) gs.Condition {
+// OnMissingBean creates a condition that evaluates to true if no beans match
+// the specified type and name.
+func OnMissingBean[T any](name ...string) gs.Condition {
+	return &onMissingBean{s: gs.BeanSelectorFor[T](name...)}
+}
+
+// OnMissingBeanSelector creates a condition that evaluates to true if no beans
+// match the provided selector.
+func OnMissingBeanSelector(s gs.BeanSelector) gs.Condition {
 	return &onMissingBean{s: s}
 }
 
@@ -229,8 +243,15 @@ type onSingleBean struct {
 	s gs.BeanSelector // The selector used to find beans.
 }
 
-// OnSingleBean creates a condition that evaluates to true if exactly one bean matches the provided selector.
-func OnSingleBean(s gs.BeanSelector) gs.Condition {
+// OnSingleBean creates a condition that evaluates to true if exactly one bean
+// matches the specified type and name.
+func OnSingleBean[T any](name ...string) gs.Condition {
+	return &onSingleBean{s: gs.BeanSelectorFor[T](name...)}
+}
+
+// OnSingleBeanSelector creates a condition that evaluates to true if exactly
+// one bean matches the provided selector.
+func OnSingleBeanSelector(s gs.BeanSelector) gs.Condition {
 	return &onSingleBean{s: s}
 }
 

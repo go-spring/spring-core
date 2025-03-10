@@ -2441,18 +2441,18 @@ func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	c.Object(&BeanZero{5}).Condition(
 		gs_cond.And(
 			c1,
-			gs_cond.OnMissingBean(gs.BeanSelectorImpl{Name: "null"}),
+			gs_cond.OnMissingBeanSelector(gs.BeanSelectorImpl{Name: "null"}),
 		),
 	)
 	c.Object(new(BeanOne)).Condition(
 		gs_cond.And(
 			c1,
-			gs_cond.OnMissingBean(gs.BeanSelectorImpl{Name: "null"}),
+			gs_cond.OnMissingBeanSelector(gs.BeanSelectorImpl{Name: "null"}),
 		),
 	)
 
-	c.Object(new(BeanTwo)).Condition(gs_cond.OnBean(gs.BeanSelectorImpl{Name: "BeanOne"}))
-	c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnBean(gs.BeanSelectorImpl{Name: "Null"}))
+	c.Object(new(BeanTwo)).Condition(gs_cond.OnBeanSelector(gs.BeanSelectorImpl{Name: "BeanOne"}))
+	c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnBeanSelector(gs.BeanSelectorImpl{Name: "Null"}))
 
 	err := runTest(c, func(p *gs_core.Container) {
 
@@ -2471,8 +2471,8 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
-		c.Object(new(BeanTwo)).Condition(gs_cond.OnMissingBean(gs.BeanSelectorImpl{Name: "BeanOne"}))
-		c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnMissingBean(gs.BeanSelectorImpl{Name: "Null"}))
+		c.Object(new(BeanTwo)).Condition(gs_cond.OnMissingBeanSelector(gs.BeanSelectorImpl{Name: "BeanOne"}))
+		c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnMissingBeanSelector(gs.BeanSelectorImpl{Name: "Null"}))
 		err := runTest(c, func(p *gs_core.Container) {
 
 			// var two *BeanTwo

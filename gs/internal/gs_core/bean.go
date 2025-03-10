@@ -124,7 +124,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 					panic("ctorArgs[0] should be *RegisteredBean or *BeanDefinition or IndexArg[0]")
 				}
 			}
-			cond = gs_cond.OnBean(s)
+			cond = gs_cond.OnBeanSelector(s)
 		}
 	}
 
