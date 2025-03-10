@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package actuator
+package monitor
 
 import (
 	"context"
@@ -26,7 +26,9 @@ import (
 )
 
 func init() {
-	gs.Provide(NewServer, gs.TagArg("${spring.actuator.server}")).AsServer()
+	gs.Provide(NewServer, gs.TagArg("${spring.monitor}")).AsServer().Condition(
+		gs.OnProperty("spring.monitor.enable").HavingValue("true"),
+	)
 }
 
 // ServerConfig holds the configuration for the server.

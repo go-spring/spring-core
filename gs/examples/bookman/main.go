@@ -20,16 +20,18 @@ import (
 	"os"
 
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/util/sysconf"
 	"github.com/go-spring/spring-core/util/syslog"
 
-	_ "github.com/go-spring/spring-core/gs/actuator"
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/app"
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/biz"
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/idl"
+	_ "github.com/go-spring/spring-core/gs/monitor"
 )
 
 func init() {
 	gs.SetActiveProfiles("online")
+	_ = sysconf.Set("spring.monitor.enable", "true")
 }
 
 func main() {
