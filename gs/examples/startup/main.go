@@ -1,9 +1,23 @@
+/*
+ * Copyright 2025 The Go-Spring Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package main
 
 import (
-	"context"
-	"fmt"
-	"time"
+	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/util/sysconf"
@@ -11,29 +25,22 @@ import (
 )
 
 func init() {
-	gs.Object(&Service{})     // Register the Service object.
-	gs.Object(&Job{}).AsJob() // Register the Job object and mark it as a scheduled job.
+	// Register the Service struct as a bean.
+	gs.Object(&Service{})
+
+	// Provide a [*http.ServeMux] as a bean.
+	gs.Provide(func(s *Service) *http.ServeMux {
+		http.HandleFunc("/echo", s.Echo)
+		return http.DefaultServeMux
+	})
 }
 
-type Service struct{}
-
-// Echo prints a formatted log message using the syslog package.
-func (s *Service) Echo(format string, a ...any) {
-	syslog.Infof(fmt.Sprintf(format, a...))
+type Service struct {
+	AppName string `value:"${spring.app.name}"`
 }
 
-// Job struct represents a scheduled task that depends on the Service.
-type Job struct {
-	Service *Service `autowire:""`                // Automatically inject the Service dependency.
-	AppName string   `value:"${spring.app.name}"` // Read the application name from the configuration.
-}
-
-// Run method is executed when the Job is triggered.
-func (j *Job) Run(ctx context.Context) error {
-	time.Sleep(time.Second * 2)
-	j.Service.Echo("app '%s' will exit", j.AppName)
-	gs.ShutDown() // Shut down the application.
-	return nil
+func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write([]byte(s.AppName))
 }
 
 func main() {
