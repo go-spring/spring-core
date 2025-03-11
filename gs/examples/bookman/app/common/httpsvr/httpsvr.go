@@ -17,46 +17,18 @@
 package httpsvr
 
 import (
-	"context"
-	"net"
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/gs/examples/bookman/idl"
 )
 
 func init() {
-	gs.Provide(NewServer, gs.TagArg("${server}")).AsServer()
+	gs.Provide(NewServeMux)
 }
 
-// ServerConfig ...
-type ServerConfig struct {
-	Addr string `value:"${addr:=0.0.0.0:9090}"`
-}
-
-var _ gs.Server = (*Server)(nil)
-
-// Server ...
-type Server struct {
-	svr *http.Server
-}
-
-// NewServer ...
-func NewServer(cfg ServerConfig, mux *http.ServeMux) *Server {
-	return &Server{svr: &http.Server{
-		Addr:    cfg.Addr,
-		Handler: mux,
-	}}
-}
-
-func (s *Server) ListenAndServe(sig gs.ReadySignal) error {
-	ln, err := net.Listen("tcp", s.svr.Addr)
-	if err != nil {
-		return err
-	}
-	<-sig.TriggerAndWait()
-	return s.svr.Serve(ln)
-}
-
-func (s *Server) Shutdown(ctx context.Context) error {
-	return s.svr.Shutdown(ctx)
+func NewServeMux(c idl.Controller) *http.ServeMux {
+	mux := http.NewServeMux()
+	idl.RegisterRouter(mux, c)
+	return mux
 }

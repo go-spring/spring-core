@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"slices"
+	"strings"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
@@ -353,7 +355,21 @@ func (d *BeanDefinition) SetRefreshable(tag string) {
 
 // OnProfiles sets the conditions for the bean based on the active profiles.
 func (d *BeanDefinition) OnProfiles(profiles string) {
-	c := gs_cond.OnProperty("spring.profiles.active").HavingValue(profiles)
+	c := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+		val := strings.TrimSpace(ctx.Prop("spring.profiles.active"))
+		if val == "" {
+			return false, nil
+		}
+		ss := strings.Split(strings.TrimSpace(profiles), ",")
+		for s := range slices.Values(strings.Split(val, ",")) {
+			for _, x := range ss {
+				if s == x {
+					return true, nil
+				}
+			}
+		}
+		return false, nil
+	})
 	d.conditions = append(d.conditions, c)
 }
 
