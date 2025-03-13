@@ -22,7 +22,7 @@ go get github.com/go-spring/spring-core@develop
 
 ### 最小示例
 
-下面是一个最简单的示例，展示了如何注册一个 Bean、绑定属性以及启动应用：
+下面是一个最简单的示例，展示了如何注册一个 Bean、绑定属性、动态属性以及启动应用：
 
 ```go
 package main
@@ -42,16 +42,23 @@ func init() {
 	// Provide a [*http.ServeMux] as a bean.
 	gs.Provide(func(s *Service) *http.ServeMux {
 		http.HandleFunc("/echo", s.Echo)
+		http.HandleFunc("/refresh", s.Refresh)
 		return http.DefaultServeMux
 	})
 }
 
 type Service struct {
-	AppName string `value:"${spring.app.name}"`
+	AppName gs.Dync[string] `value:"${spring.app.name}"`
 }
 
 func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(s.AppName))
+	_, _ = w.Write([]byte(s.AppName.Value()))
+}
+
+func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
+	_ = sysconf.Set("spring.app.name", "refreshed")
+	_ = gs.RefreshProperties()
+	_, _ = w.Write([]byte("OK!"))
 }
 
 func main() {

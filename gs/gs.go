@@ -255,7 +255,11 @@ func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
 }
 
 // RefreshProperties refreshes the app configuration.
-func RefreshProperties(p Properties) error {
+func RefreshProperties() error {
+	p, err := Config().Refresh()
+	if err != nil {
+		return err
+	}
 	return gs_app.GS.C.RefreshProperties(p)
 }
 

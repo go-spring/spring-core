@@ -31,16 +31,23 @@ func init() {
 	// Provide a [*http.ServeMux] as a bean.
 	gs.Provide(func(s *Service) *http.ServeMux {
 		http.HandleFunc("/echo", s.Echo)
+		http.HandleFunc("/refresh", s.Refresh)
 		return http.DefaultServeMux
 	})
 }
 
 type Service struct {
-	AppName string `value:"${spring.app.name}"`
+	AppName gs.Dync[string] `value:"${spring.app.name}"`
 }
 
 func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(s.AppName))
+	_, _ = w.Write([]byte(s.AppName.Value()))
+}
+
+func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
+	_ = sysconf.Set("spring.app.name", "refreshed")
+	_ = gs.RefreshProperties()
+	_, _ = w.Write([]byte("OK!"))
 }
 
 func main() {
@@ -55,3 +62,7 @@ func main() {
 
 // ➜ curl http://127.0.0.1:9090/echo
 // go-spring
+// ➜ curl http://127.0.0.1:9090/refresh
+// OK!
+// ➜ curl http://127.0.0.1:9090/echo
+// refreshed
