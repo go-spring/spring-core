@@ -7,3 +7,7 @@ vendor/
 gs/examples/bookman/log/*.log
 gs/examples/bookman/conf/
 gs/examples/bookman/conf/app-online.properties
+gs/examples/bookman/cover/covcounters.*
+gs/examples/bookman/cover/covmeta.*
+gs/examples/bookman/cover.txt
+gs/examples/bookman/cover.html
