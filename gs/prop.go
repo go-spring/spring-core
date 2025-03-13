@@ -25,6 +25,7 @@ const (
 	ForceAutowireIsNullableProp = "spring.force-autowire-is-nullable"
 	ActiveProfilesProp          = "spring.profiles.active"
 	EnableSimpleHttpServerProp  = "spring.enable.simple-http-server"
+	EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
 )
 
 // AllowCircularReferences enables or disables circular references between beans.
@@ -48,5 +49,11 @@ func SetActiveProfiles(profiles string) {
 // EnableSimpleHttpServer enables or disables the simple HTTP server.
 func EnableSimpleHttpServer(enable bool) {
 	err := sysconf.Set(EnableSimpleHttpServerProp, enable)
+	_ = err // Ignore error
+}
+
+// EnableSimplePProfServer enables or disables the simple pprof server.
+func EnableSimplePProfServer(enable bool) {
+	err := sysconf.Set(EnableSimplePProfServerProp, enable)
 	_ = err // Ignore error
 }
