@@ -52,3 +52,6 @@ func main() {
 		syslog.Errorf("app run failed: %s", err.Error())
 	}
 }
+
+// ➜ curl http://127.0.0.1:9090/echo
+// go-spring

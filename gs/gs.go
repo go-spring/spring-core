@@ -28,7 +28,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	"github.com/go-spring/spring-core/util/sysconf"
 )
 
 const (
@@ -305,30 +304,4 @@ func printBanner() {
 		}
 	}
 	fmt.Println(string(padding) + Version + "\n")
-}
-
-/********************************** utility **********************************/
-
-// SetActiveProfiles sets the active profiles for the app.
-func SetActiveProfiles(profiles string) {
-	err := sysconf.Set("spring.profiles.active", profiles)
-	_ = err // Ignore error
-}
-
-// AllowCircularReferences enables or disables circular references between beans.
-func AllowCircularReferences(enable bool) {
-	err := sysconf.Set("spring.allow-circular-references", enable)
-	_ = err // Ignore error
-}
-
-// ForceAutowireIsNullable forces autowire to be nullable.
-func ForceAutowireIsNullable(enable bool) {
-	err := sysconf.Set("spring.force-autowire-is-nullable", enable)
-	_ = err // Ignore error
-}
-
-// EnableSimpleHttpServer enables or disables the simple HTTP server.
-func EnableSimpleHttpServer(enable bool) {
-	err := sysconf.Set(EnableSimpleHttpServerProp, enable)
-	_ = err // Ignore error
 }

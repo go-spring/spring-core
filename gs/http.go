@@ -22,8 +22,6 @@ import (
 	"net/http"
 )
 
-const EnableSimpleHttpServerProp = "spring.enable-simple-http-server"
-
 func init() {
 	// Initialize the HTTP server. The server will listen on the address specified
 	// by the 'server.addr' configuration, defaulting to "0.0.0.0:9090" if not set.
