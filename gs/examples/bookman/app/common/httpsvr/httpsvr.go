@@ -17,6 +17,8 @@
 package httpsvr
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
@@ -24,11 +26,20 @@ import (
 )
 
 func init() {
-	gs.Provide(NewServeMux)
+	gs.Provide(NewServeMux, gs.IndexArg(1, gs.TagArg("access")))
 }
 
-func NewServeMux(c idl.Controller) *http.ServeMux {
+func NewServeMux(c idl.Controller, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
-	idl.RegisterRouter(mux, c)
+	idl.RegisterRouter(mux, c, Access(logger))
 	return mux
+}
+
+func Access(logger *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger.Info(fmt.Sprintf("access %s %s", r.Method, r.URL.Path))
+			next.ServeHTTP(w, r)
+		})
+	}
 }

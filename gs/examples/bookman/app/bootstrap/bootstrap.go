@@ -1,4 +1,4 @@
-package boot
+package bootstrap
 
 import (
 	"os"
@@ -20,6 +20,9 @@ func (r *Runner) Run() error {
 
 	const data = `
 server.addr=0.0.0.0:9090
+
+log.access.name=access.log
+log.access.dir=./log
 
 log.biz.name=biz.log
 log.biz.dir=./log

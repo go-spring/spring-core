@@ -11,9 +11,9 @@ type Controller interface {
 	DeleteBook(w http.ResponseWriter, r *http.Request)
 }
 
-func RegisterRouter(mux *http.ServeMux, c Controller) {
-	mux.HandleFunc("GET /books", c.ListBooks)
-	mux.HandleFunc("GET /books/{id}", c.GetBook)
-	mux.HandleFunc("POST /books", c.SaveBook)
-	mux.HandleFunc("DELETE /books/{id}", c.DeleteBook)
+func RegisterRouter(mux *http.ServeMux, c Controller, wrap func(next http.Handler) http.Handler) {
+	mux.Handle("GET /books", wrap(http.HandlerFunc(c.ListBooks)))
+	mux.Handle("GET /books/{id}", wrap(http.HandlerFunc(c.GetBook)))
+	mux.Handle("POST /books", wrap(http.HandlerFunc(c.SaveBook)))
+	mux.Handle("DELETE /books/{id}", wrap(http.HandlerFunc(c.DeleteBook)))
 }
