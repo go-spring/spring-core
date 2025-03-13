@@ -31,6 +31,7 @@ import (
 
 func init() {
 	gs.SetActiveProfiles("online")
+	gs.EnableSimpleHttpServer(true)
 	_ = sysconf.Set("spring.monitor.enable", "true")
 }
 

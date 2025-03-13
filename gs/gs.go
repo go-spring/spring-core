@@ -326,3 +326,9 @@ func ForceAutowireIsNullable(enable bool) {
 	err := sysconf.Set("spring.force-autowire-is-nullable", enable)
 	_ = err // Ignore error
 }
+
+// EnableSimpleHttpServer enables or disables the simple HTTP server.
+func EnableSimpleHttpServer(enable bool) {
+	err := sysconf.Set(EnableSimpleHttpServerProp, enable)
+	_ = err // Ignore error
+}
