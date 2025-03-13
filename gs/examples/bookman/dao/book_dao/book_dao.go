@@ -20,18 +20,27 @@ import (
 	"log/slog"
 	"maps"
 	"slices"
+	"sort"
 
 	"github.com/go-spring/spring-core/gs"
 )
 
 func init() {
-	gs.Object(&BookDao{Store: map[string]Book{}})
+	gs.Object(&BookDao{Store: map[string]Book{
+		"978-0134190440": {
+			Title:     "The Go Programming Language",
+			Author:    "Alan A. A. Donovan, Brian W. Kernighan",
+			ISBN:      "978-0134190440",
+			Publisher: "Addison-Wesley",
+		},
+	}})
 }
 
 type Book struct {
-	SN     string `json:"sn"`
-	Name   string `json:"name"`
-	Author string `json:"author"`
+	Title     string `json:"title"`
+	Author    string `json:"author"`
+	ISBN      string `json:"isbn"`
+	Publisher string `json:"publisher"`
 }
 
 type BookDao struct {
@@ -41,20 +50,23 @@ type BookDao struct {
 
 func (dao *BookDao) ListBooks() ([]Book, error) {
 	r := slices.Collect(maps.Values(dao.Store))
+	sort.Slice(r, func(i, j int) bool {
+		return r[i].ISBN < r[j].ISBN
+	})
 	return r, nil
 }
 
-func (dao *BookDao) GetBook(sn string) (Book, error) {
-	r, _ := dao.Store[sn]
+func (dao *BookDao) GetBook(isbn string) (Book, error) {
+	r, _ := dao.Store[isbn]
 	return r, nil
 }
 
 func (dao *BookDao) SaveBook(book Book) error {
-	dao.Store[book.SN] = book
+	dao.Store[book.ISBN] = book
 	return nil
 }
 
-func (dao *BookDao) DeleteBook(sn string) error {
-	delete(dao.Store, sn)
+func (dao *BookDao) DeleteBook(isbn string) error {
+	delete(dao.Store, isbn)
 	return nil
 }

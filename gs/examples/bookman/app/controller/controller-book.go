@@ -38,8 +38,8 @@ func (c *BookController) ListBooks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *BookController) GetBook(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	book, err := c.BookService.GetBook(id)
+	isbn := r.PathValue("isbn")
+	book, err := c.BookService.GetBook(isbn)
 	if err != nil {
 		_, _ = w.Write([]byte(err.Error()))
 		return
@@ -61,8 +61,8 @@ func (c *BookController) SaveBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *BookController) DeleteBook(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	err := c.BookService.DeleteBook(id)
+	isbn := r.PathValue("isbn")
+	err := c.BookService.DeleteBook(isbn)
 	if err != nil {
 		_, _ = w.Write([]byte(err.Error()))
 		return

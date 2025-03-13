@@ -28,7 +28,12 @@ import (
 func init() {
 	gstest.MockFor[*book_dao.BookDao]().With(&book_dao.BookDao{
 		Store: map[string]book_dao.Book{
-			"0": {SN: "0", Name: "Go Programing"},
+			"978-0132350884": {
+				Title:     "Clean Code",
+				Author:    "Robert C. Martin",
+				ISBN:      "978-0132350884",
+				Publisher: "Prentice Hall",
+			},
 		},
 	})
 	gs.Config().LocalFile.AddDir("../../../conf")
@@ -54,22 +59,28 @@ func TestBookService(t *testing.T) {
 	books, err := s.ListBooks()
 	assert.Nil(t, err)
 	assert.Equal(t, len(books), 1)
+	assert.Equal(t, books[0].ISBN, "978-0132350884")
 
-	err = s.SaveBook(book_dao.Book{SN: "1", Name: "Go Spring"})
+	err = s.SaveBook(book_dao.Book{
+		Title:     "Introduction to Algorithms",
+		Author:    "Thomas H. Cormen, Charles E. Leiserson, ...",
+		ISBN:      "978-0262033848",
+		Publisher: "MIT Press",
+	})
 	assert.Nil(t, err)
 
 	books, err = s.ListBooks()
 	assert.Nil(t, err)
 	assert.Equal(t, len(books), 2)
-	assert.Equal(t, books[1].SN, "1")
-	assert.Equal(t, books[1].Name, "Go Spring")
+	assert.Equal(t, books[1].ISBN, "978-0262033848")
+	assert.Equal(t, books[1].Title, "Introduction to Algorithms")
 
-	book, err := s.GetBook("1")
+	book, err := s.GetBook("978-0132350884")
 	assert.Nil(t, err)
-	assert.Equal(t, book.SN, "1")
-	assert.Equal(t, book.Name, "Go Spring")
+	assert.Equal(t, book.ISBN, "978-0132350884")
+	assert.Equal(t, book.Title, "Clean Code")
 
-	err = s.DeleteBook("1")
+	err = s.DeleteBook("978-0132350884")
 	assert.Nil(t, err)
 
 	books, err = s.ListBooks()

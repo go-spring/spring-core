@@ -44,26 +44,34 @@ func TestBookDao(t *testing.T) {
 
 	books, err := o.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 0)
+	assert.Equal(t, len(books), 1)
+	assert.Equal(t, books[0].ISBN, "978-0134190440")
+	assert.Equal(t, books[0].Title, "The Go Programming Language")
 
-	err = o.SaveBook(Book{SN: "1", Name: "Go Spring"})
+	err = o.SaveBook(Book{
+		Title:     "Clean Code",
+		Author:    "Robert C. Martin",
+		ISBN:      "978-0132350884",
+		Publisher: "Prentice Hall",
+	})
 	assert.Equal(t, err, nil)
 
 	books, err = o.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 1)
-	assert.Equal(t, books[0].SN, "1")
-	assert.Equal(t, books[0].Name, "Go Spring")
+	assert.Equal(t, len(books), 2)
+	assert.Equal(t, books[0].ISBN, "978-0132350884")
+	assert.Equal(t, books[0].Title, "Clean Code")
 
-	book, err := o.GetBook("1")
+	book, err := o.GetBook("978-0132350884")
 	assert.Nil(t, err)
-	assert.Equal(t, book.SN, "1")
-	assert.Equal(t, book.Name, "Go Spring")
+	assert.Equal(t, book.Title, "Clean Code")
+	assert.Equal(t, book.Publisher, "Prentice Hall")
 
-	err = o.DeleteBook("1")
+	err = o.DeleteBook("978-0132350884")
 	assert.Nil(t, err)
 
 	books, err = o.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 0)
+	assert.Equal(t, len(books), 1)
+	assert.Equal(t, books[0].ISBN, "978-0134190440")
 }

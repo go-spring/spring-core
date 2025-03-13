@@ -17,7 +17,11 @@
 package main
 
 import (
+	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/util/sysconf"
@@ -39,7 +43,31 @@ func main() {
 	_ = os.Unsetenv("_")
 	_ = os.Unsetenv("TERM")
 	_ = os.Unsetenv("TERM_SESSION_ID")
+	go func() {
+		time.Sleep(time.Millisecond * 500)
+		runTest()
+	}()
 	if err := gs.Run(); err != nil {
 		syslog.Errorf("app run failed: %s", err.Error())
 	}
+}
+
+func runTest() {
+
+	// books
+	{
+		url := "http://127.0.0.1:9090/books"
+		resp, err := http.Get(url)
+		if err != nil {
+			panic(err)
+		}
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
+		fmt.Print(string(b))
+	}
+
+	gs.ShutDown()
 }

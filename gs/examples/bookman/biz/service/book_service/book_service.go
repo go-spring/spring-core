@@ -36,14 +36,14 @@ func (s *BookService) ListBooks() ([]book_dao.Book, error) {
 	return s.BookDao.ListBooks()
 }
 
-func (s *BookService) GetBook(sn string) (book_dao.Book, error) {
-	return s.BookDao.GetBook(sn)
+func (s *BookService) GetBook(isbn string) (book_dao.Book, error) {
+	return s.BookDao.GetBook(isbn)
 }
 
 func (s *BookService) SaveBook(book book_dao.Book) error {
 	return s.BookDao.SaveBook(book)
 }
 
-func (s *BookService) DeleteBook(sn string) error {
-	return s.BookDao.DeleteBook(sn)
+func (s *BookService) DeleteBook(isbn string) error {
+	return s.BookDao.DeleteBook(isbn)
 }
