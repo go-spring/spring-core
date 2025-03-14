@@ -17,7 +17,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/util/sysconf"
@@ -36,23 +38,29 @@ func init() {
 	})
 }
 
+const timeLayout = "2006-01-02 15:04:05.999 -0700 MST"
+
 type Service struct {
-	AppName gs.Dync[string] `value:"${spring.app.name}"`
+	StartTime   time.Time          `value:"${start-time}"`
+	RefreshTime gs.Dync[time.Time] `value:"${refresh-time}"`
 }
 
 func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(s.AppName.Value()))
+	str := fmt.Sprintf("start-time: %s refresh-time: %s",
+		s.StartTime.Format(timeLayout),
+		s.RefreshTime.Value().Format(timeLayout))
+	_, _ = w.Write([]byte(str))
 }
 
 func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
-	_ = sysconf.Set("spring.app.name", "refreshed")
+	_ = sysconf.Set("refresh-time", time.Now().Format(timeLayout))
 	_ = gs.RefreshProperties()
 	_, _ = w.Write([]byte("OK!"))
 }
 
 func main() {
-	// Set the application name in the configuration.
-	_ = sysconf.Set("spring.app.name", "go-spring")
+	_ = sysconf.Set("start-time", time.Now().Format(timeLayout))
+	_ = sysconf.Set("refresh-time", time.Now().Format(timeLayout))
 
 	// Start the Go-Spring application. If it fails, log the error.
 	if err := gs.Run(); err != nil {
@@ -61,8 +69,12 @@ func main() {
 }
 
 // ➜ curl http://127.0.0.1:9090/echo
-// go-spring
+// start-time: 2025-03-14 13:32:51.608 +0800 CST refresh-time: 2025-03-14 13:32:51.608 +0800 CST%
 // ➜ curl http://127.0.0.1:9090/refresh
-// OK!
+// OK!%
 // ➜ curl http://127.0.0.1:9090/echo
-// refreshed
+// start-time: 2025-03-14 13:32:51.608 +0800 CST refresh-time: 2025-03-14 13:33:02.936 +0800 CST%
+// ➜ curl http://127.0.0.1:9090/refresh
+// OK!%
+// ➜ curl http://127.0.0.1:9090/echo
+// start-time: 2025-03-14 13:32:51.608 +0800 CST refresh-time: 2025-03-14 13:33:08.88 +0800 CST%
