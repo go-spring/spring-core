@@ -20,6 +20,15 @@ import (
 	"net/http"
 )
 
+type Book struct {
+	Title       string `json:"title"`
+	Author      string `json:"author"`
+	ISBN        string `json:"isbn"`
+	Publisher   string `json:"publisher"`
+	Price       string `json:"price"`
+	RefreshTime string `json:"refreshTime"`
+}
+
 type Controller interface {
 	ListBooks(w http.ResponseWriter, r *http.Request)
 	GetBook(w http.ResponseWriter, r *http.Request)

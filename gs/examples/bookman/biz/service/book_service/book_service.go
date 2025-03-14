@@ -18,9 +18,12 @@ package book_service
 
 import (
 	"log/slog"
+	"strconv"
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/examples/bookman/dao/book_dao"
+	"github.com/go-spring/spring-core/gs/examples/bookman/idl"
+	"github.com/go-spring/spring-core/gs/examples/bookman/sdk/book_sdk"
 )
 
 func init() {
@@ -28,16 +31,46 @@ func init() {
 }
 
 type BookService struct {
-	BookDao *book_dao.BookDao `autowire:""`
-	Logger  *slog.Logger      `autowire:"biz"`
+	BookDao     *book_dao.BookDao `autowire:""`
+	BookSDK     *book_sdk.BookSDK `autowire:""`
+	Logger      *slog.Logger      `autowire:"biz"`
+	RefreshTime gs.Dync[int64]    `value:"${refresh_time}"`
 }
 
-func (s *BookService) ListBooks() ([]book_dao.Book, error) {
-	return s.BookDao.ListBooks()
+func (s *BookService) ListBooks() ([]idl.Book, error) {
+	books, err := s.BookDao.ListBooks()
+	if err != nil {
+		s.Logger.Error("ListBooks return err: %s", err.Error())
+		return nil, err
+	}
+	ret := make([]idl.Book, 0, len(books))
+	for _, book := range books {
+		ret = append(ret, idl.Book{
+			ISBN:        book.ISBN,
+			Title:       book.Title,
+			Author:      book.Author,
+			Publisher:   book.Publisher,
+			Price:       s.BookSDK.GetPrice(book.ISBN),
+			RefreshTime: strconv.FormatInt(s.RefreshTime.Value(), 10),
+		})
+	}
+	return ret, nil
 }
 
-func (s *BookService) GetBook(isbn string) (book_dao.Book, error) {
-	return s.BookDao.GetBook(isbn)
+func (s *BookService) GetBook(isbn string) (idl.Book, error) {
+	book, err := s.BookDao.GetBook(isbn)
+	if err != nil {
+		s.Logger.Error("GetBook return err: %s", err.Error())
+		return idl.Book{}, err
+	}
+	return idl.Book{
+		ISBN:        book.ISBN,
+		Title:       book.Title,
+		Author:      book.Author,
+		Publisher:   book.Publisher,
+		Price:       s.BookSDK.GetPrice(book.ISBN),
+		RefreshTime: strconv.FormatInt(s.RefreshTime.Value(), 10),
+	}, nil
 }
 
 func (s *BookService) SaveBook(book book_dao.Book) error {

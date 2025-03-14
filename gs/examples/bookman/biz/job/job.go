@@ -28,8 +28,7 @@ func init() {
 	gs.Object(&Job{}).AsJob()
 }
 
-type Job struct {
-}
+type Job struct{}
 
 func (x *Job) Run(ctx context.Context) error {
 	for {
@@ -37,8 +36,12 @@ func (x *Job) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			fmt.Println("job exit")
 			return nil
-		case <-time.After(time.Second * 5):
-			fmt.Println("job sleep end")
+		default:
+			if gs.Exiting() {
+				return nil
+			}
+			time.Sleep(time.Millisecond * 300)
+			fmt.Println(time.Now().UnixMilli(), "job sleep end")
 		}
 	}
 }

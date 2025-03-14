@@ -52,7 +52,7 @@ func main() {
 func runTest() {
 
 	// books
-	{
+	for i := 0; i < 5; i++ {
 		url := "http://127.0.0.1:9090/books"
 		resp, err := http.Get(url)
 		if err != nil {
@@ -64,6 +64,7 @@ func runTest() {
 		}
 		defer resp.Body.Close()
 		fmt.Print(string(b))
+		time.Sleep(time.Millisecond * 400)
 	}
 
 	gs.ShutDown()

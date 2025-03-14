@@ -17,7 +17,10 @@
 package bootstrap
 
 import (
+	"context"
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/go-spring/spring-core/gs"
 )
@@ -29,7 +32,38 @@ func init() {
 type Runner struct{}
 
 func (r *Runner) Run() error {
-	err := os.MkdirAll("./conf", os.ModePerm)
+	if err := getRemoteConfig(); err != nil {
+		return err
+	}
+	gs.Config().RemoteFile.AddDir("./conf/remote")
+	gs.Object(&ConfigUpdater{}).AsJob()
+	return nil
+}
+
+type ConfigUpdater struct{}
+
+func (x *ConfigUpdater) Run(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("config updater exit")
+			return nil
+		case <-time.After(time.Millisecond * 500):
+			if err := getRemoteConfig(); err != nil {
+				fmt.Println("get remote config error:", err)
+				return err
+			}
+			if err := gs.RefreshProperties(); err != nil {
+				fmt.Println("refresh properties error:", err)
+				return err
+			}
+			fmt.Println("refresh properties success")
+		}
+	}
+}
+
+func getRemoteConfig() error {
+	err := os.MkdirAll("./conf/remote", os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -44,8 +78,11 @@ log.biz.name=biz.log
 log.biz.dir=./log
 
 log.dao.name=dao.log
-log.dao.dir=./log`
+log.dao.dir=./log
 
-	const file = "conf/app-online.properties"
-	return os.WriteFile(file, []byte(data), os.ModePerm)
+refresh_time=%v`
+
+	const file = "conf/remote/app-online.properties"
+	str := fmt.Sprintf(data, time.Now().UnixMilli())
+	return os.WriteFile(file, []byte(str), os.ModePerm)
 }
