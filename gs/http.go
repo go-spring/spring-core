@@ -20,32 +20,74 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"time"
 )
 
 func init() {
-	// Initialize the HTTP server. The server will listen on the address specified
-	// by the 'server.addr' configuration, defaulting to "0.0.0.0:9090" if not set.
-	// It is only provided as a server if an instance of *http.ServeMux exists.
-	Provide(NewSimpleHttpServer, TagArg("${server.addr:=0.0.0.0:9090}")).
-		Condition(
-			And(
-				OnBean[*http.ServeMux](),
-				OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
-			),
-		).
-		AsServer()
+	Provide(NewSimpleHttpServer,
+		TagArg(""),
+		BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
+		BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
+		BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
+	).Condition(
+		And(
+			OnBean[*http.ServeMux](),
+			OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
+		),
+	).AsServer()
+}
+
+// HttpServerConfig holds configuration options for the HTTP server.
+type HttpServerConfig struct {
+	Address      string        // The address to bind the server to.
+	ReadTimeout  time.Duration // The read timeout duration.
+	WriteTimeout time.Duration // The write timeout duration.
+}
+
+// HttpServerOption is a function type for setting options on HttpServerConfig.
+type HttpServerOption func(arg *HttpServerConfig)
+
+// SetHttpServerAddr sets the address of the HTTP server.
+func SetHttpServerAddr(addr string) HttpServerOption {
+	return func(arg *HttpServerConfig) {
+		arg.Address = addr
+	}
+}
+
+// SetHttpServerReadTimeout sets the read timeout for the HTTP server.
+func SetHttpServerReadTimeout(timeout time.Duration) HttpServerOption {
+	return func(arg *HttpServerConfig) {
+		arg.ReadTimeout = timeout
+	}
+}
+
+// SetHttpServerWriteTimeout sets the write timeout for the HTTP server.
+func SetHttpServerWriteTimeout(timeout time.Duration) HttpServerOption {
+	return func(arg *HttpServerConfig) {
+		arg.WriteTimeout = timeout
+	}
 }
 
 // SimpleHttpServer wraps a [http.Server] instance.
 type SimpleHttpServer struct {
-	svr *http.Server
+	svr *http.Server // The HTTP server instance.
 }
 
 // NewSimpleHttpServer creates a new instance of SimpleHttpServer.
-func NewSimpleHttpServer(addr string, mux *http.ServeMux) *SimpleHttpServer {
+func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHttpServer {
+	arg := &HttpServerConfig{
+		Address:      "0.0.0.0:9090",
+		ReadTimeout:  time.Second * 5,
+		WriteTimeout: time.Second * 5,
+	}
+	for _, opt := range opts {
+		opt(arg)
+	}
 	return &SimpleHttpServer{svr: &http.Server{
-		Addr:    addr,
-		Handler: mux,
+		Addr:         arg.Address,
+		Handler:      mux,
+		ReadTimeout:  arg.ReadTimeout,
+		WriteTimeout: arg.WriteTimeout,
 	}}
 }
 

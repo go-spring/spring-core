@@ -41,6 +41,6 @@ func NewSimplePProfServer(addr string) *SimplePProfServer {
 	mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
 	return &SimplePProfServer{
-		SimpleHttpServer: NewSimpleHttpServer(addr, mux),
+		SimpleHttpServer: NewSimpleHttpServer(mux, SetHttpServerAddr(addr)),
 	}
 }

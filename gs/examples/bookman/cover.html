@@ -57,9 +57,9 @@
 				
 				<option value="file0">/Users/didi/spring-core/gs/examples/bookman/main.go (86.4%)</option>
 				
-				<option value="file1">github.com/go-spring/spring-core/conf/bind.go (43.3%)</option>
+				<option value="file1">github.com/go-spring/spring-core/conf/bind.go (45.4%)</option>
 				
-				<option value="file2">github.com/go-spring/spring-core/conf/conf.go (81.3%)</option>
+				<option value="file2">github.com/go-spring/spring-core/conf/conf.go (82.7%)</option>
 				
 				<option value="file3">github.com/go-spring/spring-core/conf/expr.go (0.0%)</option>
 				
@@ -95,9 +95,9 @@
 				
 				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/sdk/book_sdk/book_sdk.go (100.0%)</option>
 				
-				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (63.1%)</option>
+				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (64.6%)</option>
 				
-				<option value="file21">github.com/go-spring/spring-core/gs/http.go (87.5%)</option>
+				<option value="file21">github.com/go-spring/spring-core/gs/http.go (94.1%)</option>
 				
 				<option value="file22">github.com/go-spring/spring-core/gs/internal/gs/gs.go (45.5%)</option>
 				
@@ -107,7 +107,7 @@
 				
 				<option value="file25">github.com/go-spring/spring-core/gs/internal/gs_app/signal.go (77.8%)</option>
 				
-				<option value="file26">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (44.1%)</option>
+				<option value="file26">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (51.5%)</option>
 				
 				<option value="file27">github.com/go-spring/spring-core/gs/internal/gs_bean/bean.go (39.6%)</option>
 				
@@ -143,7 +143,7 @@
 				
 				<option value="file43">github.com/go-spring/spring-core/util/goutil/goutil.go (27.5%)</option>
 				
-				<option value="file44">github.com/go-spring/spring-core/util/iterutil/iterutil.go (13.3%)</option>
+				<option value="file44">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.4%)</option>
 				
 				<option value="file45">github.com/go-spring/spring-core/util/map.go (100.0%)</option>
 				
@@ -316,32 +316,32 @@ func (tag ParsedTag) String() string <span class="cov0" title="0">{
 }
 
 // ParseTag parses a value tag, returns its key, and default value, and splitter.
-func ParseTag(tag string) (ret ParsedTag, err error) <span class="cov5" title="36">{
+func ParseTag(tag string) (ret ParsedTag, err error) <span class="cov5" title="38">{
         i := strings.LastIndex(tag, "&gt;&gt;")
         if i == 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="36">j := strings.LastIndex(tag, "}")
+        <span class="cov5" title="38">j := strings.LastIndex(tag, "}")
         if j &lt;= 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="36">k := strings.Index(tag, "${")
+        <span class="cov5" title="38">k := strings.Index(tag, "${")
         if k &lt; 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="36">if i &gt; j </span><span class="cov0" title="0">{
+        <span class="cov5" title="38">if i &gt; j </span><span class="cov0" title="0">{
                 ret.Splitter = strings.TrimSpace(tag[i+2:])
         }</span>
-        <span class="cov5" title="36">ss := strings.SplitN(tag[k+2:j], ":=", 2)
+        <span class="cov5" title="38">ss := strings.SplitN(tag[k+2:j], ":=", 2)
         ret.Key = ss[0]
-        if len(ss) &gt; 1 </span><span class="cov4" title="28">{
+        if len(ss) &gt; 1 </span><span class="cov4" title="30">{
                 ret.HasDef = true
                 ret.Def = ss[1]
         }</span>
-        <span class="cov5" title="36">return</span>
+        <span class="cov5" title="38">return</span>
 }
 
 type BindParam struct {
@@ -351,28 +351,28 @@ type BindParam struct {
         Validate reflect.StructTag // full field tag
 }
 
-func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error <span class="cov5" title="36">{
+func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error <span class="cov5" title="38">{
         param.Validate = validate
         parsedTag, err := ParseTag(tag)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov5" title="36">if parsedTag.Key == "" </span><span class="cov0" title="0">{ // ${:=} 默认值语法
+        <span class="cov5" title="38">if parsedTag.Key == "" </span><span class="cov0" title="0">{ // ${:=} 默认值语法
                 if parsedTag.HasDef </span><span class="cov0" title="0">{
                         param.Tag = parsedTag
                         return nil
                 }</span>
                 <span class="cov0" title="0">return fmt.Errorf("xxxx")</span> // todo
         }
-        <span class="cov5" title="36">if parsedTag.Key == "ROOT" </span><span class="cov0" title="0">{
+        <span class="cov5" title="38">if parsedTag.Key == "ROOT" </span><span class="cov0" title="0">{
                 parsedTag.Key = ""
         }</span>
-        <span class="cov5" title="36">if param.Key == "" </span><span class="cov4" title="30">{
+        <span class="cov5" title="38">if param.Key == "" </span><span class="cov4" title="32">{
                 param.Key = parsedTag.Key
         }</span> else<span class="cov3" title="6"> if parsedTag.Key != "" </span><span class="cov3" title="6">{
                 param.Key = param.Key + "." + parsedTag.Key
         }</span>
-        <span class="cov5" title="36">param.Tag = parsedTag
+        <span class="cov5" title="38">param.Tag = parsedTag
         return nil</span>
 }
 
@@ -381,15 +381,15 @@ type Filter interface {
 }
 
 // BindValue binds properties to a value.
-func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="17">{
+func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="19">{
 
         if !util.IsPropBindingTarget(t) </span><span class="cov0" title="0">{
                 err := errors.New("target should be value type")
                 return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
         }</span>
 
-        <span class="cov4" title="17">defer func() </span><span class="cov4" title="17">{
-                if RetErr == nil </span><span class="cov4" title="17">{
+        <span class="cov4" title="19">defer func() </span><span class="cov4" title="19">{
+                if RetErr == nil </span><span class="cov4" title="19">{
                         tag, ok := param.Validate.Lookup("expr")
                         if ok &amp;&amp; len(tag) &gt; 0 </span><span class="cov0" title="0">{
                                 err := validateField(tag, v.Interface())
@@ -400,7 +400,7 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
                 }
         }()
 
-        <span class="cov4" title="17">switch v.Kind() </span>{
+        <span class="cov4" title="19">switch v.Kind() </span>{
         case reflect.Map:<span class="cov1" title="1">
                 return bindMap(p, v, t, param, filter)</span>
         case reflect.Slice:<span class="cov0" title="0">
@@ -408,10 +408,10 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
         case reflect.Array:<span class="cov0" title="0">
                 err := errors.New("use slice instead of array")
                 return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)</span>
-        default:<span class="cov4" title="16"></span> // for linter
+        default:<span class="cov4" title="18"></span> // for linter
         }
 
-        <span class="cov4" title="16">fn := converters[t]
+        <span class="cov4" title="18">fn := converters[t]
         if fn == nil &amp;&amp; v.Kind() == reflect.Struct </span><span class="cov2" title="3">{
                 if err := bindStruct(p, v, t, param, filter); err != nil </span><span class="cov0" title="0">{
                         return err // no wrap
@@ -419,19 +419,19 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
                 <span class="cov2" title="3">return nil</span>
         }
 
-        <span class="cov3" title="13">val, err := resolve(p, param)
+        <span class="cov4" title="15">val, err := resolve(p, param)
         if err != nil </span><span class="cov0" title="0">{
                 return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
         }</span>
 
-        <span class="cov3" title="13">if fn != nil </span><span class="cov0" title="0">{
+        <span class="cov4" title="15">if fn != nil </span><span class="cov1" title="2">{
                 fnValue := reflect.ValueOf(fn)
                 out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
                 if !out[1].IsNil() </span><span class="cov0" title="0">{
                         err = out[1].Interface().(error)
                         return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
                 }</span>
-                <span class="cov0" title="0">v.Set(out[0])
+                <span class="cov1" title="2">v.Set(out[0])
                 return nil</span>
         }
 
@@ -662,23 +662,23 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 }
 
 // resolve returns property references processed property value.
-func resolve(p ReadOnlyProperties, param BindParam) (string, error) <span class="cov5" title="39">{
+func resolve(p ReadOnlyProperties, param BindParam) (string, error) <span class="cov5" title="41">{
         const defVal = "@@def@@"
         val := p.Get(param.Key, defVal)
-        if val != defVal </span><span class="cov4" title="23">{
+        if val != defVal </span><span class="cov4" title="22">{
                 return resolveString(p, val)
         }</span>
-        <span class="cov4" title="16">if p.Has(param.Key) </span><span class="cov0" title="0">{
+        <span class="cov4" title="19">if p.Has(param.Key) </span><span class="cov0" title="0">{
                 return "", fmt.Errorf("property key=%s isn't simple value", param.Key)
         }</span>
-        <span class="cov4" title="16">if param.Tag.HasDef </span><span class="cov4" title="16">{
+        <span class="cov4" title="19">if param.Tag.HasDef </span><span class="cov4" title="19">{
                 return resolveString(p, param.Tag.Def)
         }</span>
         <span class="cov0" title="0">return "", fmt.Errorf("property key=%s %w", param.Key, ErrNotExist)</span>
 }
 
 // resolveString returns property references processed string.
-func resolveString(p ReadOnlyProperties, s string) (string, error) <span class="cov6" title="179">{
+func resolveString(p ReadOnlyProperties, s string) (string, error) <span class="cov6" title="181">{
 
         var (
                 length = len(s)
@@ -687,7 +687,7 @@ func resolveString(p ReadOnlyProperties, s string) (string, error) <span class="
                 end    = -1
         )
 
-        for i := 0; i &lt; length; i++ </span><span class="cov10" title="3143">{
+        for i := 0; i &lt; length; i++ </span><span class="cov10" title="3147">{
                 if s[i] == '$' </span><span class="cov4" title="26">{
                         if i &lt; length-1 &amp;&amp; s[i+1] == '{' </span><span class="cov4" title="26">{
                                 if count == 0 </span><span class="cov4" title="26">{
@@ -695,7 +695,7 @@ func resolveString(p ReadOnlyProperties, s string) (string, error) <span class="
                                 }</span>
                                 <span class="cov4" title="26">count++</span>
                         }
-                } else<span class="cov9" title="3117"> if s[i] == '}' </span><span class="cov4" title="26">{
+                } else<span class="cov9" title="3121"> if s[i] == '}' </span><span class="cov4" title="26">{
                         if count &gt; 0 </span><span class="cov4" title="26">{
                                 count--
                                 if count == 0 </span><span class="cov4" title="26">{
@@ -706,7 +706,7 @@ func resolveString(p ReadOnlyProperties, s string) (string, error) <span class="
                 }
         }
 
-        <span class="cov6" title="179">if start &lt; 0 </span><span class="cov6" title="153">{
+        <span class="cov6" title="181">if start &lt; 0 </span><span class="cov6" title="155">{
                 return s, nil
         }</span>
 
@@ -785,7 +785,7 @@ func init() <span class="cov1" title="1">{
                 return cast.ToTimeE(strings.TrimSpace(s))
         }</span>)
 
-        <span class="cov1" title="1">RegisterConverter(func(s string) (time.Duration, error) </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">RegisterConverter(func(s string) (time.Duration, error) </span><span class="cov1" title="2">{
                 return time.ParseDuration(strings.TrimSpace(s))
         }</span>)
 }
@@ -929,7 +929,7 @@ func (p *Properties) Keys() []string <span class="cov3" title="8">{
 }</span>
 
 // Has returns whether key exists.
-func (p *Properties) Has(key string) bool <span class="cov8" title="214">{
+func (p *Properties) Has(key string) bool <span class="cov8" title="217">{
         return p.storage.Has(key)
 }</span>
 
@@ -939,12 +939,12 @@ func (p *Properties) SubKeys(key string) ([]string, error) <span class="cov1" ti
 }</span>
 
 // Get returns key's value, using Def to return a default value.
-func (p *Properties) Get(key string, def ...string) string <span class="cov9" title="437">{
+func (p *Properties) Get(key string, def ...string) string <span class="cov9" title="439">{
         val, ok := p.storage.Get(key)
-        if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov4" title="16">{
+        if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="19">{
                 return def[0]
         }</span>
-        <span class="cov9" title="421">return val</span>
+        <span class="cov9" title="420">return val</span>
 }
 
 // Set sets key's value to be a primitive type as int or string,
@@ -974,12 +974,12 @@ func (p *Properties) Resolve(s string) (string, error) <span class="cov7" title=
 // value:"${a:=b}&gt;&gt;splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *Properties) Bind(i interface{}, tag ...string) error <span class="cov2" title="3">{
+func (p *Properties) Bind(i interface{}, tag ...string) error <span class="cov3" title="5">{
 
         var v reflect.Value
-        </span><span class="cov2" title="3">{
+        </span><span class="cov3" title="5">{
                 switch e := i.(type) </span>{
-                case reflect.Value:<span class="cov1" title="2">
+                case reflect.Value:<span class="cov2" title="4">
                         v = e</span>
                 default:<span class="cov1" title="1">
                         v = reflect.ValueOf(i)
@@ -990,23 +990,23 @@ func (p *Properties) Bind(i interface{}, tag ...string) error <span class="cov2"
                 }
         }
 
-        <span class="cov2" title="3">t := v.Type()
+        <span class="cov3" title="5">t := v.Type()
         typeName := t.Name()
         if typeName == "" </span><span class="cov1" title="1">{ // primitive type has no name
                 typeName = t.String()
         }</span>
 
-        <span class="cov2" title="3">s := "${ROOT}"
-        if len(tag) &gt; 0 </span><span class="cov2" title="3">{
+        <span class="cov3" title="5">s := "${ROOT}"
+        if len(tag) &gt; 0 </span><span class="cov3" title="5">{
                 s = tag[0]
         }</span>
 
-        <span class="cov2" title="3">var param BindParam
+        <span class="cov3" title="5">var param BindParam
         err := param.BindTag(s, "")
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov2" title="3">param.Path = typeName
+        <span class="cov3" title="5">param.Path = typeName
         return BindValue(p, v, t, param, nil)</span>
 }
 
@@ -1265,33 +1265,33 @@ func JoinPath(path []Path) string <span class="cov0" title="0">{
 }
 
 // SplitPath splits key into individual path elements.
-func SplitPath(key string) ([]Path, error) <span class="cov7" title="602">{
+func SplitPath(key string) ([]Path, error) <span class="cov7" title="605">{
         if key == "" </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="602">var (
+        <span class="cov7" title="605">var (
                 path        []Path
                 lastPos     int
                 lastChar    int32
                 openBracket bool
         )
-        for i, c := range key </span><span class="cov10" title="6860">{
+        for i, c := range key </span><span class="cov10" title="6923">{
                 switch c </span>{
                 case ' ':<span class="cov0" title="0">
                         return nil, fmt.Errorf("invalid key '%s'", key)</span>
-                case '.':<span class="cov7" title="549">
+                case '.':<span class="cov7" title="555">
                         if openBracket </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov7" title="549">if lastChar == ']' </span><span class="cov0" title="0">{
+                        <span class="cov7" title="555">if lastChar == ']' </span><span class="cov0" title="0">{
                                 lastPos = i + 1
                                 lastChar = c
                                 continue</span>
                         }
-                        <span class="cov7" title="549">if lastPos == i </span><span class="cov0" title="0">{
+                        <span class="cov7" title="555">if lastPos == i </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov7" title="549">path = append(path, Path{PathTypeKey, key[lastPos:i]})
+                        <span class="cov7" title="555">path = append(path, Path{PathTypeKey, key[lastPos:i]})
                         lastPos = i + 1
                         lastChar = c</span>
                 case '[':<span class="cov0" title="0">
@@ -1324,17 +1324,17 @@ func SplitPath(key string) ([]Path, error) <span class="cov7" title="602">{
                         lastPos = i + 1
                         openBracket = false
                         lastChar = c</span>
-                default:<span class="cov9" title="6311">
+                default:<span class="cov9" title="6368">
                         lastChar = c</span>
                 }
         }
-        <span class="cov7" title="602">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
+        <span class="cov7" title="605">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="602">if lastChar != ']' </span><span class="cov7" title="602">{
+        <span class="cov7" title="605">if lastChar != ']' </span><span class="cov7" title="605">{
                 path = append(path, Path{PathTypeKey, key[lastPos:]})
         }</span>
-        <span class="cov7" title="602">return path, nil</span>
+        <span class="cov7" title="605">return path, nil</span>
 }
 </pre>
 		
@@ -1443,45 +1443,45 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) <span class="cov1"
 }
 
 // Has returns whether the key exists.
-func (s *Storage) Has(key string) bool <span class="cov7" title="214">{
+func (s *Storage) Has(key string) bool <span class="cov7" title="217">{
         if key == "" </span><span class="cov0" title="0">{
                 return false
         }</span>
-        <span class="cov7" title="214">if _, ok := s.data[key]; ok </span><span class="cov7" title="197">{
+        <span class="cov7" title="217">if _, ok := s.data[key]; ok </span><span class="cov7" title="197">{
                 return true
         }</span>
-        <span class="cov4" title="17">path, err := SplitPath(key)
+        <span class="cov4" title="20">path, err := SplitPath(key)
         if err != nil </span><span class="cov0" title="0">{
                 return false
         }</span>
-        <span class="cov4" title="17">tree := s.tree
-        for i, node := range path </span><span class="cov5" title="34">{
+        <span class="cov4" title="20">tree := s.tree
+        for i, node := range path </span><span class="cov5" title="40">{
                 m := tree.data.(map[string]*treeNode)
                 switch tree.node </span>{
                 case nodeTypeArray:<span class="cov0" title="0">
                         if node.Type != PathTypeIndex </span><span class="cov0" title="0">{
                                 return false
                         }</span>
-                case nodeTypeMap:<span class="cov4" title="17">
+                case nodeTypeMap:<span class="cov4" title="20">
                         if node.Type != PathTypeKey </span><span class="cov0" title="0">{
                                 return false
                         }</span>
-                default:<span class="cov4" title="17"></span> // for linter
+                default:<span class="cov4" title="20"></span> // for linter
                 }
-                <span class="cov5" title="34">v, ok := m[node.Elem]
-                if !ok </span><span class="cov4" title="17">{
+                <span class="cov5" title="40">v, ok := m[node.Elem]
+                if !ok </span><span class="cov4" title="20">{
                         return false
                 }</span>
-                <span class="cov4" title="17">if v.node == nodeTypeNil || v.node == nodeTypeValue </span><span class="cov0" title="0">{
+                <span class="cov4" title="20">if v.node == nodeTypeNil || v.node == nodeTypeValue </span><span class="cov0" title="0">{
                         return i == len(path)-1
                 }</span>
-                <span class="cov4" title="17">tree = v</span>
+                <span class="cov4" title="20">tree = v</span>
         }
         <span class="cov0" title="0">return true</span>
 }
 
 // Get returns the value of the key, and false if the key does not exist.
-func (s *Storage) Get(key string) (string, bool) <span class="cov8" title="437">{
+func (s *Storage) Get(key string) (string, bool) <span class="cov8" title="439">{
         val, ok := s.data[key]
         return val, ok
 }</span>
@@ -2232,7 +2232,7 @@ func As[T any]() reflect.Type <span class="cov1" title="1">{
 type Arg = gs.Arg
 
 // TagArg returns a TagArg with the specified tag.
-func TagArg(tag string) Arg <span class="cov4" title="3">{
+func TagArg(tag string) Arg <span class="cov5" title="6">{
         return gs_arg.TagArg{Tag: tag}
 }</span>
 
@@ -2252,7 +2252,7 @@ func IndexArg(n int, arg Arg) Arg <span class="cov1" title="1">{
 }</span>
 
 // BindArg binds runtime arguments to a given function.
-func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable <span class="cov0" title="0">{
+func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable <span class="cov4" title="3">{
         return gs_arg.MustBind(fn, args...)
 }</span>
 
@@ -2532,47 +2532,89 @@ import (
         "context"
         "net"
         "net/http"
+        "time"
 )
 
 func init() <span class="cov1" title="1">{
-        // Initialize the HTTP server. The server will listen on the address specified
-        // by the 'server.addr' configuration, defaulting to "0.0.0.0:9090" if not set.
-        // It is only provided as a server if an instance of *http.ServeMux exists.
-        Provide(NewSimpleHttpServer, TagArg("${server.addr:=0.0.0.0:9090}")).
-                Condition(
-                        And(
-                                OnBean[*http.ServeMux](),
-                                OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
-                        ),
-                ).
-                AsServer()
+        Provide(NewSimpleHttpServer,
+                TagArg(""),
+                BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
+                BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
+                BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
+        ).Condition(
+                And(
+                        OnBean[*http.ServeMux](),
+                        OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
+                ),
+        ).AsServer()
 }</span>
+
+// HttpServerConfig holds configuration options for the HTTP server.
+type HttpServerConfig struct {
+        Address      string        // The address to bind the server to.
+        ReadTimeout  time.Duration // The read timeout duration.
+        WriteTimeout time.Duration // The write timeout duration.
+}
+
+// HttpServerOption is a function type for setting options on HttpServerConfig.
+type HttpServerOption func(arg *HttpServerConfig)
+
+// SetHttpServerAddr sets the address of the HTTP server.
+func SetHttpServerAddr(addr string) HttpServerOption <span class="cov5" title="2">{
+        return func(arg *HttpServerConfig) </span><span class="cov5" title="2">{
+                arg.Address = addr
+        }</span>
+}
+
+// SetHttpServerReadTimeout sets the read timeout for the HTTP server.
+func SetHttpServerReadTimeout(timeout time.Duration) HttpServerOption <span class="cov1" title="1">{
+        return func(arg *HttpServerConfig) </span><span class="cov1" title="1">{
+                arg.ReadTimeout = timeout
+        }</span>
+}
+
+// SetHttpServerWriteTimeout sets the write timeout for the HTTP server.
+func SetHttpServerWriteTimeout(timeout time.Duration) HttpServerOption <span class="cov1" title="1">{
+        return func(arg *HttpServerConfig) </span><span class="cov1" title="1">{
+                arg.WriteTimeout = timeout
+        }</span>
+}
 
 // SimpleHttpServer wraps a [http.Server] instance.
 type SimpleHttpServer struct {
-        svr *http.Server
+        svr *http.Server // The HTTP server instance.
 }
 
 // NewSimpleHttpServer creates a new instance of SimpleHttpServer.
-func NewSimpleHttpServer(addr string, mux *http.ServeMux) *SimpleHttpServer <span class="cov10" title="2">{
-        return &amp;SimpleHttpServer{svr: &amp;http.Server{
-                Addr:    addr,
-                Handler: mux,
-        }}
-}</span>
+func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHttpServer <span class="cov5" title="2">{
+        arg := &amp;HttpServerConfig{
+                Address:      "0.0.0.0:9090",
+                ReadTimeout:  time.Second * 5,
+                WriteTimeout: time.Second * 5,
+        }
+        for _, opt := range opts </span><span class="cov10" title="4">{
+                opt(arg)
+        }</span>
+        <span class="cov5" title="2">return &amp;SimpleHttpServer{svr: &amp;http.Server{
+                Addr:         arg.Address,
+                Handler:      mux,
+                ReadTimeout:  arg.ReadTimeout,
+                WriteTimeout: arg.WriteTimeout,
+        }}</span>
+}
 
 // ListenAndServe starts the HTTP server and listens for incoming connections.
-func (s *SimpleHttpServer) ListenAndServe(sig ReadySignal) error <span class="cov10" title="2">{
+func (s *SimpleHttpServer) ListenAndServe(sig ReadySignal) error <span class="cov5" title="2">{
         ln, err := net.Listen("tcp", s.svr.Addr)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov10" title="2">&lt;-sig.TriggerAndWait()
+        <span class="cov5" title="2">&lt;-sig.TriggerAndWait()
         return s.svr.Serve(ln)</span>
 }
 
 // Shutdown gracefully shuts down the HTTP server with the given context.
-func (s *SimpleHttpServer) Shutdown(ctx context.Context) error <span class="cov10" title="2">{
+func (s *SimpleHttpServer) Shutdown(ctx context.Context) error <span class="cov5" title="2">{
         return s.svr.Shutdown(ctx)
 }</span>
 </pre>
@@ -3339,29 +3381,29 @@ type TagArg struct {
 }
 
 // Tag creates a TagArg with the given tag.
-func Tag(tag string) gs.Arg <span class="cov4" title="2">{
+func Tag(tag string) gs.Arg <span class="cov1" title="1">{
         return TagArg{Tag: tag}
 }</span>
 
 // GetArgValue returns the value of the argument based on its type.
-func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov9" title="5">{
+func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov8" title="7">{
 
         // Binds property values based on the argument type.
-        if util.IsPropBindingTarget(t) </span><span class="cov4" title="2">{
+        if util.IsPropBindingTarget(t) </span><span class="cov6" title="4">{
                 v := reflect.New(t).Elem()
                 if err := ctx.Bind(v, arg.Tag); err != nil </span><span class="cov0" title="0">{
                         return reflect.Value{}, err
                 }</span>
-                <span class="cov4" title="2">return v, nil</span>
+                <span class="cov6" title="4">return v, nil</span>
         }
 
         // Wires dependent beans based on the argument type.
-        <span class="cov6" title="3">if util.IsBeanInjectionTarget(t) </span><span class="cov6" title="3">{
+        <span class="cov5" title="3">if util.IsBeanInjectionTarget(t) </span><span class="cov5" title="3">{
                 v := reflect.New(t).Elem()
                 if err := ctx.Wire(v, arg.Tag); err != nil </span><span class="cov0" title="0">{
                         return reflect.Value{}, err
                 }</span>
-                <span class="cov6" title="3">return v, nil</span>
+                <span class="cov5" title="3">return v, nil</span>
         }
 
         // If none of the conditions match, return an error.
@@ -3415,32 +3457,32 @@ type ArgList struct {
 }
 
 // NewArgList creates and validates an ArgList for the specified function.
-func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span class="cov6" title="3">{
+func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span class="cov8" title="6">{
 
         // Calculates the number of fixed arguments in the function.
         fixedArgCount := fnType.NumIn()
-        if fnType.IsVariadic() </span><span class="cov0" title="0">{
+        if fnType.IsVariadic() </span><span class="cov1" title="1">{
                 fixedArgCount--
         }</span>
 
         // Determines if the arguments use indexing.
-        <span class="cov6" title="3">shouldIndex := func() bool </span><span class="cov6" title="3">{
+        <span class="cov8" title="6">shouldIndex := func() bool </span><span class="cov8" title="6">{
                 if len(args) == 0 </span><span class="cov0" title="0">{
                         return false
                 }</span>
-                <span class="cov6" title="3">_, ok := args[0].(IndexArg)
+                <span class="cov8" title="6">_, ok := args[0].(IndexArg)
                 return ok</span>
         }()
 
-        <span class="cov6" title="3">fnArgs := make([]gs.Arg, fixedArgCount)
+        <span class="cov8" title="6">fnArgs := make([]gs.Arg, fixedArgCount)
 
         // Processes the first argument separately to determine its type.
-        if len(args) &gt; 0 </span><span class="cov6" title="3">{
+        if len(args) &gt; 0 </span><span class="cov8" title="6">{
                 if args[0] == nil </span><span class="cov0" title="0">{
                         err := errors.New("the first arg must not be nil")
                         return nil, errutil.WrapError(err, "%v", args)
                 }</span>
-                <span class="cov6" title="3">switch arg := args[0].(type) </span>{
+                <span class="cov8" title="6">switch arg := args[0].(type) </span>{
                 case *OptionArg:<span class="cov0" title="0">
                         fnArgs = append(fnArgs, arg)</span>
                 case IndexArg:<span class="cov1" title="1">
@@ -3450,8 +3492,8 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
                         }</span> else<span class="cov1" title="1"> {
                                 fnArgs[arg.Idx] = arg.Arg
                         }</span>
-                default:<span class="cov4" title="2">
-                        if fixedArgCount &gt; 0 </span><span class="cov4" title="2">{
+                default:<span class="cov7" title="5">
+                        if fixedArgCount &gt; 0 </span><span class="cov7" title="5">{
                                 fnArgs[0] = arg
                         }</span> else<span class="cov0" title="0"> if fnType.IsVariadic() </span><span class="cov0" title="0">{
                                 fnArgs = append(fnArgs, arg)
@@ -3463,7 +3505,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
         }
 
         // Processes the remaining arguments.
-        <span class="cov6" title="3">for i := 1; i &lt; len(args); i++ </span><span class="cov0" title="0">{
+        <span class="cov8" title="6">for i := 1; i &lt; len(args); i++ </span><span class="cov5" title="3">{
                 switch arg := args[i].(type) </span>{
                 case *OptionArg:<span class="cov0" title="0">
                         fnArgs = append(fnArgs, arg)</span>
@@ -3481,14 +3523,14 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
                         }</span> else<span class="cov0" title="0"> {
                                 fnArgs[arg.Idx] = arg.Arg
                         }</span>
-                default:<span class="cov0" title="0">
+                default:<span class="cov5" title="3">
                         if shouldIndex </span><span class="cov0" title="0">{
                                 err := fmt.Errorf("the Args must have or have no index")
                                 return nil, errutil.WrapError(err, "%v", args)
                         }</span>
-                        <span class="cov0" title="0">if i &lt; fixedArgCount </span><span class="cov0" title="0">{
+                        <span class="cov5" title="3">if i &lt; fixedArgCount </span><span class="cov0" title="0">{
                                 fnArgs[i] = arg
-                        }</span> else<span class="cov0" title="0"> if fnType.IsVariadic() </span><span class="cov0" title="0">{
+                        }</span> else<span class="cov5" title="3"> if fnType.IsVariadic() </span><span class="cov5" title="3">{
                                 fnArgs = append(fnArgs, arg)
                         }</span> else<span class="cov0" title="0"> {
                                 err := fmt.Errorf("the count %d of Args exceeds max index %d", len(args), fixedArgCount)
@@ -3498,17 +3540,17 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
         }
 
         // Fills any unassigned fixed arguments with default values.
-        <span class="cov6" title="3">for i := 0; i &lt; fixedArgCount; i++ </span><span class="cov9" title="5">{
-                if fnArgs[i] == nil </span><span class="cov4" title="2">{
+        <span class="cov8" title="6">for i := 0; i &lt; fixedArgCount; i++ </span><span class="cov8" title="7">{
+                if fnArgs[i] == nil </span><span class="cov1" title="1">{
                         fnArgs[i] = Tag("")
                 }</span>
         }
 
-        <span class="cov6" title="3">return &amp;ArgList{fnType: fnType, args: fnArgs}, nil</span>
+        <span class="cov8" title="6">return &amp;ArgList{fnType: fnType, args: fnArgs}, nil</span>
 }
 
 // get returns the processed argument values for the function call.
-func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov6" title="3">{
+func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov8" title="6">{
 
         fnType := r.fnType
         numIn := fnType.NumIn()
@@ -3516,25 +3558,25 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="c
         result := make([]reflect.Value, 0)
 
         // Processes each argument and converts it to a [reflect.Value].
-        for idx, arg := range r.args </span><span class="cov9" title="5">{
+        for idx, arg := range r.args </span><span class="cov10" title="10">{
 
                 var t reflect.Type
-                if variadic &amp;&amp; idx &gt;= numIn-1 </span><span class="cov0" title="0">{
+                if variadic &amp;&amp; idx &gt;= numIn-1 </span><span class="cov5" title="3">{
                         t = fnType.In(numIn - 1).Elem()
-                }</span> else<span class="cov9" title="5"> {
+                }</span> else<span class="cov8" title="7"> {
                         t = fnType.In(idx)
                 }</span>
 
-                <span class="cov9" title="5">v, err := arg.GetArgValue(ctx, t)
+                <span class="cov10" title="10">v, err := arg.GetArgValue(ctx, t)
                 if err != nil </span><span class="cov0" title="0">{
                         err = errutil.WrapError(err, "returns error when getting %d arg", idx)
                         return nil, errutil.WrapError(err, "get arg list error: %v", arg)
                 }</span>
-                <span class="cov9" title="5">if v.IsValid() </span><span class="cov9" title="5">{
+                <span class="cov10" title="10">if v.IsValid() </span><span class="cov10" title="10">{
                         result = append(result, v)
                 }</span>
         }
-        <span class="cov6" title="3">return result, nil</span>
+        <span class="cov8" title="6">return result, nil</span>
 }
 
 // CallableFunc is a function that can be called.
@@ -3595,61 +3637,61 @@ type Callable struct {
 }
 
 // MustBind binds arguments to a function and panics if an error occurs.
-func MustBind(fn CallableFunc, args ...gs.Arg) *Callable <span class="cov6" title="3">{
+func MustBind(fn CallableFunc, args ...gs.Arg) *Callable <span class="cov8" title="6">{
         r, err := Bind(fn, args)
         if err != nil </span><span class="cov0" title="0">{
                 panic(err)</span>
         }
-        <span class="cov6" title="3">_, file, line, _ := runtime.Caller(2)
+        <span class="cov8" title="6">_, file, line, _ := runtime.Caller(2)
         r.SetFileLine(file, line)
         return r</span>
 }
 
 // Bind creates a Callable by binding arguments to a function.
-func Bind(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class="cov6" title="3">{
+func Bind(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class="cov8" title="6">{
         fnType := reflect.TypeOf(fn)
         argList, err := NewArgList(fnType, args)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov6" title="3">return &amp;Callable{fn: fn, fnType: fnType, argList: argList}, nil</span>
+        <span class="cov8" title="6">return &amp;Callable{fn: fn, fnType: fnType, argList: argList}, nil</span>
 }
 
 // SetFileLine sets the file and line number of the function call.
-func (r *Callable) SetFileLine(file string, line int) <span class="cov10" title="6">{
+func (r *Callable) SetFileLine(file string, line int) <span class="cov9" title="9">{
         r.fileLine = fmt.Sprintf("%s:%d", file, line)
 }</span>
 
 // Call invokes the function with its bound arguments processed in the IoC container.
-func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov6" title="3">{
+func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov8" title="6">{
         in, err := r.argList.get(ctx)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov6" title="3">out := reflect.ValueOf(r.fn).Call(in)
+        <span class="cov8" title="6">out := reflect.ValueOf(r.fn).Call(in)
         n := len(out)
         if n == 0 </span><span class="cov0" title="0">{
                 return out, nil
         }</span>
 
-        <span class="cov6" title="3">o := out[n-1]
+        <span class="cov8" title="6">o := out[n-1]
         if util.IsErrorType(o.Type()) </span><span class="cov0" title="0">{
                 if i := o.Interface(); i != nil </span><span class="cov0" title="0">{
                         return out[:n-1], i.(error)
                 }</span>
                 <span class="cov0" title="0">return out[:n-1], nil</span>
         }
-        <span class="cov6" title="3">return out, nil</span>
+        <span class="cov8" title="6">return out, nil</span>
 }
 
 // GetArgValue retrieves the result of calling the function.
-func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov0" title="0">{
+func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov5" title="3">{
         if results, err := r.Call(ctx); err != nil </span><span class="cov0" title="0">{
                 return reflect.Value{}, err
-        }</span> else<span class="cov0" title="0"> if len(results) &lt; 1 </span><span class="cov0" title="0">{
+        }</span> else<span class="cov5" title="3"> if len(results) &lt; 1 </span><span class="cov0" title="0">{
                 return reflect.Value{}, errors.New("xxx")
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov5" title="3"> {
                 return results[0], nil
         }</span>
 }
@@ -5933,7 +5975,7 @@ func (a *ArgContext) Matches(c gs.Condition) (bool, error) <span class="cov0" ti
 }</span>
 
 // Bind binds a value to a specific tag in the container.
-func (a *ArgContext) Bind(v reflect.Value, tag string) error <span class="cov2" title="2">{
+func (a *ArgContext) Bind(v reflect.Value, tag string) error <span class="cov4" title="4">{
         return a.c.p.Data().Bind(v, tag)
 }</span>
 
@@ -6760,7 +6802,7 @@ func New() *Properties <span class="cov2" title="2">{
 }</span>
 
 // Data returns the current properties.
-func (p *Properties) Data() gs.Properties <span class="cov6" title="22">{
+func (p *Properties) Data() gs.Properties <span class="cov6" title="24">{
         p.lock.RLock()
         defer p.lock.RUnlock()
         return p.prop
@@ -7117,7 +7159,7 @@ func NewSimplePProfServer(addr string) *SimplePProfServer <span class="cov8" tit
         mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
         mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
         return &amp;SimplePProfServer{
-                SimpleHttpServer: NewSimpleHttpServer(addr, mux),
+                SimpleHttpServer: NewSimpleHttpServer(mux, SetHttpServerAddr(addr)),
         }
 }</span>
 </pre>
@@ -7466,10 +7508,7 @@ func Ranges(start, end int, fn func(i int)) <span class="cov0" title="0">{
 
 // StepRanges iterates from 'start' to 'end' using a step size and applies 'fn' to each index.
 func StepRanges(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
-        if step == 0 </span><span class="cov0" title="0">{
-                panic("StepRanges: step cannot be zero")</span>
-        }
-        <span class="cov0" title="0">if step &gt; 0 &amp;&amp; start &lt; end </span><span class="cov0" title="0">{
+        if step &gt; 0 &amp;&amp; start &lt; end </span><span class="cov0" title="0">{
                 stepRangesForward(start, end, step, fn)
         }</span> else<span class="cov0" title="0"> if step &lt; 0 &amp;&amp; start &gt; end </span><span class="cov0" title="0">{
                 stepRangesBackward(start, end, step, fn)
@@ -7708,7 +7747,7 @@ func IsFuncType(t reflect.Type) bool <span class="cov5" title="6">{
 
 // IsErrorType returns true if the provided type t is an error type,
 // either directly (error) or via an implementation (i.e., implements the error interface).
-func IsErrorType(t reflect.Type) bool <span class="cov5" title="6">{
+func IsErrorType(t reflect.Type) bool <span class="cov6" title="9">{
         return t == errorType || t.Implements(errorType)
 }</span>
 
@@ -7742,9 +7781,9 @@ func IsConstructor(t reflect.Type) bool <span class="cov3" title="3">{
 
 // IsPrimitiveValueType returns true if the provided type t is a primitive value type,
 // such as int, uint, float, bool, or string.
-func IsPrimitiveValueType(t reflect.Type) bool <span class="cov9" title="35">{
+func IsPrimitiveValueType(t reflect.Type) bool <span class="cov10" title="39">{
         switch t.Kind() </span>{
-        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov4" title="5">
+        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov6" title="9">
                 return true</span>
         case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:<span class="cov0" title="0">
                 return true</span>
@@ -7762,14 +7801,14 @@ func IsPrimitiveValueType(t reflect.Type) bool <span class="cov9" title="35">{
 // IsPropBindingTarget returns true if the provided type t is a valid target for property binding.
 // This includes primitive value types or composite types (such as array, slice, map, or struct)
 // where the elements are primitive value types.
-func IsPropBindingTarget(t reflect.Type) bool <span class="cov9" title="35">{
+func IsPropBindingTarget(t reflect.Type) bool <span class="cov10" title="39">{
         switch t.Kind() </span>{
         case reflect.Map, reflect.Slice, reflect.Array:<span class="cov1" title="1">
                 t = t.Elem()</span> // for collection types, check the element type
-        default:<span class="cov9" title="34"></span>
+        default:<span class="cov9" title="38"></span>
                 // do nothing
         }
-        <span class="cov9" title="35">return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct</span>
+        <span class="cov10" title="39">return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct</span>
 }
 
 // IsBeanType returns true if the provided type t is considered a "bean" type.
