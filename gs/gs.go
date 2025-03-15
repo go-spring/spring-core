@@ -65,9 +65,9 @@ func IndexArg(n int, arg Arg) Arg {
 	return gs_arg.Index(n, arg)
 }
 
-// OptionArg returns an OptionArg for the specified function and arguments.
-func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
-	return gs_arg.Option(fn, args...)
+// BindArg returns an BindArg for the specified function and arguments.
+func BindArg(fn interface{}, args ...Arg) *gs_arg.BindArg {
+	return gs_arg.Bind(fn, args...)
 }
 
 /************************************ cond ***********************************/

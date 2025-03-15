@@ -1205,7 +1205,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		prop.Set("president", "CaiYuanPei")
 
 		c := gs_core.New()
-		c.Provide(NewClassRoom, gs_arg.Option(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")))
+		c.Provide(NewClassRoom, gs_arg.Bind(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p *gs_core.Container) {
@@ -1228,7 +1228,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		prop.Set("president", "CaiYuanPei")
 
 		c := gs_core.New()
-		c.Provide(NewClassRoom, gs_arg.Option(withStudents))
+		c.Provide(NewClassRoom, gs_arg.Bind(withStudents))
 		c.Object(new(Student)).Name("Student1")
 		c.Object(new(Student)).Name("Student2")
 
@@ -1254,9 +1254,9 @@ func TestOptionConstructorArg(t *testing.T) {
 	//
 	//	c := gs_core.New()
 	//	c.Provide(NewClassRoom,
-	//		gs_arg.Option(withStudents),
-	//		gs_arg.Option(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")),
-	//		gs_arg.Option(withBuilder, gs_arg.MustBind(func(param string) *ClassBuilder {
+	//		gs_arg.Bind(withStudents),
+	//		gs_arg.Bind(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")),
+	//		gs_arg.Bind(withBuilder, gs_arg.MustBind(func(param string) *ClassBuilder {
 	//			return &ClassBuilder{param: param}
 	//		}, gs_arg.Value("1"))),
 	//	)
@@ -1781,7 +1781,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewVarObj, gs_arg.Tag("${var.obj}"), gs_arg.Option(withVar, gs_arg.Tag("v1")))
+		c.Provide(NewVarObj, gs_arg.Tag("${var.obj}"), gs_arg.Bind(withVar, gs_arg.Tag("v1")))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p *gs_core.Container) {
@@ -1804,7 +1804,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewVarObj, gs_arg.Value("description"), gs_arg.Option(withVar, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
+		c.Provide(NewVarObj, gs_arg.Value("description"), gs_arg.Bind(withVar, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p *gs_core.Container) {
@@ -1829,7 +1829,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c.Object(&Var{"v2"}).Name("v2").Export(
 			gs.As[interface{}](),
 		)
-		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1")))
+		c.Provide(NewVarInterfaceObj, gs_arg.Bind(withVarInterface, gs_arg.Tag("v1")))
 		err := runTest(c, func(p *gs_core.Container) {
 			var obj struct {
 				Value *VarInterfaceObj `autowire:""`
@@ -1849,7 +1849,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c.Object(&Var{"v2"}).Name("v2").Export(
 			gs.As[interface{}](),
 		)
-		c.Provide(NewVarInterfaceObj, gs_arg.Option(withVarInterface, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
+		c.Provide(NewVarInterfaceObj, gs_arg.Bind(withVarInterface, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
 		err := runTest(c, func(p *gs_core.Container) {
 			var obj struct {
 				Value *VarInterfaceObj `autowire:""`
@@ -2343,7 +2343,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		prop.Set("class_floor", 2)
 
 		c := gs_core.New()
-		c.Provide(NewClassRoom, gs_arg.Option(withClassName,
+		c.Provide(NewClassRoom, gs_arg.Bind(withClassName,
 			gs_arg.Tag("${class_name:=二年级03班}"),
 			gs_arg.Tag("${class_floor:=3}"),
 		).Condition(gs_cond.OnProperty("class_name_enable")))
@@ -2370,7 +2370,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		onProperty := gs_cond.OnProperty("class_name_enable")
 		c := gs_core.New()
 		c.Provide(NewClassRoom,
-			gs_arg.Option(withClassName,
+			gs_arg.Bind(withClassName,
 				gs_arg.Tag("${class_name:=二年级03班}"),
 				gs_arg.Tag("${class_floor:=3}"),
 			).Condition(onProperty),

@@ -238,13 +238,12 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 			fnType := m.Func.Type()
 			out0 := fnType.Out(0)
 			file, line, _ := util.FileLine(m.Func.Interface())
-			f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{
+			f, err := gs_arg.NewCallable(m.Func.Interface(), []gs.Arg{
 				gs_arg.Tag(bd.Name()),
 			})
 			if err != nil {
 				return nil, err
 			}
-			f.SetFileLine(file, line)
 			v := reflect.New(out0)
 			if util.IsBeanType(out0) {
 				v = v.Elem()

@@ -107,9 +107,9 @@
 				
 				<option value="file25">github.com/go-spring/spring-core/gs/internal/gs_app/signal.go (77.8%)</option>
 				
-				<option value="file26">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (53.0%)</option>
+				<option value="file26">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (55.5%)</option>
 				
-				<option value="file27">github.com/go-spring/spring-core/gs/internal/gs_bean/bean.go (39.6%)</option>
+				<option value="file27">github.com/go-spring/spring-core/gs/internal/gs_bean/bean.go (40.4%)</option>
 				
 				<option value="file28">github.com/go-spring/spring-core/gs/internal/gs_cond/cond.go (22.0%)</option>
 				
@@ -121,11 +121,11 @@
 				
 				<option value="file32">github.com/go-spring/spring-core/gs/internal/gs_conf/env.go (80.8%)</option>
 				
-				<option value="file33">github.com/go-spring/spring-core/gs/internal/gs_core/bean.go (67.2%)</option>
+				<option value="file33">github.com/go-spring/spring-core/gs/internal/gs_core/bean.go (66.7%)</option>
 				
 				<option value="file34">github.com/go-spring/spring-core/gs/internal/gs_core/core.go (61.0%)</option>
 				
-				<option value="file35">github.com/go-spring/spring-core/gs/internal/gs_core/resolving/resolving.go (29.9%)</option>
+				<option value="file35">github.com/go-spring/spring-core/gs/internal/gs_core/resolving/resolving.go (30.1%)</option>
 				
 				<option value="file36">github.com/go-spring/spring-core/gs/internal/gs_core/wiring/wiring.go (58.2%)</option>
 				
@@ -2251,9 +2251,9 @@ func IndexArg(n int, arg Arg) Arg <span class="cov1" title="1">{
         return gs_arg.Index(n, arg)
 }</span>
 
-// OptionArg returns an OptionArg for the specified function and arguments.
-func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg <span class="cov4" title="3">{
-        return gs_arg.Option(fn, args...)
+// BindArg returns an BindArg for the specified function and arguments.
+func BindArg(fn interface{}, args ...Arg) *gs_arg.BindArg <span class="cov4" title="3">{
+        return gs_arg.Bind(fn, args...)
 }</span>
 
 /************************************ cond ***********************************/
@@ -2534,9 +2534,9 @@ func init() <span class="cov1" title="1">{
         Provide(
                 NewSimpleHttpServer,
                 TagArg(""),
-                OptionArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
-                OptionArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
-                OptionArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
+                BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
+                BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
+                BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
         ).Condition(
                 And(
                         OnBean[*http.ServeMux](),
@@ -3479,7 +3479,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
                         return nil, errutil.WrapError(err, "%v", args)
                 }</span>
                 <span class="cov8" title="6">switch arg := args[0].(type) </span>{
-                case *OptionArg:<span class="cov0" title="0">
+                case *BindArg:<span class="cov0" title="0">
                         fnArgs = append(fnArgs, arg)</span>
                 case IndexArg:<span class="cov1" title="1">
                         if arg.Idx &lt; 0 || arg.Idx &gt;= fixedArgCount </span><span class="cov0" title="0">{
@@ -3503,7 +3503,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
         // Processes the remaining arguments.
         <span class="cov8" title="6">for i := 1; i &lt; len(args); i++ </span><span class="cov5" title="3">{
                 switch arg := args[i].(type) </span>{
-                case *OptionArg:<span class="cov5" title="3">
+                case *BindArg:<span class="cov5" title="3">
                         fnArgs = append(fnArgs, arg)</span>
                 case IndexArg:<span class="cov0" title="0">
                         if !shouldIndex </span><span class="cov0" title="0">{
@@ -3575,39 +3575,42 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="c
         <span class="cov8" title="6">return result, nil</span>
 }
 
-// CallableFunc is a function that can be called.
-type CallableFunc = interface{}
-
-// OptionArg represents a binding for an option function argument.
-type OptionArg struct {
-        r *Callable
-        c []gs.Condition
+// BindArg represents a binding for an option function argument.
+type BindArg struct {
+        r        *Callable
+        fileLine string
+        c        []gs.Condition
 }
 
-// Option creates a binding for an option function argument.
-func Option(fn CallableFunc, args ...gs.Arg) *OptionArg <span class="cov5" title="3">{
+// Bind creates a binding for an option function argument.
+func Bind(fn CallableFunc, args ...gs.Arg) *BindArg <span class="cov5" title="3">{
         t := reflect.TypeOf(fn)
         if t.Kind() != reflect.Func || t.NumOut() != 1 </span><span class="cov0" title="0">{
                 panic(errors.New("invalid option func"))</span>
         }
-
         <span class="cov5" title="3">_, file, line, _ := runtime.Caller(1)
-        r, err := Bind(fn, args)
+        r, err := NewCallable(fn, args)
         if err != nil </span><span class="cov0" title="0">{
                 panic(err)</span>
         }
-        <span class="cov5" title="3">r.SetFileLine(file, line)
-        return &amp;OptionArg{r: r}</span>
+        <span class="cov5" title="3">arg := &amp;BindArg{r: r}
+        arg.SetFileLine(file, line)
+        return arg</span>
 }
 
 // Condition sets a condition for invoking the option function.
-func (arg *OptionArg) Condition(conditions ...gs.Condition) *OptionArg <span class="cov0" title="0">{
+func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg <span class="cov0" title="0">{
         arg.c = append(arg.c, conditions...)
         return arg
 }</span>
 
+// SetFileLine sets the file and line number of the function call.
+func (arg *BindArg) SetFileLine(file string, line int) <span class="cov5" title="3">{
+        arg.fileLine = fmt.Sprintf("%s:%d", file, line)
+}</span>
+
 // GetArgValue retrieves the function's return value if conditions are met.
-func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov5" title="3">{
+func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov5" title="3">{
 
         // Checks if the condition is met.
         for _, c := range arg.c </span><span class="cov0" title="0">{
@@ -3627,28 +3630,24 @@ func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Va
         <span class="cov5" title="3">return out[0], nil</span>
 }
 
+// CallableFunc is a function that can be called.
+type CallableFunc = interface{}
+
 // Callable wraps a function and its binding arguments.
 type Callable struct {
-        fn       CallableFunc
-        fnType   reflect.Type
-        argList  *ArgList
-        fileLine string
+        fn      CallableFunc
+        argList *ArgList
 }
 
-// Bind creates a Callable by binding arguments to a function.
-func Bind(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class="cov8" title="6">{
+// NewCallable creates a Callable by binding arguments to a function.
+func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class="cov8" title="6">{
         fnType := reflect.TypeOf(fn)
         argList, err := NewArgList(fnType, args)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov8" title="6">return &amp;Callable{fn: fn, fnType: fnType, argList: argList}, nil</span>
+        <span class="cov8" title="6">return &amp;Callable{fn: fn, argList: argList}, nil</span>
 }
-
-// SetFileLine sets the file and line number of the function call.
-func (r *Callable) SetFileLine(file string, line int) <span class="cov8" title="6">{
-        r.fileLine = fmt.Sprintf("%s:%d", file, line)
-}</span>
 
 // Call invokes the function with its bound arguments processed in the IoC container.
 func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov8" title="6">{
@@ -3671,17 +3670,6 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class=
                 <span class="cov0" title="0">return out[:n-1], nil</span>
         }
         <span class="cov8" title="6">return out, nil</span>
-}
-
-// GetArgValue retrieves the result of calling the function.
-func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov0" title="0">{
-        if results, err := r.Call(ctx); err != nil </span><span class="cov0" title="0">{
-                return reflect.Value{}, err
-        }</span> else<span class="cov0" title="0"> if len(results) &lt; 1 </span><span class="cov0" title="0">{
-                return reflect.Value{}, errors.New("xxx")
-        }</span> else<span class="cov0" title="0"> {
-                return results[0], nil
-        }</span>
 }
 </pre>
 		
@@ -3862,11 +3850,8 @@ func (d *BeanMetadata) RefreshTag() string <span class="cov0" title="0">{
 // SetCaller sets the caller for the bean.
 func (d *BeanMetadata) SetCaller(skip int) <span class="cov0" title="0">{
         _, file, line, _ := runtime.Caller(skip)
-        if d.f != nil </span><span class="cov0" title="0">{
-                d.f.SetFileLine(file, line)
-        }</span>
-        <span class="cov0" title="0">d.file, d.line = file, line</span>
-}
+        d.file, d.line = file, line
+}</span>
 
 // FileLine returns the file and line number for the bean.
 func (d *BeanMetadata) FileLine() (string, int) <span class="cov0" title="0">{
@@ -5177,13 +5162,12 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span
 
                 // Bind the constructor arguments
                 <span class="cov4" title="3">var err error
-                f, err = gs_arg.Bind(objOrCtor, ctorArgs)
+                f, err = gs_arg.NewCallable(objOrCtor, ctorArgs)
                 if err != nil </span><span class="cov0" title="0">{
                         panic(err)</span>
                 }
-                <span class="cov4" title="3">f.SetFileLine(file, line)
 
-                var in0 reflect.Type
+                <span class="cov4" title="3">var in0 reflect.Type
                 if t.NumIn() &gt; 0 </span><span class="cov4" title="3">{
                         in0 = t.In(0)
                 }</span>
@@ -5654,14 +5638,13 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
                         <span class="cov0" title="0">fnType := m.Func.Type()
                         out0 := fnType.Out(0)
                         file, line, _ := util.FileLine(m.Func.Interface())
-                        f, err := gs_arg.Bind(m.Func.Interface(), []gs.Arg{
+                        f, err := gs_arg.NewCallable(m.Func.Interface(), []gs.Arg{
                                 gs_arg.Tag(bd.Name()),
                         })
                         if err != nil </span><span class="cov0" title="0">{
                                 return nil, err
                         }</span>
-                        <span class="cov0" title="0">f.SetFileLine(file, line)
-                        v := reflect.New(out0)
+                        <span class="cov0" title="0">v := reflect.New(out0)
                         if util.IsBeanType(out0) </span><span class="cov0" title="0">{
                                 v = v.Elem()
                         }</span>

@@ -175,9 +175,6 @@ func (d *BeanMetadata) RefreshTag() string {
 // SetCaller sets the caller for the bean.
 func (d *BeanMetadata) SetCaller(skip int) {
 	_, file, line, _ := runtime.Caller(skip)
-	if d.f != nil {
-		d.f.SetFileLine(file, line)
-	}
 	d.file, d.line = file, line
 }
 

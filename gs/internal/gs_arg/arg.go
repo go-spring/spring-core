@@ -135,7 +135,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 			return nil, errutil.WrapError(err, "%v", args)
 		}
 		switch arg := args[0].(type) {
-		case *OptionArg:
+		case *BindArg:
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
 			if arg.Idx < 0 || arg.Idx >= fixedArgCount {
@@ -159,7 +159,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	// Processes the remaining arguments.
 	for i := 1; i < len(args); i++ {
 		switch arg := args[i].(type) {
-		case *OptionArg:
+		case *BindArg:
 			fnArgs = append(fnArgs, arg)
 		case IndexArg:
 			if !shouldIndex {
@@ -231,39 +231,42 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 	return result, nil
 }
 
-// CallableFunc is a function that can be called.
-type CallableFunc = interface{}
-
-// OptionArg represents a binding for an option function argument.
-type OptionArg struct {
-	r *Callable
-	c []gs.Condition
+// BindArg represents a binding for an option function argument.
+type BindArg struct {
+	r        *Callable
+	fileLine string
+	c        []gs.Condition
 }
 
-// Option creates a binding for an option function argument.
-func Option(fn CallableFunc, args ...gs.Arg) *OptionArg {
+// Bind creates a binding for an option function argument.
+func Bind(fn CallableFunc, args ...gs.Arg) *BindArg {
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func || t.NumOut() != 1 {
 		panic(errors.New("invalid option func"))
 	}
-
 	_, file, line, _ := runtime.Caller(1)
-	r, err := Bind(fn, args)
+	r, err := NewCallable(fn, args)
 	if err != nil {
 		panic(err)
 	}
-	r.SetFileLine(file, line)
-	return &OptionArg{r: r}
+	arg := &BindArg{r: r}
+	arg.SetFileLine(file, line)
+	return arg
 }
 
 // Condition sets a condition for invoking the option function.
-func (arg *OptionArg) Condition(conditions ...gs.Condition) *OptionArg {
+func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg {
 	arg.c = append(arg.c, conditions...)
 	return arg
 }
 
+// SetFileLine sets the file and line number of the function call.
+func (arg *BindArg) SetFileLine(file string, line int) {
+	arg.fileLine = fmt.Sprintf("%s:%d", file, line)
+}
+
 // GetArgValue retrieves the function's return value if conditions are met.
-func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
+func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 
 	// Checks if the condition is met.
 	for _, c := range arg.c {
@@ -283,27 +286,23 @@ func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Va
 	return out[0], nil
 }
 
+// CallableFunc is a function that can be called.
+type CallableFunc = interface{}
+
 // Callable wraps a function and its binding arguments.
 type Callable struct {
-	fn       CallableFunc
-	fnType   reflect.Type
-	argList  *ArgList
-	fileLine string
+	fn      CallableFunc
+	argList *ArgList
 }
 
-// Bind creates a Callable by binding arguments to a function.
-func Bind(fn CallableFunc, args []gs.Arg) (*Callable, error) {
+// NewCallable creates a Callable by binding arguments to a function.
+func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) {
 	fnType := reflect.TypeOf(fn)
 	argList, err := NewArgList(fnType, args)
 	if err != nil {
 		return nil, err
 	}
-	return &Callable{fn: fn, fnType: fnType, argList: argList}, nil
-}
-
-// SetFileLine sets the file and line number of the function call.
-func (r *Callable) SetFileLine(file string, line int) {
-	r.fileLine = fmt.Sprintf("%s:%d", file, line)
+	return &Callable{fn: fn, argList: argList}, nil
 }
 
 // Call invokes the function with its bound arguments processed in the IoC container.
@@ -327,15 +326,4 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 		return out[:n-1], nil
 	}
 	return out, nil
-}
-
-// GetArgValue retrieves the result of calling the function.
-func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
-	if results, err := r.Call(ctx); err != nil {
-		return reflect.Value{}, err
-	} else if len(results) < 1 {
-		return reflect.Value{}, errors.New("xxx")
-	} else {
-		return results[0], nil
-	}
 }

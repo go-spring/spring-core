@@ -27,9 +27,9 @@ func init() {
 	Provide(
 		NewSimpleHttpServer,
 		TagArg(""),
-		OptionArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
-		OptionArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
-		OptionArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
+		BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
+		BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
+		BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
 	).Condition(
 		And(
 			OnBean[*http.ServeMux](),

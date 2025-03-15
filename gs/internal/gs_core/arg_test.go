@@ -31,7 +31,7 @@ func TestBind(t *testing.T) {
 		stack := wiring.NewStack()
 		ctx := wiring.NewArgContext(&wiring.Wiring{}, stack)
 		fn := func() {}
-		p, err := gs_arg.Bind(fn, []gs.Arg{})
+		p, err := gs_arg.NewCallable(fn, []gs.Arg{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -49,7 +49,7 @@ func TestBind(t *testing.T) {
 		fn := func(i int) {
 			expectInt = i
 		}
-		p, err := gs_arg.Bind(fn, []gs.Arg{
+		p, err := gs_arg.NewCallable(fn, []gs.Arg{
 			gs_arg.Value(3),
 		})
 		if err != nil {
