@@ -75,25 +75,25 @@
 				
 				<option value="file9">github.com/go-spring/spring-core/conf/storage/store.go (63.8%)</option>
 				
-				<option value="file10">github.com/go-spring/spring-core/gs/examples/bookman/app/bootstrap/bootstrap.go (73.9%)</option>
+				<option value="file10">github.com/go-spring/spring-core/gs/examples/bookman/src/app/bootstrap/bootstrap.go (73.9%)</option>
 				
-				<option value="file11">github.com/go-spring/spring-core/gs/examples/bookman/app/common/handlers/log/log.go (87.5%)</option>
+				<option value="file11">github.com/go-spring/spring-core/gs/examples/bookman/src/app/common/handlers/log/log.go (87.5%)</option>
 				
-				<option value="file12">github.com/go-spring/spring-core/gs/examples/bookman/app/common/httpsvr/httpsvr.go (100.0%)</option>
+				<option value="file12">github.com/go-spring/spring-core/gs/examples/bookman/src/app/common/httpsvr/httpsvr.go (100.0%)</option>
 				
-				<option value="file13">github.com/go-spring/spring-core/gs/examples/bookman/app/controller/controller-book.go (12.0%)</option>
+				<option value="file13">github.com/go-spring/spring-core/gs/examples/bookman/src/app/controller/controller-book.go (12.0%)</option>
 				
-				<option value="file14">github.com/go-spring/spring-core/gs/examples/bookman/app/controller/controller.go (100.0%)</option>
+				<option value="file14">github.com/go-spring/spring-core/gs/examples/bookman/src/app/controller/controller.go (100.0%)</option>
 				
-				<option value="file15">github.com/go-spring/spring-core/gs/examples/bookman/biz/job/job.go (66.7%)</option>
+				<option value="file15">github.com/go-spring/spring-core/gs/examples/bookman/src/biz/job/job.go (66.7%)</option>
 				
-				<option value="file16">github.com/go-spring/spring-core/gs/examples/bookman/biz/service/book_service/book_service.go (43.8%)</option>
+				<option value="file16">github.com/go-spring/spring-core/gs/examples/bookman/src/biz/service/book_service/book_service.go (43.8%)</option>
 				
-				<option value="file17">github.com/go-spring/spring-core/gs/examples/bookman/dao/book_dao/book_dao.go (36.4%)</option>
+				<option value="file17">github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao/book_dao.go (36.4%)</option>
 				
-				<option value="file18">github.com/go-spring/spring-core/gs/examples/bookman/idl/proto.go (100.0%)</option>
+				<option value="file18">github.com/go-spring/spring-core/gs/examples/bookman/src/idl/proto.go (100.0%)</option>
 				
-				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/sdk/book_sdk/book_sdk.go (100.0%)</option>
+				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk/book_sdk.go (100.0%)</option>
 				
 				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (68.8%)</option>
 				
@@ -205,9 +205,8 @@ import (
         "github.com/go-spring/spring-core/util/iterutil"
         "github.com/go-spring/spring-core/util/syslog"
 
-        _ "github.com/go-spring/spring-core/gs/examples/bookman/app"
-        _ "github.com/go-spring/spring-core/gs/examples/bookman/biz"
-        _ "github.com/go-spring/spring-core/gs/examples/bookman/idl"
+        _ "github.com/go-spring/spring-core/gs/examples/bookman/src/app"
+        _ "github.com/go-spring/spring-core/gs/examples/bookman/src/biz"
 )
 
 func init() <span class="cov1" title="1">{
@@ -1749,7 +1748,7 @@ import (
         "net/http"
 
         "github.com/go-spring/spring-core/gs"
-        "github.com/go-spring/spring-core/gs/examples/bookman/idl"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
 )
 
 func init() <span class="cov1" title="1">{
@@ -1797,8 +1796,8 @@ import (
         "encoding/json"
         "net/http"
 
-        "github.com/go-spring/spring-core/gs/examples/bookman/biz/service/book_service"
-        "github.com/go-spring/spring-core/gs/examples/bookman/dao/book_dao"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/biz/service/book_service"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao"
 )
 
 type BookController struct {
@@ -1872,7 +1871,7 @@ package controller
 
 import (
         "github.com/go-spring/spring-core/gs"
-        "github.com/go-spring/spring-core/gs/examples/bookman/idl"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
 )
 
 func init() <span class="cov8" title="1">{
@@ -1959,9 +1958,9 @@ import (
         "strconv"
 
         "github.com/go-spring/spring-core/gs"
-        "github.com/go-spring/spring-core/gs/examples/bookman/dao/book_dao"
-        "github.com/go-spring/spring-core/gs/examples/bookman/idl"
-        "github.com/go-spring/spring-core/gs/examples/bookman/sdk/book_sdk"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk"
 )
 
 func init() <span class="cov1" title="1">{

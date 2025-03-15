@@ -21,9 +21,9 @@ import (
 	"strconv"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/examples/bookman/dao/book_dao"
-	"github.com/go-spring/spring-core/gs/examples/bookman/idl"
-	"github.com/go-spring/spring-core/gs/examples/bookman/sdk/book_sdk"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk"
 )
 
 func init() {

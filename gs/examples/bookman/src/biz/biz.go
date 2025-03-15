@@ -14,19 +14,8 @@
  * limitations under the License.
  */
 
-package controller
+package biz
 
 import (
-	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/examples/bookman/idl"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/biz/job"
 )
-
-func init() {
-	gs.Object(&Controller{}).Export(gs.As[idl.Controller]())
-}
-
-var _ idl.Controller = (*Controller)(nil)
-
-type Controller struct {
-	BookController
-}

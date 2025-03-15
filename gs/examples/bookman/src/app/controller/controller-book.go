@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-spring/spring-core/gs/examples/bookman/biz/service/book_service"
-	"github.com/go-spring/spring-core/gs/examples/bookman/dao/book_dao"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/biz/service/book_service"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao"
 )
 
 type BookController struct {

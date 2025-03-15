@@ -27,9 +27,8 @@ import (
 	"github.com/go-spring/spring-core/util/iterutil"
 	"github.com/go-spring/spring-core/util/syslog"
 
-	_ "github.com/go-spring/spring-core/gs/examples/bookman/app"
-	_ "github.com/go-spring/spring-core/gs/examples/bookman/biz"
-	_ "github.com/go-spring/spring-core/gs/examples/bookman/idl"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/app"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/biz"
 )
 
 func init() {

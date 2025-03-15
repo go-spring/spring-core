@@ -14,11 +14,19 @@
  * limitations under the License.
  */
 
-package app
+package controller
 
 import (
-	_ "github.com/go-spring/spring-core/gs/examples/bookman/app/bootstrap"
-	_ "github.com/go-spring/spring-core/gs/examples/bookman/app/common/handlers/log"
-	_ "github.com/go-spring/spring-core/gs/examples/bookman/app/common/httpsvr"
-	_ "github.com/go-spring/spring-core/gs/examples/bookman/app/controller"
+	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
 )
+
+func init() {
+	gs.Object(&Controller{}).Export(gs.As[idl.Controller]())
+}
+
+var _ idl.Controller = (*Controller)(nil)
+
+type Controller struct {
+	BookController
+}

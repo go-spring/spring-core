@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-package biz
+package app
 
 import (
-	_ "github.com/go-spring/spring-core/gs/examples/bookman/biz/job"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/app/bootstrap"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/app/common/handlers/log"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/app/common/httpsvr"
+	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/app/controller"
 )

@@ -22,7 +22,7 @@ import (
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/examples/bookman/idl"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
 )
 
 func init() {
