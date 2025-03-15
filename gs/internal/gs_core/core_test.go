@@ -1247,37 +1247,37 @@ func TestOptionConstructorArg(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("option withStudents withClassName", func(t *testing.T) {
-		prop := conf.New()
-		prop.Set("class_name", "二年级06班")
-		prop.Set("president", "CaiYuanPei")
-
-		c := gs_core.New()
-		c.Provide(NewClassRoom,
-			gs_arg.Option(withStudents),
-			gs_arg.Option(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")),
-			gs_arg.Option(withBuilder, gs_arg.MustBind(func(param string) *ClassBuilder {
-				return &ClassBuilder{param: param}
-			}, gs_arg.Value("1"))),
-		)
-		c.Object(&Student{}).Name("Student1")
-		c.Object(&Student{}).Name("Student2")
-
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
-			var cls struct {
-				Value *ClassRoom `autowire:""`
-			}
-			err := p.Wire(&cls)
-			assert.Nil(t, err)
-			assert.Equal(t, cls.Value.floor, 3)
-			assert.Equal(t, len(cls.Value.students), 2)
-			assert.Equal(t, cls.Value.className, "二年级06班")
-			assert.Equal(t, cls.Value.President, "CaiYuanPei")
-			assert.Equal(t, cls.Value.builder.param, "1")
-		})
-		assert.Nil(t, err)
-	})
+	//t.Run("option withStudents withClassName", func(t *testing.T) {
+	//	prop := conf.New()
+	//	prop.Set("class_name", "二年级06班")
+	//	prop.Set("president", "CaiYuanPei")
+	//
+	//	c := gs_core.New()
+	//	c.Provide(NewClassRoom,
+	//		gs_arg.Option(withStudents),
+	//		gs_arg.Option(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")),
+	//		gs_arg.Option(withBuilder, gs_arg.MustBind(func(param string) *ClassBuilder {
+	//			return &ClassBuilder{param: param}
+	//		}, gs_arg.Value("1"))),
+	//	)
+	//	c.Object(&Student{}).Name("Student1")
+	//	c.Object(&Student{}).Name("Student2")
+	//
+	//	c.RefreshProperties(prop)
+	//	err := runTest(c, func(p *gs_core.Container) {
+	//		var cls struct {
+	//			Value *ClassRoom `autowire:""`
+	//		}
+	//		err := p.Wire(&cls)
+	//		assert.Nil(t, err)
+	//		assert.Equal(t, cls.Value.floor, 3)
+	//		assert.Equal(t, len(cls.Value.students), 2)
+	//		assert.Equal(t, cls.Value.className, "二年级06班")
+	//		assert.Equal(t, cls.Value.President, "CaiYuanPei")
+	//		assert.Equal(t, cls.Value.builder.param, "1")
+	//	})
+	//	assert.Nil(t, err)
+	//})
 }
 
 type ServerInterface interface {

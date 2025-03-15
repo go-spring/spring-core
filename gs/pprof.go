@@ -22,7 +22,12 @@ import (
 )
 
 func init() {
-	Provide(NewSimplePProfServer, TagArg("${pprof.server.addr:=0.0.0.0:9981}")).Condition(
+	Register(
+		NewBean(
+			NewSimplePProfServer,
+			TagArg("${pprof.server.addr:=0.0.0.0:9981}"),
+		),
+	).Condition(
 		OnProperty(EnableSimplePProfServerProp).HavingValue("true"),
 	).AsServer()
 }

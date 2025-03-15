@@ -248,7 +248,10 @@ func Option(fn CallableFunc, args ...gs.Arg) *OptionArg {
 	}
 
 	_, file, line, _ := runtime.Caller(1)
-	r := MustBind(fn, args...)
+	r, err := Bind(fn, args)
+	if err != nil {
+		panic(err)
+	}
 	r.SetFileLine(file, line)
 	return &OptionArg{r: r}
 }
@@ -286,17 +289,6 @@ type Callable struct {
 	fnType   reflect.Type
 	argList  *ArgList
 	fileLine string
-}
-
-// MustBind binds arguments to a function and panics if an error occurs.
-func MustBind(fn CallableFunc, args ...gs.Arg) *Callable {
-	r, err := Bind(fn, args)
-	if err != nil {
-		panic(err)
-	}
-	_, file, line, _ := runtime.Caller(2)
-	r.SetFileLine(file, line)
-	return r
 }
 
 // Bind creates a Callable by binding arguments to a function.

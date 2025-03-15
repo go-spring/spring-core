@@ -95,7 +95,7 @@
 				
 				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/sdk/book_sdk/book_sdk.go (100.0%)</option>
 				
-				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (64.6%)</option>
+				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (68.8%)</option>
 				
 				<option value="file21">github.com/go-spring/spring-core/gs/http.go (94.1%)</option>
 				
@@ -107,7 +107,7 @@
 				
 				<option value="file25">github.com/go-spring/spring-core/gs/internal/gs_app/signal.go (77.8%)</option>
 				
-				<option value="file26">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (51.5%)</option>
+				<option value="file26">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (53.0%)</option>
 				
 				<option value="file27">github.com/go-spring/spring-core/gs/internal/gs_bean/bean.go (39.6%)</option>
 				
@@ -2251,13 +2251,8 @@ func IndexArg(n int, arg Arg) Arg <span class="cov1" title="1">{
         return gs_arg.Index(n, arg)
 }</span>
 
-// BindArg binds runtime arguments to a given function.
-func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable <span class="cov4" title="3">{
-        return gs_arg.MustBind(fn, args...)
-}</span>
-
 // OptionArg returns an OptionArg for the specified function and arguments.
-func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg <span class="cov0" title="0">{
+func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg <span class="cov4" title="3">{
         return gs_arg.Option(fn, args...)
 }</span>
 
@@ -2286,7 +2281,7 @@ func OnMissingProperty(name string) Condition <span class="cov0" title="0">{
 
 // OnBean creates a Condition based on a BeanSelector.
 func OnBean[T any](name ...string) Condition <span class="cov1" title="1">{
-        return gs_cond.OnBean[T](name...)
+        return gs_cond.OnBeanSelector(BeanSelectorFor[T](name...))
 }</span>
 
 // OnBeanSelector creates a Condition based on a BeanSelector.
@@ -2296,7 +2291,7 @@ func OnBeanSelector(s BeanSelector) Condition <span class="cov0" title="0">{
 
 // OnMissingBean creates a Condition for when a specific bean is missing.
 func OnMissingBean[T any](name ...string) Condition <span class="cov0" title="0">{
-        return gs_cond.OnMissingBean[T](name...)
+        return gs_cond.OnMissingBeanSelector(BeanSelectorFor[T](name...))
 }</span>
 
 // OnMissingBeanSelector creates a Condition for when a specific bean is missing.
@@ -2306,7 +2301,7 @@ func OnMissingBeanSelector(s BeanSelector) Condition <span class="cov0" title="0
 
 // OnSingleBean creates a Condition for when only one instance of a bean exists.
 func OnSingleBean[T any](name ...string) Condition <span class="cov0" title="0">{
-        return gs_cond.OnSingleBean[T](name...)
+        return gs_cond.OnSingleBeanSelector(BeanSelectorFor[T](name...))
 }</span>
 
 // OnSingleBeanSelector creates a Condition for when only one instance of a bean exists.
@@ -2367,7 +2362,7 @@ type (
 var NewBean = gs_core.NewBean
 
 // BeanSelectorFor returns a BeanSelector for the given type.
-func BeanSelectorFor[T any](name ...string) BeanSelector <span class="cov0" title="0">{
+func BeanSelectorFor[T any](name ...string) BeanSelector <span class="cov1" title="1">{
         return gs.BeanSelectorFor[T](name...)
 }</span>
 
@@ -2438,13 +2433,13 @@ func Object(i interface{}) *RegisteredBean <span class="cov5" title="6">{
 }</span>
 
 // Provide registers a bean definition for a given constructor.
-func Provide(ctor interface{}, args ...Arg) *RegisteredBean <span class="cov4" title="3">{
+func Provide(ctor interface{}, args ...Arg) *RegisteredBean <span class="cov2" title="2">{
         b := NewBean(ctor, args...)
         return gs_app.GS.C.Register(b)
 }</span>
 
 // Register registers a bean definition.
-func Register(b *BeanDefinition) *RegisteredBean <span class="cov0" title="0">{
+func Register(b *BeanDefinition) *RegisteredBean <span class="cov1" title="1">{
         return gs_app.GS.C.Register(b)
 }</span>
 
@@ -2536,11 +2531,12 @@ import (
 )
 
 func init() <span class="cov1" title="1">{
-        Provide(NewSimpleHttpServer,
+        Provide(
+                NewSimpleHttpServer,
                 TagArg(""),
-                BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
-                BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
-                BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
+                OptionArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
+                OptionArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
+                OptionArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
         ).Condition(
                 And(
                         OnBean[*http.ServeMux](),
@@ -3507,7 +3503,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
         // Processes the remaining arguments.
         <span class="cov8" title="6">for i := 1; i &lt; len(args); i++ </span><span class="cov5" title="3">{
                 switch arg := args[i].(type) </span>{
-                case *OptionArg:<span class="cov0" title="0">
+                case *OptionArg:<span class="cov5" title="3">
                         fnArgs = append(fnArgs, arg)</span>
                 case IndexArg:<span class="cov0" title="0">
                         if !shouldIndex </span><span class="cov0" title="0">{
@@ -3523,14 +3519,14 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
                         }</span> else<span class="cov0" title="0"> {
                                 fnArgs[arg.Idx] = arg.Arg
                         }</span>
-                default:<span class="cov5" title="3">
+                default:<span class="cov0" title="0">
                         if shouldIndex </span><span class="cov0" title="0">{
                                 err := fmt.Errorf("the Args must have or have no index")
                                 return nil, errutil.WrapError(err, "%v", args)
                         }</span>
-                        <span class="cov5" title="3">if i &lt; fixedArgCount </span><span class="cov0" title="0">{
+                        <span class="cov0" title="0">if i &lt; fixedArgCount </span><span class="cov0" title="0">{
                                 fnArgs[i] = arg
-                        }</span> else<span class="cov5" title="3"> if fnType.IsVariadic() </span><span class="cov5" title="3">{
+                        }</span> else<span class="cov0" title="0"> if fnType.IsVariadic() </span><span class="cov0" title="0">{
                                 fnArgs = append(fnArgs, arg)
                         }</span> else<span class="cov0" title="0"> {
                                 err := fmt.Errorf("the count %d of Args exceeds max index %d", len(args), fixedArgCount)
@@ -3589,15 +3585,18 @@ type OptionArg struct {
 }
 
 // Option creates a binding for an option function argument.
-func Option(fn CallableFunc, args ...gs.Arg) *OptionArg <span class="cov0" title="0">{
+func Option(fn CallableFunc, args ...gs.Arg) *OptionArg <span class="cov5" title="3">{
         t := reflect.TypeOf(fn)
         if t.Kind() != reflect.Func || t.NumOut() != 1 </span><span class="cov0" title="0">{
                 panic(errors.New("invalid option func"))</span>
         }
 
-        <span class="cov0" title="0">_, file, line, _ := runtime.Caller(1)
-        r := MustBind(fn, args...)
-        r.SetFileLine(file, line)
+        <span class="cov5" title="3">_, file, line, _ := runtime.Caller(1)
+        r, err := Bind(fn, args)
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        <span class="cov5" title="3">r.SetFileLine(file, line)
         return &amp;OptionArg{r: r}</span>
 }
 
@@ -3608,7 +3607,7 @@ func (arg *OptionArg) Condition(conditions ...gs.Condition) *OptionArg <span cla
 }</span>
 
 // GetArgValue retrieves the function's return value if conditions are met.
-func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov0" title="0">{
+func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov5" title="3">{
 
         // Checks if the condition is met.
         for _, c := range arg.c </span><span class="cov0" title="0">{
@@ -3621,11 +3620,11 @@ func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Va
         }
 
         // Calls the function and returns its result.
-        <span class="cov0" title="0">out, err := arg.r.Call(ctx)
+        <span class="cov5" title="3">out, err := arg.r.Call(ctx)
         if err != nil </span><span class="cov0" title="0">{
                 return reflect.Value{}, err
         }</span>
-        <span class="cov0" title="0">return out[0], nil</span>
+        <span class="cov5" title="3">return out[0], nil</span>
 }
 
 // Callable wraps a function and its binding arguments.
@@ -3634,17 +3633,6 @@ type Callable struct {
         fnType   reflect.Type
         argList  *ArgList
         fileLine string
-}
-
-// MustBind binds arguments to a function and panics if an error occurs.
-func MustBind(fn CallableFunc, args ...gs.Arg) *Callable <span class="cov8" title="6">{
-        r, err := Bind(fn, args)
-        if err != nil </span><span class="cov0" title="0">{
-                panic(err)</span>
-        }
-        <span class="cov8" title="6">_, file, line, _ := runtime.Caller(2)
-        r.SetFileLine(file, line)
-        return r</span>
 }
 
 // Bind creates a Callable by binding arguments to a function.
@@ -3658,7 +3646,7 @@ func Bind(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class="cov8" 
 }
 
 // SetFileLine sets the file and line number of the function call.
-func (r *Callable) SetFileLine(file string, line int) <span class="cov9" title="9">{
+func (r *Callable) SetFileLine(file string, line int) <span class="cov8" title="6">{
         r.fileLine = fmt.Sprintf("%s:%d", file, line)
 }</span>
 
@@ -3686,12 +3674,12 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class=
 }
 
 // GetArgValue retrieves the result of calling the function.
-func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov5" title="3">{
+func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov0" title="0">{
         if results, err := r.Call(ctx); err != nil </span><span class="cov0" title="0">{
                 return reflect.Value{}, err
-        }</span> else<span class="cov5" title="3"> if len(results) &lt; 1 </span><span class="cov0" title="0">{
+        }</span> else<span class="cov0" title="0"> if len(results) &lt; 1 </span><span class="cov0" title="0">{
                 return reflect.Value{}, errors.New("xxx")
-        }</span> else<span class="cov5" title="3"> {
+        }</span> else<span class="cov0" title="0"> {
                 return results[0], nil
         }</span>
 }
@@ -4267,13 +4255,13 @@ type onBean struct {
 
 // OnBean creates a condition that evaluates to true if at least one bean
 // matches the specified type and name.
-func OnBean[T any](name ...string) gs.Condition <span class="cov1" title="1">{
+func OnBean[T any](name ...string) gs.Condition <span class="cov0" title="0">{
         return &amp;onBean{s: gs.BeanSelectorFor[T](name...)}
 }</span>
 
 // OnBeanSelector creates a condition that evaluates to true if at least one
 // bean matches the provided selector.
-func OnBeanSelector(s gs.BeanSelector) gs.Condition <span class="cov0" title="0">{
+func OnBeanSelector(s gs.BeanSelector) gs.Condition <span class="cov1" title="1">{
         return &amp;onBean{s: s}
 }</span>
 
@@ -5188,8 +5176,12 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span
                 }
 
                 // Bind the constructor arguments
-                <span class="cov4" title="3">f = gs_arg.MustBind(objOrCtor, ctorArgs...)
-                f.SetFileLine(file, line)
+                <span class="cov4" title="3">var err error
+                f, err = gs_arg.Bind(objOrCtor, ctorArgs)
+                if err != nil </span><span class="cov0" title="0">{
+                        panic(err)</span>
+                }
+                <span class="cov4" title="3">f.SetFileLine(file, line)
 
                 var in0 reflect.Type
                 if t.NumIn() &gt; 0 </span><span class="cov4" title="3">{
@@ -7140,7 +7132,12 @@ import (
 )
 
 func init() <span class="cov8" title="1">{
-        Provide(NewSimplePProfServer, TagArg("${pprof.server.addr:=0.0.0.0:9981}")).Condition(
+        Register(
+                NewBean(
+                        NewSimplePProfServer,
+                        TagArg("${pprof.server.addr:=0.0.0.0:9981}"),
+                ),
+        ).Condition(
                 OnProperty(EnableSimplePProfServerProp).HavingValue("true"),
         ).AsServer()
 }</span>

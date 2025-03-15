@@ -65,11 +65,6 @@ func IndexArg(n int, arg Arg) Arg {
 	return gs_arg.Index(n, arg)
 }
 
-// BindArg binds runtime arguments to a given function.
-func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
-	return gs_arg.MustBind(fn, args...)
-}
-
 // OptionArg returns an OptionArg for the specified function and arguments.
 func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
 	return gs_arg.Option(fn, args...)
@@ -100,7 +95,7 @@ func OnMissingProperty(name string) Condition {
 
 // OnBean creates a Condition based on a BeanSelector.
 func OnBean[T any](name ...string) Condition {
-	return gs_cond.OnBean[T](name...)
+	return gs_cond.OnBeanSelector(BeanSelectorFor[T](name...))
 }
 
 // OnBeanSelector creates a Condition based on a BeanSelector.
@@ -110,7 +105,7 @@ func OnBeanSelector(s BeanSelector) Condition {
 
 // OnMissingBean creates a Condition for when a specific bean is missing.
 func OnMissingBean[T any](name ...string) Condition {
-	return gs_cond.OnMissingBean[T](name...)
+	return gs_cond.OnMissingBeanSelector(BeanSelectorFor[T](name...))
 }
 
 // OnMissingBeanSelector creates a Condition for when a specific bean is missing.
@@ -120,7 +115,7 @@ func OnMissingBeanSelector(s BeanSelector) Condition {
 
 // OnSingleBean creates a Condition for when only one instance of a bean exists.
 func OnSingleBean[T any](name ...string) Condition {
-	return gs_cond.OnSingleBean[T](name...)
+	return gs_cond.OnSingleBeanSelector(BeanSelectorFor[T](name...))
 }
 
 // OnSingleBeanSelector creates a Condition for when only one instance of a bean exists.

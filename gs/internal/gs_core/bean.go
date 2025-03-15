@@ -69,7 +69,11 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		}
 
 		// Bind the constructor arguments
-		f = gs_arg.MustBind(objOrCtor, ctorArgs...)
+		var err error
+		f, err = gs_arg.Bind(objOrCtor, ctorArgs)
+		if err != nil {
+			panic(err)
+		}
 		f.SetFileLine(file, line)
 
 		var in0 reflect.Type
