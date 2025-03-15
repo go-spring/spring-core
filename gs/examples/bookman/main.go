@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/util/iterutil"
 	"github.com/go-spring/spring-core/util/syslog"
 
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/app"
@@ -37,22 +38,27 @@ func init() {
 }
 
 func main() {
+	// Unset certain environment variables before running the application
 	_ = os.Unsetenv("_")
 	_ = os.Unsetenv("TERM")
 	_ = os.Unsetenv("TERM_SESSION_ID")
+
+	// Run test after a short delay in a separate goroutine
 	go func() {
 		time.Sleep(time.Millisecond * 500)
 		runTest()
 	}()
+
+	// Start the application and log errors if startup fails
 	if err := gs.Run(); err != nil {
 		syslog.Errorf("app run failed: %s", err.Error())
 	}
 }
 
+// runTest performs a simple test.
 func runTest() {
 
-	// books
-	for i := 0; i < 5; i++ {
+	iterutil.Times(5, func(_ int) {
 		url := "http://127.0.0.1:9090/books"
 		resp, err := http.Get(url)
 		if err != nil {
@@ -65,7 +71,8 @@ func runTest() {
 		defer resp.Body.Close()
 		fmt.Print(string(b))
 		time.Sleep(time.Millisecond * 400)
-	}
+	})
 
+	// Shut down the application gracefully
 	gs.ShutDown()
 }

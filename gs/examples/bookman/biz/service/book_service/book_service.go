@@ -37,6 +37,8 @@ type BookService struct {
 	RefreshTime gs.Dync[int64]    `value:"${refresh_time}"`
 }
 
+// ListBooks retrieves all books from the database and enriches them with
+// pricing and refresh time.
 func (s *BookService) ListBooks() ([]idl.Book, error) {
 	books, err := s.BookDao.ListBooks()
 	if err != nil {
@@ -57,6 +59,8 @@ func (s *BookService) ListBooks() ([]idl.Book, error) {
 	return ret, nil
 }
 
+// GetBook retrieves a single book by its ISBN and enriches it with
+// pricing and refresh time.
 func (s *BookService) GetBook(isbn string) (idl.Book, error) {
 	book, err := s.BookDao.GetBook(isbn)
 	if err != nil {
@@ -73,10 +77,12 @@ func (s *BookService) GetBook(isbn string) (idl.Book, error) {
 	}, nil
 }
 
+// SaveBook stores a new book in the database.
 func (s *BookService) SaveBook(book book_dao.Book) error {
 	return s.BookDao.SaveBook(book)
 }
 
+// DeleteBook removes a book from the database by its ISBN.
 func (s *BookService) DeleteBook(isbn string) error {
 	return s.BookDao.DeleteBook(isbn)
 }

@@ -29,15 +29,16 @@ func init() {
 	gs.Boot().Object(gs.FuncRunner(initRemoteConfig)).AsRunner().OnProfiles("online")
 }
 
+// initRemoteConfig initializes the remote configuration setup
 func initRemoteConfig() error {
 	if err := getRemoteConfig(); err != nil {
 		return err
 	}
-	gs.Config().RemoteFile.AddDir("./conf/remote")
 	gs.Object(gs.FuncJob(refreshRemoteConfig)).AsJob()
 	return nil
 }
 
+// refreshRemoteConfig periodically refreshes the remote configuration
 func refreshRemoteConfig(ctx context.Context) error {
 	for {
 		select {
@@ -58,6 +59,7 @@ func refreshRemoteConfig(ctx context.Context) error {
 	}
 }
 
+// getRemoteConfig fetches and writes the remote configuration to a local file
 func getRemoteConfig() error {
 	err := os.MkdirAll("./conf/remote", os.ModePerm)
 	if err != nil {

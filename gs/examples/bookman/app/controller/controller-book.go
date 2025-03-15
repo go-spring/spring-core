@@ -28,6 +28,7 @@ type BookController struct {
 	BookService *book_service.BookService `autowire:""`
 }
 
+// ListBooks handles the HTTP request to list all books.
 func (c *BookController) ListBooks(w http.ResponseWriter, r *http.Request) {
 	books, err := c.BookService.ListBooks()
 	if err != nil {
@@ -37,6 +38,7 @@ func (c *BookController) ListBooks(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(books)
 }
 
+// GetBook handles the HTTP request to get details of a specific book by ISBN.
 func (c *BookController) GetBook(w http.ResponseWriter, r *http.Request) {
 	isbn := r.PathValue("isbn")
 	book, err := c.BookService.GetBook(isbn)
@@ -47,6 +49,7 @@ func (c *BookController) GetBook(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(book)
 }
 
+// SaveBook handles the HTTP request to save a new book.
 func (c *BookController) SaveBook(w http.ResponseWriter, r *http.Request) {
 	var book book_dao.Book
 	if err := json.NewDecoder(r.Body).Decode(&book); err != nil {
@@ -60,6 +63,7 @@ func (c *BookController) SaveBook(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode("OK!")
 }
 
+// DeleteBook handles the HTTP request to delete a book by ISBN.
 func (c *BookController) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	isbn := r.PathValue("isbn")
 	err := c.BookService.DeleteBook(isbn)

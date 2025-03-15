@@ -26,6 +26,7 @@ import (
 )
 
 func init() {
+	// Mock the BookDao with initial test data
 	gstest.MockFor[*book_dao.BookDao]().With(&book_dao.BookDao{
 		Store: map[string]book_dao.Book{
 			"978-0132350884": {
@@ -36,6 +37,7 @@ func init() {
 			},
 		},
 	})
+	// Load local configuration files
 	gs.Config().LocalFile.AddDir("../../../conf")
 }
 
@@ -51,16 +53,19 @@ func TestBookService(t *testing.T) {
 		BookDao *book_dao.BookDao `autowire:""`
 	}))
 
+	// Verify server address configuration
 	assert.Equal(t, x.SvrAddr, "0.0.0.0:9090")
 
 	s, o := x.Service, x.BookDao
 	assert.NotNil(t, o)
 
+	// Test listing books
 	books, err := s.ListBooks()
 	assert.Nil(t, err)
 	assert.Equal(t, len(books), 1)
 	assert.Equal(t, books[0].ISBN, "978-0132350884")
 
+	// Test saving a new book
 	err = s.SaveBook(book_dao.Book{
 		Title:     "Introduction to Algorithms",
 		Author:    "Thomas H. Cormen, Charles E. Leiserson, ...",
@@ -69,20 +74,24 @@ func TestBookService(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
+	// Verify book was added successfully
 	books, err = s.ListBooks()
 	assert.Nil(t, err)
 	assert.Equal(t, len(books), 2)
 	assert.Equal(t, books[1].ISBN, "978-0262033848")
 	assert.Equal(t, books[1].Title, "Introduction to Algorithms")
 
+	// Test retrieving a book by ISBN
 	book, err := s.GetBook("978-0132350884")
 	assert.Nil(t, err)
 	assert.Equal(t, book.ISBN, "978-0132350884")
 	assert.Equal(t, book.Title, "Clean Code")
 
+	// Test deleting a book
 	err = s.DeleteBook("978-0132350884")
 	assert.Nil(t, err)
 
+	// Verify book deletion
 	books, err = s.ListBooks()
 	assert.Nil(t, err)
 	assert.Equal(t, len(books), 1)

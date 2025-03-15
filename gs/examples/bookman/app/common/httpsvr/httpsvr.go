@@ -29,12 +29,15 @@ func init() {
 	gs.Provide(NewServeMux, gs.IndexArg(1, gs.TagArg("access")))
 }
 
+// NewServeMux Creates a new HTTP request multiplexer and registers
+// routes with access logging middleware.
 func NewServeMux(c idl.Controller, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	idl.RegisterRouter(mux, c, Access(logger))
 	return mux
 }
 
+// Access is a middleware to log incoming HTTP requests.
 func Access(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

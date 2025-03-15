@@ -30,14 +30,15 @@ func init() {
 
 type Job struct{}
 
+// Run executes the background job until the context is canceled.
 func (x *Job) Run(ctx context.Context) error {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-ctx.Done(): // Gracefully exit when context is canceled
 			fmt.Println("job exit")
 			return nil
 		default:
-			if gs.Exiting() {
+			if gs.Exiting() { // Check if the system is shutting down
 				return nil
 			}
 			time.Sleep(time.Millisecond * 300)

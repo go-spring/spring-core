@@ -48,6 +48,7 @@ type BookDao struct {
 	Logger *slog.Logger `autowire:"dao"`
 }
 
+// ListBooks returns a sorted list of all books in the store.
 func (dao *BookDao) ListBooks() ([]Book, error) {
 	r := slices.Collect(maps.Values(dao.Store))
 	sort.Slice(r, func(i, j int) bool {
@@ -56,16 +57,19 @@ func (dao *BookDao) ListBooks() ([]Book, error) {
 	return r, nil
 }
 
+// GetBook retrieves a book by its ISBN.
 func (dao *BookDao) GetBook(isbn string) (Book, error) {
 	r, _ := dao.Store[isbn]
 	return r, nil
 }
 
+// SaveBook adds or updates a book in the store.
 func (dao *BookDao) SaveBook(book Book) error {
 	dao.Store[book.ISBN] = book
 	return nil
 }
 
+// DeleteBook removes a book from the store by its ISBN.
 func (dao *BookDao) DeleteBook(isbn string) error {
 	delete(dao.Store, isbn)
 	return nil
