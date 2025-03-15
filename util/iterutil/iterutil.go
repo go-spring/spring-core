@@ -34,9 +34,6 @@ func Ranges(start, end int, fn func(i int)) {
 
 // StepRanges iterates from 'start' to 'end' using a step size and applies 'fn' to each index.
 func StepRanges(start, end, step int, fn func(i int)) {
-	if step == 0 {
-		panic("StepRanges: step cannot be zero")
-	}
 	if step > 0 && start < end {
 		stepRangesForward(start, end, step, fn)
 	} else if step < 0 && start > end {
