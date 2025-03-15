@@ -330,6 +330,9 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
 		if t.Kind() != reflect.Interface {
 			panic("only interface type can be exported")
 		}
+		if !d.Type().Implements(t) {
+			panic(fmt.Sprintf("%s doesn't implement interface %s", d, t))
+		}
 		exported := false
 		for _, export := range d.exports {
 			if t == export {

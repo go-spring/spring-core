@@ -27,8 +27,12 @@ func init() {
 	// by the 'server.addr' configuration, defaulting to "0.0.0.0:9090" if not set.
 	// It is only provided as a server if an instance of *http.ServeMux exists.
 	Provide(NewSimpleHttpServer, TagArg("${server.addr:=0.0.0.0:9090}")).
-		Condition(OnBean[*http.ServeMux]()).
-		Condition(OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing()).
+		Condition(
+			And(
+				OnBean[*http.ServeMux](),
+				OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
+			),
+		).
 		AsServer()
 }
 

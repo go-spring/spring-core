@@ -2149,12 +2149,12 @@ func (_ *filterImpl) Filter(input string) string {
 func TestBeanCache(t *testing.T) {
 
 	t.Run("not implement interface", func(t *testing.T) {
-		c := gs_core.New()
-		c.Object(func() {}).Export(
-			gs.As[filter](),
-		)
-		err := c.Refresh()
-		assert.Error(t, err, "doesn't implement interface gs_core_test.filter")
+		assert.Panic(t, func() {
+			c := gs_core.New()
+			c.Object(func() {}).Export(
+				gs.As[filter](),
+			)
+		}, "doesn't implement interface gs_core_test.filter")
 	})
 
 	t.Run("implement interface", func(t *testing.T) {

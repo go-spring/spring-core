@@ -26,23 +26,19 @@ import (
 )
 
 func init() {
-	gs.Boot().Object(&Runner{}).AsRunner().OnProfiles("online")
+	gs.Boot().Object(gs.FuncRunner(initRemoteConfig)).AsRunner().OnProfiles("online")
 }
 
-type Runner struct{}
-
-func (r *Runner) Run() error {
+func initRemoteConfig() error {
 	if err := getRemoteConfig(); err != nil {
 		return err
 	}
 	gs.Config().RemoteFile.AddDir("./conf/remote")
-	gs.Object(&ConfigUpdater{}).AsJob()
+	gs.Object(gs.FuncJob(refreshRemoteConfig)).AsJob()
 	return nil
 }
 
-type ConfigUpdater struct{}
-
-func (x *ConfigUpdater) Run(ctx context.Context) error {
+func refreshRemoteConfig(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():

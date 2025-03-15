@@ -17,6 +17,7 @@
 package gs
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -204,6 +205,18 @@ type (
 	Server      = gs.Server
 	ReadySignal = gs.ReadySignal
 )
+
+type FuncRunner func() error
+
+func (f FuncRunner) Run() error {
+	return f()
+}
+
+type FuncJob func(ctx context.Context) error
+
+func (f FuncJob) Run(ctx context.Context) error {
+	return f(ctx)
+}
 
 // Run runs the app and waits for an interrupt signal to exit.
 func Run() error {

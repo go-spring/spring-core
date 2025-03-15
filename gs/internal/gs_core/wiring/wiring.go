@@ -226,7 +226,7 @@ func (a *ArgContext) Bind(v reflect.Value, tag string) error {
 
 // Wire wires a value based on a specific tag in the container.
 func (a *ArgContext) Wire(v reflect.Value, tag string) error {
-	return a.c.wireStructField(v, tag, a.stack)
+	return a.c.autowire(v, tag, a.stack)
 }
 
 /************************************ wire ***********************************/
@@ -362,7 +362,7 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
-			if err = c.wireStructField(f.v, tag, stack); err != nil {
+			if err = c.autowire(f.v, tag, stack); err != nil {
 				return fmt.Errorf("%q wired error: %s", f.path, err.Error())
 			}
 		}
@@ -378,10 +378,7 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 	// registers all beans
 	c.beansByName = make(map[string][]BeanRuntime)
 	c.beansByType = make(map[reflect.Type][]BeanRuntime)
-	for _, b := range inputBeans {
-		if b.Status() == gs_bean.StatusDeleted {
-			continue
-		}
+	for _, b := range beans {
 		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
 		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
 		for _, t := range b.Exports() {
@@ -407,8 +404,8 @@ func (c *Wiring) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 		beans = c.beansByType[t]
 	}
 	if name != "" {
-		if beans == nil {
-			beans = c.beansByName[name]
+		if t == nil {
+			return c.beansByName[name], nil
 		}
 		var ret []BeanRuntime
 		for _, b := range beans {
@@ -537,9 +534,9 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
 	// Process bean tags to filter and order beans
 	if len(tags) > 0 {
 		var (
-			anyBeans  []BeanRuntime
-			afterAny  []BeanRuntime
-			beforeAny []BeanRuntime
+			anyBeans  []int
+			afterAny  []int
+			beforeAny []int
 		)
 		foundAny := false
 		for _, item := range tags {
@@ -574,26 +571,42 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
 				return nil, fmt.Errorf("can't find bean, bean:%q type:%q", item, t)
 			}
 
-			index := founds[0]
 			if foundAny {
-				afterAny = append(afterAny, beans[index])
+				afterAny = append(afterAny, founds[0])
 			} else {
-				beforeAny = append(beforeAny, beans[index])
+				beforeAny = append(beforeAny, founds[0])
 			}
-
-			tmpBeans := append([]BeanRuntime{}, beans[:index]...)
-			beans = append(tmpBeans, beans[index+1:]...)
 		}
 
 		if foundAny {
-			anyBeans = append(anyBeans, beans...)
+			temp := append(beforeAny, afterAny...)
+			for i := 0; i < len(beans); i++ {
+				found := false
+				for _, j := range temp {
+					if i == j {
+						found = true
+						break
+					}
+				}
+				if found {
+					continue
+				}
+				anyBeans = append(anyBeans, i)
+			}
 		}
 
 		n := len(beforeAny) + len(anyBeans) + len(afterAny)
 		arr := make([]BeanRuntime, 0, n)
-		arr = append(arr, beforeAny...)
-		arr = append(arr, anyBeans...)
-		arr = append(arr, afterAny...)
+		for _, i := range beforeAny {
+			arr = append(arr, beans[i])
+		}
+		for _, i := range anyBeans {
+			arr = append(arr, beans[i])
+		}
+		for _, i := range afterAny {
+			arr = append(arr, beans[i])
+		}
+
 		beans = arr
 	}
 
@@ -704,14 +717,6 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	b.SetStatus(gs_bean.StatusCreated)
 
-	// Validate that the bean exports the appropriate interfaces.
-	t := v.Type()
-	for _, typ := range b.Exports() {
-		if !t.Implements(typ) {
-			return fmt.Errorf("%s doesn't implement interface %s", b, typ)
-		}
-	}
-
 	watchRefresh := true
 
 	// If the bean is refreshable, add it to the refreshable list.
@@ -729,7 +734,7 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	}
 
 	// Wire the value of the bean.
-	err = c.WireBeanValue(v, t, watchRefresh, stack)
+	err = c.WireBeanValue(v, v.Type(), watchRefresh, stack)
 	if err != nil {
 		return err
 	}
@@ -843,7 +848,7 @@ func (c *Wiring) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, 
 				f := lazyField{v: fv, path: fieldPath, tag: tag}
 				stack.lazyFields = append(stack.lazyFields, f)
 			} else {
-				if err := c.wireStructField(fv, tag, stack); err != nil {
+				if err := c.autowire(fv, tag, stack); err != nil {
 					return fmt.Errorf("%q wired error: %w", fieldPath, err)
 				}
 			}
@@ -886,8 +891,8 @@ func (c *Wiring) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, 
 	return nil
 }
 
-// wireField performs dependency injection by tag.
-func (c *Wiring) wireStructField(v reflect.Value, str string, stack *Stack) error {
+// autowire performs dependency injection by tag.
+func (c *Wiring) autowire(v reflect.Value, str string, stack *Stack) error {
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		{
