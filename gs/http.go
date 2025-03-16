@@ -33,6 +33,7 @@ func init() {
 	).Condition(
 		And(
 			OnBean[*http.ServeMux](),
+			OnProperty(EnableAppServersProp).HavingValue("true").MatchIfMissing(),
 			OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
 		),
 	).AsServer()

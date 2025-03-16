@@ -24,6 +24,8 @@ const (
 	AllowCircularReferencesProp = "spring.allow-circular-references"
 	ForceAutowireIsNullableProp = "spring.force-autowire-is-nullable"
 	ActiveProfilesProp          = "spring.profiles.active"
+	EnableAppJobsProp           = "spring.enable.app-jobs"
+	EnableAppServersProp        = "spring.enable.app-servers"
 	EnableSimpleHttpServerProp  = "spring.enable.simple-http-server"
 	EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
 )
@@ -43,6 +45,18 @@ func ForceAutowireIsNullable(enable bool) {
 // SetActiveProfiles sets the active profiles for the app.
 func SetActiveProfiles(profiles string) {
 	err := sysconf.Set(ActiveProfilesProp, profiles)
+	_ = err // Ignore error
+}
+
+// EnableAppJobs enables or disables the app jobs.
+func EnableAppJobs(enable bool) {
+	err := sysconf.Set(EnableAppJobsProp, enable)
+	_ = err // Ignore error
+}
+
+// EnableAppServers enables or disables the app servers.
+func EnableAppServers(enable bool) {
+	err := sysconf.Set(EnableAppServersProp, enable)
 	_ = err // Ignore error
 }
 

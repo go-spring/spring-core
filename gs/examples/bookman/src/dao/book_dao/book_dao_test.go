@@ -25,7 +25,7 @@ import (
 )
 
 func init() {
-	_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "../../conf")
+	_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "../../../conf")
 }
 
 func TestMain(m *testing.M) {

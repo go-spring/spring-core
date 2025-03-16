@@ -25,6 +25,8 @@ import (
 )
 
 func init() {
+	gs.EnableAppJobs(false)
+	gs.EnableAppServers(false)
 	gs.SetActiveProfiles("test")
 }
 

@@ -51,6 +51,9 @@ type App struct {
 	Runners []gs.Runner `autowire:"${spring.app.runners:=*?}"`
 	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=*?}"`
 	Servers []gs.Server `autowire:"${spring.app.servers:=*?}"`
+
+	EnableJobs    bool `autowire:"${spring.enable.app-jobs:=true}"`
+	EnableServers bool `autowire:"${spring.enable.app-servers:=true}"`
 }
 
 // NewApp creates and initializes a new application instance.
@@ -119,51 +122,53 @@ func (app *App) Start() error {
 	}
 
 	// runs all jobs
-	for _, job := range app.Jobs {
-		goutil.GoFunc(func() {
-			defer func() {
-				if r := recover(); r != nil {
+	if app.EnableJobs {
+		for _, job := range app.Jobs {
+			goutil.GoFunc(func() {
+				defer func() {
+					if r := recover(); r != nil {
+						app.ShutDown()
+						panic(r)
+					}
+				}()
+				if err := job.Run(app.ctx); err != nil {
+					syslog.Errorf("job run error: %s", err.Error())
 					app.ShutDown()
-					panic(r)
 				}
-			}()
-			if err := job.Run(app.ctx); err != nil {
-				syslog.Errorf("job run error: %s", err.Error())
-				app.ShutDown()
-			}
-		})
+			})
+		}
 	}
-
-	sig := NewReadySignal()
 
 	// starts all servers
-	for _, svr := range app.Servers {
-		sig.Add()
-		app.wg.Add(1)
-		goutil.GoFunc(func() {
-			defer app.wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
+	if app.EnableServers {
+		sig := NewReadySignal()
+		for _, svr := range app.Servers {
+			sig.Add()
+			app.wg.Add(1)
+			goutil.GoFunc(func() {
+				defer app.wg.Done()
+				defer func() {
+					if r := recover(); r != nil {
+						sig.Intercept()
+						app.ShutDown()
+						panic(r)
+					}
+				}()
+				err := svr.ListenAndServe(sig)
+				if err != nil && !errors.Is(err, http.ErrServerClosed) {
+					syslog.Errorf("server serve error: %s", err.Error())
 					sig.Intercept()
 					app.ShutDown()
-					panic(r)
 				}
-			}()
-			err := svr.ListenAndServe(sig)
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				syslog.Errorf("server serve error: %s", err.Error())
-				sig.Intercept()
-				app.ShutDown()
-			}
-		})
+			})
+		}
+		sig.Wait()
+		if sig.Intercepted() {
+			return nil
+		}
+		syslog.Infof("ready to serve requests")
+		sig.Close()
 	}
-
-	sig.Wait()
-	if sig.Intercepted() {
-		return nil
-	}
-	syslog.Infof("ready to serve requests")
-	sig.Close()
 	return nil
 }
 

@@ -38,7 +38,7 @@ func init() {
 		},
 	})
 	// Load local configuration files
-	gs.Config().LocalFile.AddDir("../../../conf")
+	gs.Config().LocalFile.AddDir("../../../../conf")
 }
 
 func TestMain(m *testing.M) {

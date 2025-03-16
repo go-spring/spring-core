@@ -17,6 +17,7 @@
 package book_service
 
 import (
+	"fmt"
 	"log/slog"
 	"strconv"
 
@@ -34,7 +35,7 @@ type BookService struct {
 	BookDao     *book_dao.BookDao `autowire:""`
 	BookSDK     *book_sdk.BookSDK `autowire:""`
 	Logger      *slog.Logger      `autowire:"biz"`
-	RefreshTime gs.Dync[int64]    `value:"${refresh_time}"`
+	RefreshTime gs.Dync[int64]    `value:"${refresh_time:=0}"`
 }
 
 // ListBooks retrieves all books from the database and enriches them with
@@ -42,7 +43,7 @@ type BookService struct {
 func (s *BookService) ListBooks() ([]idl.Book, error) {
 	books, err := s.BookDao.ListBooks()
 	if err != nil {
-		s.Logger.Error("ListBooks return err: %s", err.Error())
+		s.Logger.Error(fmt.Sprintf("ListBooks return err: %s", err.Error()))
 		return nil, err
 	}
 	ret := make([]idl.Book, 0, len(books))
@@ -64,7 +65,7 @@ func (s *BookService) ListBooks() ([]idl.Book, error) {
 func (s *BookService) GetBook(isbn string) (idl.Book, error) {
 	book, err := s.BookDao.GetBook(isbn)
 	if err != nil {
-		s.Logger.Error("GetBook return err: %s", err.Error())
+		s.Logger.Error(fmt.Sprintf("GetBook return err: %s", err.Error()))
 		return idl.Book{}, err
 	}
 	return idl.Book{
