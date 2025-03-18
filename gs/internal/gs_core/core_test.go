@@ -2829,7 +2829,7 @@ type DynamicConfig struct {
 
 var _ gs.Refreshable = (*DynamicConfig)(nil)
 
-func (d *DynamicConfig) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (d *DynamicConfig) OnRefresh(prop conf.Properties, param conf.BindParam) error {
 	fmt.Println("DynamicConfig.OnRefresh")
 	return nil
 }
@@ -2840,7 +2840,7 @@ type DynamicConfigWrapper struct {
 
 var _ gs.Refreshable = (*DynamicConfigWrapper)(nil)
 
-func (d *DynamicConfigWrapper) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
+func (d *DynamicConfigWrapper) OnRefresh(prop conf.Properties, param conf.BindParam) error {
 	fmt.Println("DynamicConfig.OnRefresh")
 	return nil
 }

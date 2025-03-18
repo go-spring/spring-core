@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	gs.GroupRegister(func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error) {
+	gs.GroupRegister(func(p conf.Properties) ([]*gs.BeanDefinition, error) {
 		var loggers map[string]struct {
 			Name string `value:"${name}"`
 			Dir  string `value:"${dir}"`

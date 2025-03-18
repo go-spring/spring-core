@@ -13,7 +13,7 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
-type GroupFunc = func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error)
+type GroupFunc = func(p conf.Properties) ([]*gs.BeanDefinition, error)
 
 type BeanMock struct {
 	Object interface{}
@@ -43,7 +43,7 @@ func (c *Resolving) GroupRegister(fn GroupFunc) {
 	c.funcs = append(c.funcs, fn)
 }
 
-func (c *Resolving) RefreshInit(p conf.ReadOnlyProperties) error {
+func (c *Resolving) RefreshInit(p conf.Properties) error {
 	// processes all group functions to register beans.
 	for _, fn := range c.funcs {
 		beans, err := fn(p)
@@ -158,7 +158,7 @@ func (c *Resolving) RefreshInit(p conf.ReadOnlyProperties) error {
 	return nil
 }
 
-func (c *Resolving) Refresh(p conf.ReadOnlyProperties) ([]*gs_bean.BeanDefinition, error) {
+func (c *Resolving) Refresh(p conf.Properties) ([]*gs_bean.BeanDefinition, error) {
 
 	// resolves all beans on their condition.
 	ctx := &CondContext{p: p, c: c}
@@ -262,7 +262,7 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 
 type CondContext struct {
 	c *Resolving
-	p conf.ReadOnlyProperties
+	p conf.Properties
 }
 
 // resolveBean determines the validity of the bean.

@@ -258,7 +258,7 @@ func Register(b *BeanDefinition) *RegisteredBean {
 }
 
 // GroupRegister registers a group of bean definitions.
-func GroupRegister(fn func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)) {
+func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) {
 	gs_app.GS.C.GroupRegister(fn)
 }
 

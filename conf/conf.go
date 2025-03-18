@@ -85,8 +85,8 @@ func RegisterConverter[T any](fn Converter[T]) {
 	converters[t.Out(0)] = fn
 }
 
-// ReadOnlyProperties is the interface for read-only properties.
-type ReadOnlyProperties interface {
+// Properties is the interface for read-only properties.
+type Properties interface {
 	// Data returns key-value pairs of the properties.
 	Data() map[string]string
 	// Keys returns keys of the properties.
@@ -102,12 +102,12 @@ type ReadOnlyProperties interface {
 	// Bind binds properties into a value.
 	Bind(i interface{}, tag ...string) error
 	// CopyTo copies properties into another by override.
-	CopyTo(out *Properties) error
+	CopyTo(out *MutableProperties) error
 }
 
-var _ ReadOnlyProperties = (*Properties)(nil)
+var _ Properties = (*MutableProperties)(nil)
 
-// Properties stores the data with map[string]string and the keys are case-sensitive,
+// MutableProperties stores the data with map[string]string and the keys are case-sensitive,
 // you can get one of them by its key, or bind some of them to a value.
 // There are too many formats of configuration files, and too many conflicts between
 // them. Each format of configuration file provides its special characteristics, but
@@ -119,19 +119,19 @@ var _ ReadOnlyProperties = (*Properties)(nil)
 // Java properties isn't strictly verified. Although configuration can store as a tree,
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
-type Properties struct {
+type MutableProperties struct {
 	storage *storage.Storage
 }
 
-// New creates empty *Properties.
-func New() *Properties {
-	return &Properties{
+// New creates empty *MutableProperties.
+func New() *MutableProperties {
+	return &MutableProperties{
 		storage: storage.NewStorage(),
 	}
 }
 
-// Map creates *Properties from map.
-func Map(m map[string]interface{}) (*Properties, error) {
+// Map creates *MutableProperties from map.
+func Map(m map[string]interface{}) (*MutableProperties, error) {
 	p := New()
 	if err := p.Merge(m); err != nil {
 		return nil, err
@@ -139,8 +139,8 @@ func Map(m map[string]interface{}) (*Properties, error) {
 	return p, nil
 }
 
-// Load creates *Properties from file.
-func Load(file string) (*Properties, error) {
+// Load creates *MutableProperties from file.
+func Load(file string) (*MutableProperties, error) {
 	p := New()
 	if err := p.Load(file); err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func Load(file string) (*Properties, error) {
 }
 
 // Load loads properties from file.
-func (p *Properties) Load(file string) error {
+func (p *MutableProperties) Load(file string) error {
 	b, err := os.ReadFile(file)
 	if err != nil {
 		return err
@@ -158,7 +158,7 @@ func (p *Properties) Load(file string) error {
 }
 
 // Bytes loads properties from []byte, ext is the file name extension.
-func (p *Properties) Bytes(b []byte, ext string) error {
+func (p *MutableProperties) Bytes(b []byte, ext string) error {
 	r, ok := readers[ext]
 	if !ok {
 		return fmt.Errorf("unsupported file type %q", ext)
@@ -171,12 +171,12 @@ func (p *Properties) Bytes(b []byte, ext string) error {
 }
 
 // Merge flattens the map and sets all keys and values.
-func (p *Properties) Merge(m map[string]interface{}) error {
+func (p *MutableProperties) Merge(m map[string]interface{}) error {
 	s := util.FlattenMap(m)
 	return p.merge(s)
 }
 
-func (p *Properties) merge(m map[string]string) error {
+func (p *MutableProperties) merge(m map[string]string) error {
 	for key, val := range m {
 		if err := p.storage.Set(key, val); err != nil {
 			return err
@@ -185,27 +185,27 @@ func (p *Properties) merge(m map[string]string) error {
 	return nil
 }
 
-func (p *Properties) Data() map[string]string {
+func (p *MutableProperties) Data() map[string]string {
 	return p.storage.Data()
 }
 
 // Keys returns all sorted keys.
-func (p *Properties) Keys() []string {
+func (p *MutableProperties) Keys() []string {
 	return p.storage.Keys()
 }
 
 // Has returns whether key exists.
-func (p *Properties) Has(key string) bool {
+func (p *MutableProperties) Has(key string) bool {
 	return p.storage.Has(key)
 }
 
 // SubKeys returns the sorted sub keys of the key.
-func (p *Properties) SubKeys(key string) ([]string, error) {
+func (p *MutableProperties) SubKeys(key string) ([]string, error) {
 	return p.storage.SubKeys(key)
 }
 
 // Get returns key's value, using Def to return a default value.
-func (p *Properties) Get(key string, def ...string) string {
+func (p *MutableProperties) Get(key string, def ...string) string {
 	val, ok := p.storage.Get(key)
 	if !ok && len(def) > 0 {
 		return def[0]
@@ -219,7 +219,7 @@ func (p *Properties) Get(key string, def ...string) string {
 // means when you set a slice or a map, an existing path will remain
 // when it doesn't exist in the slice or map even they share a same
 // prefix path.
-func (p *Properties) Set(key string, val interface{}) error {
+func (p *MutableProperties) Set(key string, val interface{}) error {
 	if key == "" {
 		return errors.New("key is empty")
 	}
@@ -230,7 +230,7 @@ func (p *Properties) Set(key string, val interface{}) error {
 
 // Resolve resolves string value that contains references to other
 // properties, the references are defined by ${key:=def}.
-func (p *Properties) Resolve(s string) (string, error) {
+func (p *MutableProperties) Resolve(s string) (string, error) {
 	return resolveString(p, s)
 }
 
@@ -240,7 +240,7 @@ func (p *Properties) Resolve(s string) (string, error) {
 // value:"${a:=b}>>splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *Properties) Bind(i interface{}, tag ...string) error {
+func (p *MutableProperties) Bind(i interface{}, tag ...string) error {
 
 	var v reflect.Value
 	{
@@ -277,6 +277,6 @@ func (p *Properties) Bind(i interface{}, tag ...string) error {
 }
 
 // CopyTo copies properties into another by override.
-func (p *Properties) CopyTo(out *Properties) error {
+func (p *MutableProperties) CopyTo(out *MutableProperties) error {
 	return out.merge(p.storage.RawData())
 }

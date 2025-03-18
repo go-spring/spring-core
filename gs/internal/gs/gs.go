@@ -142,7 +142,7 @@ type ArgContext interface {
 // Refreshable represents an object that can be dynamically refreshed.
 type Refreshable interface {
 	// OnRefresh is called to refresh the properties when they change.
-	OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
+	OnRefresh(prop conf.Properties, param conf.BindParam) error
 }
 
 /*********************************** app ************************************/

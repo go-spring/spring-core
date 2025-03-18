@@ -62,7 +62,7 @@ func Clear() {
 }
 
 // Clone copies all properties into another properties.
-func Clone() *conf.Properties {
+func Clone() *conf.MutableProperties {
 	lock.Lock()
 	defer lock.Unlock()
 	p := conf.New()

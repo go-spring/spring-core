@@ -29,11 +29,11 @@ import (
 
 // AppConfig represents a layered application configuration.
 type AppConfig struct {
-	LocalFile   *PropertySources        // Configuration sources from local files.
-	RemoteFile  *PropertySources        // Configuration sources from remote files.
-	RemoteProp  conf.ReadOnlyProperties // Remote properties.
-	Environment *Environment            // Environment variables as configuration source.
-	CommandArgs *CommandArgs            // Command line arguments as configuration source.
+	LocalFile   *PropertySources // Configuration sources from local files.
+	RemoteFile  *PropertySources // Configuration sources from remote files.
+	RemoteProp  conf.Properties  // Remote properties.
+	Environment *Environment     // Environment variables as configuration source.
+	CommandArgs *CommandArgs     // Command line arguments as configuration source.
 }
 
 // NewAppConfig creates a new instance of AppConfig.
@@ -46,8 +46,8 @@ func NewAppConfig() *AppConfig {
 	}
 }
 
-func merge(out *conf.Properties, sources ...interface {
-	CopyTo(out *conf.Properties) error
+func merge(out *conf.MutableProperties, sources ...interface {
+	CopyTo(out *conf.MutableProperties) error
 }) error {
 	for _, s := range sources {
 		if s != nil {
@@ -60,7 +60,7 @@ func merge(out *conf.Properties, sources ...interface {
 }
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *AppConfig) Refresh() (conf.ReadOnlyProperties, error) {
+func (c *AppConfig) Refresh() (conf.Properties, error) {
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)
 	if err != nil {
@@ -78,7 +78,7 @@ func (c *AppConfig) Refresh() (conf.ReadOnlyProperties, error) {
 	}
 
 	var sources []interface {
-		CopyTo(out *conf.Properties) error
+		CopyTo(out *conf.MutableProperties) error
 	}
 	for _, file := range localFiles {
 		sources = append(sources, file)
@@ -117,7 +117,7 @@ func NewBootConfig() *BootConfig {
 }
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *BootConfig) Refresh() (conf.ReadOnlyProperties, error) {
+func (c *BootConfig) Refresh() (conf.Properties, error) {
 
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)
@@ -131,7 +131,7 @@ func (c *BootConfig) Refresh() (conf.ReadOnlyProperties, error) {
 	}
 
 	var sources []interface {
-		CopyTo(out *conf.Properties) error
+		CopyTo(out *conf.MutableProperties) error
 	}
 	for _, file := range localFiles {
 		sources = append(sources, file)
@@ -207,7 +207,7 @@ func (p *PropertySources) AddFile(files ...string) {
 }
 
 // getDefaultDir returns the default configuration directory based on the configuration type.
-func (p *PropertySources) getDefaultDir(resolver *conf.Properties) (configDir string, err error) {
+func (p *PropertySources) getDefaultDir(resolver conf.Properties) (configDir string, err error) {
 	if p.configType == ConfigTypeLocal {
 		return resolver.Resolve("${spring.app.config.dir:=./conf}")
 	} else if p.configType == ConfigTypeRemote {
@@ -218,7 +218,7 @@ func (p *PropertySources) getDefaultDir(resolver *conf.Properties) (configDir st
 }
 
 // getFiles returns the list of configuration files based on the configuration directory and active profiles.
-func (p *PropertySources) getFiles(dir string, resolver *conf.Properties) (_ []string, err error) {
+func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []string, err error) {
 
 	files := []string{
 		fmt.Sprintf("%s/%s.properties", dir, p.configName),
@@ -248,7 +248,7 @@ func (p *PropertySources) getFiles(dir string, resolver *conf.Properties) (_ []s
 }
 
 // loadFiles loads all configuration files and returns them as a list of Properties.
-func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properties, error) {
+func (p *PropertySources) loadFiles(resolver conf.Properties) ([]conf.Properties, error) {
 	var files []string
 	{
 		defaultDir, err := p.getDefaultDir(resolver)
@@ -271,7 +271,7 @@ func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properti
 	}
 	files = append(files, p.extraFiles...)
 
-	var ret []*conf.Properties
+	var ret []conf.Properties
 	for _, s := range files {
 		filename, err := resolver.Resolve(s)
 		if err != nil {

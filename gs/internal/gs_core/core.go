@@ -91,7 +91,7 @@ func (c *Container) GroupRegister(fn resolving.GroupFunc) {
 }
 
 // RefreshProperties updates the properties of the container.
-func (c *Container) RefreshProperties(p conf.ReadOnlyProperties) error {
+func (c *Container) RefreshProperties(p conf.Properties) error {
 	return c.wiring.RefreshProperties(p)
 }
 

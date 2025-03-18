@@ -52,7 +52,7 @@ func lookupEnv(environ []string, key string) (value string, found bool) {
 
 // CopyTo add environment variables that matches IncludeEnvPatterns and
 // exclude environment variables that matches ExcludeEnvPatterns.
-func (c *Environment) CopyTo(p *conf.Properties) error {
+func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 	environ := os.Environ()
 	if len(environ) == 0 {
 		return nil

@@ -389,7 +389,7 @@ type Filter interface {
 }
 
 // BindValue binds properties to a value.
-func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="19">{
+func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="19">{
 
         if !util.IsPropBindingTarget(t) </span><span class="cov0" title="0">{
                 err := errors.New("target should be value type")
@@ -483,7 +483,7 @@ func BindValue(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
 }
 
 // bindSlice binds properties to a slice value.
-func bindSlice(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error <span class="cov0" title="0">{
+func bindSlice(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error <span class="cov0" title="0">{
 
         et := t.Elem()
         p, err := getSlice(p, et, param)
@@ -516,7 +516,7 @@ func bindSlice(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bind
         <span class="cov0" title="0">return nil</span>
 }
 
-func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyProperties, error) <span class="cov0" title="0">{
+func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error) <span class="cov0" title="0">{
 
         // properties that defined as list.
         if p.Has(param.Key + "[0]") </span><span class="cov0" title="0">{
@@ -574,7 +574,7 @@ func getSlice(p ReadOnlyProperties, et reflect.Type, param BindParam) (ReadOnlyP
 }
 
 // bindMap binds properties to a map value.
-func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error <span class="cov1" title="1">{
+func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error <span class="cov1" title="1">{
 
         if param.Tag.HasDef &amp;&amp; param.Tag.Def != "" </span><span class="cov0" title="0">{
                 err := errors.New("map can't have a non-empty default value")
@@ -616,7 +616,7 @@ func bindMap(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindPa
 }
 
 // bindStruct binds properties to a struct value.
-func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error <span class="cov2" title="3">{
+func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error <span class="cov2" title="3">{
 
         if param.Tag.HasDef &amp;&amp; param.Tag.Def != "" </span><span class="cov0" title="0">{
                 err := errors.New("struct can't have a non-empty default value")
@@ -670,7 +670,7 @@ func bindStruct(p ReadOnlyProperties, v reflect.Value, t reflect.Type, param Bin
 }
 
 // resolve returns property references processed property value.
-func resolve(p ReadOnlyProperties, param BindParam) (string, error) <span class="cov5" title="41">{
+func resolve(p Properties, param BindParam) (string, error) <span class="cov5" title="41">{
         const defVal = "@@def@@"
         val := p.Get(param.Key, defVal)
         if val != defVal </span><span class="cov4" title="22">{
@@ -686,7 +686,7 @@ func resolve(p ReadOnlyProperties, param BindParam) (string, error) <span class=
 }
 
 // resolveString returns property references processed string.
-func resolveString(p ReadOnlyProperties, s string) (string, error) <span class="cov6" title="181">{
+func resolveString(p Properties, s string) (string, error) <span class="cov6" title="181">{
 
         var (
                 length = len(s)
@@ -827,8 +827,8 @@ func RegisterConverter[T any](fn Converter[T]) <span class="cov1" title="2">{
         converters[t.Out(0)] = fn
 }</span>
 
-// ReadOnlyProperties is the interface for read-only properties.
-type ReadOnlyProperties interface {
+// Properties is the interface for read-only properties.
+type Properties interface {
         // Data returns key-value pairs of the properties.
         Data() map[string]string
         // Keys returns keys of the properties.
@@ -844,12 +844,12 @@ type ReadOnlyProperties interface {
         // Bind binds properties into a value.
         Bind(i interface{}, tag ...string) error
         // CopyTo copies properties into another by override.
-        CopyTo(out *Properties) error
+        CopyTo(out *MutableProperties) error
 }
 
-var _ ReadOnlyProperties = (*Properties)(nil)
+var _ Properties = (*MutableProperties)(nil)
 
-// Properties stores the data with map[string]string and the keys are case-sensitive,
+// MutableProperties stores the data with map[string]string and the keys are case-sensitive,
 // you can get one of them by its key, or bind some of them to a value.
 // There are too many formats of configuration files, and too many conflicts between
 // them. Each format of configuration file provides its special characteristics, but
@@ -861,19 +861,19 @@ var _ ReadOnlyProperties = (*Properties)(nil)
 // Java properties isn't strictly verified. Although configuration can store as a tree,
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
-type Properties struct {
+type MutableProperties struct {
         storage *storage.Storage
 }
 
-// New creates empty *Properties.
-func New() *Properties <span class="cov7" title="103">{
-        return &amp;Properties{
+// New creates empty *MutableProperties.
+func New() *MutableProperties <span class="cov7" title="103">{
+        return &amp;MutableProperties{
                 storage: storage.NewStorage(),
         }
 }</span>
 
-// Map creates *Properties from map.
-func Map(m map[string]interface{}) (*Properties, error) <span class="cov0" title="0">{
+// Map creates *MutableProperties from map.
+func Map(m map[string]interface{}) (*MutableProperties, error) <span class="cov0" title="0">{
         p := New()
         if err := p.Merge(m); err != nil </span><span class="cov0" title="0">{
                 return nil, err
@@ -881,8 +881,8 @@ func Map(m map[string]interface{}) (*Properties, error) <span class="cov0" title
         <span class="cov0" title="0">return p, nil</span>
 }
 
-// Load creates *Properties from file.
-func Load(file string) (*Properties, error) <span class="cov7" title="88">{
+// Load creates *MutableProperties from file.
+func Load(file string) (*MutableProperties, error) <span class="cov7" title="88">{
         p := New()
         if err := p.Load(file); err != nil </span><span class="cov7" title="78">{
                 return nil, err
@@ -891,7 +891,7 @@ func Load(file string) (*Properties, error) <span class="cov7" title="88">{
 }
 
 // Load loads properties from file.
-func (p *Properties) Load(file string) error <span class="cov7" title="88">{
+func (p *MutableProperties) Load(file string) error <span class="cov7" title="88">{
         b, err := os.ReadFile(file)
         if err != nil </span><span class="cov7" title="78">{
                 return err
@@ -900,7 +900,7 @@ func (p *Properties) Load(file string) error <span class="cov7" title="88">{
 }
 
 // Bytes loads properties from []byte, ext is the file name extension.
-func (p *Properties) Bytes(b []byte, ext string) error <span class="cov4" title="10">{
+func (p *MutableProperties) Bytes(b []byte, ext string) error <span class="cov4" title="10">{
         r, ok := readers[ext]
         if !ok </span><span class="cov0" title="0">{
                 return fmt.Errorf("unsupported file type %q", ext)
@@ -913,12 +913,12 @@ func (p *Properties) Bytes(b []byte, ext string) error <span class="cov4" title=
 }
 
 // Merge flattens the map and sets all keys and values.
-func (p *Properties) Merge(m map[string]interface{}) error <span class="cov4" title="10">{
+func (p *MutableProperties) Merge(m map[string]interface{}) error <span class="cov4" title="10">{
         s := util.FlattenMap(m)
         return p.merge(s)
 }</span>
 
-func (p *Properties) merge(m map[string]string) error <span class="cov9" title="478">{
+func (p *MutableProperties) merge(m map[string]string) error <span class="cov9" title="478">{
         for key, val := range m </span><span class="cov10" title="560">{
                 if err := p.storage.Set(key, val); err != nil </span><span class="cov0" title="0">{
                         return err
@@ -927,27 +927,27 @@ func (p *Properties) merge(m map[string]string) error <span class="cov9" title="
         <span class="cov9" title="478">return nil</span>
 }
 
-func (p *Properties) Data() map[string]string <span class="cov0" title="0">{
+func (p *MutableProperties) Data() map[string]string <span class="cov0" title="0">{
         return p.storage.Data()
 }</span>
 
 // Keys returns all sorted keys.
-func (p *Properties) Keys() []string <span class="cov3" title="8">{
+func (p *MutableProperties) Keys() []string <span class="cov3" title="8">{
         return p.storage.Keys()
 }</span>
 
 // Has returns whether key exists.
-func (p *Properties) Has(key string) bool <span class="cov8" title="211">{
+func (p *MutableProperties) Has(key string) bool <span class="cov8" title="211">{
         return p.storage.Has(key)
 }</span>
 
 // SubKeys returns the sorted sub keys of the key.
-func (p *Properties) SubKeys(key string) ([]string, error) <span class="cov1" title="1">{
+func (p *MutableProperties) SubKeys(key string) ([]string, error) <span class="cov1" title="1">{
         return p.storage.SubKeys(key)
 }</span>
 
 // Get returns key's value, using Def to return a default value.
-func (p *Properties) Get(key string, def ...string) string <span class="cov9" title="423">{
+func (p *MutableProperties) Get(key string, def ...string) string <span class="cov9" title="423">{
         val, ok := p.storage.Get(key)
         if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="19">{
                 return def[0]
@@ -961,7 +961,7 @@ func (p *Properties) Get(key string, def ...string) string <span class="cov9" ti
 // means when you set a slice or a map, an existing path will remain
 // when it doesn't exist in the slice or map even they share a same
 // prefix path.
-func (p *Properties) Set(key string, val interface{}) error <span class="cov9" title="446">{
+func (p *MutableProperties) Set(key string, val interface{}) error <span class="cov9" title="446">{
         if key == "" </span><span class="cov0" title="0">{
                 return errors.New("key is empty")
         }</span>
@@ -972,7 +972,7 @@ func (p *Properties) Set(key string, val interface{}) error <span class="cov9" t
 
 // Resolve resolves string value that contains references to other
 // properties, the references are defined by ${key:=def}.
-func (p *Properties) Resolve(s string) (string, error) <span class="cov7" title="114">{
+func (p *MutableProperties) Resolve(s string) (string, error) <span class="cov7" title="114">{
         return resolveString(p, s)
 }</span>
 
@@ -982,7 +982,7 @@ func (p *Properties) Resolve(s string) (string, error) <span class="cov7" title=
 // value:"${a:=b}&gt;&gt;splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *Properties) Bind(i interface{}, tag ...string) error <span class="cov2" title="3">{
+func (p *MutableProperties) Bind(i interface{}, tag ...string) error <span class="cov2" title="3">{
 
         var v reflect.Value
         </span><span class="cov2" title="3">{
@@ -1019,7 +1019,7 @@ func (p *Properties) Bind(i interface{}, tag ...string) error <span class="cov2"
 }
 
 // CopyTo copies properties into another by override.
-func (p *Properties) CopyTo(out *Properties) error <span class="cov5" title="22">{
+func (p *MutableProperties) CopyTo(out *MutableProperties) error <span class="cov5" title="22">{
         return out.merge(p.storage.RawData())
 }</span>
 </pre>
@@ -1704,7 +1704,7 @@ import (
 )
 
 func init() <span class="cov1" title="1">{
-        gs.GroupRegister(func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error) </span><span class="cov1" title="1">{
+        gs.GroupRegister(func(p conf.Properties) ([]*gs.BeanDefinition, error) </span><span class="cov1" title="1">{
                 var loggers map[string]struct {
                         Name string `value:"${name}"`
                         Dir  string `value:"${dir}"`
@@ -2454,7 +2454,7 @@ func Register(b *BeanDefinition) *RegisteredBean <span class="cov1" title="1">{
 }</span>
 
 // GroupRegister registers a group of bean definitions.
-func GroupRegister(fn func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)) <span class="cov1" title="1">{
+func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) <span class="cov1" title="1">{
         gs_app.GS.C.GroupRegister(fn)
 }</span>
 
@@ -2769,7 +2769,7 @@ type ArgContext interface {
 // Refreshable represents an object that can be dynamically refreshed.
 type Refreshable interface {
         // OnRefresh is called to refresh the properties when they change.
-        OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
+        OnRefresh(prop conf.Properties, param conf.BindParam) error
 }
 
 /*********************************** app ************************************/
@@ -4566,7 +4566,7 @@ func NewCommandArgs() *CommandArgs <span class="cov3" title="2">{
 // CopyTo processes command-line parameters and sets them as key-value pairs
 // in the provided conf.Properties. Parameters should be passed in the form
 // of `-D key[=value/true]`.
-func (c *CommandArgs) CopyTo(out *conf.Properties) error <span class="cov10" title="12">{
+func (c *CommandArgs) CopyTo(out *conf.MutableProperties) error <span class="cov10" title="12">{
         if len(os.Args) == 0 </span><span class="cov0" title="0">{
                 return nil
         }</span>
@@ -4630,11 +4630,11 @@ import (
 
 // AppConfig represents a layered application configuration.
 type AppConfig struct {
-        LocalFile   *PropertySources        // Configuration sources from local files.
-        RemoteFile  *PropertySources        // Configuration sources from remote files.
-        RemoteProp  conf.ReadOnlyProperties // Remote properties.
-        Environment *Environment            // Environment variables as configuration source.
-        CommandArgs *CommandArgs            // Command line arguments as configuration source.
+        LocalFile   *PropertySources // Configuration sources from local files.
+        RemoteFile  *PropertySources // Configuration sources from remote files.
+        RemoteProp  conf.Properties  // Remote properties.
+        Environment *Environment     // Environment variables as configuration source.
+        CommandArgs *CommandArgs     // Command line arguments as configuration source.
 }
 
 // NewAppConfig creates a new instance of AppConfig.
@@ -4647,8 +4647,8 @@ func NewAppConfig() *AppConfig <span class="cov1" title="1">{
         }
 }</span>
 
-func merge(out *conf.Properties, sources ...interface {
-        CopyTo(out *conf.Properties) error
+func merge(out *conf.MutableProperties, sources ...interface {
+        CopyTo(out *conf.MutableProperties) error
 }) error <span class="cov5" title="12">{
         for _, s := range sources </span><span class="cov8" title="39">{
                 if s != nil </span><span class="cov8" title="34">{
@@ -4661,7 +4661,7 @@ func merge(out *conf.Properties, sources ...interface {
 }
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *AppConfig) Refresh() (conf.ReadOnlyProperties, error) <span class="cov4" title="5">{
+func (c *AppConfig) Refresh() (conf.Properties, error) <span class="cov4" title="5">{
         p := sysconf.Clone()
         err := merge(p, c.Environment, c.CommandArgs)
         if err != nil </span><span class="cov0" title="0">{
@@ -4679,7 +4679,7 @@ func (c *AppConfig) Refresh() (conf.ReadOnlyProperties, error) <span class="cov4
         }</span>
 
         <span class="cov4" title="5">var sources []interface {
-                CopyTo(out *conf.Properties) error
+                CopyTo(out *conf.MutableProperties) error
         }
         for _, file := range localFiles </span><span class="cov4" title="5">{
                 sources = append(sources, file)
@@ -4718,7 +4718,7 @@ func NewBootConfig() *BootConfig <span class="cov1" title="1">{
 }</span>
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *BootConfig) Refresh() (conf.ReadOnlyProperties, error) <span class="cov1" title="1">{
+func (c *BootConfig) Refresh() (conf.Properties, error) <span class="cov1" title="1">{
 
         p := sysconf.Clone()
         err := merge(p, c.Environment, c.CommandArgs)
@@ -4732,7 +4732,7 @@ func (c *BootConfig) Refresh() (conf.ReadOnlyProperties, error) <span class="cov
         }</span>
 
         <span class="cov1" title="1">var sources []interface {
-                CopyTo(out *conf.Properties) error
+                CopyTo(out *conf.MutableProperties) error
         }
         for _, file := range localFiles </span><span class="cov0" title="0">{
                 sources = append(sources, file)
@@ -4808,7 +4808,7 @@ func (p *PropertySources) AddFile(files ...string) <span class="cov0" title="0">
 }
 
 // getDefaultDir returns the default configuration directory based on the configuration type.
-func (p *PropertySources) getDefaultDir(resolver *conf.Properties) (configDir string, err error) <span class="cov5" title="11">{
+func (p *PropertySources) getDefaultDir(resolver conf.Properties) (configDir string, err error) <span class="cov5" title="11">{
         if p.configType == ConfigTypeLocal </span><span class="cov4" title="6">{
                 return resolver.Resolve("${spring.app.config.dir:=./conf}")
         }</span> else<span class="cov4" title="5"> if p.configType == ConfigTypeRemote </span><span class="cov4" title="5">{
@@ -4819,7 +4819,7 @@ func (p *PropertySources) getDefaultDir(resolver *conf.Properties) (configDir st
 }
 
 // getFiles returns the list of configuration files based on the configuration directory and active profiles.
-func (p *PropertySources) getFiles(dir string, resolver *conf.Properties) (_ []string, err error) <span class="cov5" title="11">{
+func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []string, err error) <span class="cov5" title="11">{
 
         files := []string{
                 fmt.Sprintf("%s/%s.properties", dir, p.configName),
@@ -4849,7 +4849,7 @@ func (p *PropertySources) getFiles(dir string, resolver *conf.Properties) (_ []s
 }
 
 // loadFiles loads all configuration files and returns them as a list of Properties.
-func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properties, error) <span class="cov5" title="11">{
+func (p *PropertySources) loadFiles(resolver conf.Properties) ([]conf.Properties, error) <span class="cov5" title="11">{
         var files []string
         </span><span class="cov5" title="11">{
                 defaultDir, err := p.getDefaultDir(resolver)
@@ -4872,7 +4872,7 @@ func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properti
         }
         <span class="cov5" title="11">files = append(files, p.extraFiles...)
 
-        var ret []*conf.Properties
+        var ret []conf.Properties
         for _, s := range files </span><span class="cov10" title="88">{
                 filename, err := resolver.Resolve(s)
                 if err != nil </span><span class="cov0" title="0">{
@@ -4945,7 +4945,7 @@ func lookupEnv(environ []string, key string) (value string, found bool) <span cl
 
 // CopyTo add environment variables that matches IncludeEnvPatterns and
 // exclude environment variables that matches ExcludeEnvPatterns.
-func (c *Environment) CopyTo(p *conf.Properties) error <span class="cov3" title="12">{
+func (c *Environment) CopyTo(p *conf.MutableProperties) error <span class="cov3" title="12">{
         environ := os.Environ()
         if len(environ) == 0 </span><span class="cov0" title="0">{
                 return nil
@@ -5303,7 +5303,7 @@ func (c *Container) GroupRegister(fn resolving.GroupFunc) <span class="cov1" tit
 }</span>
 
 // RefreshProperties updates the properties of the container.
-func (c *Container) RefreshProperties(p conf.ReadOnlyProperties) error <span class="cov7" title="6">{
+func (c *Container) RefreshProperties(p conf.Properties) error <span class="cov7" title="6">{
         return c.wiring.RefreshProperties(p)
 }</span>
 
@@ -5379,7 +5379,7 @@ import (
         "github.com/go-spring/spring-core/util"
 )
 
-type GroupFunc = func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error)
+type GroupFunc = func(p conf.Properties) ([]*gs.BeanDefinition, error)
 
 type BeanMock struct {
         Object interface{}
@@ -5409,7 +5409,7 @@ func (c *Resolving) GroupRegister(fn GroupFunc) <span class="cov1" title="1">{
         c.funcs = append(c.funcs, fn)
 }</span>
 
-func (c *Resolving) RefreshInit(p conf.ReadOnlyProperties) error <span class="cov3" title="2">{
+func (c *Resolving) RefreshInit(p conf.Properties) error <span class="cov3" title="2">{
         // processes all group functions to register beans.
         for _, fn := range c.funcs </span><span class="cov1" title="1">{
                 beans, err := fn(p)
@@ -5524,7 +5524,7 @@ func (c *Resolving) RefreshInit(p conf.ReadOnlyProperties) error <span class="co
         <span class="cov3" title="2">return nil</span>
 }
 
-func (c *Resolving) Refresh(p conf.ReadOnlyProperties) ([]*gs_bean.BeanDefinition, error) <span class="cov3" title="2">{
+func (c *Resolving) Refresh(p conf.Properties) ([]*gs_bean.BeanDefinition, error) <span class="cov3" title="2">{
 
         // resolves all beans on their condition.
         ctx := &amp;CondContext{p: p, c: c}
@@ -5628,7 +5628,7 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 
 type CondContext struct {
         c *Resolving
-        p conf.ReadOnlyProperties
+        p conf.Properties
 }
 
 // resolveBean determines the validity of the bean.
@@ -5957,7 +5957,7 @@ func toWireString(tags []wireTag) string <span class="cov0" title="0">{
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
-func parseWireTag(p conf.ReadOnlyProperties, str string, needResolve bool) (tag wireTag, err error) <span class="cov7" title="12">{
+func parseWireTag(p conf.Properties, str string, needResolve bool) (tag wireTag, err error) <span class="cov7" title="12">{
 
         if str == "" </span><span class="cov5" title="5">{
                 return
@@ -6004,11 +6004,11 @@ func New() *Wiring <span class="cov2" title="2">{
         }
 }</span>
 
-func (c *Wiring) Properties() conf.ReadOnlyProperties <span class="cov4" title="4">{
+func (c *Wiring) Properties() conf.Properties <span class="cov4" title="4">{
         return c.p.Data()
 }</span>
 
-func (c *Wiring) RefreshProperties(p conf.ReadOnlyProperties) error <span class="cov5" title="6">{
+func (c *Wiring) RefreshProperties(p conf.Properties) error <span class="cov5" title="6">{
         return c.p.Refresh(p)
 }</span>
 
@@ -6707,7 +6707,7 @@ func (r *Value[T]) Value() T <span class="cov3" title="5">{
 }
 
 // OnRefresh refreshes the value of the object by binding new properties.
-func (r *Value[T]) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error <span class="cov3" title="5">{
+func (r *Value[T]) OnRefresh(prop conf.Properties, param conf.BindParam) error <span class="cov3" title="5">{
         var o T
         v := reflect.ValueOf(&amp;o).Elem()
         err := conf.BindValue(prop, v, v.Type(), param, nil)
@@ -6731,9 +6731,9 @@ type refreshObject struct {
 
 // Properties manages dynamic properties and refreshable objects.
 type Properties struct {
-        prop    conf.ReadOnlyProperties // The current properties.
-        lock    sync.RWMutex            // A read-write lock for thread-safe access.
-        objects []*refreshObject        // List of refreshable objects bound to the properties.
+        prop    conf.Properties  // The current properties.
+        lock    sync.RWMutex     // A read-write lock for thread-safe access.
+        objects []*refreshObject // List of refreshable objects bound to the properties.
 }
 
 // New creates and returns a new Properties instance.
@@ -6744,7 +6744,7 @@ func New() *Properties <span class="cov2" title="2">{
 }</span>
 
 // Data returns the current properties.
-func (p *Properties) Data() conf.ReadOnlyProperties <span class="cov6" title="22">{
+func (p *Properties) Data() conf.Properties <span class="cov6" title="22">{
         p.lock.RLock()
         defer p.lock.RUnlock()
         return p.prop
@@ -6758,7 +6758,7 @@ func (p *Properties) ObjectsCount() int <span class="cov2" title="2">{
 }</span>
 
 // Refresh updates the properties and refreshes all bound objects as necessary.
-func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) <span class="cov4" title="6">{
+func (p *Properties) Refresh(prop conf.Properties) (err error) <span class="cov4" title="6">{
         p.lock.Lock()
         defer p.lock.Unlock()
 
@@ -7596,7 +7596,7 @@ func Clear() <span class="cov0" title="0">{
 }</span>
 
 // Clone copies all properties into another properties.
-func Clone() *conf.Properties <span class="cov10" title="12">{
+func Clone() *conf.MutableProperties <span class="cov10" title="12">{
         lock.Lock()
         defer lock.Unlock()
         p := conf.New()
