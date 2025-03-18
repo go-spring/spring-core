@@ -201,12 +201,14 @@ type (
 	ReadySignal = gs.ReadySignal
 )
 
+// FuncRunner is a function type that implements the Runner interface.
 type FuncRunner func() error
 
 func (f FuncRunner) Run() error {
 	return f()
 }
 
+// FuncJob is a function type that implements the Job interface.
 type FuncJob func(ctx context.Context) error
 
 func (f FuncJob) Run(ctx context.Context) error {

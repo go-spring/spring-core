@@ -18,14 +18,14 @@ package controller
 
 import (
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl/http/proto"
 )
 
 func init() {
-	gs.Object(&Controller{}).Export(gs.As[idl.Controller]())
+	gs.Object(&Controller{}).Export(gs.As[proto.Controller]())
 }
 
-var _ idl.Controller = (*Controller)(nil)
+var _ proto.Controller = (*Controller)(nil)
 
 type Controller struct {
 	BookController

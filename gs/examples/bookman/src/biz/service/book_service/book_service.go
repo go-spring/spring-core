@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao"
-	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl/http/proto"
 	"github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk"
 )
 
@@ -40,15 +40,15 @@ type BookService struct {
 
 // ListBooks retrieves all books from the database and enriches them with
 // pricing and refresh time.
-func (s *BookService) ListBooks() ([]idl.Book, error) {
+func (s *BookService) ListBooks() ([]proto.Book, error) {
 	books, err := s.BookDao.ListBooks()
 	if err != nil {
 		s.Logger.Error(fmt.Sprintf("ListBooks return err: %s", err.Error()))
 		return nil, err
 	}
-	ret := make([]idl.Book, 0, len(books))
+	ret := make([]proto.Book, 0, len(books))
 	for _, book := range books {
-		ret = append(ret, idl.Book{
+		ret = append(ret, proto.Book{
 			ISBN:        book.ISBN,
 			Title:       book.Title,
 			Author:      book.Author,
@@ -62,13 +62,13 @@ func (s *BookService) ListBooks() ([]idl.Book, error) {
 
 // GetBook retrieves a single book by its ISBN and enriches it with
 // pricing and refresh time.
-func (s *BookService) GetBook(isbn string) (idl.Book, error) {
+func (s *BookService) GetBook(isbn string) (proto.Book, error) {
 	book, err := s.BookDao.GetBook(isbn)
 	if err != nil {
 		s.Logger.Error(fmt.Sprintf("GetBook return err: %s", err.Error()))
-		return idl.Book{}, err
+		return proto.Book{}, err
 	}
-	return idl.Book{
+	return proto.Book{
 		ISBN:        book.ISBN,
 		Title:       book.Title,
 		Author:      book.Author,

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package idl
+package proto
 
 import (
 	"net/http"

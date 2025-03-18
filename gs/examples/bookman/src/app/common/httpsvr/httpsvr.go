@@ -22,7 +22,7 @@ import (
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
+	"github.com/go-spring/spring-core/gs/examples/bookman/src/idl/http/proto"
 )
 
 func init() {
@@ -31,9 +31,9 @@ func init() {
 
 // NewServeMux Creates a new HTTP request multiplexer and registers
 // routes with access logging middleware.
-func NewServeMux(c idl.Controller, logger *slog.Logger) *http.ServeMux {
+func NewServeMux(c proto.Controller, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
-	idl.RegisterRouter(mux, c, Access(logger))
+	proto.RegisterRouter(mux, c, Access(logger))
 	return mux
 }
 

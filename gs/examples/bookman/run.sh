@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-export GOCOVERDIR=cov
-rm -rf ./cov/*
+export GOCOVERDIR=.cover
+rm -rf ./.cover/*
 go run -race -cover -covermode=atomic main.go
-go tool covdata textfmt -i=cov -o ./cov/cover.txt
-go tool cover -html=./cov/cover.txt -o ./cov/cover.html
+go tool covdata textfmt -i=.cover -o ./.cover/cover.txt
+go tool cover -html=./.cover/cover.txt -o ./.cover/cover.html

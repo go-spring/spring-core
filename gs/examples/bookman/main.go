@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -45,17 +46,15 @@ func init() {
 	gs.EnableSimplePProfServer(true)
 }
 
+func init() {
+	gs.Object(gs.FuncJob(runTest)).AsJob().Name("#job")
+}
+
 func main() {
 	// Unset certain environment variables before running the application
 	_ = os.Unsetenv("_")
 	_ = os.Unsetenv("TERM")
 	_ = os.Unsetenv("TERM_SESSION_ID")
-
-	// Run test after a short delay in a separate goroutine
-	go func() {
-		time.Sleep(time.Millisecond * 500)
-		runTest()
-	}()
 
 	// Start the application and log errors if startup fails
 	if err := gs.Run(); err != nil {
@@ -64,7 +63,8 @@ func main() {
 }
 
 // runTest performs a simple test.
-func runTest() {
+func runTest(ctx context.Context) error {
+	time.Sleep(time.Millisecond * 500)
 
 	iterutil.Times(5, func(_ int) {
 		url := "http://127.0.0.1:9090/books"
@@ -83,4 +83,5 @@ func runTest() {
 
 	// Shut down the application gracefully
 	gs.ShutDown()
+	return nil
 }

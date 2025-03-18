@@ -91,7 +91,7 @@
 				
 				<option value="file17">github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao/book_dao.go (36.4%)</option>
 				
-				<option value="file18">github.com/go-spring/spring-core/gs/examples/bookman/src/idl/proto.go (100.0%)</option>
+				<option value="file18">github.com/go-spring/spring-core/gs/examples/bookman/src/idl/http/proto/proto.go (100.0%)</option>
 				
 				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk/book_sdk.go (100.0%)</option>
 				
@@ -195,6 +195,7 @@
 package main
 
 import (
+        "context"
         "fmt"
         "io"
         "net/http"
@@ -223,26 +224,25 @@ func init() <span class="cov1" title="1">{
         gs.EnableSimplePProfServer(true)
 }</span>
 
+func init() <span class="cov1" title="1">{
+        gs.Object(gs.FuncJob(runTest)).AsJob().Name("#job")
+}</span>
+
 func main() <span class="cov1" title="1">{
         // Unset certain environment variables before running the application
         _ = os.Unsetenv("_")
         _ = os.Unsetenv("TERM")
         _ = os.Unsetenv("TERM_SESSION_ID")
 
-        // Run test after a short delay in a separate goroutine
-        go func() </span><span class="cov1" title="1">{
-                time.Sleep(time.Millisecond * 500)
-                runTest()
-        }</span>()
-
         // Start the application and log errors if startup fails
-        <span class="cov1" title="1">if err := gs.Run(); err != nil </span><span class="cov0" title="0">{
+        if err := gs.Run(); err != nil </span><span class="cov0" title="0">{
                 syslog.Errorf("app run failed: %s", err.Error())
         }</span>
 }
 
 // runTest performs a simple test.
-func runTest() <span class="cov1" title="1">{
+func runTest(ctx context.Context) error <span class="cov1" title="1">{
+        time.Sleep(time.Millisecond * 500)
 
         iterutil.Times(5, func(_ int) </span><span class="cov10" title="5">{
                 url := "http://127.0.0.1:9090/books"
@@ -260,7 +260,8 @@ func runTest() <span class="cov1" title="1">{
         })
 
         // Shut down the application gracefully
-        <span class="cov1" title="1">gs.ShutDown()</span>
+        <span class="cov1" title="1">gs.ShutDown()
+        return nil</span>
 }
 </pre>
 		
@@ -1758,7 +1759,7 @@ import (
         "net/http"
 
         "github.com/go-spring/spring-core/gs"
-        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl/http/proto"
 )
 
 func init() <span class="cov1" title="1">{
@@ -1767,9 +1768,9 @@ func init() <span class="cov1" title="1">{
 
 // NewServeMux Creates a new HTTP request multiplexer and registers
 // routes with access logging middleware.
-func NewServeMux(c idl.Controller, logger *slog.Logger) *http.ServeMux <span class="cov1" title="1">{
+func NewServeMux(c proto.Controller, logger *slog.Logger) *http.ServeMux <span class="cov1" title="1">{
         mux := http.NewServeMux()
-        idl.RegisterRouter(mux, c, Access(logger))
+        proto.RegisterRouter(mux, c, Access(logger))
         return mux
 }</span>
 
@@ -1881,14 +1882,14 @@ package controller
 
 import (
         "github.com/go-spring/spring-core/gs"
-        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl/http/proto"
 )
 
 func init() <span class="cov8" title="1">{
-        gs.Object(&amp;Controller{}).Export(gs.As[idl.Controller]())
+        gs.Object(&amp;Controller{}).Export(gs.As[proto.Controller]())
 }</span>
 
-var _ idl.Controller = (*Controller)(nil)
+var _ proto.Controller = (*Controller)(nil)
 
 type Controller struct {
         BookController
@@ -1970,7 +1971,7 @@ import (
 
         "github.com/go-spring/spring-core/gs"
         "github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao"
-        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl"
+        "github.com/go-spring/spring-core/gs/examples/bookman/src/idl/http/proto"
         "github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk"
 )
 
@@ -1987,15 +1988,15 @@ type BookService struct {
 
 // ListBooks retrieves all books from the database and enriches them with
 // pricing and refresh time.
-func (s *BookService) ListBooks() ([]idl.Book, error) <span class="cov10" title="5">{
+func (s *BookService) ListBooks() ([]proto.Book, error) <span class="cov10" title="5">{
         books, err := s.BookDao.ListBooks()
         if err != nil </span><span class="cov0" title="0">{
                 s.Logger.Error(fmt.Sprintf("ListBooks return err: %s", err.Error()))
                 return nil, err
         }</span>
-        <span class="cov10" title="5">ret := make([]idl.Book, 0, len(books))
+        <span class="cov10" title="5">ret := make([]proto.Book, 0, len(books))
         for _, book := range books </span><span class="cov10" title="5">{
-                ret = append(ret, idl.Book{
+                ret = append(ret, proto.Book{
                         ISBN:        book.ISBN,
                         Title:       book.Title,
                         Author:      book.Author,
@@ -2009,13 +2010,13 @@ func (s *BookService) ListBooks() ([]idl.Book, error) <span class="cov10" title=
 
 // GetBook retrieves a single book by its ISBN and enriches it with
 // pricing and refresh time.
-func (s *BookService) GetBook(isbn string) (idl.Book, error) <span class="cov0" title="0">{
+func (s *BookService) GetBook(isbn string) (proto.Book, error) <span class="cov0" title="0">{
         book, err := s.BookDao.GetBook(isbn)
         if err != nil </span><span class="cov0" title="0">{
                 s.Logger.Error(fmt.Sprintf("GetBook return err: %s", err.Error()))
-                return idl.Book{}, err
+                return proto.Book{}, err
         }</span>
-        <span class="cov0" title="0">return idl.Book{
+        <span class="cov0" title="0">return proto.Book{
                 ISBN:        book.ISBN,
                 Title:       book.Title,
                 Author:      book.Author,
@@ -2130,7 +2131,7 @@ func (dao *BookDao) DeleteBook(isbn string) error <span class="cov0" title="0">{
  * limitations under the License.
  */
 
-package idl
+package proto
 
 import (
         "net/http"
@@ -2405,7 +2406,7 @@ func (f FuncRunner) Run() error <span class="cov1" title="1">{
 
 type FuncJob func(ctx context.Context) error
 
-func (f FuncJob) Run(ctx context.Context) error <span class="cov1" title="1">{
+func (f FuncJob) Run(ctx context.Context) error <span class="cov3" title="2">{
         return f(ctx)
 }</span>
 
@@ -2437,7 +2438,7 @@ func Config() *gs_conf.AppConfig <span class="cov5" title="4">{
 }</span>
 
 // Object registers a bean definition for a given object.
-func Object(i interface{}) *RegisteredBean <span class="cov6" title="6">{
+func Object(i interface{}) *RegisteredBean <span class="cov7" title="7">{
         b := NewBean(reflect.ValueOf(i))
         return gs_app.GS.C.Register(b)
 }</span>
@@ -2658,12 +2659,12 @@ var anyType = reflect.TypeFor[any]()
 // As returns the [reflect.Type] of the given interface type.
 // It ensures that the provided generic type parameter T is an interface.
 // If T is not an interface, the function panics.
-func As[T any]() reflect.Type <span class="cov5" title="6">{
+func As[T any]() reflect.Type <span class="cov6" title="7">{
         t := reflect.TypeFor[T]()
         if t.Kind() != reflect.Interface </span><span class="cov0" title="0">{
                 panic("T must be interface")</span>
         }
-        <span class="cov5" title="6">return t</span>
+        <span class="cov6" title="7">return t</span>
 }
 
 // BeanInitFunc defines the prototype for initialization functions.
@@ -2843,12 +2844,12 @@ func (d *beanBuilder[T]) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Va
 }</span>
 
 // BeanRegistration returns the underlying BeanRegistration instance.
-func (d *beanBuilder[T]) BeanRegistration() BeanRegistration <span class="cov10" title="27">{
+func (d *beanBuilder[T]) BeanRegistration() BeanRegistration <span class="cov10" title="29">{
         return d.b
 }</span>
 
 // Name sets the name of the bean.
-func (d *beanBuilder[T]) Name(name string) *T <span class="cov4" title="3">{
+func (d *beanBuilder[T]) Name(name string) *T <span class="cov4" title="4">{
         d.b.SetName(name)
         return *(**T)(unsafe.Pointer(&amp;d))
 }</span>
@@ -2860,7 +2861,7 @@ func (d *beanBuilder[T]) Init(fn BeanInitFunc) *T <span class="cov0" title="0">{
 }</span>
 
 // Destroy sets the destruction function for the bean.
-func (d *beanBuilder[T]) Destroy(fn BeanDestroyFunc) *T <span class="cov4" title="3">{
+func (d *beanBuilder[T]) Destroy(fn BeanDestroyFunc) *T <span class="cov3" title="3">{
         d.b.SetDestroy(fn)
         return *(**T)(unsafe.Pointer(&amp;d))
 }</span>
@@ -2896,7 +2897,7 @@ func (d *beanBuilder[T]) AsRunner() *T <span class="cov1" title="1">{
 }</span>
 
 // AsJob marks the bean as a Job.
-func (d *beanBuilder[T]) AsJob() *T <span class="cov2" title="2">{
+func (d *beanBuilder[T]) AsJob() *T <span class="cov3" title="3">{
         d.b.SetExport(As[Job]())
         return *(**T)(unsafe.Pointer(&amp;d))
 }</span>
@@ -2943,7 +2944,7 @@ type RegisteredBean struct {
 }
 
 // NewRegisteredBean creates a new RegisteredBean instance.
-func NewRegisteredBean(d BeanRegistration) *RegisteredBean <span class="cov7" title="12">{
+func NewRegisteredBean(d BeanRegistration) *RegisteredBean <span class="cov7" title="13">{
         return &amp;RegisteredBean{
                 beanBuilder: beanBuilder[RegisteredBean]{d},
         }
@@ -2955,7 +2956,7 @@ type BeanDefinition struct {
 }
 
 // NewBeanDefinition creates a new BeanDefinition instance.
-func NewBeanDefinition(d BeanRegistration) *BeanDefinition <span class="cov8" title="15">{
+func NewBeanDefinition(d BeanRegistration) *BeanDefinition <span class="cov8" title="16">{
         return &amp;BeanDefinition{
                 beanBuilder: beanBuilder[BeanDefinition]{d},
         }
@@ -3087,15 +3088,15 @@ func (app *App) Start() error <span class="cov1" title="1">{
 
         // runs all jobs
         <span class="cov1" title="1">if app.EnableJobs </span><span class="cov1" title="1">{
-                for _, job := range app.Jobs </span><span class="cov3" title="2">{
-                        goutil.GoFunc(func() </span><span class="cov3" title="2">{
-                                defer func() </span><span class="cov1" title="1">{
+                for _, job := range app.Jobs </span><span class="cov5" title="3">{
+                        goutil.GoFunc(func() </span><span class="cov5" title="3">{
+                                defer func() </span><span class="cov3" title="2">{
                                         if r := recover(); r != nil </span><span class="cov0" title="0">{
                                                 app.ShutDown()
                                                 panic(r)</span>
                                         }
                                 }()
-                                <span class="cov3" title="2">if err := job.Run(app.ctx); err != nil </span><span class="cov0" title="0">{
+                                <span class="cov5" title="3">if err := job.Run(app.ctx); err != nil </span><span class="cov0" title="0">{
                                         syslog.Errorf("job run error: %s", err.Error())
                                         app.ShutDown()
                                 }</span>
@@ -3744,17 +3745,17 @@ func validLifeCycleFunc(fnType reflect.Type, beanType reflect.Type) bool <span c
 }
 
 // Init returns the initialization function of the bean.
-func (d *BeanMetadata) Init() gs.BeanInitFunc <span class="cov5" title="15">{
+func (d *BeanMetadata) Init() gs.BeanInitFunc <span class="cov5" title="16">{
         return d.init
 }</span>
 
 // Destroy returns the destruction function of the bean.
-func (d *BeanMetadata) Destroy() gs.BeanDestroyFunc <span class="cov6" title="31">{
+func (d *BeanMetadata) Destroy() gs.BeanDestroyFunc <span class="cov6" title="33">{
         return d.destroy
 }</span>
 
 // DependsOn returns the list of dependencies for the bean.
-func (d *BeanMetadata) DependsOn() []gs.BeanSelector <span class="cov5" title="15">{
+func (d *BeanMetadata) DependsOn() []gs.BeanSelector <span class="cov5" title="16">{
         return d.dependsOn
 }</span>
 
@@ -3764,12 +3765,12 @@ func (d *BeanMetadata) SetDependsOn(selectors ...gs.BeanSelector) <span class="c
 }</span>
 
 // Exports returns the list of exported types for the bean.
-func (d *BeanMetadata) Exports() []reflect.Type <span class="cov7" title="41">{
+func (d *BeanMetadata) Exports() []reflect.Type <span class="cov7" title="44">{
         return d.exports
 }</span>
 
 // Conditions returns the list of conditions for the bean.
-func (d *BeanMetadata) Conditions() []gs.Condition <span class="cov5" title="15">{
+func (d *BeanMetadata) Conditions() []gs.Condition <span class="cov5" title="16">{
         return d.conditions
 }</span>
 
@@ -3779,7 +3780,7 @@ func (d *BeanMetadata) SetCondition(conditions ...gs.Condition) <span class="cov
 }</span>
 
 // ConfigurationBean returns whether the bean is a configuration bean.
-func (d *BeanMetadata) ConfigurationBean() bool <span class="cov5" title="15">{
+func (d *BeanMetadata) ConfigurationBean() bool <span class="cov5" title="16">{
         return d.configurationBean
 }</span>
 
@@ -3804,7 +3805,7 @@ func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) <span 
 }
 
 // Refreshable returns whether the bean is refreshable.
-func (d *BeanMetadata) Refreshable() bool <span class="cov5" title="15">{
+func (d *BeanMetadata) Refreshable() bool <span class="cov5" title="16">{
         return d.refreshable
 }</span>
 
@@ -3825,7 +3826,7 @@ func (d *BeanMetadata) FileLine() (string, int) <span class="cov0" title="0">{
 }</span>
 
 // SetFileLine sets the file and line number for the bean.
-func (d *BeanMetadata) SetFileLine(file string, line int) <span class="cov5" title="15">{
+func (d *BeanMetadata) SetFileLine(file string, line int) <span class="cov5" title="16">{
         d.file, d.line = file, line
 }</span>
 
@@ -3837,17 +3838,17 @@ type BeanRuntime struct {
 }
 
 // Name returns the name of the bean.
-func (d *BeanRuntime) Name() string <span class="cov8" title="97">{
+func (d *BeanRuntime) Name() string <span class="cov8" title="106">{
         return d.name
 }</span>
 
 // Type returns the type of the bean.
-func (d *BeanRuntime) Type() reflect.Type <span class="cov8" title="99">{
+func (d *BeanRuntime) Type() reflect.Type <span class="cov8" title="106">{
         return d.t
 }</span>
 
 // Value returns the value of the bean as [reflect.Value].
-func (d *BeanRuntime) Value() reflect.Value <span class="cov6" title="37">{
+func (d *BeanRuntime) Value() reflect.Value <span class="cov6" title="39">{
         return d.v
 }</span>
 
@@ -3878,7 +3879,7 @@ type BeanDefinition struct {
 }
 
 // NewBean creates a new bean definition.
-func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition <span class="cov5" title="15">{
+func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition <span class="cov5" title="16">{
         return &amp;BeanDefinition{
                 BeanMetadata: &amp;BeanMetadata{
                         f:      f,
@@ -3907,22 +3908,22 @@ func (d *BeanDefinition) SetMock(obj interface{}) <span class="cov0" title="0">{
 }</span>
 
 // Callable returns the callable for the bean.
-func (d *BeanDefinition) Callable() *gs_arg.Callable <span class="cov5" title="18">{
+func (d *BeanDefinition) Callable() *gs_arg.Callable <span class="cov5" title="19">{
         return d.f
 }</span>
 
 // SetName sets the name of the bean.
-func (d *BeanDefinition) SetName(name string) <span class="cov2" title="3">{
+func (d *BeanDefinition) SetName(name string) <span class="cov3" title="4">{
         d.name = name
 }</span>
 
 // Status returns the current status of the bean.
-func (d *BeanDefinition) Status() BeanStatus <span class="cov10" title="246">{
+func (d *BeanDefinition) Status() BeanStatus <span class="cov10" title="263">{
         return d.status
 }</span>
 
 // SetStatus sets the current status of the bean.
-func (d *BeanDefinition) SetStatus(status BeanStatus) <span class="cov8" title="75">{
+func (d *BeanDefinition) SetStatus(status BeanStatus) <span class="cov8" title="80">{
         d.status = status
 }</span>
 
@@ -3963,25 +3964,25 @@ func (d *BeanDefinition) SetDestroyMethod(method string) <span class="cov0" titl
 }
 
 // SetExport sets the exported interfaces for the bean.
-func (d *BeanDefinition) SetExport(exports ...reflect.Type) <span class="cov3" title="6">{
-        for _, t := range exports </span><span class="cov3" title="6">{
+func (d *BeanDefinition) SetExport(exports ...reflect.Type) <span class="cov4" title="7">{
+        for _, t := range exports </span><span class="cov4" title="7">{
                 if t.Kind() != reflect.Interface </span><span class="cov0" title="0">{
                         panic("only interface type can be exported")</span>
                 }
-                <span class="cov3" title="6">if !d.Type().Implements(t) </span><span class="cov0" title="0">{
+                <span class="cov4" title="7">if !d.Type().Implements(t) </span><span class="cov0" title="0">{
                         panic(fmt.Sprintf("%s doesn't implement interface %s", d, t))</span>
                 }
-                <span class="cov3" title="6">exported := false
+                <span class="cov4" title="7">exported := false
                 for _, export := range d.exports </span><span class="cov0" title="0">{
                         if t == export </span><span class="cov0" title="0">{
                                 exported = true
                                 break</span>
                         }
                 }
-                <span class="cov3" title="6">if exported </span><span class="cov0" title="0">{
+                <span class="cov4" title="7">if exported </span><span class="cov0" title="0">{
                         continue</span>
                 }
-                <span class="cov3" title="6">d.exports = append(d.exports, t)</span>
+                <span class="cov4" title="7">d.exports = append(d.exports, t)</span>
         }
 }
 
@@ -5087,7 +5088,7 @@ import (
 )
 
 // NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
-func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span class="cov10" title="15">{
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span class="cov10" title="16">{
 
         var v reflect.Value
         var fromValue bool
@@ -5095,24 +5096,24 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span
         var cond gs.Condition
 
         switch i := objOrCtor.(type) </span>{
-        case reflect.Value:<span class="cov8" title="9">
+        case reflect.Value:<span class="cov8" title="10">
                 fromValue = true
                 v = i</span>
         default:<span class="cov6" title="6">
                 v = reflect.ValueOf(i)</span>
         }
 
-        <span class="cov10" title="15">t := v.Type()
+        <span class="cov10" title="16">t := v.Type()
         if !util.IsBeanType(t) </span><span class="cov0" title="0">{
                 panic("bean must be ref type")</span>
         }
 
         // Ensure the value is valid and not nil
-        <span class="cov10" title="15">if !v.IsValid() || v.IsNil() </span><span class="cov0" title="0">{
+        <span class="cov10" title="16">if !v.IsValid() || v.IsNil() </span><span class="cov0" title="0">{
                 panic("bean can't be nil")</span>
         }
 
-        <span class="cov10" title="15">var f *gs_arg.Callable
+        <span class="cov10" title="16">var f *gs_arg.Callable
         _, file, line, _ := runtime.Caller(1)
 
         // If objOrCtor is a function (not from reflect.Value),
@@ -5188,25 +5189,25 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span
                 }
         }
 
-        <span class="cov10" title="15">if t.Kind() == reflect.Ptr &amp;&amp; !util.IsPropBindingTarget(t.Elem()) </span><span class="cov0" title="0">{
+        <span class="cov10" title="16">if t.Kind() == reflect.Ptr &amp;&amp; !util.IsPropBindingTarget(t.Elem()) </span><span class="cov0" title="0">{
                 panic("bean should be *val but not *ref")</span>
         }
 
         // Type.String() 一般返回 *pkg.Type 形式的字符串，
         // 我们只取最后的类型名，如有需要请自定义 bean 名称。
-        <span class="cov10" title="15">if name == "" </span><span class="cov9" title="12">{
+        <span class="cov10" title="16">if name == "" </span><span class="cov9" title="13">{
                 s := strings.Split(t.String(), ".")
                 name = strings.TrimPrefix(s[len(s)-1], "*")
         }</span>
 
-        <span class="cov10" title="15">d := gs_bean.NewBean(t, v, f, name)
+        <span class="cov10" title="16">d := gs_bean.NewBean(t, v, f, name)
         d.SetFileLine(file, line)
 
         bd := gs.NewBeanDefinition(d)
         if cond != nil </span><span class="cov0" title="0">{
                 bd.Condition(cond)
         }</span>
-        <span class="cov10" title="15">return bd</span>
+        <span class="cov10" title="16">return bd</span>
 }
 </pre>
 		
@@ -5289,13 +5290,13 @@ func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
         return c.Register(b)
 }</span>
 
-func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean <span class="cov10" title="12">{
+func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean <span class="cov10" title="13">{
         x := b.BeanRegistration().(*gs_bean.BeanDefinition)
         r := gs.NewRegisteredBean(b.BeanRegistration())
-        if c.state &lt; Refreshing </span><span class="cov10" title="12">{
+        if c.state &lt; Refreshing </span><span class="cov10" title="13">{
                 c.resolving.Register(x)
         }</span>
-        <span class="cov10" title="12">return r</span>
+        <span class="cov10" title="13">return r</span>
 }
 
 func (c *Container) GroupRegister(fn resolving.GroupFunc) <span class="cov1" title="1">{
@@ -5401,7 +5402,7 @@ func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) <span class="c
         c.mocks = append(c.mocks, x)
 }</span>
 
-func (c *Resolving) Register(b *gs_bean.BeanDefinition) <span class="cov9" title="12">{
+func (c *Resolving) Register(b *gs_bean.BeanDefinition) <span class="cov9" title="13">{
         c.beans = append(c.beans, b)
 }</span>
 
@@ -5423,8 +5424,8 @@ func (c *Resolving) RefreshInit(p conf.Properties) error <span class="cov3" titl
         }
 
         // processes configuration beans to register beans.
-        <span class="cov3" title="2">for _, b := range c.beans </span><span class="cov9" title="15">{
-                if !b.ConfigurationBean() </span><span class="cov9" title="15">{
+        <span class="cov3" title="2">for _, b := range c.beans </span><span class="cov9" title="16">{
+                if !b.ConfigurationBean() </span><span class="cov9" title="16">{
                         continue</span>
                 }
                 <span class="cov0" title="0">var foundMock BeanMock
@@ -5528,7 +5529,7 @@ func (c *Resolving) Refresh(p conf.Properties) ([]*gs_bean.BeanDefinition, error
 
         // resolves all beans on their condition.
         ctx := &amp;CondContext{p: p, c: c}
-        for _, b := range c.beans </span><span class="cov9" title="15">{
+        for _, b := range c.beans </span><span class="cov9" title="16">{
                 if err := ctx.resolveBean(b); err != nil </span><span class="cov0" title="0">{
                         return nil, err
                 }</span>
@@ -5541,18 +5542,18 @@ func (c *Resolving) Refresh(p conf.Properties) ([]*gs_bean.BeanDefinition, error
 
         // caches all beans by id and checks for duplicates.
         beansByID := make(map[BeanID]*gs_bean.BeanDefinition)
-        for _, b := range c.beans </span><span class="cov9" title="15">{
+        for _, b := range c.beans </span><span class="cov9" title="16">{
                 if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
                         continue</span>
                 }
-                <span class="cov9" title="15">if b.Status() != gs_bean.StatusResolved </span><span class="cov0" title="0">{
+                <span class="cov9" title="16">if b.Status() != gs_bean.StatusResolved </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("unexpected status %d", b.Status())
                 }</span>
-                <span class="cov9" title="15">beanID := BeanID{b.Name(), b.Type()}
+                <span class="cov9" title="16">beanID := BeanID{b.Name(), b.Type()}
                 if d, ok := beansByID[beanID]; ok </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
                 }</span>
-                <span class="cov9" title="15">beansByID[beanID] = b</span>
+                <span class="cov9" title="16">beansByID[beanID] = b</span>
         }
         <span class="cov3" title="2">return c.beans, nil</span>
 }
@@ -5632,11 +5633,11 @@ type CondContext struct {
 }
 
 // resolveBean determines the validity of the bean.
-func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error <span class="cov10" title="16">{
+func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error <span class="cov10" title="17">{
         if b.Status() &gt;= gs_bean.StatusResolving </span><span class="cov1" title="1">{
                 return nil
         }</span>
-        <span class="cov9" title="15">b.SetStatus(gs_bean.StatusResolving)
+        <span class="cov9" title="16">b.SetStatus(gs_bean.StatusResolving)
         for _, cond := range b.Conditions() </span><span class="cov6" title="5">{
                 if ok, err := cond.Matches(c); err != nil </span><span class="cov0" title="0">{
                         return err
@@ -5645,7 +5646,7 @@ func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error <span class="
                         return nil
                 }</span>
         }
-        <span class="cov9" title="15">b.SetStatus(gs_bean.StatusResolved)
+        <span class="cov9" title="16">b.SetStatus(gs_bean.StatusResolved)
         return nil</span>
 }
 
@@ -5662,20 +5663,20 @@ func (c *CondContext) Prop(key string, def ...string) string <span class="cov3" 
 func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) <span class="cov1" title="1">{
         t, name := s.TypeAndName()
         var result []gs.CondBean
-        for _, b := range c.c.beans </span><span class="cov9" title="13">{
+        for _, b := range c.c.beans </span><span class="cov9" title="14">{
                 if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted </span><span class="cov1" title="1">{
                         continue</span>
                 }
-                <span class="cov9" title="12">if t != nil </span><span class="cov9" title="12">{
-                        if b.Type() != t </span><span class="cov8" title="11">{
+                <span class="cov9" title="13">if t != nil </span><span class="cov9" title="13">{
+                        if b.Type() != t </span><span class="cov8" title="12">{
                                 foundType := false
-                                for _, typ := range b.Exports() </span><span class="cov5" title="4">{
+                                for _, typ := range b.Exports() </span><span class="cov6" title="5">{
                                         if typ == t </span><span class="cov0" title="0">{
                                                 foundType = true
                                                 break</span>
                                         }
                                 }
-                                <span class="cov8" title="11">if !foundType </span><span class="cov8" title="11">{
+                                <span class="cov8" title="12">if !foundType </span><span class="cov8" title="12">{
                                         continue</span>
                                 }
                         }
@@ -5817,13 +5818,13 @@ func NewStack() *Stack <span class="cov2" title="2">{
 }</span>
 
 // pushBack adds a bean to the injection path.
-func (s *Stack) pushBack(b *gs_bean.BeanDefinition) <span class="cov9" title="28">{
+func (s *Stack) pushBack(b *gs_bean.BeanDefinition) <span class="cov9" title="30">{
         syslog.Debugf("push %s %s", b, b.Status())
         s.Beans = append(s.Beans, b)
 }</span>
 
 // popBack removes the last bean from the injection path.
-func (s *Stack) popBack() <span class="cov9" title="28">{
+func (s *Stack) popBack() <span class="cov9" title="30">{
         n := len(s.Beans)
         b := s.Beans[n-1]
         s.Beans = s.Beans[:n-1]
@@ -6026,16 +6027,16 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) <span
 
         // registers all beans
         var beans []*gs_bean.BeanDefinition
-        for _, b := range inputBeans </span><span class="cov8" title="15">{
+        for _, b := range inputBeans </span><span class="cov8" title="16">{
                 if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
                         continue</span>
                 }
-                <span class="cov8" title="15">c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
+                <span class="cov8" title="16">c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
                 c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
-                for _, t := range b.Exports() </span><span class="cov5" title="6">{
+                for _, t := range b.Exports() </span><span class="cov6" title="7">{
                         c.beansByType[t] = append(c.beansByType[t], b)
                 }</span>
-                <span class="cov8" title="15">beans = append(beans, b)</span>
+                <span class="cov8" title="16">beans = append(beans, b)</span>
         }
 
         <span class="cov2" title="2">stack := NewStack()
@@ -6048,7 +6049,7 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) <span
 
         // injects all beans
         <span class="cov2" title="2">c.state = Refreshing
-        for _, b := range beans </span><span class="cov8" title="15">{
+        for _, b := range beans </span><span class="cov8" title="16">{
                 if err = c.wireBean(b, stack); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
@@ -6075,10 +6076,10 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) <span
         // registers all beans
         <span class="cov2" title="2">c.beansByName = make(map[string][]BeanRuntime)
         c.beansByType = make(map[reflect.Type][]BeanRuntime)
-        for _, b := range beans </span><span class="cov8" title="15">{
+        for _, b := range beans </span><span class="cov8" title="16">{
                 c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
                 c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
-                for _, t := range b.Exports() </span><span class="cov5" title="6">{
+                for _, t := range b.Exports() </span><span class="cov6" title="7">{
                         c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
                 }</span>
         }
@@ -6219,11 +6220,11 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
         // Filter out deleted beans
         </span><span class="cov4" title="4">{
                 var arr []BeanRuntime
-                for _, b := range beans </span><span class="cov5" title="5">{
+                for _, b := range beans </span><span class="cov5" title="6">{
                         if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
                                 continue</span>
                         }
-                        <span class="cov5" title="5">arr = append(arr, b)</span>
+                        <span class="cov5" title="6">arr = append(arr, b)</span>
                 }
                 <span class="cov4" title="4">beans = arr</span>
         }
@@ -6277,7 +6278,7 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
 
                 <span class="cov4" title="4">if foundAny </span><span class="cov4" title="4">{
                         temp := append(beforeAny, afterAny...)
-                        for i := 0; i &lt; len(beans); i++ </span><span class="cov5" title="5">{
+                        for i := 0; i &lt; len(beans); i++ </span><span class="cov5" title="6">{
                                 found := false
                                 for _, j := range temp </span><span class="cov0" title="0">{
                                         if i == j </span><span class="cov0" title="0">{
@@ -6285,10 +6286,10 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
                                                 break</span>
                                         }
                                 }
-                                <span class="cov5" title="5">if found </span><span class="cov0" title="0">{
+                                <span class="cov5" title="6">if found </span><span class="cov0" title="0">{
                                         continue</span>
                                 }
-                                <span class="cov5" title="5">anyBeans = append(anyBeans, i)</span>
+                                <span class="cov5" title="6">anyBeans = append(anyBeans, i)</span>
                         }
                 }
 
@@ -6297,7 +6298,7 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
                 for _, i := range beforeAny </span><span class="cov0" title="0">{
                         arr = append(arr, beans[i])
                 }</span>
-                <span class="cov4" title="4">for _, i := range anyBeans </span><span class="cov5" title="5">{
+                <span class="cov4" title="4">for _, i := range anyBeans </span><span class="cov5" title="6">{
                         arr = append(arr, beans[i])
                 }</span>
                 <span class="cov4" title="4">for _, i := range afterAny </span><span class="cov0" title="0">{
@@ -6321,9 +6322,9 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
         }
 
         // Wire the beans based on the current state of the container
-        <span class="cov3" title="3">for _, b := range beans </span><span class="cov5" title="5">{
+        <span class="cov3" title="3">for _, b := range beans </span><span class="cov5" title="6">{
                 switch c.state </span>{
-                case Refreshing:<span class="cov5" title="5">
+                case Refreshing:<span class="cov5" title="6">
                         if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil </span><span class="cov0" title="0">{
                                 return nil, err
                         }</span>
@@ -6342,7 +6343,7 @@ func (c *Wiring) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *
 // It also tracks its injection path. If the bean has an initialization function, it
 // is executed after the injection is completed. If the bean depends on other beans,
 // it attempts to instantiate and inject those dependencies first.
-func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span class="cov9" title="28">{
+func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span class="cov9" title="30">{
 
         // Check if the bean is deleted.
         if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
@@ -6350,21 +6351,21 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span c
         }</span>
 
         // If the container is refreshed and the bean is already wired, do nothing.
-        <span class="cov9" title="28">if c.state == Refreshed &amp;&amp; b.Status() == gs_bean.StatusWired </span><span class="cov0" title="0">{
+        <span class="cov9" title="30">if c.state == Refreshed &amp;&amp; b.Status() == gs_bean.StatusWired </span><span class="cov0" title="0">{
                 return nil
         }</span>
 
-        <span class="cov9" title="28">haveDestroy := false
+        <span class="cov9" title="30">haveDestroy := false
 
         // Ensure destroy functions are cleaned up in case of failure.
-        defer func() </span><span class="cov9" title="28">{
+        defer func() </span><span class="cov9" title="30">{
                 if haveDestroy </span><span class="cov5" title="6">{
                         stack.destroyers.Remove(stack.destroyers.Back())
                 }</span>
         }()
 
         // Record the destroy function for the bean, if it exists.
-        <span class="cov9" title="28">if b.Destroy() != nil </span><span class="cov5" title="6">{
+        <span class="cov9" title="30">if b.Destroy() != nil </span><span class="cov5" title="6">{
                 haveDestroy = true
                 d := stack.saveDestroyer(b)
                 if i := stack.destroyers.Back(); i != nil </span><span class="cov0" title="0">{
@@ -6373,7 +6374,7 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span c
                 <span class="cov5" title="6">stack.destroyers.PushBack(b)</span>
         }
 
-        <span class="cov9" title="28">stack.pushBack(b)
+        <span class="cov9" title="30">stack.pushBack(b)
 
         // Detect circular dependency.
         if b.Status() == gs_bean.StatusCreating &amp;&amp; b.Callable() != nil </span><span class="cov0" title="0">{
@@ -6384,13 +6385,13 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span c
         }
 
         // If the bean is already being created, return early.
-        <span class="cov9" title="28">if b.Status() &gt;= gs_bean.StatusCreating </span><span class="cov7" title="13">{
+        <span class="cov9" title="30">if b.Status() &gt;= gs_bean.StatusCreating </span><span class="cov7" title="14">{
                 stack.popBack()
                 return nil
         }</span>
 
         // Mark the bean as being created.
-        <span class="cov8" title="15">b.SetStatus(gs_bean.StatusCreating)
+        <span class="cov8" title="16">b.SetStatus(gs_bean.StatusCreating)
 
         // Inject dependencies for the current bean.
         for _, s := range b.DependsOn() </span><span class="cov0" title="0">{
@@ -6407,12 +6408,12 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span c
         }
 
         // Get the value of the current bean.
-        <span class="cov8" title="15">v, err := c.getBeanValue(b, stack)
+        <span class="cov8" title="16">v, err := c.getBeanValue(b, stack)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov8" title="15">b.SetStatus(gs_bean.StatusCreated)
+        <span class="cov8" title="16">b.SetStatus(gs_bean.StatusCreated)
 
         watchRefresh := true
 
@@ -6431,13 +6432,13 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span c
         }
 
         // Wire the value of the bean.
-        <span class="cov8" title="15">err = c.WireBeanValue(v, v.Type(), watchRefresh, stack)
+        <span class="cov8" title="16">err = c.WireBeanValue(v, v.Type(), watchRefresh, stack)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
         // Execute the bean's initialization function, if it exists.
-        <span class="cov8" title="15">if b.Init() != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="16">if b.Init() != nil </span><span class="cov0" title="0">{
                 fnValue := reflect.ValueOf(b.Init())
                 out := fnValue.Call([]reflect.Value{b.Value()})
                 if len(out) &gt; 0 &amp;&amp; !out[0].IsNil() </span><span class="cov0" title="0">{
@@ -6446,17 +6447,17 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span c
         }
 
         // Mark the bean as wired and pop it from the stack.
-        <span class="cov8" title="15">b.SetStatus(gs_bean.StatusWired)
+        <span class="cov8" title="16">b.SetStatus(gs_bean.StatusWired)
         stack.popBack()
         return nil</span>
 }
 
 // getBeanValue retrieves the value of a bean. If it is a constructor bean,
 // it executes the constructor and returns the result.
-func (c *Wiring) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error) <span class="cov8" title="15">{
+func (c *Wiring) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error) <span class="cov8" title="16">{
 
         // If the bean has no callable function, return its value directly.
-        if b.Callable() == nil </span><span class="cov7" title="12">{
+        if b.Callable() == nil </span><span class="cov7" title="13">{
                 return b.Value(), nil
         }</span>
 
@@ -6494,7 +6495,7 @@ func (c *Wiring) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error
 }
 
 // WireBeanValue binds properties and injects dependencies into the value v. v should already be initialized.
-func (c *Wiring) WireBeanValue(v reflect.Value, t reflect.Type, watchRefresh bool, stack *Stack) error <span class="cov8" title="15">{
+func (c *Wiring) WireBeanValue(v reflect.Value, t reflect.Type, watchRefresh bool, stack *Stack) error <span class="cov8" title="16">{
 
         // Dereference pointer types and adjust the target type.
         if v.Kind() == reflect.Ptr </span><span class="cov7" title="13">{
@@ -6503,7 +6504,7 @@ func (c *Wiring) WireBeanValue(v reflect.Value, t reflect.Type, watchRefresh boo
         }</span>
 
         // If v is not a struct type, no injection is needed.
-        <span class="cov8" title="15">if v.Kind() != reflect.Struct </span><span class="cov2" title="2">{
+        <span class="cov8" title="16">if v.Kind() != reflect.Struct </span><span class="cov3" title="3">{
                 return nil
         }</span>
 
@@ -6617,11 +6618,11 @@ func (c *Wiring) autowire(v reflect.Value, str string, stack *Stack) error <span
                         // Populate the slice or map with the resolved beans
                         <span class="cov4" title="4">switch v.Kind() </span>{
                         case reflect.Slice:<span class="cov4" title="4">
-                                sort.Slice(beans, func(i, j int) bool </span><span class="cov2" title="2">{
+                                sort.Slice(beans, func(i, j int) bool </span><span class="cov4" title="4">{
                                         return beans[i].Name() &lt; beans[j].Name()
                                 }</span>)
                                 <span class="cov4" title="4">ret := reflect.MakeSlice(v.Type(), 0, 0)
-                                for _, b := range beans </span><span class="cov5" title="5">{
+                                for _, b := range beans </span><span class="cov5" title="6">{
                                         ret = reflect.Append(ret, b.Value())
                                 }</span>
                                 <span class="cov4" title="4">v.Set(ret)</span>
@@ -7334,14 +7335,14 @@ type Status struct {
 }
 
 // newStatus creates and initializes a new Status object.
-func newStatus() *Status <span class="cov10" title="7">{
+func newStatus() *Status <span class="cov10" title="8">{
         s := &amp;Status{}
         s.wg.Add(1)
         return s
 }</span>
 
 // done marks the goroutine as finished.
-func (s *Status) done() <span class="cov9" title="6">{
+func (s *Status) done() <span class="cov9" title="7">{
         s.wg.Done()
 }</span>
 
@@ -7370,20 +7371,20 @@ func Go(ctx context.Context, f func(ctx context.Context)) *Status <span class="c
 
 // GoFunc runs a goroutine safely with panic recovery.
 // It ensures the process does not crash due to an uncaught panic in the goroutine.
-func GoFunc(f func()) *Status <span class="cov10" title="7">{
+func GoFunc(f func()) *Status <span class="cov10" title="8">{
         s := newStatus()
-        go func() </span><span class="cov10" title="7">{
+        go func() </span><span class="cov10" title="8">{
                 defer s.done()
-                defer func() </span><span class="cov9" title="6">{
+                defer func() </span><span class="cov9" title="7">{
                         if r := recover(); r != nil </span><span class="cov0" title="0">{
                                 if OnPanic != nil </span><span class="cov0" title="0">{
                                         OnPanic(r)
                                 }</span>
                         }
                 }()
-                <span class="cov10" title="7">f()</span>
+                <span class="cov10" title="8">f()</span>
         }()
-        <span class="cov10" title="7">return s</span>
+        <span class="cov10" title="8">return s</span>
 }
 
 /******************************* go with value *******************************/
@@ -7640,7 +7641,7 @@ func init() <span class="cov1" title="1">{
 }</span>
 
 // Debugf logs a debug-level message using slog.
-func Debugf(format string, a ...any) <span class="cov9" title="58">{
+func Debugf(format string, a ...any) <span class="cov9" title="62">{
         logMsg(slog.LevelDebug, format, a...)
 }</span>
 
@@ -7660,9 +7661,9 @@ func Errorf(format string, a ...any) <span class="cov0" title="0">{
 }</span>
 
 // logMsg constructs and logs a message at the specified log level.
-func logMsg(level slog.Level, format string, a ...any) <span class="cov10" title="60">{
+func logMsg(level slog.Level, format string, a ...any) <span class="cov10" title="64">{
         ctx := context.Background()
-        if !slog.Default().Enabled(ctx, level) </span><span class="cov9" title="58">{
+        if !slog.Default().Enabled(ctx, level) </span><span class="cov9" title="62">{
                 return
         }</span>
 
@@ -7775,9 +7776,9 @@ func IsPropBindingTarget(t reflect.Type) bool <span class="cov9" title="37">{
 
 // IsBeanType returns true if the provided type t is considered a "bean" type.
 // A "bean" type includes a channel, function, interface, or a pointer to a struct.
-func IsBeanType(t reflect.Type) bool <span class="cov10" title="39">{
+func IsBeanType(t reflect.Type) bool <span class="cov10" title="40">{
         switch t.Kind() </span>{
-        case reflect.Chan, reflect.Func, reflect.Interface:<span class="cov6" title="11">
+        case reflect.Chan, reflect.Func, reflect.Interface:<span class="cov7" title="12">
                 return true</span>
         case reflect.Ptr:<span class="cov9" title="28">
                 return t.Elem().Kind() == reflect.Struct</span>
