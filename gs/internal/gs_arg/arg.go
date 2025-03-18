@@ -111,93 +111,47 @@ type ArgList struct {
 // NewArgList creates and validates an ArgList for the specified function.
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 
+	var (
+		useIdx bool
+		notIdx bool
+		fnArgs []gs.Arg
+	)
+
+	for i := 0; i < len(args); i++ {
+		switch arg := args[i].(type) {
+		case IndexArg:
+			useIdx = true
+			if notIdx {
+				err := fmt.Errorf("all args must have or have no index")
+				return nil, errutil.WrapError(err, "%v", args)
+			}
+			if arg.Idx < 0 || arg.Idx >= fnType.NumIn() {
+				err := fmt.Errorf("got a wrong arg index %d", arg.Idx)
+				return nil, errutil.WrapError(err, "%v", args)
+			}
+			for j := len(fnArgs); j <= arg.Idx; j++ {
+				fnArgs = append(fnArgs, Tag(""))
+			}
+			fnArgs[arg.Idx] = arg.Arg
+		default:
+			notIdx = true
+			if useIdx {
+				err := fmt.Errorf("all args must have or have no index")
+				return nil, errutil.WrapError(err, "%v", args)
+			}
+			fnArgs = append(fnArgs, arg)
+		}
+	}
+
 	// Calculates the number of fixed arguments in the function.
 	fixedArgCount := fnType.NumIn()
 	if fnType.IsVariadic() {
 		fixedArgCount--
 	}
 
-	// Determines if the arguments use indexing.
-	shouldIndex := func() bool {
-		if len(args) == 0 {
-			return false
-		}
-		_, ok := args[0].(IndexArg)
-		return ok
-	}()
-
-	fnArgs := make([]gs.Arg, fixedArgCount)
-
-	// Processes the first argument separately to determine its type.
-	if len(args) > 0 {
-		if args[0] == nil {
-			err := errors.New("the first arg must not be nil")
-			return nil, errutil.WrapError(err, "%v", args)
-		}
-		switch arg := args[0].(type) {
-		case *BindArg:
-			fnArgs = append(fnArgs, arg)
-		case IndexArg:
-			if arg.Idx < 0 || arg.Idx >= fixedArgCount {
-				err := fmt.Errorf("arg index %d exceeds max index %d", arg.Idx, fixedArgCount)
-				return nil, errutil.WrapError(err, "%v", args)
-			} else {
-				fnArgs[arg.Idx] = arg.Arg
-			}
-		default:
-			if fixedArgCount > 0 {
-				fnArgs[0] = arg
-			} else if fnType.IsVariadic() {
-				fnArgs = append(fnArgs, arg)
-			} else {
-				err := fmt.Errorf("function has no args but given %d", len(args))
-				return nil, errutil.WrapError(err, "%v", args)
-			}
-		}
+	for i := len(fnArgs); i < fixedArgCount; i++ {
+		fnArgs = append(fnArgs, Tag(""))
 	}
-
-	// Processes the remaining arguments.
-	for i := 1; i < len(args); i++ {
-		switch arg := args[i].(type) {
-		case *BindArg:
-			fnArgs = append(fnArgs, arg)
-		case IndexArg:
-			if !shouldIndex {
-				err := fmt.Errorf("the Args must have or have no index")
-				return nil, errutil.WrapError(err, "%v", args)
-			}
-			if arg.Idx < 0 || arg.Idx >= fixedArgCount {
-				err := fmt.Errorf("arg index %d exceeds max index %d", arg.Idx, fixedArgCount)
-				return nil, errutil.WrapError(err, "%v", args)
-			} else if fnArgs[arg.Idx] != nil {
-				err := fmt.Errorf("found same index %d", arg.Idx)
-				return nil, errutil.WrapError(err, "%v", args)
-			} else {
-				fnArgs[arg.Idx] = arg.Arg
-			}
-		default:
-			if shouldIndex {
-				err := fmt.Errorf("the Args must have or have no index")
-				return nil, errutil.WrapError(err, "%v", args)
-			}
-			if i < fixedArgCount {
-				fnArgs[i] = arg
-			} else if fnType.IsVariadic() {
-				fnArgs = append(fnArgs, arg)
-			} else {
-				err := fmt.Errorf("the count %d of Args exceeds max index %d", len(args), fixedArgCount)
-				return nil, errutil.WrapError(err, "%v", args)
-			}
-		}
-	}
-
-	// Fills any unassigned fixed arguments with default values.
-	for i := 0; i < fixedArgCount; i++ {
-		if fnArgs[i] == nil {
-			fnArgs[i] = Tag("")
-		}
-	}
-
 	return &ArgList{fnType: fnType, args: fnArgs}, nil
 }
 

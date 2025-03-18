@@ -26,13 +26,12 @@ import (
 func init() {
 	Provide(
 		NewSimpleHttpServer,
-		TagArg(""),
-		BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}")),
-		BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}")),
-		BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}")),
+		IndexArg(1, BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}"))),
+		IndexArg(1, BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}"))),
+		IndexArg(1, BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}"))),
 	).Condition(
+		OnBean[*http.ServeMux](),
 		And(
-			OnBean[*http.ServeMux](),
 			OnProperty(EnableAppServersProp).HavingValue("true").MatchIfMissing(),
 			OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
 		),

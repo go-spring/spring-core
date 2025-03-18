@@ -52,8 +52,8 @@ type App struct {
 	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=*?}"`
 	Servers []gs.Server `autowire:"${spring.app.servers:=*?}"`
 
-	EnableJobs    bool `autowire:"${spring.enable.app-jobs:=true}"`
-	EnableServers bool `autowire:"${spring.enable.app-servers:=true}"`
+	EnableJobs    bool `value:"${spring.enable.app-jobs:=true}"`
+	EnableServers bool `value:"${spring.enable.app-servers:=true}"`
 }
 
 // NewApp creates and initializes a new application instance.

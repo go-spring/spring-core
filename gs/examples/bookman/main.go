@@ -31,7 +31,16 @@ import (
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/biz"
 )
 
+const banner = `
+  ____                 _     __  __               
+ | __ )   ___    ___  | | __|  \/  |  __ _  _ __  
+ |  _ \  / _ \  / _ \ | |/ /| |\/| | / _' || '_ \ 
+ | |_) || (_) || (_) ||   < | |  | || (_| || | | |
+ |____/  \___/  \___/ |_|\_\|_|  |_| \__,_||_| |_|
+`
+
 func init() {
+	gs.Banner(banner)
 	gs.SetActiveProfiles("online")
 	gs.EnableSimplePProfServer(true)
 }
