@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
@@ -156,7 +157,6 @@ func None(conditions ...Condition) Condition {
 /************************************ ioc ************************************/
 
 type (
-	Properties  = gs.Properties
 	Refreshable = gs.Refreshable
 	Dync[T any] = gs_dync.Value[T]
 )
@@ -258,7 +258,7 @@ func Register(b *BeanDefinition) *RegisteredBean {
 }
 
 // GroupRegister registers a group of bean definitions.
-func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
+func GroupRegister(fn func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)) {
 	gs_app.GS.C.GroupRegister(fn)
 }
 

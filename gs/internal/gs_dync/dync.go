@@ -46,7 +46,7 @@ func (r *Value[T]) Value() T {
 }
 
 // OnRefresh refreshes the value of the object by binding new properties.
-func (r *Value[T]) OnRefresh(prop gs.Properties, param conf.BindParam) error {
+func (r *Value[T]) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error {
 	var o T
 	v := reflect.ValueOf(&o).Elem()
 	err := conf.BindValue(prop, v, v.Type(), param, nil)
@@ -70,9 +70,9 @@ type refreshObject struct {
 
 // Properties manages dynamic properties and refreshable objects.
 type Properties struct {
-	prop    gs.Properties    // The current properties.
-	lock    sync.RWMutex     // A read-write lock for thread-safe access.
-	objects []*refreshObject // List of refreshable objects bound to the properties.
+	prop    conf.ReadOnlyProperties // The current properties.
+	lock    sync.RWMutex            // A read-write lock for thread-safe access.
+	objects []*refreshObject        // List of refreshable objects bound to the properties.
 }
 
 // New creates and returns a new Properties instance.
@@ -83,7 +83,7 @@ func New() *Properties {
 }
 
 // Data returns the current properties.
-func (p *Properties) Data() gs.Properties {
+func (p *Properties) Data() conf.ReadOnlyProperties {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.prop
@@ -97,7 +97,7 @@ func (p *Properties) ObjectsCount() int {
 }
 
 // Refresh updates the properties and refreshes all bound objects as necessary.
-func (p *Properties) Refresh(prop gs.Properties) (err error) {
+func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 

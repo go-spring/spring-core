@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util/sysconf"
 )
 
@@ -30,11 +29,11 @@ import (
 
 // AppConfig represents a layered application configuration.
 type AppConfig struct {
-	LocalFile   *PropertySources // Configuration sources from local files.
-	RemoteFile  *PropertySources // Configuration sources from remote files.
-	RemoteProp  gs.Properties    // Remote properties.
-	Environment *Environment     // Environment variables as configuration source.
-	CommandArgs *CommandArgs     // Command line arguments as configuration source.
+	LocalFile   *PropertySources        // Configuration sources from local files.
+	RemoteFile  *PropertySources        // Configuration sources from remote files.
+	RemoteProp  conf.ReadOnlyProperties // Remote properties.
+	Environment *Environment            // Environment variables as configuration source.
+	CommandArgs *CommandArgs            // Command line arguments as configuration source.
 }
 
 // NewAppConfig creates a new instance of AppConfig.
@@ -61,7 +60,7 @@ func merge(out *conf.Properties, sources ...interface {
 }
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *AppConfig) Refresh() (gs.Properties, error) {
+func (c *AppConfig) Refresh() (conf.ReadOnlyProperties, error) {
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)
 	if err != nil {
@@ -118,7 +117,7 @@ func NewBootConfig() *BootConfig {
 }
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *BootConfig) Refresh() (gs.Properties, error) {
+func (c *BootConfig) Refresh() (conf.ReadOnlyProperties, error) {
 
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)

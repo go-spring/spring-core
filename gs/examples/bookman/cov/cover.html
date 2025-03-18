@@ -1699,11 +1699,12 @@ import (
         "os"
         "path/filepath"
 
+        "github.com/go-spring/spring-core/conf"
         "github.com/go-spring/spring-core/gs"
 )
 
 func init() <span class="cov1" title="1">{
-        gs.GroupRegister(func(p gs.Properties) ([]*gs.BeanDefinition, error) </span><span class="cov1" title="1">{
+        gs.GroupRegister(func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error) </span><span class="cov1" title="1">{
                 var loggers map[string]struct {
                         Name string `value:"${name}"`
                         Dir  string `value:"${dir}"`
@@ -2217,6 +2218,7 @@ import (
         "reflect"
         "strings"
 
+        "github.com/go-spring/spring-core/conf"
         "github.com/go-spring/spring-core/gs/internal/gs"
         "github.com/go-spring/spring-core/gs/internal/gs_app"
         "github.com/go-spring/spring-core/gs/internal/gs_arg"
@@ -2351,7 +2353,6 @@ func None(conditions ...Condition) Condition <span class="cov0" title="0">{
 /************************************ ioc ************************************/
 
 type (
-        Properties  = gs.Properties
         Refreshable = gs.Refreshable
         Dync[T any] = gs_dync.Value[T]
 )
@@ -2453,7 +2454,7 @@ func Register(b *BeanDefinition) *RegisteredBean <span class="cov1" title="1">{
 }</span>
 
 // GroupRegister registers a group of bean definitions.
-func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) <span class="cov1" title="1">{
+func GroupRegister(fn func(p conf.ReadOnlyProperties) ([]*BeanDefinition, error)) <span class="cov1" title="1">{
         gs_app.GS.C.GroupRegister(fn)
 }</span>
 
@@ -2765,13 +2766,10 @@ type ArgContext interface {
 
 /*********************************** conf ************************************/
 
-// Properties represents read-only configuration properties.
-type Properties = conf.ReadOnlyProperties
-
 // Refreshable represents an object that can be dynamically refreshed.
 type Refreshable interface {
         // OnRefresh is called to refresh the properties when they change.
-        OnRefresh(prop Properties, param conf.BindParam) error
+        OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error
 }
 
 /*********************************** app ************************************/
@@ -4625,7 +4623,6 @@ import (
         "strings"
 
         "github.com/go-spring/spring-core/conf"
-        "github.com/go-spring/spring-core/gs/internal/gs"
         "github.com/go-spring/spring-core/util/sysconf"
 )
 
@@ -4633,11 +4630,11 @@ import (
 
 // AppConfig represents a layered application configuration.
 type AppConfig struct {
-        LocalFile   *PropertySources // Configuration sources from local files.
-        RemoteFile  *PropertySources // Configuration sources from remote files.
-        RemoteProp  gs.Properties    // Remote properties.
-        Environment *Environment     // Environment variables as configuration source.
-        CommandArgs *CommandArgs     // Command line arguments as configuration source.
+        LocalFile   *PropertySources        // Configuration sources from local files.
+        RemoteFile  *PropertySources        // Configuration sources from remote files.
+        RemoteProp  conf.ReadOnlyProperties // Remote properties.
+        Environment *Environment            // Environment variables as configuration source.
+        CommandArgs *CommandArgs            // Command line arguments as configuration source.
 }
 
 // NewAppConfig creates a new instance of AppConfig.
@@ -4664,7 +4661,7 @@ func merge(out *conf.Properties, sources ...interface {
 }
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *AppConfig) Refresh() (gs.Properties, error) <span class="cov4" title="5">{
+func (c *AppConfig) Refresh() (conf.ReadOnlyProperties, error) <span class="cov4" title="5">{
         p := sysconf.Clone()
         err := merge(p, c.Environment, c.CommandArgs)
         if err != nil </span><span class="cov0" title="0">{
@@ -4721,7 +4718,7 @@ func NewBootConfig() *BootConfig <span class="cov1" title="1">{
 }</span>
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *BootConfig) Refresh() (gs.Properties, error) <span class="cov1" title="1">{
+func (c *BootConfig) Refresh() (conf.ReadOnlyProperties, error) <span class="cov1" title="1">{
 
         p := sysconf.Clone()
         err := merge(p, c.Environment, c.CommandArgs)
@@ -5237,6 +5234,7 @@ import (
         "testing"
         "time"
 
+        "github.com/go-spring/spring-core/conf"
         "github.com/go-spring/spring-core/gs/internal/gs"
         "github.com/go-spring/spring-core/gs/internal/gs_bean"
         "github.com/go-spring/spring-core/gs/internal/gs_core/resolving"
@@ -5305,7 +5303,7 @@ func (c *Container) GroupRegister(fn resolving.GroupFunc) <span class="cov1" tit
 }</span>
 
 // RefreshProperties updates the properties of the container.
-func (c *Container) RefreshProperties(p gs.Properties) error <span class="cov7" title="6">{
+func (c *Container) RefreshProperties(p conf.ReadOnlyProperties) error <span class="cov7" title="6">{
         return c.wiring.RefreshProperties(p)
 }</span>
 
@@ -5373,6 +5371,7 @@ import (
         "reflect"
         "regexp"
 
+        "github.com/go-spring/spring-core/conf"
         "github.com/go-spring/spring-core/gs/internal/gs"
         "github.com/go-spring/spring-core/gs/internal/gs_arg"
         "github.com/go-spring/spring-core/gs/internal/gs_bean"
@@ -5380,7 +5379,7 @@ import (
         "github.com/go-spring/spring-core/util"
 )
 
-type GroupFunc = func(p gs.Properties) ([]*gs.BeanDefinition, error)
+type GroupFunc = func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error)
 
 type BeanMock struct {
         Object interface{}
@@ -5410,7 +5409,7 @@ func (c *Resolving) GroupRegister(fn GroupFunc) <span class="cov1" title="1">{
         c.funcs = append(c.funcs, fn)
 }</span>
 
-func (c *Resolving) RefreshInit(p gs.Properties) error <span class="cov3" title="2">{
+func (c *Resolving) RefreshInit(p conf.ReadOnlyProperties) error <span class="cov3" title="2">{
         // processes all group functions to register beans.
         for _, fn := range c.funcs </span><span class="cov1" title="1">{
                 beans, err := fn(p)
@@ -5525,7 +5524,7 @@ func (c *Resolving) RefreshInit(p gs.Properties) error <span class="cov3" title=
         <span class="cov3" title="2">return nil</span>
 }
 
-func (c *Resolving) Refresh(p gs.Properties) ([]*gs_bean.BeanDefinition, error) <span class="cov3" title="2">{
+func (c *Resolving) Refresh(p conf.ReadOnlyProperties) ([]*gs_bean.BeanDefinition, error) <span class="cov3" title="2">{
 
         // resolves all beans on their condition.
         ctx := &amp;CondContext{p: p, c: c}
@@ -5629,7 +5628,7 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 
 type CondContext struct {
         c *Resolving
-        p gs.Properties
+        p conf.ReadOnlyProperties
 }
 
 // resolveBean determines the validity of the bean.
@@ -5958,7 +5957,7 @@ func toWireString(tags []wireTag) string <span class="cov0" title="0">{
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
-func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, err error) <span class="cov7" title="12">{
+func parseWireTag(p conf.ReadOnlyProperties, str string, needResolve bool) (tag wireTag, err error) <span class="cov7" title="12">{
 
         if str == "" </span><span class="cov5" title="5">{
                 return
@@ -6005,11 +6004,11 @@ func New() *Wiring <span class="cov2" title="2">{
         }
 }</span>
 
-func (c *Wiring) Properties() gs.Properties <span class="cov4" title="4">{
+func (c *Wiring) Properties() conf.ReadOnlyProperties <span class="cov4" title="4">{
         return c.p.Data()
 }</span>
 
-func (c *Wiring) RefreshProperties(p gs.Properties) error <span class="cov5" title="6">{
+func (c *Wiring) RefreshProperties(p conf.ReadOnlyProperties) error <span class="cov5" title="6">{
         return c.p.Refresh(p)
 }</span>
 
@@ -6708,7 +6707,7 @@ func (r *Value[T]) Value() T <span class="cov3" title="5">{
 }
 
 // OnRefresh refreshes the value of the object by binding new properties.
-func (r *Value[T]) OnRefresh(prop gs.Properties, param conf.BindParam) error <span class="cov3" title="5">{
+func (r *Value[T]) OnRefresh(prop conf.ReadOnlyProperties, param conf.BindParam) error <span class="cov3" title="5">{
         var o T
         v := reflect.ValueOf(&amp;o).Elem()
         err := conf.BindValue(prop, v, v.Type(), param, nil)
@@ -6732,9 +6731,9 @@ type refreshObject struct {
 
 // Properties manages dynamic properties and refreshable objects.
 type Properties struct {
-        prop    gs.Properties    // The current properties.
-        lock    sync.RWMutex     // A read-write lock for thread-safe access.
-        objects []*refreshObject // List of refreshable objects bound to the properties.
+        prop    conf.ReadOnlyProperties // The current properties.
+        lock    sync.RWMutex            // A read-write lock for thread-safe access.
+        objects []*refreshObject        // List of refreshable objects bound to the properties.
 }
 
 // New creates and returns a new Properties instance.
@@ -6745,7 +6744,7 @@ func New() *Properties <span class="cov2" title="2">{
 }</span>
 
 // Data returns the current properties.
-func (p *Properties) Data() gs.Properties <span class="cov6" title="22">{
+func (p *Properties) Data() conf.ReadOnlyProperties <span class="cov6" title="22">{
         p.lock.RLock()
         defer p.lock.RUnlock()
         return p.prop
@@ -6759,7 +6758,7 @@ func (p *Properties) ObjectsCount() int <span class="cov2" title="2">{
 }</span>
 
 // Refresh updates the properties and refreshes all bound objects as necessary.
-func (p *Properties) Refresh(prop gs.Properties) (err error) <span class="cov4" title="6">{
+func (p *Properties) Refresh(prop conf.ReadOnlyProperties) (err error) <span class="cov4" title="6">{
         p.lock.Lock()
         defer p.lock.Unlock()
 

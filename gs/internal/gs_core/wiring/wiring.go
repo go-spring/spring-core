@@ -260,7 +260,7 @@ func toWireString(tags []wireTag) string {
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
-func parseWireTag(p gs.Properties, str string, needResolve bool) (tag wireTag, err error) {
+func parseWireTag(p conf.ReadOnlyProperties, str string, needResolve bool) (tag wireTag, err error) {
 
 	if str == "" {
 		return
@@ -307,11 +307,11 @@ func New() *Wiring {
 	}
 }
 
-func (c *Wiring) Properties() gs.Properties {
+func (c *Wiring) Properties() conf.ReadOnlyProperties {
 	return c.p.Data()
 }
 
-func (c *Wiring) RefreshProperties(p gs.Properties) error {
+func (c *Wiring) RefreshProperties(p conf.ReadOnlyProperties) error {
 	return c.p.Refresh(p)
 }
 

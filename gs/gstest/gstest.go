@@ -28,6 +28,7 @@ func init() {
 	gs.EnableAppJobs(false)
 	gs.EnableAppServers(false)
 	gs.SetActiveProfiles("test")
+	gs.ForceAutowireIsNullable(true)
 }
 
 // BeanMock is a mock for bean.
@@ -74,8 +75,6 @@ func TestMain(m *testing.M, opts ...RunOption) {
 	for _, opt := range opts {
 		opt(arg)
 	}
-
-	gs.ForceAutowireIsNullable(true)
 
 	err := gs_app.GS.Start()
 	if err != nil {

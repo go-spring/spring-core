@@ -21,11 +21,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs"
 )
 
 func init() {
-	gs.GroupRegister(func(p gs.Properties) ([]*gs.BeanDefinition, error) {
+	gs.GroupRegister(func(p conf.ReadOnlyProperties) ([]*gs.BeanDefinition, error) {
 		var loggers map[string]struct {
 			Name string `value:"${name}"`
 			Dir  string `value:"${dir}"`

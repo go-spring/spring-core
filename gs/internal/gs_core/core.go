@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/resolving"
@@ -90,7 +91,7 @@ func (c *Container) GroupRegister(fn resolving.GroupFunc) {
 }
 
 // RefreshProperties updates the properties of the container.
-func (c *Container) RefreshProperties(p gs.Properties) error {
+func (c *Container) RefreshProperties(p conf.ReadOnlyProperties) error {
 	return c.wiring.RefreshProperties(p)
 }
 
