@@ -33,26 +33,19 @@ import (
 type refreshState int
 
 const (
-	RefreshDefault = refreshState(iota) // 未刷新
-	RefreshInit                         // 准备刷新
-	Refreshing                          // 正在刷新
-	Refreshed                           // 已刷新
+	RefreshDefault = refreshState(iota) // Not refreshed
+	RefreshInit                         // Preparing to refresh
+	Refreshing                          // Currently refreshing
+	Refreshed                           // Already refreshed
 )
 
-// Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 << Inversion
-// of Control Containers and the Dependency Injection pattern >> 一文中
-// 提及的依赖注入的概念。但原文的依赖注入仅仅是指对象之间的依赖关系处理，而有些 IoC
-// 容器在实现时比如 Spring 还引入了对属性 property 的处理。通常大家会用依赖注入统
-// 述上面两种概念，但实际上使用属性绑定来描述对 property 的处理会更加合适，因此
-// go-spring 严格区分了这两种概念，在描述对 bean 的处理时要么单独使用依赖注入或属
-// 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
 	state     refreshState
 	resolving *resolving.Resolving
 	wiring    *wiring.Wiring
 }
 
-// New 创建 IoC 容器。
+// New creates a IoC container.
 func New() *Container {
 	return &Container{
 		resolving: resolving.New(),
@@ -65,18 +58,19 @@ func (c *Container) Mock(obj interface{}, target gs.BeanSelector) {
 	c.resolving.Mock(obj, target)
 }
 
-// Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
+// Object registers a bean in object form.
 func (c *Container) Object(i interface{}) *gs.RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
 	return c.Register(b)
 }
 
-// Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
+// Provide registers a bean in constructor function form.
 func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	b := NewBean(ctor, args...)
 	return c.Register(b)
 }
 
+// Register registers a bean definition.
 func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	x := b.BeanRegistration().(*gs_bean.BeanDefinition)
 	r := gs.NewRegisteredBean(b.BeanRegistration())
@@ -86,6 +80,7 @@ func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	return r
 }
 
+// GroupRegister registers a group function.
 func (c *Container) GroupRegister(fn resolving.GroupFunc) {
 	c.resolving.GroupRegister(fn)
 }
@@ -127,7 +122,7 @@ func (c *Container) Refresh() (err error) {
 	return nil
 }
 
-// Wire wires the bean with the given object.
+// Wire injects dependencies into the given object.
 func (c *Container) Wire(obj interface{}) error {
 
 	if !testing.Testing() {

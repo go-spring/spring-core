@@ -15,35 +15,43 @@ import (
 
 type GroupFunc = func(p conf.Properties) ([]*gs.BeanDefinition, error)
 
+// BeanMock represents a mocked bean with an object and a target selector.
 type BeanMock struct {
-	Object interface{}
-	Target gs.BeanSelector
+	Object interface{}     // The mock object instance
+	Target gs.BeanSelector // The target bean selector
 }
 
+// Resolving manages mocks, beans, and group functions.
 type Resolving struct {
 	mocks []BeanMock
 	beans []*gs_bean.BeanDefinition
 	funcs []GroupFunc
 }
 
+// New creates a new Resolving instance.
 func New() *Resolving {
 	return &Resolving{}
 }
 
+// Mock registers a mock object with a specified bean selector.
 func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) {
 	x := BeanMock{Object: obj, Target: target}
 	c.mocks = append(c.mocks, x)
 }
 
+// Register adds a bean definition to the list of managed beans.
 func (c *Resolving) Register(b *gs_bean.BeanDefinition) {
 	c.beans = append(c.beans, b)
 }
 
+// GroupRegister registers a group function for bean resolution.
 func (c *Resolving) GroupRegister(fn GroupFunc) {
 	c.funcs = append(c.funcs, fn)
 }
 
+// RefreshInit initializes and processes group functions, configuration beans, and mocks.
 func (c *Resolving) RefreshInit(p conf.Properties) error {
+
 	// processes all group functions to register beans.
 	for _, fn := range c.funcs {
 		beans, err := fn(p)
@@ -158,6 +166,7 @@ func (c *Resolving) RefreshInit(p conf.Properties) error {
 	return nil
 }
 
+// Refresh validates and resolves all beans in the system.
 func (c *Resolving) Refresh(p conf.Properties) ([]*gs_bean.BeanDefinition, error) {
 
 	// resolves all beans on their condition.
@@ -265,7 +274,7 @@ type CondContext struct {
 	p conf.Properties
 }
 
-// resolveBean determines the validity of the bean.
+// resolveBean verifies if a bean meets its conditions.
 func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error {
 	if b.Status() >= gs_bean.StatusResolving {
 		return nil
@@ -283,16 +292,18 @@ func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error {
 	return nil
 }
 
+// Has checks if the given key exists in the configuration properties.
 func (c *CondContext) Has(key string) bool {
 	return c.p.Has(key)
 }
 
+// Prop retrieves the value of the given key from the configuration properties.
+// If the key is not found, it returns the provided default values (if any).
 func (c *CondContext) Prop(key string, def ...string) string {
 	return c.p.Get(key, def...)
 }
 
-// Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
-// 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
+// Find searches for beans that match the specified selector.
 func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 	t, name := s.TypeAndName()
 	var result []gs.CondBean

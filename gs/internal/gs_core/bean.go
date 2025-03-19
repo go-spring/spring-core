@@ -29,7 +29,8 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
-// NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
+// NewBean creates a new bean definition. When registering a normal function,
+// use reflect.ValueOf(fn) to avoid conflicts with constructors.
 func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 	var v reflect.Value
@@ -135,8 +136,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		panic("bean should be *val but not *ref")
 	}
 
-	// Type.String() 一般返回 *pkg.Type 形式的字符串，
-	// 我们只取最后的类型名，如有需要请自定义 bean 名称。
+	// Extract the final type name for bean naming
 	if name == "" {
 		s := strings.Split(t.String(), ".")
 		name = strings.TrimPrefix(s[len(s)-1], "*")

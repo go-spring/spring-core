@@ -37,6 +37,7 @@ import (
 	"github.com/spf13/cast"
 )
 
+// BeanRuntime defines an interface for runtime bean information.
 type BeanRuntime interface {
 	Name() string
 	Type() reflect.Type
@@ -47,12 +48,13 @@ type BeanRuntime interface {
 	String() string
 }
 
+// refreshState represents the state of a refresh operation.
 type refreshState int
 
 const (
-	RefreshDefault = refreshState(iota) // 未刷新
-	Refreshing                          // 正在刷新
-	Refreshed                           // 已刷新
+	RefreshDefault = refreshState(iota) // Not refreshed yet
+	Refreshing                          // Currently refreshing
+	Refreshed                           // Successfully refreshed
 )
 
 /************************************ destroyer ******************************/
