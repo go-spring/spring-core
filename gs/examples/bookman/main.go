@@ -47,7 +47,7 @@ func init() {
 }
 
 func init() {
-	gs.Object(gs.FuncJob(runTest)).AsJob().Name("#job")
+	gs.FuncJob(runTest).Name("#job")
 }
 
 func main() {

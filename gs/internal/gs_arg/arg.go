@@ -111,10 +111,20 @@ type ArgList struct {
 // NewArgList creates and validates an ArgList for the specified function.
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 
+	// Calculates the number of fixed arguments in the function.
+	fixedArgCount := fnType.NumIn()
+	if fnType.IsVariadic() {
+		fixedArgCount--
+	}
+
+	fnArgs := make([]gs.Arg, fixedArgCount)
+	for i := 0; i < len(fnArgs); i++ {
+		fnArgs[i] = Tag("")
+	}
+
 	var (
 		useIdx bool
 		notIdx bool
-		fnArgs []gs.Arg
 	)
 
 	for i := 0; i < len(args); i++ {
@@ -129,29 +139,25 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 				err := fmt.Errorf("got a wrong arg index %d", arg.Idx)
 				return nil, errutil.WrapError(err, "%v", args)
 			}
-			for j := len(fnArgs); j <= arg.Idx; j++ {
-				fnArgs = append(fnArgs, Tag(""))
+			if arg.Idx < fixedArgCount {
+				fnArgs[arg.Idx] = arg.Arg
+			} else {
+				fnArgs = append(fnArgs, arg.Arg)
 			}
-			fnArgs[arg.Idx] = arg.Arg
 		default:
 			notIdx = true
 			if useIdx {
 				err := fmt.Errorf("all args must have or have no index")
 				return nil, errutil.WrapError(err, "%v", args)
 			}
-			fnArgs = append(fnArgs, arg)
+			if i < fixedArgCount {
+				fnArgs[i] = arg
+			} else {
+				fnArgs = append(fnArgs, arg)
+			}
 		}
 	}
 
-	// Calculates the number of fixed arguments in the function.
-	fixedArgCount := fnType.NumIn()
-	if fnType.IsVariadic() {
-		fixedArgCount--
-	}
-
-	for i := len(fnArgs); i < fixedArgCount; i++ {
-		fnArgs = append(fnArgs, Tag(""))
-	}
 	return &ArgList{fnType: fnType, args: fnArgs}, nil
 }
 

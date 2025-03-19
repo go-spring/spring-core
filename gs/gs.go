@@ -48,7 +48,7 @@ type Arg = gs.Arg
 
 // TagArg returns a TagArg with the specified tag.
 func TagArg(tag string) Arg {
-	return gs_arg.TagArg{Tag: tag}
+	return gs_arg.Tag(tag)
 }
 
 // NilArg returns a ValueArg with a nil value.
@@ -201,18 +201,28 @@ type (
 	ReadySignal = gs.ReadySignal
 )
 
-// FuncRunner is a function type that implements the Runner interface.
-type FuncRunner func() error
+// funcRunner is a function type that implements the Runner interface.
+type funcRunner func() error
 
-func (f FuncRunner) Run() error {
+func (f funcRunner) Run() error {
 	return f()
 }
 
-// FuncJob is a function type that implements the Job interface.
-type FuncJob func(ctx context.Context) error
+// FuncRunner creates a Runner from a function.
+func FuncRunner(fn func() error) *RegisteredBean {
+	return Object(funcRunner(fn)).AsRunner()
+}
 
-func (f FuncJob) Run(ctx context.Context) error {
+// funcJob is a function type that implements the Job interface.
+type funcJob func(ctx context.Context) error
+
+func (f funcJob) Run(ctx context.Context) error {
 	return f(ctx)
+}
+
+// FuncJob creates a Job from a function.
+func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
+	return Object(funcJob(fn)).AsJob()
 }
 
 // Run runs the app and waits for an interrupt signal to exit.

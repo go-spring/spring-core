@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	gs.Boot().Object(gs.FuncRunner(initRemoteConfig)).AsRunner().OnProfiles("online")
+	gs.Boot().FuncRunner(initRemoteConfig).OnProfiles("online")
 }
 
 // initRemoteConfig initializes the remote configuration setup
@@ -34,7 +34,7 @@ func initRemoteConfig() error {
 	if err := getRemoteConfig(); err != nil {
 		return err
 	}
-	gs.Object(gs.FuncJob(refreshRemoteConfig)).AsJob()
+	gs.FuncJob(refreshRemoteConfig)
 	return nil
 }
 

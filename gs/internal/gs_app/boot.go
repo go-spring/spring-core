@@ -24,12 +24,20 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
+// funcRunner is a function type that implements the Runner interface.
+type funcRunner func() error
+
+func (f funcRunner) Run() error {
+	return f()
+}
+
 // Boot defines the interface for application bootstrapping.
 type Boot interface {
 	Config() *gs_conf.BootConfig
 	Object(i interface{}) *gs.RegisteredBean
 	Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
 	Register(bd *gs.BeanDefinition) *gs.RegisteredBean
+	FuncRunner(fn func() error) *gs.RegisteredBean
 }
 
 // boot is the bootstrapper of the application.
@@ -68,6 +76,12 @@ func (b *boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 // Register registers a BeanDefinition instance.
 func (b *boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 	return b.c.Register(bd)
+}
+
+// FuncRunner creates a Runner from a function.
+func (b *boot) FuncRunner(fn func() error) *gs.RegisteredBean {
+	bd := gs_core.NewBean(reflect.ValueOf(funcRunner(fn)))
+	return b.c.Register(bd).AsRunner()
 }
 
 // Run executes the application's boot process.

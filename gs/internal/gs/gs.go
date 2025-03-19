@@ -137,7 +137,7 @@ type ArgContext interface {
 	Wire(v reflect.Value, tag string) error
 }
 
-/*********************************** conf ************************************/
+/*********************************** dync ************************************/
 
 // Refreshable represents an object that can be dynamically refreshed.
 type Refreshable interface {
