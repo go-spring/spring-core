@@ -95,19 +95,19 @@
 				
 				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk/book_sdk.go (100.0%)</option>
 				
-				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (70.3%)</option>
+				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (66.1%)</option>
 				
-				<option value="file21">github.com/go-spring/spring-core/gs/http.go (82.4%)</option>
+				<option value="file21">github.com/go-spring/spring-core/gs/http.go (94.1%)</option>
 				
 				<option value="file22">github.com/go-spring/spring-core/gs/internal/gs/gs.go (45.5%)</option>
 				
 				<option value="file23">github.com/go-spring/spring-core/gs/internal/gs_app/app.go (75.0%)</option>
 				
-				<option value="file24">github.com/go-spring/spring-core/gs/internal/gs_app/boot.go (63.6%)</option>
+				<option value="file24">github.com/go-spring/spring-core/gs/internal/gs_app/boot.go (54.8%)</option>
 				
 				<option value="file25">github.com/go-spring/spring-core/gs/internal/gs_app/signal.go (77.8%)</option>
 				
-				<option value="file26">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (65.3%)</option>
+				<option value="file26">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (66.3%)</option>
 				
 				<option value="file27">github.com/go-spring/spring-core/gs/internal/gs_bean/bean.go (40.4%)</option>
 				
@@ -225,7 +225,7 @@ func init() <span class="cov1" title="1">{
 }</span>
 
 func init() <span class="cov1" title="1">{
-        gs.Object(gs.FuncJob(runTest)).AsJob().Name("#job")
+        gs.FuncJob(runTest).Name("#job")
 }</span>
 
 func main() <span class="cov1" title="1">{
@@ -325,32 +325,32 @@ func (tag ParsedTag) String() string <span class="cov0" title="0">{
 }
 
 // ParseTag parses a value tag, returns its key, and default value, and splitter.
-func ParseTag(tag string) (ret ParsedTag, err error) <span class="cov5" title="38">{
+func ParseTag(tag string) (ret ParsedTag, err error) <span class="cov5" title="40">{
         i := strings.LastIndex(tag, "&gt;&gt;")
         if i == 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="38">j := strings.LastIndex(tag, "}")
+        <span class="cov5" title="40">j := strings.LastIndex(tag, "}")
         if j &lt;= 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="38">k := strings.Index(tag, "${")
+        <span class="cov5" title="40">k := strings.Index(tag, "${")
         if k &lt; 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="38">if i &gt; j </span><span class="cov0" title="0">{
+        <span class="cov5" title="40">if i &gt; j </span><span class="cov0" title="0">{
                 ret.Splitter = strings.TrimSpace(tag[i+2:])
         }</span>
-        <span class="cov5" title="38">ss := strings.SplitN(tag[k+2:j], ":=", 2)
+        <span class="cov5" title="40">ss := strings.SplitN(tag[k+2:j], ":=", 2)
         ret.Key = ss[0]
-        if len(ss) &gt; 1 </span><span class="cov4" title="31">{
+        if len(ss) &gt; 1 </span><span class="cov4" title="33">{
                 ret.HasDef = true
                 ret.Def = ss[1]
         }</span>
-        <span class="cov5" title="38">return</span>
+        <span class="cov5" title="40">return</span>
 }
 
 type BindParam struct {
@@ -360,28 +360,28 @@ type BindParam struct {
         Validate reflect.StructTag // full field tag
 }
 
-func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error <span class="cov5" title="38">{
+func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error <span class="cov5" title="40">{
         param.Validate = validate
         parsedTag, err := ParseTag(tag)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov5" title="38">if parsedTag.Key == "" </span><span class="cov0" title="0">{ // ${:=} 默认值语法
+        <span class="cov5" title="40">if parsedTag.Key == "" </span><span class="cov0" title="0">{ // ${:=} 默认值语法
                 if parsedTag.HasDef </span><span class="cov0" title="0">{
                         param.Tag = parsedTag
                         return nil
                 }</span>
                 <span class="cov0" title="0">return fmt.Errorf("xxxx")</span> // todo
         }
-        <span class="cov5" title="38">if parsedTag.Key == "ROOT" </span><span class="cov0" title="0">{
+        <span class="cov5" title="40">if parsedTag.Key == "ROOT" </span><span class="cov0" title="0">{
                 parsedTag.Key = ""
         }</span>
-        <span class="cov5" title="38">if param.Key == "" </span><span class="cov4" title="32">{
+        <span class="cov5" title="40">if param.Key == "" </span><span class="cov4" title="34">{
                 param.Key = parsedTag.Key
         }</span> else<span class="cov3" title="6"> if parsedTag.Key != "" </span><span class="cov3" title="6">{
                 param.Key = param.Key + "." + parsedTag.Key
         }</span>
-        <span class="cov5" title="38">param.Tag = parsedTag
+        <span class="cov5" title="40">param.Tag = parsedTag
         return nil</span>
 }
 
@@ -390,15 +390,15 @@ type Filter interface {
 }
 
 // BindValue binds properties to a value.
-func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="19">{
+func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="21">{
 
         if !util.IsPropBindingTarget(t) </span><span class="cov0" title="0">{
                 err := errors.New("target should be value type")
                 return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
         }</span>
 
-        <span class="cov4" title="19">defer func() </span><span class="cov4" title="19">{
-                if RetErr == nil </span><span class="cov4" title="19">{
+        <span class="cov4" title="21">defer func() </span><span class="cov4" title="21">{
+                if RetErr == nil </span><span class="cov4" title="21">{
                         tag, ok := param.Validate.Lookup("expr")
                         if ok &amp;&amp; len(tag) &gt; 0 </span><span class="cov0" title="0">{
                                 err := validateField(tag, v.Interface())
@@ -409,7 +409,7 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
                 }
         }()
 
-        <span class="cov4" title="19">switch v.Kind() </span>{
+        <span class="cov4" title="21">switch v.Kind() </span>{
         case reflect.Map:<span class="cov1" title="1">
                 return bindMap(p, v, t, param, filter)</span>
         case reflect.Slice:<span class="cov0" title="0">
@@ -417,10 +417,10 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
         case reflect.Array:<span class="cov0" title="0">
                 err := errors.New("use slice instead of array")
                 return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)</span>
-        default:<span class="cov4" title="18"></span> // for linter
+        default:<span class="cov4" title="20"></span> // for linter
         }
 
-        <span class="cov4" title="18">fn := converters[t]
+        <span class="cov4" title="20">fn := converters[t]
         if fn == nil &amp;&amp; v.Kind() == reflect.Struct </span><span class="cov2" title="3">{
                 if err := bindStruct(p, v, t, param, filter); err != nil </span><span class="cov0" title="0">{
                         return err // no wrap
@@ -428,23 +428,23 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
                 <span class="cov2" title="3">return nil</span>
         }
 
-        <span class="cov4" title="15">val, err := resolve(p, param)
+        <span class="cov4" title="17">val, err := resolve(p, param)
         if err != nil </span><span class="cov0" title="0">{
                 return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
         }</span>
 
-        <span class="cov4" title="15">if fn != nil </span><span class="cov1" title="1">{
+        <span class="cov4" title="17">if fn != nil </span><span class="cov1" title="2">{
                 fnValue := reflect.ValueOf(fn)
                 out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
                 if !out[1].IsNil() </span><span class="cov0" title="0">{
                         err = out[1].Interface().(error)
                         return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
                 }</span>
-                <span class="cov1" title="1">v.Set(out[0])
+                <span class="cov1" title="2">v.Set(out[0])
                 return nil</span>
         }
 
-        <span class="cov3" title="14">switch v.Kind() </span>{
+        <span class="cov4" title="15">switch v.Kind() </span>{
         case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:<span class="cov0" title="0">
                 var u uint64
                 if u, err = strconv.ParseUint(val, 0, 0); err == nil </span><span class="cov0" title="0">{
@@ -473,7 +473,7 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
                         return nil
                 }</span>
                 <span class="cov0" title="0">return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())</span>
-        case reflect.String:<span class="cov3" title="7">
+        case reflect.String:<span class="cov3" title="8">
                 v.SetString(val)
                 return nil</span>
         default:<span class="cov0" title="0"></span> // for linter
@@ -671,23 +671,23 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
 }
 
 // resolve returns property references processed property value.
-func resolve(p Properties, param BindParam) (string, error) <span class="cov5" title="41">{
+func resolve(p Properties, param BindParam) (string, error) <span class="cov5" title="43">{
         const defVal = "@@def@@"
         val := p.Get(param.Key, defVal)
         if val != defVal </span><span class="cov4" title="22">{
                 return resolveString(p, val)
         }</span>
-        <span class="cov4" title="19">if p.Has(param.Key) </span><span class="cov0" title="0">{
+        <span class="cov4" title="21">if p.Has(param.Key) </span><span class="cov0" title="0">{
                 return "", fmt.Errorf("property key=%s isn't simple value", param.Key)
         }</span>
-        <span class="cov4" title="19">if param.Tag.HasDef </span><span class="cov4" title="19">{
+        <span class="cov4" title="21">if param.Tag.HasDef </span><span class="cov4" title="21">{
                 return resolveString(p, param.Tag.Def)
         }</span>
         <span class="cov0" title="0">return "", fmt.Errorf("property key=%s %w", param.Key, ErrNotExist)</span>
 }
 
 // resolveString returns property references processed string.
-func resolveString(p Properties, s string) (string, error) <span class="cov6" title="181">{
+func resolveString(p Properties, s string) (string, error) <span class="cov6" title="183">{
 
         var (
                 length = len(s)
@@ -696,7 +696,7 @@ func resolveString(p Properties, s string) (string, error) <span class="cov6" ti
                 end    = -1
         )
 
-        for i := 0; i &lt; length; i++ </span><span class="cov10" title="3141">{
+        for i := 0; i &lt; length; i++ </span><span class="cov10" title="3155">{
                 if s[i] == '$' </span><span class="cov4" title="26">{
                         if i &lt; length-1 &amp;&amp; s[i+1] == '{' </span><span class="cov4" title="26">{
                                 if count == 0 </span><span class="cov4" title="26">{
@@ -704,7 +704,7 @@ func resolveString(p Properties, s string) (string, error) <span class="cov6" ti
                                 }</span>
                                 <span class="cov4" title="26">count++</span>
                         }
-                } else<span class="cov9" title="3115"> if s[i] == '}' </span><span class="cov4" title="26">{
+                } else<span class="cov9" title="3129"> if s[i] == '}' </span><span class="cov4" title="26">{
                         if count &gt; 0 </span><span class="cov4" title="26">{
                                 count--
                                 if count == 0 </span><span class="cov4" title="26">{
@@ -715,7 +715,7 @@ func resolveString(p Properties, s string) (string, error) <span class="cov6" ti
                 }
         }
 
-        <span class="cov6" title="181">if start &lt; 0 </span><span class="cov6" title="155">{
+        <span class="cov6" title="183">if start &lt; 0 </span><span class="cov6" title="157">{
                 return s, nil
         }</span>
 
@@ -794,7 +794,7 @@ func init() <span class="cov1" title="1">{
                 return cast.ToTimeE(strings.TrimSpace(s))
         }</span>)
 
-        <span class="cov1" title="1">RegisterConverter(func(s string) (time.Duration, error) </span><span class="cov1" title="1">{
+        <span class="cov1" title="1">RegisterConverter(func(s string) (time.Duration, error) </span><span class="cov1" title="2">{
                 return time.ParseDuration(strings.TrimSpace(s))
         }</span>)
 }
@@ -938,7 +938,7 @@ func (p *MutableProperties) Keys() []string <span class="cov3" title="8">{
 }</span>
 
 // Has returns whether key exists.
-func (p *MutableProperties) Has(key string) bool <span class="cov8" title="211">{
+func (p *MutableProperties) Has(key string) bool <span class="cov8" title="213">{
         return p.storage.Has(key)
 }</span>
 
@@ -948,9 +948,9 @@ func (p *MutableProperties) SubKeys(key string) ([]string, error) <span class="c
 }</span>
 
 // Get returns key's value, using Def to return a default value.
-func (p *MutableProperties) Get(key string, def ...string) string <span class="cov9" title="423">{
+func (p *MutableProperties) Get(key string, def ...string) string <span class="cov9" title="425">{
         val, ok := p.storage.Get(key)
-        if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="19">{
+        if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="21">{
                 return def[0]
         }</span>
         <span class="cov9" title="404">return val</span>
@@ -983,12 +983,12 @@ func (p *MutableProperties) Resolve(s string) (string, error) <span class="cov7"
 // value:"${a:=b}&gt;&gt;splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *MutableProperties) Bind(i interface{}, tag ...string) error <span class="cov2" title="3">{
+func (p *MutableProperties) Bind(i interface{}, tag ...string) error <span class="cov3" title="5">{
 
         var v reflect.Value
-        </span><span class="cov2" title="3">{
+        </span><span class="cov3" title="5">{
                 switch e := i.(type) </span>{
-                case reflect.Value:<span class="cov1" title="2">
+                case reflect.Value:<span class="cov2" title="4">
                         v = e</span>
                 default:<span class="cov1" title="1">
                         v = reflect.ValueOf(i)
@@ -999,23 +999,23 @@ func (p *MutableProperties) Bind(i interface{}, tag ...string) error <span class
                 }
         }
 
-        <span class="cov2" title="3">t := v.Type()
+        <span class="cov3" title="5">t := v.Type()
         typeName := t.Name()
         if typeName == "" </span><span class="cov1" title="1">{ // primitive type has no name
                 typeName = t.String()
         }</span>
 
-        <span class="cov2" title="3">s := "${ROOT}"
-        if len(tag) &gt; 0 </span><span class="cov2" title="3">{
+        <span class="cov3" title="5">s := "${ROOT}"
+        if len(tag) &gt; 0 </span><span class="cov3" title="5">{
                 s = tag[0]
         }</span>
 
-        <span class="cov2" title="3">var param BindParam
+        <span class="cov3" title="5">var param BindParam
         err := param.BindTag(s, "")
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov2" title="3">param.Path = typeName
+        <span class="cov3" title="5">param.Path = typeName
         return BindValue(p, v, t, param, nil)</span>
 }
 
@@ -1274,33 +1274,33 @@ func JoinPath(path []Path) string <span class="cov0" title="0">{
 }
 
 // SplitPath splits key into individual path elements.
-func SplitPath(key string) ([]Path, error) <span class="cov7" title="583">{
+func SplitPath(key string) ([]Path, error) <span class="cov7" title="585">{
         if key == "" </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="583">var (
+        <span class="cov7" title="585">var (
                 path        []Path
                 lastPos     int
                 lastChar    int32
                 openBracket bool
         )
-        for i, c := range key </span><span class="cov10" title="6729">{
+        for i, c := range key </span><span class="cov10" title="6768">{
                 switch c </span>{
                 case ' ':<span class="cov0" title="0">
                         return nil, fmt.Errorf("invalid key '%s'", key)</span>
-                case '.':<span class="cov7" title="535">
+                case '.':<span class="cov7" title="539">
                         if openBracket </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov7" title="535">if lastChar == ']' </span><span class="cov0" title="0">{
+                        <span class="cov7" title="539">if lastChar == ']' </span><span class="cov0" title="0">{
                                 lastPos = i + 1
                                 lastChar = c
                                 continue</span>
                         }
-                        <span class="cov7" title="535">if lastPos == i </span><span class="cov0" title="0">{
+                        <span class="cov7" title="539">if lastPos == i </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov7" title="535">path = append(path, Path{PathTypeKey, key[lastPos:i]})
+                        <span class="cov7" title="539">path = append(path, Path{PathTypeKey, key[lastPos:i]})
                         lastPos = i + 1
                         lastChar = c</span>
                 case '[':<span class="cov0" title="0">
@@ -1333,17 +1333,17 @@ func SplitPath(key string) ([]Path, error) <span class="cov7" title="583">{
                         lastPos = i + 1
                         openBracket = false
                         lastChar = c</span>
-                default:<span class="cov9" title="6194">
+                default:<span class="cov9" title="6229">
                         lastChar = c</span>
                 }
         }
-        <span class="cov7" title="583">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
+        <span class="cov7" title="585">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="583">if lastChar != ']' </span><span class="cov7" title="583">{
+        <span class="cov7" title="585">if lastChar != ']' </span><span class="cov7" title="585">{
                 path = append(path, Path{PathTypeKey, key[lastPos:]})
         }</span>
-        <span class="cov7" title="583">return path, nil</span>
+        <span class="cov7" title="585">return path, nil</span>
 }
 </pre>
 		
@@ -1452,19 +1452,19 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) <span class="cov1"
 }
 
 // Has returns whether the key exists.
-func (s *Storage) Has(key string) bool <span class="cov7" title="211">{
+func (s *Storage) Has(key string) bool <span class="cov7" title="213">{
         if key == "" </span><span class="cov0" title="0">{
                 return false
         }</span>
-        <span class="cov7" title="211">if _, ok := s.data[key]; ok </span><span class="cov7" title="189">{
+        <span class="cov7" title="213">if _, ok := s.data[key]; ok </span><span class="cov7" title="189">{
                 return true
         }</span>
-        <span class="cov5" title="22">path, err := SplitPath(key)
+        <span class="cov5" title="24">path, err := SplitPath(key)
         if err != nil </span><span class="cov0" title="0">{
                 return false
         }</span>
-        <span class="cov5" title="22">tree := s.tree
-        for i, node := range path </span><span class="cov5" title="47">{
+        <span class="cov5" title="24">tree := s.tree
+        for i, node := range path </span><span class="cov6" title="49">{
                 m := tree.data.(map[string]*treeNode)
                 switch tree.node </span>{
                 case nodeTypeArray:<span class="cov0" title="0">
@@ -1475,10 +1475,10 @@ func (s *Storage) Has(key string) bool <span class="cov7" title="211">{
                         if node.Type != PathTypeKey </span><span class="cov0" title="0">{
                                 return false
                         }</span>
-                default:<span class="cov5" title="22"></span> // for linter
+                default:<span class="cov5" title="24"></span> // for linter
                 }
-                <span class="cov5" title="47">v, ok := m[node.Elem]
-                if !ok </span><span class="cov5" title="22">{
+                <span class="cov6" title="49">v, ok := m[node.Elem]
+                if !ok </span><span class="cov5" title="24">{
                         return false
                 }</span>
                 <span class="cov5" title="25">if v.node == nodeTypeNil || v.node == nodeTypeValue </span><span class="cov0" title="0">{
@@ -1490,7 +1490,7 @@ func (s *Storage) Has(key string) bool <span class="cov7" title="211">{
 }
 
 // Get returns the value of the key, and false if the key does not exist.
-func (s *Storage) Get(key string) (string, bool) <span class="cov8" title="423">{
+func (s *Storage) Get(key string) (string, bool) <span class="cov8" title="425">{
         val, ok := s.data[key]
         return val, ok
 }</span>
@@ -1617,7 +1617,7 @@ import (
 )
 
 func init() <span class="cov1" title="1">{
-        gs.Boot().Object(gs.FuncRunner(initRemoteConfig)).AsRunner().OnProfiles("online")
+        gs.B.FuncRunner(initRemoteConfig).OnProfiles("online")
 }</span>
 
 // initRemoteConfig initializes the remote configuration setup
@@ -1625,7 +1625,7 @@ func initRemoteConfig() error <span class="cov1" title="1">{
         if err := getRemoteConfig(); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov1" title="1">gs.Object(gs.FuncJob(refreshRemoteConfig)).AsJob()
+        <span class="cov1" title="1">gs.FuncJob(refreshRemoteConfig)
         return nil</span>
 }
 
@@ -2245,7 +2245,7 @@ type Arg = gs.Arg
 
 // TagArg returns a TagArg with the specified tag.
 func TagArg(tag string) Arg <span class="cov6" title="5">{
-        return gs_arg.TagArg{Tag: tag}
+        return gs_arg.Tag(tag)
 }</span>
 
 // NilArg returns a ValueArg with a nil value.
@@ -2377,18 +2377,6 @@ func BeanSelectorFor[T any](name ...string) BeanSelector <span class="cov1" titl
         return gs.BeanSelectorFor[T](name...)
 }</span>
 
-/************************************ boot ***********************************/
-
-var boot gs_app.Boot
-
-// Boot initializes and returns a [*gs_app.Boot] instance.
-func Boot() gs_app.Boot <span class="cov1" title="1">{
-        if boot == nil </span><span class="cov1" title="1">{
-                boot = gs_app.NewBoot()
-        }</span>
-        <span class="cov1" title="1">return boot</span>
-}
-
 /*********************************** app *************************************/
 
 type (
@@ -2398,28 +2386,40 @@ type (
         ReadySignal = gs.ReadySignal
 )
 
-type FuncRunner func() error
+var B = gs_app.NewBoot()
 
-func (f FuncRunner) Run() error <span class="cov1" title="1">{
+// funcRunner is a function type that implements the Runner interface.
+type funcRunner func() error
+
+func (f funcRunner) Run() error <span class="cov0" title="0">{
         return f()
 }</span>
 
-type FuncJob func(ctx context.Context) error
+// FuncRunner creates a Runner from a function.
+func FuncRunner(fn func() error) *RegisteredBean <span class="cov0" title="0">{
+        return Object(funcRunner(fn)).AsRunner()
+}</span>
 
-func (f FuncJob) Run(ctx context.Context) error <span class="cov3" title="2">{
+// funcJob is a function type that implements the Job interface.
+type funcJob func(ctx context.Context) error
+
+func (f funcJob) Run(ctx context.Context) error <span class="cov3" title="2">{
         return f(ctx)
+}</span>
+
+// FuncJob creates a Job from a function.
+func FuncJob(fn func(ctx context.Context) error) *RegisteredBean <span class="cov3" title="2">{
+        return Object(funcJob(fn)).AsJob()
 }</span>
 
 // Run runs the app and waits for an interrupt signal to exit.
 func Run() error <span class="cov1" title="1">{
         printBanner()
-        if boot != nil </span><span class="cov1" title="1">{
-                if err := boot.(interface{ Run() error }).Run(); err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-                <span class="cov1" title="1">boot = nil</span>
-        }
-        <span class="cov1" title="1">return gs_app.GS.Run()</span>
+        if err := B.(*gs_app.BootImpl).Run(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov1" title="1">B = nil
+        return gs_app.GS.Run()</span>
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
@@ -2567,15 +2567,15 @@ type HttpServerConfig struct {
 type HttpServerOption func(arg *HttpServerConfig)
 
 // SetHttpServerAddr sets the address of the HTTP server.
-func SetHttpServerAddr(addr string) HttpServerOption <span class="cov1" title="1">{
-        return func(arg *HttpServerConfig) </span><span class="cov1" title="1">{
+func SetHttpServerAddr(addr string) HttpServerOption <span class="cov5" title="2">{
+        return func(arg *HttpServerConfig) </span><span class="cov5" title="2">{
                 arg.Address = addr
         }</span>
 }
 
 // SetHttpServerReadTimeout sets the read timeout for the HTTP server.
-func SetHttpServerReadTimeout(timeout time.Duration) HttpServerOption <span class="cov0" title="0">{
-        return func(arg *HttpServerConfig) </span><span class="cov0" title="0">{
+func SetHttpServerReadTimeout(timeout time.Duration) HttpServerOption <span class="cov1" title="1">{
+        return func(arg *HttpServerConfig) </span><span class="cov1" title="1">{
                 arg.ReadTimeout = timeout
         }</span>
 }
@@ -2593,16 +2593,16 @@ type SimpleHttpServer struct {
 }
 
 // NewSimpleHttpServer creates a new instance of SimpleHttpServer.
-func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHttpServer <span class="cov10" title="2">{
+func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHttpServer <span class="cov5" title="2">{
         arg := &amp;HttpServerConfig{
                 Address:      "0.0.0.0:9090",
                 ReadTimeout:  time.Second * 5,
                 WriteTimeout: time.Second * 5,
         }
-        for _, opt := range opts </span><span class="cov10" title="2">{
+        for _, opt := range opts </span><span class="cov10" title="4">{
                 opt(arg)
         }</span>
-        <span class="cov10" title="2">return &amp;SimpleHttpServer{svr: &amp;http.Server{
+        <span class="cov5" title="2">return &amp;SimpleHttpServer{svr: &amp;http.Server{
                 Addr:         arg.Address,
                 Handler:      mux,
                 ReadTimeout:  arg.ReadTimeout,
@@ -2611,17 +2611,17 @@ func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHt
 }
 
 // ListenAndServe starts the HTTP server and listens for incoming connections.
-func (s *SimpleHttpServer) ListenAndServe(sig ReadySignal) error <span class="cov10" title="2">{
+func (s *SimpleHttpServer) ListenAndServe(sig ReadySignal) error <span class="cov5" title="2">{
         ln, err := net.Listen("tcp", s.svr.Addr)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov10" title="2">&lt;-sig.TriggerAndWait()
+        <span class="cov5" title="2">&lt;-sig.TriggerAndWait()
         return s.svr.Serve(ln)</span>
 }
 
 // Shutdown gracefully shuts down the HTTP server with the given context.
-func (s *SimpleHttpServer) Shutdown(ctx context.Context) error <span class="cov10" title="2">{
+func (s *SimpleHttpServer) Shutdown(ctx context.Context) error <span class="cov5" title="2">{
         return s.svr.Shutdown(ctx)
 }</span>
 </pre>
@@ -2757,15 +2757,15 @@ type Arg interface {
 
 // ArgContext defines methods for the IoC container used by Arg types.
 type ArgContext interface {
-        // Matches checks if the given condition is met.
-        Matches(c Condition) (bool, error)
+        // Check checks if the given condition is met.
+        Check(c Condition) (bool, error)
         // Bind binds property values to the provided [reflect.Value].
         Bind(v reflect.Value, tag string) error
         // Wire wires dependent beans to the provided [reflect.Value].
         Wire(v reflect.Value, tag string) error
 }
 
-/*********************************** conf ************************************/
+/*********************************** dync ************************************/
 
 // Refreshable represents an object that can be dynamically refreshed.
 type Refreshable interface {
@@ -3204,55 +3204,79 @@ import (
         "github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
+// funcRunner is a function type that implements the Runner interface.
+type funcRunner func() error
+
+func (f funcRunner) Run() error <span class="cov8" title="1">{
+        return f()
+}</span>
+
 // Boot defines the interface for application bootstrapping.
 type Boot interface {
         Config() *gs_conf.BootConfig
         Object(i interface{}) *gs.RegisteredBean
         Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
         Register(bd *gs.BeanDefinition) *gs.RegisteredBean
+        FuncRunner(fn func() error) *gs.RegisteredBean
 }
 
-// boot is the bootstrapper of the application.
-type boot struct {
+// BootImpl is the bootstrapper of the application.
+type BootImpl struct {
         c *gs_core.Container
         p *gs_conf.BootConfig
+
+        // flag indicates whether the bootstrapper has been used.
+        flag bool
 
         Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`
 }
 
 // NewBoot creates a new Boot instance.
 func NewBoot() Boot <span class="cov8" title="1">{
-        return &amp;boot{
+        return &amp;BootImpl{
                 c: gs_core.New(),
                 p: gs_conf.NewBootConfig(),
         }
 }</span>
 
 // Config returns the boot configuration.
-func (b *boot) Config() *gs_conf.BootConfig <span class="cov0" title="0">{
+func (b *BootImpl) Config() *gs_conf.BootConfig <span class="cov0" title="0">{
         return b.p
 }</span>
 
 // Object registers an object bean.
-func (b *boot) Object(i interface{}) *gs.RegisteredBean <span class="cov8" title="1">{
+func (b *BootImpl) Object(i interface{}) *gs.RegisteredBean <span class="cov0" title="0">{
+        b.flag = true
         bd := gs_core.NewBean(reflect.ValueOf(i))
         return b.c.Register(bd)
 }</span>
 
 // Provide registers a bean using a constructor function.
-func (b *boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean <span class="cov0" title="0">{
+func (b *BootImpl) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean <span class="cov0" title="0">{
+        b.flag = true
         bd := gs_core.NewBean(ctor, args...)
         return b.c.Register(bd)
 }</span>
 
 // Register registers a BeanDefinition instance.
-func (b *boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean <span class="cov0" title="0">{
+func (b *BootImpl) Register(bd *gs.BeanDefinition) *gs.RegisteredBean <span class="cov0" title="0">{
+        b.flag = true
         return b.c.Register(bd)
 }</span>
 
+// FuncRunner creates a Runner from a function.
+func (b *BootImpl) FuncRunner(fn func() error) *gs.RegisteredBean <span class="cov8" title="1">{
+        b.flag = true
+        bd := gs_core.NewBean(reflect.ValueOf(funcRunner(fn)))
+        return b.c.Register(bd).AsRunner()
+}</span>
+
 // Run executes the application's boot process.
-func (b *boot) Run() error <span class="cov8" title="1">{
-        b.c.Object(b)
+func (b *BootImpl) Run() error <span class="cov8" title="1">{
+        if !b.flag </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov8" title="1">b.c.Object(b)
 
         // Refresh the boot configuration.
         p, err := b.p.Refresh()
@@ -3390,29 +3414,29 @@ type TagArg struct {
 }
 
 // Tag creates a TagArg with the given tag.
-func Tag(tag string) gs.Arg <span class="cov7" title="4">{
+func Tag(tag string) gs.Arg <span class="cov10" title="12">{
         return TagArg{Tag: tag}
 }</span>
 
 // GetArgValue returns the value of the argument based on its type.
-func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov7" title="5">{
+func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov8" title="7">{
 
         // Binds property values based on the argument type.
-        if util.IsPropBindingTarget(t) </span><span class="cov4" title="2">{
+        if util.IsPropBindingTarget(t) </span><span class="cov6" title="4">{
                 v := reflect.New(t).Elem()
                 if err := ctx.Bind(v, arg.Tag); err != nil </span><span class="cov0" title="0">{
                         return reflect.Value{}, err
                 }</span>
-                <span class="cov4" title="2">return v, nil</span>
+                <span class="cov6" title="4">return v, nil</span>
         }
 
         // Wires dependent beans based on the argument type.
-        <span class="cov5" title="3">if util.IsBeanInjectionTarget(t) </span><span class="cov5" title="3">{
+        <span class="cov4" title="3">if util.IsBeanInjectionTarget(t) </span><span class="cov4" title="3">{
                 v := reflect.New(t).Elem()
                 if err := ctx.Wire(v, arg.Tag); err != nil </span><span class="cov0" title="0">{
                         return reflect.Value{}, err
                 }</span>
-                <span class="cov5" title="3">return v, nil</span>
+                <span class="cov4" title="3">return v, nil</span>
         }
 
         // If none of the conditions match, return an error.
@@ -3427,7 +3451,7 @@ type IndexArg struct {
 }
 
 // Index creates an IndexArg with the given index and argument.
-func Index(n int, arg gs.Arg) gs.Arg <span class="cov7" title="4">{
+func Index(n int, arg gs.Arg) gs.Arg <span class="cov6" title="4">{
         return IndexArg{Idx: n, Arg: arg}
 }</span>
 
@@ -3466,54 +3490,60 @@ type ArgList struct {
 }
 
 // NewArgList creates and validates an ArgList for the specified function.
-func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span class="cov8" title="6">{
+func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span class="cov7" title="6">{
 
-        var (
+        // Calculates the number of fixed arguments in the function.
+        fixedArgCount := fnType.NumIn()
+        if fnType.IsVariadic() </span><span class="cov1" title="1">{
+                fixedArgCount--
+        }</span>
+
+        <span class="cov7" title="6">fnArgs := make([]gs.Arg, fixedArgCount)
+        for i := 0; i &lt; len(fnArgs); i++ </span><span class="cov8" title="7">{
+                fnArgs[i] = Tag("")
+        }</span>
+
+        <span class="cov7" title="6">var (
                 useIdx bool
                 notIdx bool
-                fnArgs []gs.Arg
         )
 
-        for i := 0; i &lt; len(args); i++ </span><span class="cov10" title="8">{
+        for i := 0; i &lt; len(args); i++ </span><span class="cov8" title="8">{
                 switch arg := args[i].(type) </span>{
-                case IndexArg:<span class="cov7" title="4">
+                case IndexArg:<span class="cov6" title="4">
                         useIdx = true
                         if notIdx </span><span class="cov0" title="0">{
                                 err := fmt.Errorf("all args must have or have no index")
                                 return nil, errutil.WrapError(err, "%v", args)
                         }</span>
-                        <span class="cov7" title="4">if arg.Idx &lt; 0 || arg.Idx &gt;= fnType.NumIn() </span><span class="cov0" title="0">{
+                        <span class="cov6" title="4">if arg.Idx &lt; 0 || arg.Idx &gt;= fnType.NumIn() </span><span class="cov0" title="0">{
                                 err := fmt.Errorf("got a wrong arg index %d", arg.Idx)
                                 return nil, errutil.WrapError(err, "%v", args)
                         }</span>
-                        <span class="cov7" title="4">for j := len(fnArgs); j &lt;= arg.Idx; j++ </span><span class="cov7" title="4">{
-                                fnArgs = append(fnArgs, Tag(""))
+                        <span class="cov6" title="4">if arg.Idx &lt; fixedArgCount </span><span class="cov1" title="1">{
+                                fnArgs[arg.Idx] = arg.Arg
+                        }</span> else<span class="cov4" title="3"> {
+                                fnArgs = append(fnArgs, arg.Arg)
                         }</span>
-                        <span class="cov7" title="4">fnArgs[arg.Idx] = arg.Arg</span>
-                default:<span class="cov7" title="4">
+                default:<span class="cov6" title="4">
                         notIdx = true
                         if useIdx </span><span class="cov0" title="0">{
                                 err := fmt.Errorf("all args must have or have no index")
                                 return nil, errutil.WrapError(err, "%v", args)
                         }</span>
-                        <span class="cov7" title="4">fnArgs = append(fnArgs, arg)</span>
+                        <span class="cov6" title="4">if i &lt; fixedArgCount </span><span class="cov6" title="4">{
+                                fnArgs[i] = arg
+                        }</span> else<span class="cov0" title="0"> {
+                                fnArgs = append(fnArgs, arg)
+                        }</span>
                 }
         }
 
-        // Calculates the number of fixed arguments in the function.
-        <span class="cov8" title="6">fixedArgCount := fnType.NumIn()
-        if fnType.IsVariadic() </span><span class="cov1" title="1">{
-                fixedArgCount--
-        }</span>
-
-        <span class="cov8" title="6">for i := len(fnArgs); i &lt; fixedArgCount; i++ </span><span class="cov0" title="0">{
-                fnArgs = append(fnArgs, Tag(""))
-        }</span>
-        <span class="cov8" title="6">return &amp;ArgList{fnType: fnType, args: fnArgs}, nil</span>
+        <span class="cov7" title="6">return &amp;ArgList{fnType: fnType, args: fnArgs}, nil</span>
 }
 
 // get returns the processed argument values for the function call.
-func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov7" title="4">{
+func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov7" title="6">{
 
         fnType := r.fnType
         numIn := fnType.NumIn()
@@ -3521,25 +3551,25 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="c
         result := make([]reflect.Value, 0)
 
         // Processes each argument and converts it to a [reflect.Value].
-        for idx, arg := range r.args </span><span class="cov8" title="6">{
+        for idx, arg := range r.args </span><span class="cov9" title="10">{
 
                 var t reflect.Type
-                if variadic &amp;&amp; idx &gt;= numIn-1 </span><span class="cov1" title="1">{
+                if variadic &amp;&amp; idx &gt;= numIn-1 </span><span class="cov4" title="3">{
                         t = fnType.In(numIn - 1).Elem()
-                }</span> else<span class="cov7" title="5"> {
+                }</span> else<span class="cov8" title="7"> {
                         t = fnType.In(idx)
                 }</span>
 
-                <span class="cov8" title="6">v, err := arg.GetArgValue(ctx, t)
+                <span class="cov9" title="10">v, err := arg.GetArgValue(ctx, t)
                 if err != nil </span><span class="cov0" title="0">{
                         err = errutil.WrapError(err, "returns error when getting %d arg", idx)
                         return nil, errutil.WrapError(err, "get arg list error: %v", arg)
                 }</span>
-                <span class="cov8" title="6">if v.IsValid() </span><span class="cov8" title="6">{
+                <span class="cov9" title="10">if v.IsValid() </span><span class="cov9" title="10">{
                         result = append(result, v)
                 }</span>
         }
-        <span class="cov7" title="4">return result, nil</span>
+        <span class="cov7" title="6">return result, nil</span>
 }
 
 // BindArg represents a binding for an option function argument.
@@ -3550,17 +3580,17 @@ type BindArg struct {
 }
 
 // Bind creates a binding for an option function argument.
-func Bind(fn CallableFunc, args ...gs.Arg) *BindArg <span class="cov5" title="3">{
+func Bind(fn CallableFunc, args ...gs.Arg) *BindArg <span class="cov4" title="3">{
         t := reflect.TypeOf(fn)
         if t.Kind() != reflect.Func || t.NumOut() != 1 </span><span class="cov0" title="0">{
                 panic(errors.New("invalid option func"))</span>
         }
-        <span class="cov5" title="3">_, file, line, _ := runtime.Caller(1)
+        <span class="cov4" title="3">_, file, line, _ := runtime.Caller(1)
         r, err := NewCallable(fn, args)
         if err != nil </span><span class="cov0" title="0">{
                 panic(err)</span>
         }
-        <span class="cov5" title="3">arg := &amp;BindArg{r: r}
+        <span class="cov4" title="3">arg := &amp;BindArg{r: r}
         arg.SetFileLine(file, line)
         return arg</span>
 }
@@ -3572,16 +3602,16 @@ func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg <span class="
 }</span>
 
 // SetFileLine sets the file and line number of the function call.
-func (arg *BindArg) SetFileLine(file string, line int) <span class="cov5" title="3">{
+func (arg *BindArg) SetFileLine(file string, line int) <span class="cov4" title="3">{
         arg.fileLine = fmt.Sprintf("%s:%d", file, line)
 }</span>
 
 // GetArgValue retrieves the function's return value if conditions are met.
-func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov1" title="1">{
+func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov4" title="3">{
 
         // Checks if the condition is met.
         for _, c := range arg.c </span><span class="cov0" title="0">{
-                ok, err := ctx.Matches(c)
+                ok, err := ctx.Check(c)
                 if err != nil </span><span class="cov0" title="0">{
                         return reflect.Value{}, err
                 }</span> else<span class="cov0" title="0"> if !ok </span><span class="cov0" title="0">{
@@ -3590,11 +3620,11 @@ func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
         }
 
         // Calls the function and returns its result.
-        <span class="cov1" title="1">out, err := arg.r.Call(ctx)
+        <span class="cov4" title="3">out, err := arg.r.Call(ctx)
         if err != nil </span><span class="cov0" title="0">{
                 return reflect.Value{}, err
         }</span>
-        <span class="cov1" title="1">return out[0], nil</span>
+        <span class="cov4" title="3">return out[0], nil</span>
 }
 
 // CallableFunc is a function that can be called.
@@ -3607,36 +3637,36 @@ type Callable struct {
 }
 
 // NewCallable creates a Callable by binding arguments to a function.
-func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class="cov8" title="6">{
+func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class="cov7" title="6">{
         fnType := reflect.TypeOf(fn)
         argList, err := NewArgList(fnType, args)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov8" title="6">return &amp;Callable{fn: fn, argList: argList}, nil</span>
+        <span class="cov7" title="6">return &amp;Callable{fn: fn, argList: argList}, nil</span>
 }
 
 // Call invokes the function with its bound arguments processed in the IoC container.
-func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov7" title="4">{
+func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov7" title="6">{
         in, err := r.argList.get(ctx)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov7" title="4">out := reflect.ValueOf(r.fn).Call(in)
+        <span class="cov7" title="6">out := reflect.ValueOf(r.fn).Call(in)
         n := len(out)
         if n == 0 </span><span class="cov0" title="0">{
                 return out, nil
         }</span>
 
-        <span class="cov7" title="4">o := out[n-1]
+        <span class="cov7" title="6">o := out[n-1]
         if util.IsErrorType(o.Type()) </span><span class="cov0" title="0">{
                 if i := o.Interface(); i != nil </span><span class="cov0" title="0">{
                         return out[:n-1], i.(error)
                 }</span>
                 <span class="cov0" title="0">return out[:n-1], nil</span>
         }
-        <span class="cov7" title="4">return out, nil</span>
+        <span class="cov7" title="6">return out, nil</span>
 }
 </pre>
 		
@@ -3838,7 +3868,7 @@ type BeanRuntime struct {
 }
 
 // Name returns the name of the bean.
-func (d *BeanRuntime) Name() string <span class="cov8" title="106">{
+func (d *BeanRuntime) Name() string <span class="cov8" title="104">{
         return d.name
 }</span>
 
@@ -5087,7 +5117,8 @@ import (
         "github.com/go-spring/spring-core/util"
 )
 
-// NewBean 普通函数注册时需要使用 reflect.ValueOf(fn) 形式以避免和构造函数发生冲突。
+// NewBean creates a new bean definition. When registering a normal function,
+// use reflect.ValueOf(fn) to avoid conflicts with constructors.
 func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span class="cov10" title="16">{
 
         var v reflect.Value
@@ -5193,8 +5224,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span
                 panic("bean should be *val but not *ref")</span>
         }
 
-        // Type.String() 一般返回 *pkg.Type 形式的字符串，
-        // 我们只取最后的类型名，如有需要请自定义 bean 名称。
+        // Extract the final type name for bean naming
         <span class="cov10" title="16">if name == "" </span><span class="cov9" title="13">{
                 s := strings.Split(t.String(), ".")
                 name = strings.TrimPrefix(s[len(s)-1], "*")
@@ -5246,26 +5276,19 @@ import (
 type refreshState int
 
 const (
-        RefreshDefault = refreshState(iota) // 未刷新
-        RefreshInit                         // 准备刷新
-        Refreshing                          // 正在刷新
-        Refreshed                           // 已刷新
+        RefreshDefault = refreshState(iota) // Not refreshed
+        RefreshInit                         // Preparing to refresh
+        Refreshing                          // Currently refreshing
+        Refreshed                           // Already refreshed
 )
 
-// Container 是 go-spring 框架的基石，实现了 Martin Fowler 在 &lt;&lt; Inversion
-// of Control Containers and the Dependency Injection pattern &gt;&gt; 一文中
-// 提及的依赖注入的概念。但原文的依赖注入仅仅是指对象之间的依赖关系处理，而有些 IoC
-// 容器在实现时比如 Spring 还引入了对属性 property 的处理。通常大家会用依赖注入统
-// 述上面两种概念，但实际上使用属性绑定来描述对 property 的处理会更加合适，因此
-// go-spring 严格区分了这两种概念，在描述对 bean 的处理时要么单独使用依赖注入或属
-// 性绑定，要么同时使用依赖注入和属性绑定。
 type Container struct {
         state     refreshState
         resolving *resolving.Resolving
         wiring    *wiring.Wiring
 }
 
-// New 创建 IoC 容器。
+// New creates a IoC container.
 func New() *Container <span class="cov3" title="2">{
         return &amp;Container{
                 resolving: resolving.New(),
@@ -5278,18 +5301,19 @@ func (c *Container) Mock(obj interface{}, target gs.BeanSelector) <span class="c
         c.resolving.Mock(obj, target)
 }</span>
 
-// Object 注册对象形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
+// Object registers a bean in object form.
 func (c *Container) Object(i interface{}) *gs.RegisteredBean <span class="cov3" title="2">{
         b := NewBean(reflect.ValueOf(i))
         return c.Register(b)
 }</span>
 
-// Provide 注册构造函数形式的 bean ，需要注意的是该方法在注入开始后就不能再调用了。
+// Provide registers a bean in constructor function form.
 func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean <span class="cov0" title="0">{
         b := NewBean(ctor, args...)
         return c.Register(b)
 }</span>
 
+// Register registers a bean definition.
 func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean <span class="cov10" title="13">{
         x := b.BeanRegistration().(*gs_bean.BeanDefinition)
         r := gs.NewRegisteredBean(b.BeanRegistration())
@@ -5299,6 +5323,7 @@ func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean <span clas
         <span class="cov10" title="13">return r</span>
 }
 
+// GroupRegister registers a group function.
 func (c *Container) GroupRegister(fn resolving.GroupFunc) <span class="cov1" title="1">{
         c.resolving.GroupRegister(fn)
 }</span>
@@ -5340,7 +5365,7 @@ func (c *Container) Refresh() (err error) <span class="cov3" title="2">{
         return nil</span>
 }
 
-// Wire wires the bean with the given object.
+// Wire injects dependencies into the given object.
 func (c *Container) Wire(obj interface{}) error <span class="cov0" title="0">{
 
         if !testing.Testing() </span><span class="cov0" title="0">{
@@ -5382,35 +5407,43 @@ import (
 
 type GroupFunc = func(p conf.Properties) ([]*gs.BeanDefinition, error)
 
+// BeanMock represents a mocked bean with an object and a target selector.
 type BeanMock struct {
-        Object interface{}
-        Target gs.BeanSelector
+        Object interface{}     // The mock object instance
+        Target gs.BeanSelector // The target bean selector
 }
 
+// Resolving manages mocks, beans, and group functions.
 type Resolving struct {
         mocks []BeanMock
         beans []*gs_bean.BeanDefinition
         funcs []GroupFunc
 }
 
+// New creates a new Resolving instance.
 func New() *Resolving <span class="cov3" title="2">{
         return &amp;Resolving{}
 }</span>
 
+// Mock registers a mock object with a specified bean selector.
 func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) <span class="cov0" title="0">{
         x := BeanMock{Object: obj, Target: target}
         c.mocks = append(c.mocks, x)
 }</span>
 
+// Register adds a bean definition to the list of managed beans.
 func (c *Resolving) Register(b *gs_bean.BeanDefinition) <span class="cov9" title="13">{
         c.beans = append(c.beans, b)
 }</span>
 
+// GroupRegister registers a group function for bean resolution.
 func (c *Resolving) GroupRegister(fn GroupFunc) <span class="cov1" title="1">{
         c.funcs = append(c.funcs, fn)
 }</span>
 
+// RefreshInit initializes and processes group functions, configuration beans, and mocks.
 func (c *Resolving) RefreshInit(p conf.Properties) error <span class="cov3" title="2">{
+
         // processes all group functions to register beans.
         for _, fn := range c.funcs </span><span class="cov1" title="1">{
                 beans, err := fn(p)
@@ -5525,6 +5558,7 @@ func (c *Resolving) RefreshInit(p conf.Properties) error <span class="cov3" titl
         <span class="cov3" title="2">return nil</span>
 }
 
+// Refresh validates and resolves all beans in the system.
 func (c *Resolving) Refresh(p conf.Properties) ([]*gs_bean.BeanDefinition, error) <span class="cov3" title="2">{
 
         // resolves all beans on their condition.
@@ -5632,7 +5666,7 @@ type CondContext struct {
         p conf.Properties
 }
 
-// resolveBean determines the validity of the bean.
+// resolveBean verifies if a bean meets its conditions.
 func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error <span class="cov10" title="17">{
         if b.Status() &gt;= gs_bean.StatusResolving </span><span class="cov1" title="1">{
                 return nil
@@ -5650,16 +5684,18 @@ func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error <span class="
         return nil</span>
 }
 
+// Has checks if the given key exists in the configuration properties.
 func (c *CondContext) Has(key string) bool <span class="cov5" title="4">{
         return c.p.Has(key)
 }</span>
 
+// Prop retrieves the value of the given key from the configuration properties.
+// If the key is not found, it returns the provided default values (if any).
 func (c *CondContext) Prop(key string, def ...string) string <span class="cov3" title="2">{
         return c.p.Get(key, def...)
 }</span>
 
-// Find 查找符合条件的 bean 对象，注意该函数只能保证返回的 bean 是有效的，
-// 即未被标记为删除的，而不能保证已经完成属性绑定和依赖注入。
+// Find searches for beans that match the specified selector.
 func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) <span class="cov1" title="1">{
         t, name := s.TypeAndName()
         var result []gs.CondBean
@@ -5735,6 +5771,7 @@ import (
         "github.com/spf13/cast"
 )
 
+// BeanRuntime defines an interface for runtime bean information.
 type BeanRuntime interface {
         Name() string
         Type() reflect.Type
@@ -5745,12 +5782,13 @@ type BeanRuntime interface {
         String() string
 }
 
+// refreshState represents the state of a refresh operation.
 type refreshState int
 
 const (
-        RefreshDefault = refreshState(iota) // 未刷新
-        Refreshing                          // 正在刷新
-        Refreshed                           // 已刷新
+        RefreshDefault = refreshState(iota) // Not refreshed yet
+        Refreshing                          // Currently refreshing
+        Refreshed                           // Successfully refreshed
 )
 
 /************************************ destroyer ******************************/
@@ -5912,13 +5950,13 @@ func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) <span class=
         <span class="cov0" title="0">return ret, nil</span>
 }
 
-// Matches checks if a given condition matches the container.
-func (a *ArgContext) Matches(c gs.Condition) (bool, error) <span class="cov0" title="0">{
+// Check checks if a given condition matches the container.
+func (a *ArgContext) Check(c gs.Condition) (bool, error) <span class="cov0" title="0">{
         return c.Matches(a)
 }</span>
 
 // Bind binds a value to a specific tag in the container.
-func (a *ArgContext) Bind(v reflect.Value, tag string) error <span class="cov2" title="2">{
+func (a *ArgContext) Bind(v reflect.Value, tag string) error <span class="cov4" title="4">{
         return a.c.p.Data().Bind(v, tag)
 }</span>
 
@@ -6521,26 +6559,26 @@ func (c *Wiring) WireBeanValue(v reflect.Value, t reflect.Type, watchRefresh boo
 // wireStruct performs dependency injection for a struct.
 func (c *Wiring) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, opt conf.BindParam, stack *Stack) error <span class="cov7" title="14">{
         // Loop through each field of the struct.
-        for i := 0; i &lt; t.NumField(); i++ </span><span class="cov10" title="31">{
+        for i := 0; i &lt; t.NumField(); i++ </span><span class="cov10" title="32">{
                 ft := t.Field(i)
                 fv := v.Field(i)
 
                 // If the field is unexported, try to patch it.
-                if !fv.CanInterface() </span><span class="cov7" title="14">{
+                if !fv.CanInterface() </span><span class="cov8" title="15">{
                         fv = util.PatchValue(fv)
                         if !fv.CanInterface() </span><span class="cov0" title="0">{
                                 continue</span>
                         }
                 }
 
-                <span class="cov10" title="31">fieldPath := opt.Path + "." + ft.Name
+                <span class="cov10" title="32">fieldPath := opt.Path + "." + ft.Name
 
                 // Check for autowire or inject tags.
                 tag, ok := ft.Tag.Lookup("autowire")
-                if !ok </span><span class="cov9" title="22">{
+                if !ok </span><span class="cov9" title="23">{
                         tag, ok = ft.Tag.Lookup("inject")
                 }</span>
-                <span class="cov10" title="31">if ok </span><span class="cov6" title="9">{
+                <span class="cov10" title="32">if ok </span><span class="cov6" title="9">{
                         // Handle lazy injection.
                         if strings.HasSuffix(tag, ",lazy") </span><span class="cov0" title="0">{
                                 f := lazyField{v: fv, path: fieldPath, tag: tag}
@@ -6553,7 +6591,7 @@ func (c *Wiring) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, 
                         <span class="cov6" title="9">continue</span>
                 }
 
-                <span class="cov9" title="22">subParam := conf.BindParam{
+                <span class="cov9" title="23">subParam := conf.BindParam{
                         Key:  opt.Key,
                         Path: fieldPath,
                 }
@@ -6580,7 +6618,7 @@ func (c *Wiring) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, 
                 }
 
                 // Recursively wire anonymous struct fields.
-                <span class="cov8" title="19">if ft.Anonymous &amp;&amp; ft.Type.Kind() == reflect.Struct </span><span class="cov1" title="1">{
+                <span class="cov8" title="20">if ft.Anonymous &amp;&amp; ft.Type.Kind() == reflect.Struct </span><span class="cov1" title="1">{
                         if err := c.wireStruct(fv, ft.Type, watchRefresh, subParam, stack); err != nil </span><span class="cov0" title="0">{
                                 return err
                         }</span>
@@ -6618,7 +6656,7 @@ func (c *Wiring) autowire(v reflect.Value, str string, stack *Stack) error <span
                         // Populate the slice or map with the resolved beans
                         <span class="cov4" title="4">switch v.Kind() </span>{
                         case reflect.Slice:<span class="cov4" title="4">
-                                sort.Slice(beans, func(i, j int) bool </span><span class="cov4" title="4">{
+                                sort.Slice(beans, func(i, j int) bool </span><span class="cov3" title="3">{
                                         return beans[i].Name() &lt; beans[j].Name()
                                 }</span>)
                                 <span class="cov4" title="4">ret := reflect.MakeSlice(v.Type(), 0, 0)
@@ -6745,7 +6783,7 @@ func New() *Properties <span class="cov2" title="2">{
 }</span>
 
 // Data returns the current properties.
-func (p *Properties) Data() conf.Properties <span class="cov6" title="22">{
+func (p *Properties) Data() conf.Properties <span class="cov6" title="24">{
         p.lock.RLock()
         defer p.lock.RUnlock()
         return p.prop
@@ -7710,7 +7748,7 @@ func IsFuncType(t reflect.Type) bool <span class="cov5" title="6">{
 
 // IsErrorType returns true if the provided type t is an error type,
 // either directly (error) or via an implementation (i.e., implements the error interface).
-func IsErrorType(t reflect.Type) bool <span class="cov5" title="7">{
+func IsErrorType(t reflect.Type) bool <span class="cov6" title="9">{
         return t == errorType || t.Implements(errorType)
 }</span>
 
@@ -7744,15 +7782,15 @@ func IsConstructor(t reflect.Type) bool <span class="cov3" title="3">{
 
 // IsPrimitiveValueType returns true if the provided type t is a primitive value type,
 // such as int, uint, float, bool, or string.
-func IsPrimitiveValueType(t reflect.Type) bool <span class="cov9" title="37">{
+func IsPrimitiveValueType(t reflect.Type) bool <span class="cov10" title="41">{
         switch t.Kind() </span>{
-        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov5" title="7">
+        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov6" title="9">
                 return true</span>
         case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:<span class="cov0" title="0">
                 return true</span>
         case reflect.Float32, reflect.Float64:<span class="cov0" title="0">
                 return true</span>
-        case reflect.String:<span class="cov6" title="8">
+        case reflect.String:<span class="cov6" title="10">
                 return true</span>
         case reflect.Bool:<span class="cov2" title="2">
                 return true</span>
@@ -7764,19 +7802,19 @@ func IsPrimitiveValueType(t reflect.Type) bool <span class="cov9" title="37">{
 // IsPropBindingTarget returns true if the provided type t is a valid target for property binding.
 // This includes primitive value types or composite types (such as array, slice, map, or struct)
 // where the elements are primitive value types.
-func IsPropBindingTarget(t reflect.Type) bool <span class="cov9" title="37">{
+func IsPropBindingTarget(t reflect.Type) bool <span class="cov10" title="41">{
         switch t.Kind() </span>{
         case reflect.Map, reflect.Slice, reflect.Array:<span class="cov1" title="1">
                 t = t.Elem()</span> // for collection types, check the element type
-        default:<span class="cov9" title="36"></span>
+        default:<span class="cov9" title="40"></span>
                 // do nothing
         }
-        <span class="cov9" title="37">return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct</span>
+        <span class="cov10" title="41">return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct</span>
 }
 
 // IsBeanType returns true if the provided type t is considered a "bean" type.
 // A "bean" type includes a channel, function, interface, or a pointer to a struct.
-func IsBeanType(t reflect.Type) bool <span class="cov10" title="40">{
+func IsBeanType(t reflect.Type) bool <span class="cov9" title="40">{
         switch t.Kind() </span>{
         case reflect.Chan, reflect.Func, reflect.Interface:<span class="cov7" title="12">
                 return true</span>
@@ -7834,7 +7872,7 @@ const (
 // PatchValue modifies an unexported field to make it assignable by modifying the internal flag.
 // It takes a [reflect.Value] and returns the patched value that can be written to.
 // This is typically used to manipulate unexported fields in struct types.
-func PatchValue(v reflect.Value) reflect.Value <span class="cov10" title="14">{
+func PatchValue(v reflect.Value) reflect.Value <span class="cov10" title="15">{
         rv := reflect.ValueOf(&amp;v)
         flag := rv.Elem().FieldByName("flag")
         ptrFlag := (*uintptr)(unsafe.Pointer(flag.UnsafeAddr()))

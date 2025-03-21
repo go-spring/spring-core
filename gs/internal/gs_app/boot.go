@@ -40,52 +40,62 @@ type Boot interface {
 	FuncRunner(fn func() error) *gs.RegisteredBean
 }
 
-// boot is the bootstrapper of the application.
-type boot struct {
+// BootImpl is the bootstrapper of the application.
+type BootImpl struct {
 	c *gs_core.Container
 	p *gs_conf.BootConfig
+
+	// flag indicates whether the bootstrapper has been used.
+	flag bool
 
 	Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`
 }
 
 // NewBoot creates a new Boot instance.
 func NewBoot() Boot {
-	return &boot{
+	return &BootImpl{
 		c: gs_core.New(),
 		p: gs_conf.NewBootConfig(),
 	}
 }
 
 // Config returns the boot configuration.
-func (b *boot) Config() *gs_conf.BootConfig {
+func (b *BootImpl) Config() *gs_conf.BootConfig {
 	return b.p
 }
 
 // Object registers an object bean.
-func (b *boot) Object(i interface{}) *gs.RegisteredBean {
+func (b *BootImpl) Object(i interface{}) *gs.RegisteredBean {
+	b.flag = true
 	bd := gs_core.NewBean(reflect.ValueOf(i))
 	return b.c.Register(bd)
 }
 
 // Provide registers a bean using a constructor function.
-func (b *boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+func (b *BootImpl) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+	b.flag = true
 	bd := gs_core.NewBean(ctor, args...)
 	return b.c.Register(bd)
 }
 
 // Register registers a BeanDefinition instance.
-func (b *boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
+func (b *BootImpl) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
+	b.flag = true
 	return b.c.Register(bd)
 }
 
 // FuncRunner creates a Runner from a function.
-func (b *boot) FuncRunner(fn func() error) *gs.RegisteredBean {
+func (b *BootImpl) FuncRunner(fn func() error) *gs.RegisteredBean {
+	b.flag = true
 	bd := gs_core.NewBean(reflect.ValueOf(funcRunner(fn)))
 	return b.c.Register(bd).AsRunner()
 }
 
 // Run executes the application's boot process.
-func (b *boot) Run() error {
+func (b *BootImpl) Run() error {
+	if !b.flag {
+		return nil
+	}
 	b.c.Object(b)
 
 	// Refresh the boot configuration.

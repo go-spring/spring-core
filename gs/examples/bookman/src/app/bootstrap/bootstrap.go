@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	gs.Boot().FuncRunner(initRemoteConfig).OnProfiles("online")
+	gs.B.FuncRunner(initRemoteConfig).OnProfiles("online")
 }
 
 // initRemoteConfig initializes the remote configuration setup

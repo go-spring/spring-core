@@ -180,18 +180,6 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 	return gs.BeanSelectorFor[T](name...)
 }
 
-/************************************ boot ***********************************/
-
-var boot gs_app.Boot
-
-// Boot initializes and returns a [*gs_app.Boot] instance.
-func Boot() gs_app.Boot {
-	if boot == nil {
-		boot = gs_app.NewBoot()
-	}
-	return boot
-}
-
 /*********************************** app *************************************/
 
 type (
@@ -200,6 +188,8 @@ type (
 	Server      = gs.Server
 	ReadySignal = gs.ReadySignal
 )
+
+var B = gs_app.NewBoot()
 
 // funcRunner is a function type that implements the Runner interface.
 type funcRunner func() error
@@ -228,12 +218,10 @@ func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
 // Run runs the app and waits for an interrupt signal to exit.
 func Run() error {
 	printBanner()
-	if boot != nil {
-		if err := boot.(interface{ Run() error }).Run(); err != nil {
-			return err
-		}
-		boot = nil
+	if err := B.(*gs_app.BootImpl).Run(); err != nil {
+		return err
 	}
+	B = nil
 	return gs_app.GS.Run()
 }
 

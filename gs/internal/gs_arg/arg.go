@@ -230,7 +230,7 @@ func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 
 	// Checks if the condition is met.
 	for _, c := range arg.c {
-		ok, err := ctx.Matches(c)
+		ok, err := ctx.Check(c)
 		if err != nil {
 			return reflect.Value{}, err
 		} else if !ok {

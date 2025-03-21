@@ -129,8 +129,8 @@ type Arg interface {
 
 // ArgContext defines methods for the IoC container used by Arg types.
 type ArgContext interface {
-	// Matches checks if the given condition is met.
-	Matches(c Condition) (bool, error)
+	// Check checks if the given condition is met.
+	Check(c Condition) (bool, error)
 	// Bind binds property values to the provided [reflect.Value].
 	Bind(v reflect.Value, tag string) error
 	// Wire wires dependent beans to the provided [reflect.Value].

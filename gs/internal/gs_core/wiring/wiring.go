@@ -216,8 +216,8 @@ func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 	return ret, nil
 }
 
-// Matches checks if a given condition matches the container.
-func (a *ArgContext) Matches(c gs.Condition) (bool, error) {
+// Check checks if a given condition matches the container.
+func (a *ArgContext) Check(c gs.Condition) (bool, error) {
 	return c.Matches(a)
 }
 
