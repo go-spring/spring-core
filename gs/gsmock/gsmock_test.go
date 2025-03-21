@@ -48,47 +48,28 @@ type Response struct {
 
 // Get performs a request and retrieves a response, potentially using a mock implementation.
 func (c *Client) Get(ctx context.Context, req *Request, trace *Trace) (*Response, error) {
-	if ret, ok := gsmock.InvokeContext(ctx, clientType, "Get", ctx, req, trace); ok {
-		r0, _ := ret[0].(*Response)
-		r1, _ := ret[1].(error)
-		return r0, r1
+	if r1, r2, ok := gsmock.InvokeContext2[*Response, error](ctx, clientType, "Get", ctx, req, trace); ok {
+		return r1, r2
 	}
 	return &Response{Message: "9:xxx"}, nil
 }
 
-// GetMocker and GetInvoker are used to define mock behavior for Get.
-type GetMocker = gsmock.Mocker32[context.Context, *Request, *Trace, *Response, error]
-type GetInvoker = gsmock.Invoker32[context.Context, *Request, *Trace, *Response, error]
-
 // MockGet registers a mock implementation for the Get method.
-func MockGet(r *gsmock.Manager) *GetMocker {
-	m := &GetMocker{}
-	i := &GetInvoker{Mocker32: m}
-	r.AddMocker(clientType, "Get", i)
-	return m
+func MockGet(r *gsmock.Manager) *gsmock.Mocker32[context.Context, *Request, *Trace, *Response, error] {
+	return gsmock.NewMocker32[context.Context, *Request, *Trace, *Response, error](r, clientType, "Get")
 }
 
 // GetWithHeader performs a request and retrieves a response with additional headers, potentially using a mock implementation.
 func (c *Client) GetWithHeader(ctx context.Context, req *Request, trace *Trace) (*Response, map[string]string, error) {
-	if ret, ok := gsmock.InvokeContext(ctx, clientType, "GetWithHeader", ctx, req, trace); ok {
-		r0, _ := ret[0].(*Response)
-		r1, _ := ret[1].(map[string]string)
-		r2, _ := ret[2].(error)
-		return r0, r1, r2
+	if r1, r2, r3, ok := gsmock.InvokeContext3[*Response, map[string]string, error](ctx, clientType, "GetWithHeader", ctx, req, trace); ok {
+		return r1, r2, r3
 	}
 	return &Response{Message: "9:yyy"}, nil, nil
 }
 
-// GetWithHeaderMocker and GetWithHeaderInvoker are used to define mock behavior for GetWithHeader.
-type GetWithHeaderMocker = gsmock.Mocker33[context.Context, *Request, *Trace, *Response, map[string]string, error]
-type GetWithHeaderInvoker = gsmock.Invoker33[context.Context, *Request, *Trace, *Response, map[string]string, error]
-
 // MockGetWithHeader registers a mock implementation for the GetWithHeader method.
-func MockGetWithHeader(r *gsmock.Manager) *GetWithHeaderMocker {
-	m := &GetWithHeaderMocker{}
-	i := &GetWithHeaderInvoker{Mocker33: m}
-	r.AddMocker(clientType, "GetWithHeader", i)
-	return m
+func MockGetWithHeader(r *gsmock.Manager) *gsmock.Mocker33[context.Context, *Request, *Trace, *Response, map[string]string, error] {
+	return gsmock.NewMocker33[context.Context, *Request, *Trace, *Response, map[string]string, error](r, clientType, "GetWithHeader")
 }
 
 /*********************************** test ************************************/
@@ -259,47 +240,28 @@ func NewMockClient(r *gsmock.Manager) *MockClient {
 
 // Query mocks the Query method by invoking a registered mock implementation.
 func (c *MockClient) Query(req *Request, trace *Trace) (*Response, error) {
-	if ret, ok := gsmock.Invoke(c.r, mockClientType, "Query", req, trace); ok {
-		r0, _ := ret[0].(*Response)
-		r1, _ := ret[1].(error)
-		return r0, r1
+	if r1, r2, ok := gsmock.Invoke2[*Response, error](c.r, mockClientType, "Query", req, trace); ok {
+		return r1, r2
 	}
 	panic("mock error")
 }
 
-// QueryMocker and QueryInvoker are used to define mock behavior for Query.
-type QueryMocker = gsmock.Mocker22[*Request, *Trace, *Response, error]
-type QueryInvoker = gsmock.Invoker22[*Request, *Trace, *Response, error]
-
 // MockQuery registers a mock implementation for the Query method.
-func (c *MockClient) MockQuery() *QueryMocker {
-	m := &QueryMocker{}
-	i := &QueryInvoker{Mocker22: m}
-	c.r.AddMocker(mockClientType, "Query", i)
-	return m
+func (c *MockClient) MockQuery() *gsmock.Mocker22[*Request, *Trace, *Response, error] {
+	return gsmock.NewMocker22[*Request, *Trace, *Response, error](c.r, mockClientType, "Query")
 }
 
 // QueryWithHeader mocks the QueryWithHeader method by invoking a registered mock implementation.
 func (c *MockClient) QueryWithHeader(req *Request, trace *Trace) (*Response, map[string]string, error) {
-	if ret, ok := gsmock.Invoke(c.r, mockClientType, "QueryWithHeader", req, trace); ok {
-		r0, _ := ret[0].(*Response)
-		r1, _ := ret[1].(map[string]string)
-		r2, _ := ret[2].(error)
-		return r0, r1, r2
+	if r1, r2, r3, ok := gsmock.Invoke3[*Response, map[string]string, error](c.r, mockClientType, "QueryWithHeader", req, trace); ok {
+		return r1, r2, r3
 	}
 	panic("mock error")
 }
 
-// QueryWithHeaderMocker and QueryWithHeaderInvoker are used to define mock behavior for QueryWithHeader.
-type QueryWithHeaderMocker = gsmock.Mocker23[*Request, *Trace, *Response, map[string]string, error]
-type QueryWithHeaderInvoker = gsmock.Invoker23[*Request, *Trace, *Response, map[string]string, error]
-
 // MockQueryWithHeader registers a mock implementation for the QueryWithHeader method.
-func (c *MockClient) MockQueryWithHeader() *QueryWithHeaderMocker {
-	m := &QueryWithHeaderMocker{}
-	i := &QueryWithHeaderInvoker{Mocker23: m}
-	c.r.AddMocker(mockClientType, "QueryWithHeader", i)
-	return m
+func (c *MockClient) MockQueryWithHeader() *gsmock.Mocker23[*Request, *Trace, *Response, map[string]string, error] {
+	return gsmock.NewMocker23[*Request, *Trace, *Response, map[string]string, error](c.r, mockClientType, "QueryWithHeader")
 }
 
 func TestMockNoContext(t *testing.T) {
