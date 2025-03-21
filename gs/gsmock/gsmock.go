@@ -19,6 +19,7 @@ package gsmock
 import (
 	"context"
 	"log"
+	"reflect"
 	"testing"
 )
 
@@ -32,66 +33,88 @@ const (
 // Invoker is the interface that all mockers must implement.
 type Invoker interface {
 	Mode() Mode
-	When(ctx context.Context, params []interface{}) bool
-	Return(ctx context.Context, params []interface{}) []interface{}
-	Handle(ctx context.Context, params []interface{}) ([]interface{}, bool)
+	When(params []interface{}) bool
+	Return(params []interface{}) []interface{}
+	Handle(params []interface{}) ([]interface{}, bool)
 }
 
-// Rooter is the mock manager that stores mock implementations.
-type Rooter struct {
-	mockers map[string][]Invoker
+// mockerKey is the key used to store mockers in the mock manager.
+type mockerKey struct {
+	typ    reflect.Type
+	method string
+}
+
+// Manager is the mock manager that stores mock implementations.
+type Manager struct {
+	mockers map[mockerKey][]Invoker
 }
 
 // GetMockers retrieves the list of mockers for a given method.
-func (r *Rooter) GetMockers(method string) []Invoker {
-	return r.mockers[method]
+func (r *Manager) GetMockers(typ reflect.Type, method string) []Invoker {
+	return r.mockers[mockerKey{typ, method}]
 }
 
 // AddMocker adds a mock implementation for a given method.
-func (r *Rooter) AddMocker(method string, i Invoker) {
-	r.mockers[method] = append(r.mockers[method], i)
+func (r *Manager) AddMocker(typ reflect.Type, method string, i Invoker) {
+	k := mockerKey{typ, method}
+	r.mockers[k] = append(r.mockers[k], i)
 }
 
-var rooterKey int
+var managerKey int
 
-// getRooter retrieves the mock manager from the given context.
-func getRooter(ctx context.Context) *Rooter {
-	if r, ok := ctx.Value(&rooterKey).(*Rooter); ok {
+// getManager retrieves the mock manager from the given context.
+func getManager(ctx context.Context) *Manager {
+	if r, ok := ctx.Value(&managerKey).(*Manager); ok {
 		return r
 	}
 	return nil
 }
 
 // Init initializes the mock manager and attaches it to the given context.
-func Init(ctx context.Context) (*Rooter, context.Context) {
-	r := &Rooter{
-		mockers: make(map[string][]Invoker),
+func Init(ctx context.Context) (*Manager, context.Context) {
+	r := &Manager{
+		mockers: make(map[mockerKey][]Invoker),
 	}
-	return r, context.WithValue(ctx, &rooterKey, r)
+	return r, context.WithValue(ctx, &managerKey, r)
 }
 
 // Invoke attempts to call a mock implementation of a given method.
-func Invoke(method string, ctx context.Context, params ...interface{}) ([]interface{}, bool) {
+func Invoke(r *Manager, typ reflect.Type, method string, params ...interface{}) ([]interface{}, bool) {
+	if r == nil || !testing.Testing() {
+		return nil, false
+	}
+	return invoke0(r, typ, method, params...)
+}
+
+// InvokeContext attempts to call a mock implementation of a given method.
+func InvokeContext(ctx context.Context, typ reflect.Type, method string, params ...interface{}) ([]interface{}, bool) {
 	if !testing.Testing() {
 		return nil, false
 	}
-	if r := getRooter(ctx); r != nil {
-		mockers := r.GetMockers(method)
-		for _, f := range mockers {
-			switch f.Mode() {
-			case ModeHandle:
-				ret, ok := f.Handle(ctx, params)
-				if ok {
-					return ret, true
-				}
-			case ModeWhenReturn:
-				if f.When(ctx, params) {
-					ret := f.Return(ctx, params)
-					return ret, true
-				}
-			default:
-				log.Printf("Warning: unknown mode: %d", f.Mode())
+	r := getManager(ctx)
+	if r == nil {
+		return nil, false
+	}
+	return invoke0(r, typ, method, params...)
+}
+
+// invoke0 is a helper function that calls a mock implementation of a given method.
+func invoke0(r *Manager, typ reflect.Type, method string, params ...interface{}) ([]interface{}, bool) {
+	mockers := r.GetMockers(typ, method)
+	for _, f := range mockers {
+		switch f.Mode() {
+		case ModeHandle:
+			ret, ok := f.Handle(params)
+			if ok {
+				return ret, true
 			}
+		case ModeWhenReturn:
+			if f.When(params) {
+				ret := f.Return(params)
+				return ret, true
+			}
+		default:
+			log.Printf("Warning: unknown mode: %d", f.Mode())
 		}
 	}
 	return nil, false
