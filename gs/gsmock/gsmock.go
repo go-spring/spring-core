@@ -23,6 +23,7 @@ import (
 	"testing"
 )
 
+// Mode represents the mocking mode.
 type Mode int
 
 const (
@@ -38,13 +39,13 @@ type Invoker interface {
 	Handle(params []interface{}) ([]interface{}, bool)
 }
 
-// mockerKey is the key used to store mockers in the mock manager.
+// mockerKey is used as a key to store mockers in the mock manager.
 type mockerKey struct {
 	typ    reflect.Type
 	method string
 }
 
-// Manager is the mock manager that stores mock implementations.
+// Manager manages mock implementations.
 type Manager struct {
 	mockers map[mockerKey][]Invoker
 }
@@ -54,7 +55,7 @@ func (r *Manager) GetMockers(typ reflect.Type, method string) []Invoker {
 	return r.mockers[mockerKey{typ, method}]
 }
 
-// AddMocker adds a mock implementation for a given method.
+// AddMocker registers a mock implementation for a given method.
 func (r *Manager) AddMocker(typ reflect.Type, method string, i Invoker) {
 	k := mockerKey{typ, method}
 	r.mockers[k] = append(r.mockers[k], i)
@@ -70,7 +71,7 @@ func getManager(ctx context.Context) *Manager {
 	return nil
 }
 
-// Init initializes the mock manager and attaches it to the given context.
+// Init initializes a new mock manager and attaches it to the given context.
 func Init(ctx context.Context) (*Manager, context.Context) {
 	r := &Manager{
 		mockers: make(map[mockerKey][]Invoker),
@@ -86,7 +87,7 @@ func Invoke(r *Manager, typ reflect.Type, method string, params ...interface{}) 
 	return invoke0(r, typ, method, params...)
 }
 
-// InvokeContext attempts to call a mock implementation of a given method.
+// InvokeContext attempts to call a mock implementation using context.
 func InvokeContext(ctx context.Context, typ reflect.Type, method string, params ...interface{}) ([]interface{}, bool) {
 	if !testing.Testing() {
 		return nil, false
