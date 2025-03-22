@@ -1247,7 +1247,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	//t.Run("option withStudents withClassName", func(t *testing.T) {
+	// t.Run("option withStudents withClassName", func(t *testing.T) {
 	//	prop := conf.New()
 	//	prop.Set("class_name", "二年级06班")
 	//	prop.Set("president", "CaiYuanPei")
@@ -1277,7 +1277,7 @@ func TestOptionConstructorArg(t *testing.T) {
 	//		assert.Equal(t, cls.Value.builder.param, "1")
 	//	})
 	//	assert.Nil(t, err)
-	//})
+	// })
 }
 
 type ServerInterface interface {
@@ -1759,7 +1759,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewNilVarObj, gs_arg.Nil())
+		c.Provide(NewNilVarObj, gs_arg.Zero())
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p *gs_core.Container) {

@@ -58,9 +58,9 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 		return v, nil
 	}
 
-	// If none of the conditions match, return an error.
-	err := fmt.Errorf("error type %s", t.String())
-	return reflect.Value{}, errutil.WrapError(err, "get arg error: %v", arg.Tag)
+	// The arg type must be either a property binding target or a bean injection target.
+	err := fmt.Errorf("unsupported argument type: %s", t.String())
+	return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")
 }
 
 // IndexArg represents an argument that has an index.
@@ -84,8 +84,8 @@ type ValueArg struct {
 	v interface{} // The fixed value associated with this argument.
 }
 
-// Nil returns a ValueArg with a value of nil.
-func Nil() gs.Arg {
+// Zero returns a ValueArg with a value of nil.
+func Zero() gs.Arg {
 	return ValueArg{v: nil}
 }
 
@@ -99,7 +99,12 @@ func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 	if arg.v == nil {
 		return reflect.Zero(t), nil
 	}
-	return reflect.ValueOf(arg.v), nil
+	v := reflect.ValueOf(arg.v)
+	if !v.Type().AssignableTo(t) {
+		err := fmt.Errorf("cannot assign type:%T to type:%s", arg.v, t.String())
+		return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")
+	}
+	return v, nil
 }
 
 // ArgList represents a list of arguments for a function.
@@ -110,6 +115,10 @@ type ArgList struct {
 
 // NewArgList creates and validates an ArgList for the specified function.
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
+	if fnType.Kind() != reflect.Func {
+		err := fmt.Errorf("invalid function type:%s", fnType.String())
+		return nil, errutil.WrapError(err, "NewArgList error")
+	}
 
 	// Calculates the number of fixed arguments in the function.
 	fixedArgCount := fnType.NumIn()

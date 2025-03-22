@@ -78,4 +78,42 @@ func TestTagArg(t *testing.T) {
 		_, err := tag.GetArgValue(c, reflect.TypeFor[*bytes.Buffer]())
 		assert.Error(t, err, "wire error")
 	})
+
+	t.Run("type error", func(t *testing.T) {
+		tag := gs_arg.Tag("server")
+		_, err := tag.GetArgValue(nil, reflect.TypeFor[*string]())
+		assert.Error(t, err, "GetArgValue error << unsupported argument type: \\*string")
+	})
+}
+
+func TestValueArg(t *testing.T) {
+
+	t.Run("zero", func(t *testing.T) {
+		tag := gs_arg.Zero()
+		v, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
+		assert.Nil(t, err)
+		assert.Nil(t, v.Interface())
+	})
+
+	t.Run("value", func(t *testing.T) {
+		tag := gs_arg.Value(&http.Server{Addr: ":9090"})
+		v, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
+		assert.Nil(t, err)
+		assert.Equal(t, v.Interface().(*http.Server).Addr, ":9090")
+	})
+
+	t.Run("type error", func(t *testing.T) {
+		tag := gs_arg.Value(new(int))
+		_, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
+		assert.Error(t, err, "GetArgValue error << cannot assign type:\\*int to type:\\*http.Server")
+	})
+}
+
+func TestArgList(t *testing.T) {
+
+	t.Run("type error", func(t *testing.T) {
+		_, err := gs_arg.NewArgList(reflect.TypeFor[int](), nil)
+		assert.Error(t, err, "NewArgList error << invalid function type:int")
+	})
+
 }

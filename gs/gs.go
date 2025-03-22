@@ -51,9 +51,9 @@ func TagArg(tag string) Arg {
 	return gs_arg.Tag(tag)
 }
 
-// NilArg returns a ValueArg with a nil value.
-func NilArg() Arg {
-	return gs_arg.Nil()
+// ZeroArg returns a ValueArg with a zero value.
+func ZeroArg() Arg {
+	return gs_arg.Zero()
 }
 
 // ValueArg returns a ValueArg with the specified value.
