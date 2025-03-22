@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	Version = "go-spring@v1.2.0.rc"
+	Version = "go-spring@v1.2.0.rc2"
 	Website = "https://go-spring.com/"
 )
 
