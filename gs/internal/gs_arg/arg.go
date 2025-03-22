@@ -44,7 +44,7 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 	if util.IsPropBindingTarget(t) {
 		v := reflect.New(t).Elem()
 		if err := ctx.Bind(v, arg.Tag); err != nil {
-			return reflect.Value{}, err
+			return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")
 		}
 		return v, nil
 	}
@@ -53,7 +53,7 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 	if util.IsBeanInjectionTarget(t) {
 		v := reflect.New(t).Elem()
 		if err := ctx.Wire(v, arg.Tag); err != nil {
-			return reflect.Value{}, err
+			return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")
 		}
 		return v, nil
 	}
