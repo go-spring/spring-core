@@ -84,11 +84,6 @@ type ValueArg struct {
 	v interface{} // The fixed value associated with this argument.
 }
 
-// Zero returns a ValueArg with a value of nil.
-func Zero() gs.Arg {
-	return ValueArg{v: nil}
-}
-
 // Value returns a ValueArg with the specified value.
 func Value(v interface{}) gs.Arg {
 	return ValueArg{v: v}

@@ -1759,7 +1759,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&Var{"v1"}).Name("v1")
 		c.Object(&Var{"v2"}).Name("v2")
-		c.Provide(NewNilVarObj, gs_arg.Zero())
+		c.Provide(NewNilVarObj, gs_arg.Value(nil))
 
 		c.RefreshProperties(prop)
 		err := runTest(c, func(p *gs_core.Container) {

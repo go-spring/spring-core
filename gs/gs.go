@@ -51,11 +51,6 @@ func TagArg(tag string) Arg {
 	return gs_arg.Tag(tag)
 }
 
-// ZeroArg returns a ValueArg with a zero value.
-func ZeroArg() Arg {
-	return gs_arg.Zero()
-}
-
 // ValueArg returns a ValueArg with the specified value.
 func ValueArg(v interface{}) Arg {
 	return gs_arg.Value(v)

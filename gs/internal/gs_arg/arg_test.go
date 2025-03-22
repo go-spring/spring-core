@@ -90,7 +90,7 @@ func TestTagArg(t *testing.T) {
 func TestValueArg(t *testing.T) {
 
 	t.Run("zero", func(t *testing.T) {
-		tag := Zero()
+		tag := Value(nil)
 		v, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
 		assert.Nil(t, err)
 		assert.Nil(t, v.Interface())
