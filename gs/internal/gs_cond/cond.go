@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_cond provides a set of conditions that can be used for evaluating and
-// combining logical conditions in a flexible way.
 package gs_cond
 
 import (
@@ -41,6 +39,7 @@ func OnFunc(fn gs.CondFunc) gs.Condition {
 	return &onFunc{fn: fn}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onFunc) Matches(ctx gs.CondContext) (bool, error) {
 	ok, err := c.fn(ctx)
 	if err != nil {
@@ -90,6 +89,7 @@ func (c *onProperty) HavingValue(s string) OnPropertyInterface {
 	return c
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 
 	// If the context doesn't have the property, handle accordingly.
@@ -108,7 +108,6 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 		return val == c.havingValue, nil
 	}
 
-	// If the expected value is an expression, evaluate it.
 	getValue := func(val string) interface{} {
 		if b, err := strconv.ParseBool(val); err == nil {
 			return b
@@ -161,6 +160,7 @@ func OnMissingProperty(name string) gs.Condition {
 	return &onMissingProperty{name: name}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onMissingProperty) Matches(ctx gs.CondContext) (bool, error) {
 	return !ctx.Has(c.name), nil
 }
@@ -174,14 +174,22 @@ func (c *onMissingProperty) String() string {
 // onBean checks for the existence of beans that match a selector.
 // It returns true if at least one bean matches the selector, and false otherwise.
 type onBean struct {
-	s gs.BeanSelectorInterface // The selector used to match beans in the context.
+	s gs.BeanSelector // The selector used to match beans in the context.
 }
 
-// OnBean creates a condition that evaluates to true if at least one bean matches the provided selector.
-func OnBean(s gs.BeanSelectorInterface) gs.Condition {
+// OnBean creates a condition that evaluates to true if at least one bean
+// matches the specified type and name.
+func OnBean[T any](name ...string) gs.Condition {
+	return &onBean{s: gs.BeanSelectorFor[T](name...)}
+}
+
+// OnBeanSelector creates a condition that evaluates to true if at least one
+// bean matches the provided selector.
+func OnBeanSelector(s gs.BeanSelector) gs.Condition {
 	return &onBean{s: s}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
@@ -199,14 +207,22 @@ func (c *onBean) String() string {
 // onMissingBean checks for the absence of beans matching a selector.
 // It returns true if no beans match the selector, and false otherwise.
 type onMissingBean struct {
-	s gs.BeanSelectorInterface // The selector used to find beans.
+	s gs.BeanSelector // The selector used to find beans.
 }
 
-// OnMissingBean creates a condition that evaluates to true if no beans match the provided selector.
-func OnMissingBean(s gs.BeanSelectorInterface) gs.Condition {
+// OnMissingBean creates a condition that evaluates to true if no beans match
+// the specified type and name.
+func OnMissingBean[T any](name ...string) gs.Condition {
+	return &onMissingBean{s: gs.BeanSelectorFor[T](name...)}
+}
+
+// OnMissingBeanSelector creates a condition that evaluates to true if no beans
+// match the provided selector.
+func OnMissingBeanSelector(s gs.BeanSelector) gs.Condition {
 	return &onMissingBean{s: s}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
@@ -224,14 +240,22 @@ func (c *onMissingBean) String() string {
 // onSingleBean checks if exactly one matching bean exists in the context.
 // It returns true if exactly one bean matches the selector, and false otherwise.
 type onSingleBean struct {
-	s gs.BeanSelectorInterface // The selector used to find beans.
+	s gs.BeanSelector // The selector used to find beans.
 }
 
-// OnSingleBean creates a condition that evaluates to true if exactly one bean matches the provided selector.
-func OnSingleBean(s gs.BeanSelectorInterface) gs.Condition {
+// OnSingleBean creates a condition that evaluates to true if exactly one bean
+// matches the specified type and name.
+func OnSingleBean[T any](name ...string) gs.Condition {
+	return &onSingleBean{s: gs.BeanSelectorFor[T](name...)}
+}
+
+// OnSingleBeanSelector creates a condition that evaluates to true if exactly
+// one bean matches the provided selector.
+func OnSingleBeanSelector(s gs.BeanSelector) gs.Condition {
 	return &onSingleBean{s: s}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
@@ -258,6 +282,7 @@ func OnExpression(expression string) gs.Condition {
 	return &onExpression{expression: expression}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
 	err := util.UnimplementedMethod
 	return false, errutil.WrapError(err, "condition matches error: %s", c)
@@ -280,6 +305,7 @@ func Not(c gs.Condition) gs.Condition {
 	return &onNot{c: c}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (c *onNot) Matches(ctx gs.CondContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	if err != nil {
@@ -311,6 +337,7 @@ func Or(conditions ...gs.Condition) gs.Condition {
 	return &onOr{conditions: conditions}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (g *onOr) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
@@ -345,6 +372,7 @@ func And(conditions ...gs.Condition) gs.Condition {
 	return &onAnd{conditions: conditions}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (g *onAnd) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.conditions {
 		ok, err := c.Matches(ctx)
@@ -380,6 +408,7 @@ func None(conditions ...gs.Condition) gs.Condition {
 	return &onNone{conditions: conditions}
 }
 
+// Matches checks if the condition is met according to the provided context.
 func (g *onNone) Matches(ctx gs.CondContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {

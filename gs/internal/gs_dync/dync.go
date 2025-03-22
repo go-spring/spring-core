@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_dync provides dynamic properties and refreshable objects.
 package gs_dync
 
 import (
@@ -31,7 +30,7 @@ import (
 )
 
 // Value represents a thread-safe object that can dynamically refresh its value.
-type Value[T interface{}] struct {
+type Value[T any] struct {
 	v atomic.Value
 }
 
@@ -47,7 +46,7 @@ func (r *Value[T]) Value() T {
 }
 
 // OnRefresh refreshes the value of the object by binding new properties.
-func (r *Value[T]) OnRefresh(prop gs.Properties, param conf.BindParam) error {
+func (r *Value[T]) OnRefresh(prop conf.Properties, param conf.BindParam) error {
 	var o T
 	v := reflect.ValueOf(&o).Elem()
 	err := conf.BindValue(prop, v, v.Type(), param, nil)
@@ -71,7 +70,7 @@ type refreshObject struct {
 
 // Properties manages dynamic properties and refreshable objects.
 type Properties struct {
-	prop    gs.Properties    // The current properties.
+	prop    conf.Properties  // The current properties.
 	lock    sync.RWMutex     // A read-write lock for thread-safe access.
 	objects []*refreshObject // List of refreshable objects bound to the properties.
 }
@@ -84,7 +83,7 @@ func New() *Properties {
 }
 
 // Data returns the current properties.
-func (p *Properties) Data() gs.Properties {
+func (p *Properties) Data() conf.Properties {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.prop
@@ -98,7 +97,7 @@ func (p *Properties) ObjectsCount() int {
 }
 
 // Refresh updates the properties and refreshes all bound objects as necessary.
-func (p *Properties) Refresh(prop gs.Properties) (err error) {
+func (p *Properties) Refresh(prop conf.Properties) (err error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -127,7 +126,6 @@ func (p *Properties) Refresh(prop gs.Properties) (err error) {
 		}
 	}
 
-	// Refresh objects based on changed keys.
 	keys := make([]string, 0, len(changes))
 	for k := range changes {
 		keys = append(keys, k)
@@ -153,6 +151,7 @@ func (p *Properties) refreshKeys(keys []string) (err error) {
 		}
 	}
 
+	// Sort and collect objects that need updating.
 	updateObjects := make([]*refreshObject, 0, len(updateIndexes))
 	{
 		ints := make([]int, 0, len(updateIndexes))

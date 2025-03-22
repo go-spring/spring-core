@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_arg provides a set of tools for working with function arguments.
 package gs_arg
 
 import (
@@ -34,7 +33,7 @@ type TagArg struct {
 }
 
 // Tag creates a TagArg with the given tag.
-func Tag(tag string) TagArg {
+func Tag(tag string) gs.Arg {
 	return TagArg{Tag: tag}
 }
 
@@ -71,7 +70,7 @@ type IndexArg struct {
 }
 
 // Index creates an IndexArg with the given index and argument.
-func Index(n int, arg gs.Arg) IndexArg {
+func Index(n int, arg gs.Arg) gs.Arg {
 	return IndexArg{Idx: n, Arg: arg}
 }
 
@@ -86,12 +85,12 @@ type ValueArg struct {
 }
 
 // Nil returns a ValueArg with a value of nil.
-func Nil() ValueArg {
+func Nil() gs.Arg {
 	return ValueArg{v: nil}
 }
 
 // Value returns a ValueArg with the specified value.
-func Value(v interface{}) ValueArg {
+func Value(v interface{}) gs.Arg {
 	return ValueArg{v: v}
 }
 
@@ -118,84 +117,44 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		fixedArgCount--
 	}
 
-	// Determines if the arguments use indexing.
-	shouldIndex := func() bool {
-		if len(args) == 0 {
-			return false
-		}
-		_, ok := args[0].(IndexArg)
-		return ok
-	}()
-
 	fnArgs := make([]gs.Arg, fixedArgCount)
-
-	// Processes the first argument separately to determine its type.
-	if len(args) > 0 {
-		if args[0] == nil {
-			err := errors.New("the first arg must not be nil")
-			return nil, errutil.WrapError(err, "%v", args)
-		}
-		switch arg := args[0].(type) {
-		case *OptionArg:
-			fnArgs = append(fnArgs, arg)
-		case IndexArg:
-			if arg.Idx < 0 || arg.Idx >= fixedArgCount {
-				err := fmt.Errorf("arg index %d exceeds max index %d", arg.Idx, fixedArgCount)
-				return nil, errutil.WrapError(err, "%v", args)
-			} else {
-				fnArgs[arg.Idx] = arg.Arg
-			}
-		default:
-			if fixedArgCount > 0 {
-				fnArgs[0] = arg
-			} else if fnType.IsVariadic() {
-				fnArgs = append(fnArgs, arg)
-			} else {
-				err := fmt.Errorf("function has no args but given %d", len(args))
-				return nil, errutil.WrapError(err, "%v", args)
-			}
-		}
+	for i := 0; i < len(fnArgs); i++ {
+		fnArgs[i] = Tag("")
 	}
 
-	// Processes the remaining arguments.
-	for i := 1; i < len(args); i++ {
+	var (
+		useIdx bool
+		notIdx bool
+	)
+
+	for i := 0; i < len(args); i++ {
 		switch arg := args[i].(type) {
-		case *OptionArg:
-			fnArgs = append(fnArgs, arg)
 		case IndexArg:
-			if !shouldIndex {
-				err := fmt.Errorf("the Args must have or have no index")
+			useIdx = true
+			if notIdx {
+				err := fmt.Errorf("all args must have or have no index")
 				return nil, errutil.WrapError(err, "%v", args)
 			}
-			if arg.Idx < 0 || arg.Idx >= fixedArgCount {
-				err := fmt.Errorf("arg index %d exceeds max index %d", arg.Idx, fixedArgCount)
+			if arg.Idx < 0 || arg.Idx >= fnType.NumIn() {
+				err := fmt.Errorf("got a wrong arg index %d", arg.Idx)
 				return nil, errutil.WrapError(err, "%v", args)
-			} else if fnArgs[arg.Idx] != nil {
-				err := fmt.Errorf("found same index %d", arg.Idx)
-				return nil, errutil.WrapError(err, "%v", args)
-			} else {
+			}
+			if arg.Idx < fixedArgCount {
 				fnArgs[arg.Idx] = arg.Arg
+			} else {
+				fnArgs = append(fnArgs, arg.Arg)
 			}
 		default:
-			if shouldIndex {
-				err := fmt.Errorf("the Args must have or have no index")
+			notIdx = true
+			if useIdx {
+				err := fmt.Errorf("all args must have or have no index")
 				return nil, errutil.WrapError(err, "%v", args)
 			}
 			if i < fixedArgCount {
 				fnArgs[i] = arg
-			} else if fnType.IsVariadic() {
-				fnArgs = append(fnArgs, arg)
 			} else {
-				err := fmt.Errorf("the count %d of Args exceeds max index %d", len(args), fixedArgCount)
-				return nil, errutil.WrapError(err, "%v", args)
+				fnArgs = append(fnArgs, arg)
 			}
-		}
-	}
-
-	// Fills any unassigned fixed arguments with default values.
-	for i := 0; i < fixedArgCount; i++ {
-		if fnArgs[i] == nil {
-			fnArgs[i] = Tag("")
 		}
 	}
 
@@ -232,39 +191,46 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 	return result, nil
 }
 
-// CallableFunc is a function that can be called.
-type CallableFunc = interface{}
-
-// OptionArg represents a binding for an option function argument.
-type OptionArg struct {
-	r *Callable
-	c []gs.Condition
+// BindArg represents a binding for an option function argument.
+type BindArg struct {
+	r        *Callable
+	fileLine string
+	c        []gs.Condition
 }
 
-// Option creates a binding for an option function argument.
-func Option(fn CallableFunc, args ...gs.Arg) *OptionArg {
-
+// Bind creates a binding for an option function argument.
+func Bind(fn CallableFunc, args ...gs.Arg) *BindArg {
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func || t.NumOut() != 1 {
 		panic(errors.New("invalid option func"))
 	}
-
 	_, file, line, _ := runtime.Caller(1)
-	r := MustBind(fn, args...)
-	return &OptionArg{r: r.SetFileLine(file, line)}
+	r, err := NewCallable(fn, args)
+	if err != nil {
+		panic(err)
+	}
+	arg := &BindArg{r: r}
+	arg.SetFileLine(file, line)
+	return arg
 }
 
 // Condition sets a condition for invoking the option function.
-func (arg *OptionArg) Condition(conditions ...gs.Condition) *OptionArg {
+func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg {
 	arg.c = append(arg.c, conditions...)
 	return arg
 }
 
-func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
+// SetFileLine sets the file and line number of the function call.
+func (arg *BindArg) SetFileLine(file string, line int) {
+	arg.fileLine = fmt.Sprintf("%s:%d", file, line)
+}
+
+// GetArgValue retrieves the function's return value if conditions are met.
+func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 
 	// Checks if the condition is met.
 	for _, c := range arg.c {
-		ok, err := ctx.Matches(c)
+		ok, err := ctx.Check(c)
 		if err != nil {
 			return reflect.Value{}, err
 		} else if !ok {
@@ -280,43 +246,27 @@ func (arg *OptionArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Va
 	return out[0], nil
 }
 
+// CallableFunc is a function that can be called.
+type CallableFunc = interface{}
+
 // Callable wraps a function and its binding arguments.
 type Callable struct {
-	fn       CallableFunc // The function to be called.
-	fnType   reflect.Type // The type of the function.
-	argList  *ArgList     // The argument list for the function.
-	fileLine string       // File and line number where the function is defined.
+	fn      CallableFunc
+	argList *ArgList
 }
 
-// MustBind binds arguments to a function and panics if an error occurs.
-func MustBind(fn CallableFunc, args ...gs.Arg) *Callable {
-	r, err := Bind(fn, args)
-	if err != nil {
-		panic(err)
-	}
-	_, file, line, _ := runtime.Caller(1)
-	return r.SetFileLine(file, line)
-}
-
-// Bind creates a Callable by binding arguments to a function.
-func Bind(fn CallableFunc, args []gs.Arg) (*Callable, error) {
+// NewCallable creates a Callable by binding arguments to a function.
+func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) {
 	fnType := reflect.TypeOf(fn)
 	argList, err := NewArgList(fnType, args)
 	if err != nil {
 		return nil, err
 	}
-	return &Callable{fn: fn, fnType: fnType, argList: argList}, nil
-}
-
-// SetFileLine sets the file and line number of the function call.
-func (r *Callable) SetFileLine(file string, line int) *Callable {
-	r.fileLine = fmt.Sprintf("%s:%d", file, line)
-	return r
+	return &Callable{fn: fn, argList: argList}, nil
 }
 
 // Call invokes the function with its bound arguments processed in the IoC container.
 func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
-
 	in, err := r.argList.get(ctx)
 	if err != nil {
 		return nil, err
@@ -336,14 +286,4 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 		return out[:n-1], nil
 	}
 	return out, nil
-}
-
-func (r *Callable) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
-	if results, err := r.Call(ctx); err != nil {
-		return reflect.Value{}, err
-	} else if len(results) < 1 {
-		return reflect.Value{}, errors.New("xxx")
-	} else {
-		return results[0], nil
-	}
 }

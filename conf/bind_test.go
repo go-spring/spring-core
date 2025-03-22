@@ -92,7 +92,7 @@ func TestProperties_Bind(t *testing.T) {
 	})
 
 	t.Run("simple bind", func(t *testing.T) {
-		p, err := conf.Load("testdata/config/application.yaml")
+		p, err := conf.Load("testdata/config/app.yaml")
 		assert.Nil(t, err)
 
 		dbConfig1 := DbConfig{}
@@ -109,7 +109,7 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("struct bind with tag", func(t *testing.T) {
 
-		p, err := conf.Load("testdata/config/application.yaml")
+		p, err := conf.Load("testdata/config/app.yaml")
 		assert.Nil(t, err)
 
 		dbConfig := TagNestedDbConfig{}
@@ -121,7 +121,7 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("struct bind without tag", func(t *testing.T) {
 
-		p, err := conf.Load("testdata/config/application.yaml")
+		p, err := conf.Load("testdata/config/app.yaml")
 		assert.Nil(t, err)
 
 		dbConfig1 := NestedDbConfig{}
@@ -157,7 +157,7 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("simple bind from file", func(t *testing.T) {
 
-		p, err := conf.Load("testdata/config/application.yaml")
+		p, err := conf.Load("testdata/config/app.yaml")
 		assert.Nil(t, err)
 
 		var m map[string]string
@@ -170,7 +170,7 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("struct bind from file", func(t *testing.T) {
 
-		p, err := conf.Load("testdata/config/application.yaml")
+		p, err := conf.Load("testdata/config/app.yaml")
 		assert.Nil(t, err)
 
 		var m map[string]NestedDB

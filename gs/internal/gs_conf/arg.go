@@ -24,7 +24,9 @@ import (
 	"github.com/go-spring/spring-core/conf"
 )
 
-// CommandArgsPrefix defines the environment variable name used to override the default option prefix.
+// CommandArgsPrefix defines the environment variable name used to override
+// the default option prefix. This allows users to customize the prefix used
+// for command-line options if needed.
 const CommandArgsPrefix = "GS_ARGS_PREFIX"
 
 // CommandArgs represents a structure for handling command-line parameters.
@@ -35,9 +37,10 @@ func NewCommandArgs() *CommandArgs {
 	return &CommandArgs{}
 }
 
-// CopyTo processes command-line parameters and sets them as key-value pairs in the
-// provided conf.Properties. Parameters should be passed in the form of `-D key[=value/true]`.
-func (c *CommandArgs) CopyTo(out *conf.Properties) error {
+// CopyTo processes command-line parameters and sets them as key-value pairs
+// in the provided conf.Properties. Parameters should be passed in the form
+// of `-D key[=value/true]`.
+func (c *CommandArgs) CopyTo(out *conf.MutableProperties) error {
 	if len(os.Args) == 0 {
 		return nil
 	}

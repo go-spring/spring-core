@@ -17,9 +17,9 @@
 package storage
 
 import (
-	"cmp"
 	"fmt"
-	"sort"
+
+	"github.com/go-spring/spring-core/util"
 )
 
 type nodeType int
@@ -68,7 +68,7 @@ func (s *Storage) Data() map[string]string {
 
 // Keys returns the sorted keys of the storage.
 func (s *Storage) Keys() []string {
-	return OrderedMapKeys(s.data)
+	return util.OrderedMapKeys(s.data)
 }
 
 // SubKeys returns the sorted sub keys of the key.
@@ -98,7 +98,7 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) {
 		}
 	}
 	m := tree.data.(map[string]*treeNode)
-	keys := OrderedMapKeys(m)
+	keys := util.OrderedMapKeys(m)
 	return keys, nil
 }
 
@@ -237,16 +237,4 @@ func (s *Storage) merge(key, val string) (*treeNode, error) {
 		}
 	}
 	return tree, nil
-}
-
-// OrderedMapKeys returns the keys of the map m in sorted order.
-func OrderedMapKeys[M ~map[K]V, K cmp.Ordered, V any](m M) []K {
-	r := make([]K, 0, len(m))
-	for k := range m {
-		r = append(r, k)
-	}
-	sort.Slice(r, func(i, j int) bool {
-		return r[i] < r[j]
-	})
-	return r
 }

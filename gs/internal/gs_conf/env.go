@@ -30,13 +30,15 @@ const (
 	ExcludeEnvPatterns = "EXCLUDE_ENV_PATTERNS"
 )
 
-// Environment environment variable
+// Environment represents the environment configuration.
 type Environment struct{}
 
+// NewEnvironment initializes a new instance of Environment.
 func NewEnvironment() *Environment {
 	return &Environment{}
 }
 
+// lookupEnv searches for an environment variable by key in the environ slice.
 func lookupEnv(environ []string, key string) (value string, found bool) {
 	key = strings.TrimSpace(key) + "="
 	for _, s := range environ {
@@ -50,7 +52,7 @@ func lookupEnv(environ []string, key string) (value string, found bool) {
 
 // CopyTo add environment variables that matches IncludeEnvPatterns and
 // exclude environment variables that matches ExcludeEnvPatterns.
-func (c *Environment) CopyTo(p *conf.Properties) error {
+func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 	environ := os.Environ()
 	if len(environ) == 0 {
 		return nil

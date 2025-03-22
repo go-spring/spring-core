@@ -24,61 +24,80 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
 
-// Boot is the bootstrapper of the application.
-type Boot struct {
-	c gs.Container
+// funcRunner is a function type that implements the Runner interface.
+type funcRunner func() error
+
+func (f funcRunner) Run() error {
+	return f()
+}
+
+// Boot defines the interface for application bootstrapping.
+type Boot interface {
+	Config() *gs_conf.BootConfig
+	Object(i interface{}) *gs.RegisteredBean
+	Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
+	Register(bd *gs.BeanDefinition) *gs.RegisteredBean
+	FuncRunner(fn func() error) *gs.RegisteredBean
+}
+
+// BootImpl is the bootstrapper of the application.
+type BootImpl struct {
+	c *gs_core.Container
 	p *gs_conf.BootConfig
 
-	Runners []AppRunner `autowire:"${spring.boot.runners:=*?}"`
+	// flag indicates whether the bootstrapper has been used.
+	flag bool
+
+	Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`
 }
 
 // NewBoot creates a new Boot instance.
-func NewBoot() *Boot {
-	b := &Boot{
+func NewBoot() Boot {
+	return &BootImpl{
 		c: gs_core.New(),
 		p: gs_conf.NewBootConfig(),
 	}
-	b.c.Object(b)
-	return b
 }
 
 // Config returns the boot configuration.
-func (b *Boot) Config() *gs_conf.BootConfig {
+func (b *BootImpl) Config() *gs_conf.BootConfig {
 	return b.p
 }
 
 // Object registers an object bean.
-func (b *Boot) Object(i interface{}) *gs.RegisteredBean {
+func (b *BootImpl) Object(i interface{}) *gs.RegisteredBean {
+	b.flag = true
 	bd := gs_core.NewBean(reflect.ValueOf(i))
 	return b.c.Register(bd)
 }
 
 // Provide registers a bean using a constructor function.
-func (b *Boot) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+func (b *BootImpl) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+	b.flag = true
 	bd := gs_core.NewBean(ctor, args...)
 	return b.c.Register(bd)
 }
 
 // Register registers a BeanDefinition instance.
-func (b *Boot) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
+func (b *BootImpl) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
+	b.flag = true
 	return b.c.Register(bd)
 }
 
-// GroupRegister registers a group of BeanDefinitions.
-func (b *Boot) GroupRegister(fn func(p gs.Properties) ([]*gs.BeanDefinition, error)) {
-	b.c.GroupRegister(fn)
+// FuncRunner creates a Runner from a function.
+func (b *BootImpl) FuncRunner(fn func() error) *gs.RegisteredBean {
+	b.flag = true
+	bd := gs_core.NewBean(reflect.ValueOf(funcRunner(fn)))
+	return b.c.Register(bd).AsRunner()
 }
 
-// Runner registers an AppRunner instance.
-func (b *Boot) Runner(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.RegisteredBean {
-	bd := gs_core.NewBean(objOrCtor, ctorArgs...).Export(
-		reflect.TypeFor[AppRunner](),
-	)
-	return b.c.Register(bd)
-}
+// Run executes the application's boot process.
+func (b *BootImpl) Run() error {
+	if !b.flag {
+		return nil
+	}
+	b.c.Object(b)
 
-// Run executes the application's bootstrap process.
-func (b *Boot) Run() error {
 	// Refresh the boot configuration.
 	p, err := b.p.Refresh()
 	if err != nil {
@@ -97,9 +116,11 @@ func (b *Boot) Run() error {
 		return err
 	}
 
-	// Execute all registered AppRunners.
+	// Execute all registered runners.
 	for _, r := range b.Runners {
-		r.Run(&AppContext{b.c.(gs.Context)})
+		if err := r.Run(); err != nil {
+			return err
+		}
 	}
 
 	b.c.Close()

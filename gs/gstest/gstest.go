@@ -20,67 +20,91 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_app"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
-var ctx = &gs.ContextAware{}
-
 func init() {
+	gs.EnableAppJobs(false)
+	gs.EnableAppServers(false)
+	gs.SetActiveProfiles("test")
 	gs.ForceAutowireIsNullable(true)
 }
 
-// Init initializes the test environment.
-func Init() error {
-	gs.Object(ctx)
-	return gs.Start()
+// BeanMock is a mock for bean.
+type BeanMock[T any] struct {
+	selector gs.BeanSelector
 }
 
-// Run executes test cases and ensures shutdown of the app context.
-func Run(m *testing.M) (code int) {
-	defer func() { gs.Stop() }()
-	return m.Run()
+// MockFor creates a mock for bean.
+func MockFor[T any](name ...string) BeanMock[T] {
+	return BeanMock[T]{
+		selector: gs.BeanSelectorFor[T](name...),
+	}
 }
 
-// Keys retrieves all the property keys.
-func Keys() []string {
-	return ctx.GSContext.Keys()
+// With registers a mock bean.
+func (m BeanMock[T]) With(obj T) {
+	gs_app.GS.C.Mock(obj, m.selector)
 }
 
-// Has checks whether a specific property exists.
-func Has(key string) bool {
-	return ctx.GSContext.Has(key)
+type runArg struct {
+	beforeRun func()
+	afterRun  func()
 }
 
-// SubKeys retrieves the sub-keys of a specified key.
-func SubKeys(key string) ([]string, error) {
-	return ctx.GSContext.SubKeys(key)
+type RunOption func(arg *runArg)
+
+// BeforeRun specifies a function to be executed before all testcases.
+func BeforeRun(fn func()) RunOption {
+	return func(arg *runArg) {
+		arg.beforeRun = fn
+	}
 }
 
-// Prop retrieves the value of a property specified by the key.
-func Prop(key string, def ...string) string {
-	return ctx.GSContext.Prop(key, def...)
+// AfterRun specifies a function to be executed after all testcases.
+func AfterRun(fn func()) RunOption {
+	return func(arg *runArg) {
+		arg.afterRun = fn
+	}
 }
 
-// Resolve resolves a given string with placeholders.
-func Resolve(s string) (string, error) {
-	return ctx.GSContext.Resolve(s)
+// TestMain executes test cases and ensures shutdown of the app context.
+func TestMain(m *testing.M, opts ...RunOption) {
+	arg := &runArg{}
+	for _, opt := range opts {
+		opt(arg)
+	}
+
+	err := gs_app.GS.Start()
+	if err != nil {
+		panic(err)
+	}
+
+	if arg.beforeRun != nil {
+		arg.beforeRun()
+	}
+
+	m.Run()
+
+	if arg.afterRun != nil {
+		arg.afterRun()
+	}
+
+	gs_app.GS.Stop()
 }
 
-// Bind binds an object to the properties.
-func Bind(i interface{}, tag ...string) error {
-	return ctx.GSContext.Bind(i, tag...)
+// Get gets the bean from the app context.
+func Get[T any](t *testing.T) T {
+	var s struct {
+		Value T `autowire:""`
+	}
+	return Wire(t, &s).Value
 }
 
-// Get retrieves an object using specified selectors.
-func Get(i interface{}, tag ...string) error {
-	return ctx.GSContext.Get(i, tag...)
-}
-
-// Wire injects dependencies into an object or constructor.
-func Wire(objOrCtor interface{}, ctorArgs ...gs.Arg) (interface{}, error) {
-	return ctx.GSContext.Wire(objOrCtor, ctorArgs...)
-}
-
-// Invoke calls a function with arguments injected.
-func Invoke(fn interface{}, args ...gs.Arg) ([]interface{}, error) {
-	return ctx.GSContext.Invoke(fn, args...)
+// Wire injects dependencies into the object.
+func Wire[T any](t *testing.T, obj T) T {
+	err := gs_app.GS.C.Wire(obj)
+	assert.Nil(t, err)
+	return obj
 }

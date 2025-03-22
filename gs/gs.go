@@ -17,11 +17,12 @@
 package gs
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
 
-	"github.com/go-spring/spring-core/conf/sysconf"
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
@@ -32,48 +33,47 @@ import (
 )
 
 const (
-	Version = "go-spring@v1.2.0.rc"
+	Version = "go-spring@v1.2.0.rc2"
 	Website = "https://go-spring.com/"
 )
+
+// As returns the [reflect.Type] of the given interface type.
+func As[T any]() reflect.Type {
+	return gs.As[T]()
+}
 
 /************************************ arg ***********************************/
 
 type Arg = gs.Arg
 
 // TagArg returns a TagArg with the specified tag.
-func TagArg(tag string) gs_arg.TagArg {
-	return gs_arg.TagArg{Tag: tag}
+func TagArg(tag string) Arg {
+	return gs_arg.Tag(tag)
 }
 
 // NilArg returns a ValueArg with a nil value.
-func NilArg() gs_arg.ValueArg {
+func NilArg() Arg {
 	return gs_arg.Nil()
 }
 
 // ValueArg returns a ValueArg with the specified value.
-func ValueArg(v interface{}) gs_arg.ValueArg {
+func ValueArg(v interface{}) Arg {
 	return gs_arg.Value(v)
 }
 
 // IndexArg returns an IndexArg with the specified index and argument.
-func IndexArg(n int, arg Arg) gs_arg.IndexArg {
+func IndexArg(n int, arg Arg) Arg {
 	return gs_arg.Index(n, arg)
 }
 
-// BindArg binds runtime arguments to a given function.
-func BindArg(fn interface{}, args ...Arg) *gs_arg.Callable {
-	return gs_arg.MustBind(fn, args...)
-}
-
-// OptionArg returns an OptionArg for the specified function and arguments.
-func OptionArg(fn interface{}, args ...Arg) *gs_arg.OptionArg {
-	return gs_arg.Option(fn, args...)
+// BindArg returns an BindArg for the specified function and arguments.
+func BindArg(fn interface{}, args ...Arg) *gs_arg.BindArg {
+	return gs_arg.Bind(fn, args...)
 }
 
 /************************************ cond ***********************************/
 
 type (
-	CondBean    = gs.CondBean
 	CondFunc    = gs.CondFunc
 	Condition   = gs.Condition
 	CondContext = gs.CondContext
@@ -95,18 +95,33 @@ func OnMissingProperty(name string) Condition {
 }
 
 // OnBean creates a Condition based on a BeanSelector.
-func OnBean(s BeanSelector) Condition {
-	return gs_cond.OnBean(s)
+func OnBean[T any](name ...string) Condition {
+	return gs_cond.OnBeanSelector(BeanSelectorFor[T](name...))
+}
+
+// OnBeanSelector creates a Condition based on a BeanSelector.
+func OnBeanSelector(s BeanSelector) Condition {
+	return gs_cond.OnBeanSelector(s)
 }
 
 // OnMissingBean creates a Condition for when a specific bean is missing.
-func OnMissingBean(s BeanSelector) Condition {
-	return gs_cond.OnMissingBean(s)
+func OnMissingBean[T any](name ...string) Condition {
+	return gs_cond.OnMissingBeanSelector(BeanSelectorFor[T](name...))
+}
+
+// OnMissingBeanSelector creates a Condition for when a specific bean is missing.
+func OnMissingBeanSelector(s BeanSelector) Condition {
+	return gs_cond.OnMissingBeanSelector(s)
 }
 
 // OnSingleBean creates a Condition for when only one instance of a bean exists.
-func OnSingleBean(s BeanSelector) Condition {
-	return gs_cond.OnSingleBean(s)
+func OnSingleBean[T any](name ...string) Condition {
+	return gs_cond.OnSingleBeanSelector(BeanSelectorFor[T](name...))
+}
+
+// OnSingleBeanSelector creates a Condition for when only one instance of a bean exists.
+func OnSingleBeanSelector(s BeanSelector) Condition {
+	return gs_cond.OnSingleBeanSelector(s)
 }
 
 // RegisterExpressFunc registers a custom expression function.
@@ -139,20 +154,9 @@ func None(conditions ...Condition) Condition {
 	return gs_cond.None(conditions...)
 }
 
-// OnProfile creates a Condition based on the active profile.
-func OnProfile(profile string) Condition {
-	return OnProperty("spring.profiles.active").HavingValue(profile)
-}
-
 /************************************ ioc ************************************/
 
 type (
-	Context      = gs.Context
-	ContextAware = gs.ContextAware
-)
-
-type (
-	Properties  = gs.Properties
 	Refreshable = gs.Refreshable
 	Dync[T any] = gs_dync.Value[T]
 )
@@ -163,124 +167,108 @@ type (
 )
 
 type (
-	BeanSelector         = gs.BeanSelector
-	BeanInitFunc         = gs.BeanInitFunc
-	BeanDestroyFunc      = gs.BeanDestroyFunc
-	BeanInitInterface    = gs.BeanInitInterface
-	BeanDestroyInterface = gs.BeanDestroyInterface
+	BeanSelector    = gs.BeanSelector
+	BeanInitFunc    = gs.BeanInitFunc
+	BeanDestroyFunc = gs.BeanDestroyFunc
 )
 
 // NewBean creates a new BeanDefinition.
 var NewBean = gs_core.NewBean
 
-// BeanSelectorForType returns a BeanSelector for the given type.
-func BeanSelectorForType[T any]() BeanSelector {
-	return gs.BeanSelectorForType[T]()
-}
-
-/************************************ boot ***********************************/
-
-var boot *gs_app.Boot
-
-// Boot initializes and returns a [*gs_app.Boot] instance.
-func Boot() *gs_app.Boot {
-	if boot == nil {
-		boot = gs_app.NewBoot()
-	}
-	return boot
-}
-
-// bootRun runs the boot process.
-func bootRun() error {
-	if boot != nil {
-		if err := boot.Run(); err != nil {
-			return err
-		}
-		boot = nil
-	}
-	return nil
+// BeanSelectorFor returns a BeanSelector for the given type.
+func BeanSelectorFor[T any](name ...string) BeanSelector {
+	return gs.BeanSelectorFor[T](name...)
 }
 
 /*********************************** app *************************************/
 
 type (
-	AppRunner  = gs_app.AppRunner
-	AppServer  = gs_app.AppServer
-	AppContext = gs_app.AppContext
+	Runner      = gs.Runner
+	Job         = gs.Job
+	Server      = gs.Server
+	ReadySignal = gs.ReadySignal
 )
 
-var app = gs_app.NewApp()
+var B = gs_app.NewBoot()
 
-// Start starts the app, usually for testing purposes.
-func Start() error {
-	return app.Start()
+// funcRunner is a function type that implements the Runner interface.
+type funcRunner func() error
+
+func (f funcRunner) Run() error {
+	return f()
 }
 
-// Stop stops the app, usually for testing purposes.
-func Stop() {
-	app.Stop()
+// FuncRunner creates a Runner from a function.
+func FuncRunner(fn func() error) *RegisteredBean {
+	return Object(funcRunner(fn)).AsRunner()
+}
+
+// funcJob is a function type that implements the Job interface.
+type funcJob func(ctx context.Context) error
+
+func (f funcJob) Run(ctx context.Context) error {
+	return f(ctx)
+}
+
+// FuncJob creates a Job from a function.
+func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
+	return Object(funcJob(fn)).AsJob()
 }
 
 // Run runs the app and waits for an interrupt signal to exit.
 func Run() error {
 	printBanner()
-	if err := bootRun(); err != nil {
+	if err := B.(*gs_app.BootImpl).Run(); err != nil {
 		return err
 	}
-	return app.Run()
+	B = nil
+	return gs_app.GS.Run()
+}
+
+// Exiting returns a boolean indicating whether the application is exiting.
+func Exiting() bool {
+	return gs_app.GS.Exiting()
 }
 
 // ShutDown shuts down the app with an optional message.
-func ShutDown(msg ...string) {
-	app.ShutDown(msg...)
+func ShutDown() {
+	gs_app.GS.ShutDown()
 }
 
 // Config returns the app configuration.
 func Config() *gs_conf.AppConfig {
-	return app.P
-}
-
-// RefreshProperties refreshes the app configuration.
-func RefreshProperties(p Properties) error {
-	return app.C.RefreshProperties(p)
+	return gs_app.GS.P
 }
 
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
 	b := NewBean(reflect.ValueOf(i))
-	return app.C.Register(b)
+	return gs_app.GS.C.Register(b)
 }
 
 // Provide registers a bean definition for a given constructor.
 func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
 	b := NewBean(ctor, args...)
-	return app.C.Register(b)
+	return gs_app.GS.C.Register(b)
 }
 
 // Register registers a bean definition.
 func Register(b *BeanDefinition) *RegisteredBean {
-	return app.C.Register(b)
+	return gs_app.GS.C.Register(b)
 }
 
 // GroupRegister registers a group of bean definitions.
-func GroupRegister(fn func(p Properties) ([]*BeanDefinition, error)) {
-	app.C.GroupRegister(fn)
+func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) {
+	gs_app.GS.C.GroupRegister(fn)
 }
 
-// Runner registers a bean definition for an [AppRunner].
-func Runner(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := NewBean(objOrCtor, ctorArgs...).Export(
-		reflect.TypeFor[AppRunner](),
-	)
-	return app.C.Register(b)
-}
-
-// Server registers a bean definition for an [AppServer].
-func Server(objOrCtor interface{}, ctorArgs ...Arg) *RegisteredBean {
-	b := NewBean(objOrCtor, ctorArgs...).Export(
-		reflect.TypeFor[AppServer](),
-	)
-	return app.C.Register(b)
+// RefreshProperties refreshes the app configuration.
+func RefreshProperties() error {
+	p, err := Config().Refresh()
+	if err != nil {
+		return err
+	}
+	return gs_app.GS.C.RefreshProperties(p)
 }
 
 /********************************** banner ***********************************/
@@ -328,18 +316,4 @@ func printBanner() {
 		}
 	}
 	fmt.Println(string(padding) + Version + "\n")
-}
-
-/********************************** utility **********************************/
-
-// AllowCircularReferences enables or disables circular references between beans.
-func AllowCircularReferences(enable bool) {
-	err := sysconf.Set("spring.allow-circular-references", enable)
-	_ = err // Ignore error
-}
-
-// ForceAutowireIsNullable forces autowire to be nullable.
-func ForceAutowireIsNullable(enable bool) {
-	err := sysconf.Set("spring.force-autowire-is-nullable", enable)
-	_ = err // Ignore error
 }

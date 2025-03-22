@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-// Package gs_bean provides the bean definition for the Go-Spring framework.
 package gs_bean
 
 import (
 	"fmt"
 	"reflect"
+	"runtime"
+	"slices"
+	"strings"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util"
 )
 
@@ -60,27 +64,27 @@ func (status BeanStatus) String() string {
 	}
 }
 
-// refreshableType is the [reflect.Type] of the interface [gs.Refreshable].
+// refreshableType is the [reflect.Type] of the [gs.Refreshable] interface.
 var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f          gs.Callable                // Callable for the bean (ctor or method).
-	init       gs.BeanInitFunc            // Initialization function for the bean.
-	destroy    gs.BeanDestroyFunc         // Destruction function for the bean.
-	dependsOn  []gs.BeanSelectorInterface // List of dependencies for the bean.
-	exports    []reflect.Type             // List of exported types for the bean.
-	conditions []gs.Condition             // List of conditions for the bean.
-	status     BeanStatus                 // Current status of the bean.
+	f          *gs_arg.Callable
+	init       gs.BeanInitFunc
+	destroy    gs.BeanDestroyFunc
+	dependsOn  []gs.BeanSelector
+	exports    []reflect.Type
+	conditions []gs.Condition
+	status     BeanStatus
 
-	file string // The file where the bean is defined.
-	line int    // The line number in the file where the bean is defined.
+	file string
+	line int
 
-	configurationBean  bool                  // Whether the bean is a configuration bean.
-	configurationParam gs.ConfigurationParam // Configuration parameters for the bean.
+	configurationBean  bool
+	configurationParam gs.ConfigurationParam
 
-	refreshable bool   // Whether the bean can be refreshed.
-	refreshTag  string // Refresh tag for the bean.
+	refreshable bool
+	refreshTag  string
 }
 
 // validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
@@ -103,36 +107,18 @@ func (d *BeanMetadata) Init() gs.BeanInitFunc {
 	return d.init
 }
 
-// SetInit sets the initialization function for the bean.
-func (d *BeanDefinition) SetInit(fn gs.BeanInitFunc) {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
-		d.init = fn
-		return
-	}
-	panic("init should be func(bean) or func(bean)error")
-}
-
 // Destroy returns the destruction function of the bean.
 func (d *BeanMetadata) Destroy() gs.BeanDestroyFunc {
 	return d.destroy
 }
 
-// SetDestroy sets the destruction function for the bean.
-func (d *BeanDefinition) SetDestroy(fn gs.BeanDestroyFunc) {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
-		d.destroy = fn
-		return
-	}
-	panic("destroy should be func(bean) or func(bean)error")
-}
-
 // DependsOn returns the list of dependencies for the bean.
-func (d *BeanMetadata) DependsOn() []gs.BeanSelectorInterface {
+func (d *BeanMetadata) DependsOn() []gs.BeanSelector {
 	return d.dependsOn
 }
 
 // SetDependsOn sets the list of dependencies for the bean.
-func (d *BeanDefinition) SetDependsOn(selectors ...gs.BeanSelectorInterface) {
+func (d *BeanMetadata) SetDependsOn(selectors ...gs.BeanSelector) {
 	d.dependsOn = append(d.dependsOn, selectors...)
 }
 
@@ -141,33 +127,13 @@ func (d *BeanMetadata) Exports() []reflect.Type {
 	return d.exports
 }
 
-// SetExport sets the exported interfaces for the bean.
-func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
-	for _, t := range exports {
-		if t.Kind() != reflect.Interface {
-			panic("only interface type can be exported")
-		}
-		exported := false
-		for _, export := range d.exports {
-			if t == export {
-				exported = true
-				break
-			}
-		}
-		if exported {
-			continue
-		}
-		d.exports = append(d.exports, t)
-	}
-}
-
 // Conditions returns the list of conditions for the bean.
 func (d *BeanMetadata) Conditions() []gs.Condition {
 	return d.conditions
 }
 
 // SetCondition adds a condition to the list of conditions for the bean.
-func (d *BeanDefinition) SetCondition(conditions ...gs.Condition) {
+func (d *BeanMetadata) SetCondition(conditions ...gs.Condition) {
 	d.conditions = append(d.conditions, conditions...)
 }
 
@@ -206,13 +172,10 @@ func (d *BeanMetadata) RefreshTag() string {
 	return d.refreshTag
 }
 
-// SetRefreshable sets the refreshable flag and tag for the bean.
-func (d *BeanDefinition) SetRefreshable(tag string) {
-	if !d.Type().Implements(refreshableType) {
-		panic("must implement gs.Refreshable interface")
-	}
-	d.refreshable = true
-	d.refreshTag = tag
+// SetCaller sets the caller for the bean.
+func (d *BeanMetadata) SetCaller(skip int) {
+	_, file, line, _ := runtime.Caller(skip)
+	d.file, d.line = file, line
 }
 
 // FileLine returns the file and line number for the bean.
@@ -221,7 +184,7 @@ func (d *BeanMetadata) FileLine() (string, int) {
 }
 
 // SetFileLine sets the file and line number for the bean.
-func (d *BeanDefinition) SetFileLine(file string, line int) {
+func (d *BeanMetadata) SetFileLine(file string, line int) {
 	d.file, d.line = file, line
 }
 
@@ -253,7 +216,7 @@ func (d *BeanRuntime) Interface() interface{} {
 }
 
 // Callable returns the callable for the bean.
-func (d *BeanRuntime) Callable() gs.Callable {
+func (d *BeanRuntime) Callable() *gs_arg.Callable {
 	return nil
 }
 
@@ -274,7 +237,7 @@ type BeanDefinition struct {
 }
 
 // NewBean creates a new bean definition.
-func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string) *BeanDefinition {
+func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition {
 	return &BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			f:      f,
@@ -288,8 +251,22 @@ func NewBean(t reflect.Type, v reflect.Value, f gs.Callable, name string) *BeanD
 	}
 }
 
+// SetMock sets the mock object for the bean, replacing its runtime information.
+func (d *BeanDefinition) SetMock(obj interface{}) {
+	*d = BeanDefinition{
+		BeanMetadata: &BeanMetadata{
+			exports: d.exports,
+		},
+		BeanRuntime: &BeanRuntime{
+			t:    reflect.TypeOf(obj),
+			v:    reflect.ValueOf(obj),
+			name: d.name,
+		},
+	}
+}
+
 // Callable returns the callable for the bean.
-func (d *BeanDefinition) Callable() gs.Callable {
+func (d *BeanDefinition) Callable() *gs_arg.Callable {
 	return d.f
 }
 
@@ -304,8 +281,96 @@ func (d *BeanDefinition) Status() BeanStatus {
 }
 
 // SetStatus sets the current status of the bean.
-func (d *BeanMetadata) SetStatus(status BeanStatus) {
+func (d *BeanDefinition) SetStatus(status BeanStatus) {
 	d.status = status
+}
+
+// SetInit sets the initialization function for the bean.
+func (d *BeanDefinition) SetInit(fn gs.BeanInitFunc) {
+	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
+		d.init = fn
+		return
+	}
+	panic("init should be func(bean) or func(bean)error")
+}
+
+// SetDestroy sets the destruction function for the bean.
+func (d *BeanDefinition) SetDestroy(fn gs.BeanDestroyFunc) {
+	if validLifeCycleFunc(reflect.TypeOf(fn), d.Type()) {
+		d.destroy = fn
+		return
+	}
+	panic("destroy should be func(bean) or func(bean)error")
+}
+
+// SetInitMethod sets the initialization function for the bean by method name.
+func (d *BeanDefinition) SetInitMethod(method string) {
+	m, ok := d.t.MethodByName(method)
+	if !ok {
+		panic(fmt.Sprintf("method %s not found on type %s", method, d.t))
+	}
+	d.SetInit(m.Func.Interface())
+}
+
+// SetDestroyMethod sets the destruction function for the bean by method name.
+func (d *BeanDefinition) SetDestroyMethod(method string) {
+	m, ok := d.t.MethodByName(method)
+	if !ok {
+		panic(fmt.Sprintf("method %s not found on type %s", method, d.t))
+	}
+	d.SetDestroy(m.Func.Interface())
+}
+
+// SetExport sets the exported interfaces for the bean.
+func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
+	for _, t := range exports {
+		if t.Kind() != reflect.Interface {
+			panic("only interface type can be exported")
+		}
+		if !d.Type().Implements(t) {
+			panic(fmt.Sprintf("%s doesn't implement interface %s", d, t))
+		}
+		exported := false
+		for _, export := range d.exports {
+			if t == export {
+				exported = true
+				break
+			}
+		}
+		if exported {
+			continue
+		}
+		d.exports = append(d.exports, t)
+	}
+}
+
+// SetRefreshable sets the refreshable flag and tag for the bean.
+func (d *BeanDefinition) SetRefreshable(tag string) {
+	if !d.Type().Implements(refreshableType) {
+		panic("must implement gs.Refreshable interface")
+	}
+	d.refreshable = true
+	d.refreshTag = tag
+}
+
+// OnProfiles sets the conditions for the bean based on the active profiles.
+func (d *BeanDefinition) OnProfiles(profiles string) {
+	c := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+		val := strings.TrimSpace(ctx.Prop("spring.profiles.active"))
+		if val == "" {
+			return false, nil
+		}
+		ss := strings.Split(strings.TrimSpace(profiles), ",")
+		for s := range slices.Values(strings.Split(val, ",")) {
+			for _, x := range ss {
+				if s == x {
+					return true, nil
+				}
+			}
+		}
+		return false, nil
+	})
+	d.conditions = append(d.conditions, c)
 }
 
 // TypeAndName returns the type and name of the bean.

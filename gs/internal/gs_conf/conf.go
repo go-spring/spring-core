@@ -22,32 +22,32 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/conf/sysconf"
-	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/util/sysconf"
 )
 
 /******************************** AppConfig **********************************/
 
-// AppConfig is a layered app configuration.
+// AppConfig represents a layered application configuration.
 type AppConfig struct {
-	LocalFile   *PropertySources
-	RemoteFile  *PropertySources
-	RemoteProp  gs.Properties
-	Environment *Environment
-	CommandArgs *CommandArgs
+	LocalFile   *PropertySources // Configuration sources from local files.
+	RemoteFile  *PropertySources // Configuration sources from remote files.
+	RemoteProp  conf.Properties  // Remote properties.
+	Environment *Environment     // Environment variables as configuration source.
+	CommandArgs *CommandArgs     // Command line arguments as configuration source.
 }
 
+// NewAppConfig creates a new instance of AppConfig.
 func NewAppConfig() *AppConfig {
 	return &AppConfig{
-		LocalFile:   NewPropertySources(ConfigTypeLocal, "application"),
-		RemoteFile:  NewPropertySources(ConfigTypeRemote, "application"),
+		LocalFile:   NewPropertySources(ConfigTypeLocal, "app"),
+		RemoteFile:  NewPropertySources(ConfigTypeRemote, "app"),
 		Environment: NewEnvironment(),
 		CommandArgs: NewCommandArgs(),
 	}
 }
 
-func merge(out *conf.Properties, sources ...interface {
-	CopyTo(out *conf.Properties) error
+func merge(out *conf.MutableProperties, sources ...interface {
+	CopyTo(out *conf.MutableProperties) error
 }) error {
 	for _, s := range sources {
 		if s != nil {
@@ -59,9 +59,8 @@ func merge(out *conf.Properties, sources ...interface {
 	return nil
 }
 
-// Refresh merges all layers into a properties as read-only.
-func (c *AppConfig) Refresh() (gs.Properties, error) {
-
+// Refresh merges all layers of configurations into a read-only properties.
+func (c *AppConfig) Refresh() (conf.Properties, error) {
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)
 	if err != nil {
@@ -79,7 +78,7 @@ func (c *AppConfig) Refresh() (gs.Properties, error) {
 	}
 
 	var sources []interface {
-		CopyTo(out *conf.Properties) error
+		CopyTo(out *conf.MutableProperties) error
 	}
 	for _, file := range localFiles {
 		sources = append(sources, file)
@@ -101,23 +100,24 @@ func (c *AppConfig) Refresh() (gs.Properties, error) {
 
 /******************************** BootConfig *********************************/
 
-// BootConfig is a layered boot configuration.
+// BootConfig represents a layered boot configuration.
 type BootConfig struct {
-	LocalFile   *PropertySources
-	Environment *Environment
-	CommandArgs *CommandArgs
+	LocalFile   *PropertySources // Configuration sources from local files.
+	Environment *Environment     // Environment variables as configuration source.
+	CommandArgs *CommandArgs     // Command line arguments as configuration source.
 }
 
+// NewBootConfig creates a new instance of BootConfig.
 func NewBootConfig() *BootConfig {
 	return &BootConfig{
-		LocalFile:   NewPropertySources(ConfigTypeLocal, "bootstrap"),
+		LocalFile:   NewPropertySources(ConfigTypeLocal, "boot"),
 		Environment: NewEnvironment(),
 		CommandArgs: NewCommandArgs(),
 	}
 }
 
-// Refresh merges all layers into a properties as read-only.
-func (c *BootConfig) Refresh() (gs.Properties, error) {
+// Refresh merges all layers of configurations into a read-only properties.
+func (c *BootConfig) Refresh() (conf.Properties, error) {
 
 	p := sysconf.Clone()
 	err := merge(p, c.Environment, c.CommandArgs)
@@ -131,7 +131,7 @@ func (c *BootConfig) Refresh() (gs.Properties, error) {
 	}
 
 	var sources []interface {
-		CopyTo(out *conf.Properties) error
+		CopyTo(out *conf.MutableProperties) error
 	}
 	for _, file := range localFiles {
 		sources = append(sources, file)
@@ -149,6 +149,7 @@ func (c *BootConfig) Refresh() (gs.Properties, error) {
 
 /****************************** PropertySources ******************************/
 
+// ConfigType defines the type of configuration: local or remote.
 type ConfigType string
 
 const (
@@ -156,13 +157,15 @@ const (
 	ConfigTypeRemote ConfigType = "remote"
 )
 
-// PropertySources is a collection of locations.
+// PropertySources is a collection of configuration files.
 type PropertySources struct {
-	configType ConfigType
-	configName string
-	locations  []string
+	configType ConfigType // Type of the configuration (local or remote).
+	configName string     // Name of the configuration.
+	extraDirs  []string   // Extra directories to be included in the configuration.
+	extraFiles []string   // Extra files to be included in the configuration.
 }
 
+// NewPropertySources creates a new instance of PropertySources.
 func NewPropertySources(configType ConfigType, configName string) *PropertySources {
 	return &PropertySources{
 		configType: configType,
@@ -170,36 +173,58 @@ func NewPropertySources(configType ConfigType, configName string) *PropertySourc
 	}
 }
 
-// Reset resets the locations.
+// Reset resets all the extra files.
 func (p *PropertySources) Reset() {
-	p.locations = nil
+	p.extraFiles = nil
 }
 
-// AddLocation adds a location.
-func (p *PropertySources) AddLocation(location ...string) {
-	p.locations = append(p.locations, location...)
+// AddDir adds a or more than one extra directories.
+func (p *PropertySources) AddDir(dirs ...string) {
+	for _, d := range dirs {
+		info, err := os.Stat(d)
+		if err != nil {
+			panic(err)
+		}
+		if !info.IsDir() {
+			panic("should be a directory")
+		}
+	}
+	p.extraDirs = append(p.extraDirs, dirs...)
 }
 
-// getDefaultLocations returns the default locations.
-func (p *PropertySources) getDefaultLocations(resolver *conf.Properties) (_ []string, err error) {
+// AddFile adds a or more than one extra files.
+func (p *PropertySources) AddFile(files ...string) {
+	for _, f := range files {
+		info, err := os.Stat(f)
+		if err != nil {
+			panic(err)
+		}
+		if info.IsDir() {
+			panic("should be a file")
+		}
+	}
+	p.extraFiles = append(p.extraFiles, files...)
+}
 
-	var configDir string
+// getDefaultDir returns the default configuration directory based on the configuration type.
+func (p *PropertySources) getDefaultDir(resolver conf.Properties) (configDir string, err error) {
 	if p.configType == ConfigTypeLocal {
-		configDir, err = resolver.Resolve("${spring.app.config.dir:=./conf}")
+		return resolver.Resolve("${spring.app.config.dir:=./conf}")
 	} else if p.configType == ConfigTypeRemote {
-		configDir, err = resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
+		return resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
 	} else {
-		return nil, fmt.Errorf("unknown config type: %s", p.configType)
+		return "", fmt.Errorf("unknown config type: %s", p.configType)
 	}
-	if err != nil {
-		return nil, err
-	}
+}
 
-	locations := []string{
-		fmt.Sprintf("%s/%s.properties", configDir, p.configName),
-		fmt.Sprintf("%s/%s.yaml", configDir, p.configName),
-		fmt.Sprintf("%s/%s.toml", configDir, p.configName),
-		fmt.Sprintf("%s/%s.json", configDir, p.configName),
+// getFiles returns the list of configuration files based on the configuration directory and active profiles.
+func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []string, err error) {
+
+	files := []string{
+		fmt.Sprintf("%s/%s.properties", dir, p.configName),
+		fmt.Sprintf("%s/%s.yaml", dir, p.configName),
+		fmt.Sprintf("%s/%s.toml", dir, p.configName),
+		fmt.Sprintf("%s/%s.json", dir, p.configName),
 	}
 
 	activeProfiles, err := resolver.Resolve("${spring.profiles.active:=}")
@@ -210,27 +235,44 @@ func (p *PropertySources) getDefaultLocations(resolver *conf.Properties) (_ []st
 		ss := strings.Split(activeProfiles, ",")
 		for _, s := range ss {
 			if s = strings.TrimSpace(s); s != "" {
-				locations = append(locations, []string{
-					fmt.Sprintf("%s/%s-%s.properties", configDir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.yaml", configDir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.toml", configDir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.json", configDir, p.configName, s),
+				files = append(files, []string{
+					fmt.Sprintf("%s/%s-%s.properties", dir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.yaml", dir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.toml", dir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.json", dir, p.configName, s),
 				}...)
 			}
 		}
 	}
-	return locations, nil
+	return files, nil
 }
 
-// loadFiles loads all locations and returns a list of properties.
-func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properties, error) {
-	locations, err := p.getDefaultLocations(resolver)
-	if err != nil {
-		return nil, err
+// loadFiles loads all configuration files and returns them as a list of Properties.
+func (p *PropertySources) loadFiles(resolver conf.Properties) ([]conf.Properties, error) {
+	var files []string
+	{
+		defaultDir, err := p.getDefaultDir(resolver)
+		if err != nil {
+			return nil, err
+		}
+		tempFiles, err := p.getFiles(defaultDir, resolver)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, tempFiles...)
 	}
-	locations = append(locations, p.locations...)
-	var files []*conf.Properties
-	for _, s := range locations {
+
+	for _, dir := range p.extraDirs {
+		tempFiles, err := p.getFiles(dir, resolver)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, tempFiles...)
+	}
+	files = append(files, p.extraFiles...)
+
+	var ret []conf.Properties
+	for _, s := range files {
 		filename, err := resolver.Resolve(s)
 		if err != nil {
 			return nil, err
@@ -242,7 +284,7 @@ func (p *PropertySources) loadFiles(resolver *conf.Properties) ([]*conf.Properti
 			}
 			return nil, err
 		}
-		files = append(files, c)
+		ret = append(ret, c)
 	}
-	return files, nil
+	return ret, nil
 }

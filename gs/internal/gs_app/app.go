@@ -14,86 +14,65 @@
  * limitations under the License.
  */
 
-// Package gs_app provides a framework for building and managing Go-Spring applications.
 package gs_app
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"net/http"
 	"os"
 	"os/signal"
+	"sync"
+	"sync/atomic"
 	"syscall"
+	"time"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/util/goutil"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
-// AppContext provides a wrapper around the application's [gs.Context].
-// It offers controlled access to the internal context and is designed
-// to ensure safe usage in the application's lifecycle.
-type AppContext struct {
-	c gs.Context
-}
+// GS is the global application instance.
+var GS = NewApp()
 
-// Unsafe exposes the underlying [gs.Context]. Using this method in new
-// goroutines is unsafe because [gs.Context] may release its resources
-// (e.g., bean definitions), making binding and injection operations invalid.
-func (p *AppContext) Unsafe() gs.Context {
-	return p.c
-}
-
-// Go executes a function in a new goroutine. The provided function will receive
-// a cancellation signal when the application begins shutting down.
-func (p *AppContext) Go(fn func(ctx context.Context)) {
-	p.c.(interface {
-		Go(fn func(ctx context.Context))
-	}).Go(fn)
-}
-
-// AppRunner defines an interface for tasks that should be executed after all
-// beans are injected but before the application's servers are started.
-// It is commonly used to initialize background jobs or tasks.
-type AppRunner interface {
-	Run(ctx *AppContext)
-}
-
-// AppServer defines an interface for managing the lifecycle of application servers,
-// such as HTTP, gRPC, Thrift, or MQ servers. Servers must implement methods for
-// starting and stopping gracefully.
-type AppServer interface {
-	OnAppStart(ctx *AppContext)
-	OnAppStop(ctx context.Context)
-}
-
-// App represents the core application, managing its lifecycle, configuration,
-// and the injection of dependencies.
+// App represents the core application, managing its lifecycle,
+// configuration, and dependency injection.
 type App struct {
-	C gs.Container
+	C *gs_core.Container
 	P *gs_conf.AppConfig
 
-	exitChan chan struct{}
+	exiting atomic.Bool
+	ctx     context.Context
+	cancel  context.CancelFunc
+	wg      sync.WaitGroup
 
-	Runners []AppRunner `autowire:"${spring.app.runners:=*?}"`
-	Servers []AppServer `autowire:"${spring.app.servers:=*?}"`
+	Runners []gs.Runner `autowire:"${spring.app.runners:=*?}"`
+	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=*?}"`
+	Servers []gs.Server `autowire:"${spring.app.servers:=*?}"`
+
+	EnableJobs    bool `value:"${spring.enable.app-jobs:=true}"`
+	EnableServers bool `value:"${spring.enable.app-servers:=true}"`
 }
 
 // NewApp creates and initializes a new application instance.
 func NewApp() *App {
-	app := &App{
-		C:        gs_core.New(),
-		P:        gs_conf.NewAppConfig(),
-		exitChan: make(chan struct{}),
+	ctx, cancel := context.WithCancel(context.Background())
+	return &App{
+		C:      gs_core.New(),
+		P:      gs_conf.NewAppConfig(),
+		ctx:    ctx,
+		cancel: cancel,
 	}
-	app.C.Object(app)
-	return app
 }
 
 // Run starts the application and listens for termination signals
-// (e.g., SIGINT, SIGTERM). When a signal is received, it shuts down
-// the application gracefully. Use ShutDown but not Stop to end
-// the application lifecycle.
+// (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
+// a graceful shutdown.
 func (app *App) Run() error {
+	app.C.Object(app)
+
 	if err := app.Start(); err != nil {
 		return err
 	}
@@ -103,18 +82,19 @@ func (app *App) Run() error {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		sig := <-ch
-		app.ShutDown(fmt.Sprintf("Received signal: %v", sig))
+		syslog.Infof("Received signal: %v", sig)
+		app.ShutDown()
 	}()
 
 	// waits for the shutdown signal
-	<-app.exitChan
+	<-app.ctx.Done()
 	app.Stop()
 	return nil
 }
 
-// Start initializes and starts the application. It loads configuration properties,
-// refreshes the IoC container, performs dependency injection, and runs runners
-// and servers.
+// Start initializes and starts the application. It performs configuration
+// loading, IoC container refreshing, dependency injection, and runs
+// runners, jobs and servers.
 func (app *App) Start() error {
 	// loads the layered app properties
 	p, err := app.P.Refresh()
@@ -134,43 +114,100 @@ func (app *App) Start() error {
 		return err
 	}
 
-	c := &AppContext{c: app.C.(gs.Context)}
-
 	// runs all runners
 	for _, r := range app.Runners {
-		r.Run(c)
+		if err := r.Run(); err != nil {
+			return err
+		}
+	}
+
+	// runs all jobs
+	if app.EnableJobs {
+		for _, job := range app.Jobs {
+			goutil.GoFunc(func() {
+				defer func() {
+					if r := recover(); r != nil {
+						app.ShutDown()
+						panic(r)
+					}
+				}()
+				if err := job.Run(app.ctx); err != nil {
+					syslog.Errorf("job run error: %s", err.Error())
+					app.ShutDown()
+				}
+			})
+		}
 	}
 
 	// starts all servers
-	for _, svr := range app.Servers {
-		svr.OnAppStart(c)
-	}
-
-	// listens the cancel signal then stop the servers
-	c.Go(func(ctx context.Context) {
-		<-ctx.Done()
+	if app.EnableServers {
+		sig := NewReadySignal()
 		for _, svr := range app.Servers {
-			svr.OnAppStop(ctx)
+			sig.Add()
+			app.wg.Add(1)
+			goutil.GoFunc(func() {
+				defer app.wg.Done()
+				defer func() {
+					if r := recover(); r != nil {
+						sig.Intercept()
+						app.ShutDown()
+						panic(r)
+					}
+				}()
+				err := svr.ListenAndServe(sig)
+				if err != nil && !errors.Is(err, http.ErrServerClosed) {
+					syslog.Errorf("server serve error: %s", err.Error())
+					sig.Intercept()
+					app.ShutDown()
+				}
+			})
 		}
-	})
-
-	app.C.ReleaseUnusedMemory()
+		sig.Wait()
+		if sig.Intercepted() {
+			return nil
+		}
+		syslog.Infof("ready to serve requests")
+		sig.Close()
+	}
 	return nil
 }
 
-// Stop gracefully stops the application. This method is used to clean up
-// resources and stop servers started by the Start method.
+// Stop gracefully shuts down the application, ensuring all servers and
+// resources are properly closed.
 func (app *App) Stop() {
-	app.C.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+
+	waitChan := make(chan struct{})
+	goutil.GoFunc(func() {
+		for _, svr := range app.Servers {
+			goutil.GoFunc(func() {
+				if err := svr.Shutdown(ctx); err != nil {
+					syslog.Errorf("shutdown server failed: %s", err.Error())
+				}
+			})
+		}
+		app.wg.Wait()
+		app.C.Close()
+		waitChan <- struct{}{}
+	})
+
+	select {
+	case <-waitChan:
+		syslog.Infof("shutdown complete")
+	case <-ctx.Done():
+		syslog.Infof("shutdown timeout")
+	}
 }
 
-// ShutDown gracefully terminates the application. It should be used when
-// shutting down the application started by Run.
-func (app *App) ShutDown(msg ...string) {
-	select {
-	case <-app.exitChan:
-		// do nothing if the exit channel is already closed
-	default:
-		close(app.exitChan)
-	}
+// Exiting returns a boolean indicating whether the application is exiting.
+func (app *App) Exiting() bool {
+	return app.exiting.Load()
+}
+
+// ShutDown gracefully terminates the application. This method should
+// be called to trigger a proper shutdown process.
+func (app *App) ShutDown() {
+	app.exiting.Store(true)
+	app.cancel()
 }

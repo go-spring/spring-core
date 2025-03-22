@@ -21,11 +21,13 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
 	"runtime"
 	"time"
 )
 
 func init() {
+	log.SetOutput(os.Stdout)
 	log.SetFlags(log.Flags() | log.Lshortfile)
 }
 
