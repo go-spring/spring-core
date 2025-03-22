@@ -19,8 +19,10 @@ package gs_arg
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/gsmock"
@@ -221,5 +223,169 @@ func TestArgList(t *testing.T) {
 			Value("test1"),
 			Value("test2"),
 		})
+	})
+}
+
+func TestArgList_get(t *testing.T) {
+
+	t.Run("success with non-variadic function", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b string) {})
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		argList, err := NewArgList(fnType, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		values, err := argList.get(ctx)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(values))
+		assert.Equal(t, 1, values[0].Interface().(int))
+		assert.Equal(t, "test", values[1].Interface().(string))
+	})
+
+	t.Run("success with variadic function", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		args := []gs.Arg{
+			Value(1),
+			Value("test1"),
+			Value("test2"),
+		}
+		argList, err := NewArgList(fnType, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		values, err := argList.get(ctx)
+		assert.Nil(t, err)
+		assert.Equal(t, 3, len(values))
+		assert.Equal(t, 1, values[0].Interface().(int))
+		assert.Equal(t, "test1", values[1].Interface().(string))
+		assert.Equal(t, "test2", values[2].Interface().(string))
+	})
+
+	t.Run("error when getting arg value", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b string) {})
+		args := []gs.Arg{
+			Value(1),
+			Value(2),
+		}
+		argList, err := NewArgList(fnType, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		_, err = argList.get(ctx)
+		assert.Error(t, err, "GetArgValue error << cannot assign type:int to type:string")
+	})
+}
+
+func TestCallable(t *testing.T) {
+
+	t.Run("invalid function type", func(t *testing.T) {
+		fn := "not a function"
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		_, err := NewCallable(fn, args)
+		assert.Error(t, err, "invalid function type")
+	})
+
+	t.Run("error in argument processing", func(t *testing.T) {
+		fn := func(a int, b string) string {
+			return fmt.Sprintf("%d-%s", a, b)
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value(2),
+		}
+		callable, err := NewCallable(fn, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		_, err = callable.Call(ctx)
+		assert.Error(t, err, "GetArgValue error << cannot assign type:int to type:string")
+	})
+
+	t.Run("error in function execution", func(t *testing.T) {
+		fn := func(a int, b string) (string, error) {
+			return "", errors.New("execution error")
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		callable, err := NewCallable(fn, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		_, err = callable.Call(ctx)
+		assert.Error(t, err, "execution error")
+	})
+
+	t.Run("success", func(t *testing.T) {
+		fn := func(a int, b string) string {
+			return fmt.Sprintf("%d-%s", a, b)
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		callable, err := NewCallable(fn, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		v, err := callable.Call(ctx)
+		assert.Nil(t, err)
+		assert.Equal(t, "1-test", v.Interface().(string))
+	})
+
+	t.Run("success with variadic function", func(t *testing.T) {
+		fn := func(a int, b ...string) string {
+			return fmt.Sprintf("%d-%s", a, strings.Join(b, ","))
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test1"),
+			Value("test2"),
+		}
+		callable, err := NewCallable(fn, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		v, err := callable.Call(ctx)
+		assert.Nil(t, err)
+		assert.Equal(t, "1-test1,test2", v.Interface().(string))
+	})
+
+	t.Run("function return none", func(t *testing.T) {
+		fn := func(a int, b string) {}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		callable, err := NewCallable(fn, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		_, err = callable.Call(ctx)
+		assert.Nil(t, err)
+	})
+
+	t.Run("function return no error", func(t *testing.T) {
+		fn := func(a int, b string) (string, error) {
+			return fmt.Sprintf("%d-%s", a, b), nil
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		callable, err := NewCallable(fn, args)
+		assert.Nil(t, err)
+
+		ctx := gs.NewMockArgContext(nil)
+		v, err := callable.Call(ctx)
+		assert.Nil(t, err)
+		assert.Equal(t, "1-test", v.Interface().(string))
 	})
 }

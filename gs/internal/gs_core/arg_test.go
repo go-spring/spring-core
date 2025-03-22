@@ -35,11 +35,10 @@ func TestBind(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		values, err := p.Call(ctx)
+		_, err = p.Call(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, len(values), 0)
 	})
 
 	t.Run("one value argument", func(t *testing.T) {
@@ -55,12 +54,11 @@ func TestBind(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		values, err := p.Call(ctx)
+		_, err = p.Call(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, expectInt, 3)
-		assert.Equal(t, len(values), 0)
 	})
 
 	//t.Run("one ctx value argument", func(t *testing.T) {

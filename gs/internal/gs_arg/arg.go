@@ -190,8 +190,7 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 
 		v, err := arg.GetArgValue(ctx, t)
 		if err != nil {
-			err = errutil.WrapError(err, "returns error when getting %d arg", idx)
-			return nil, errutil.WrapError(err, "get arg list error: %v", arg)
+			return nil, err
 		}
 		if v.IsValid() {
 			result = append(result, v)
@@ -248,11 +247,7 @@ func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 	}
 
 	// Calls the function and returns its result.
-	out, err := arg.r.Call(ctx)
-	if err != nil {
-		return reflect.Value{}, err
-	}
-	return out[0], nil
+	return arg.r.Call(ctx)
 }
 
 // CallableFunc is a function that can be called.
@@ -275,24 +270,24 @@ func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) {
 }
 
 // Call invokes the function with its bound arguments processed in the IoC container.
-func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
+func (r *Callable) Call(ctx gs.ArgContext) (reflect.Value, error) {
 	in, err := r.argList.get(ctx)
 	if err != nil {
-		return nil, err
+		return reflect.Value{}, err
 	}
 
 	out := reflect.ValueOf(r.fn).Call(in)
 	n := len(out)
 	if n == 0 {
-		return out, nil
+		return reflect.Value{}, nil
 	}
 
 	o := out[n-1]
 	if util.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
-			return out[:n-1], i.(error)
+			return out[0], i.(error)
 		}
-		return out[:n-1], nil
+		return out[0], nil
 	}
-	return out, nil
+	return out[0], nil
 }
