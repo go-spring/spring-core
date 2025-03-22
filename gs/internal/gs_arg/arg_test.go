@@ -17,10 +17,12 @@
 package gs_arg_test
 
 import (
+	"bytes"
+	"errors"
+	"net/http"
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/gsmock"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
@@ -28,13 +30,52 @@ import (
 )
 
 func TestTagArg(t *testing.T) {
-	r, _ := gsmock.Init(t.Context())
-	c := gs.NewMockArgContext(r)
-	c.MockBind().Handle(func(value reflect.Value, s string) (error, bool) {
-		return conf.New().Bind(value, s), true
+
+	t.Run("bind success", func(t *testing.T) {
+		r, _ := gsmock.Init(t.Context())
+		c := gs.NewMockArgContext(r)
+		c.MockBind().Handle(func(v reflect.Value, s string) (error, bool) {
+			v.SetString("3")
+			return nil, true
+		})
+		tag := gs_arg.Tag("${int:=3}")
+		v, err := tag.GetArgValue(c, reflect.TypeFor[string]())
+		assert.Nil(t, err)
+		assert.Equal(t, v.String(), "3")
 	})
-	tag := gs_arg.Tag("${int:=3}")
-	v, err := tag.GetArgValue(c, reflect.TypeFor[string]())
-	assert.Nil(t, err)
-	assert.Equal(t, v.String(), "3")
+
+	t.Run("bind error", func(t *testing.T) {
+		r, _ := gsmock.Init(t.Context())
+		c := gs.NewMockArgContext(r)
+		c.MockBind().Handle(func(v reflect.Value, s string) (error, bool) {
+			return errors.New("bind error"), true
+		})
+		tag := gs_arg.Tag("${int:=3}")
+		_, err := tag.GetArgValue(c, reflect.TypeFor[string]())
+		assert.Error(t, err, "bind error")
+	})
+
+	t.Run("wire success", func(t *testing.T) {
+		r, _ := gsmock.Init(t.Context())
+		c := gs.NewMockArgContext(r)
+		c.MockWire().Handle(func(v reflect.Value, s string) (error, bool) {
+			v.Set(reflect.ValueOf(&http.Server{Addr: ":9090"}))
+			return nil, true
+		})
+		tag := gs_arg.Tag("http-server")
+		v, err := tag.GetArgValue(c, reflect.TypeFor[*http.Server]())
+		assert.Nil(t, err)
+		assert.Equal(t, v.Interface().(*http.Server).Addr, ":9090")
+	})
+
+	t.Run("wire error", func(t *testing.T) {
+		r, _ := gsmock.Init(t.Context())
+		c := gs.NewMockArgContext(r)
+		c.MockWire().Handle(func(v reflect.Value, s string) (error, bool) {
+			return errors.New("wire error"), true
+		})
+		tag := gs_arg.Tag("server")
+		_, err := tag.GetArgValue(c, reflect.TypeFor[*bytes.Buffer]())
+		assert.Error(t, err, "wire error")
+	})
 }
