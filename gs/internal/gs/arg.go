@@ -53,9 +53,9 @@ func (c *MockArgContext) Bind(v reflect.Value, tag string) error {
 	panic("mock error")
 }
 
-func (c *MockArgContext) MockBind() *gsmock.Mocker12[reflect.Value, string, error] {
-	m := &gsmock.Mocker12[reflect.Value, string, error]{}
-	i := &gsmock.Invoker12[reflect.Value, string, error]{Mocker12: m}
+func (c *MockArgContext) MockBind() *gsmock.Mocker21[reflect.Value, string, error] {
+	m := &gsmock.Mocker21[reflect.Value, string, error]{}
+	i := &gsmock.Invoker21[reflect.Value, string, error]{Mocker21: m}
 	c.r.AddMocker(mockArgContextType, "Bind", i)
 	return m
 }
@@ -67,9 +67,9 @@ func (c *MockArgContext) Wire(v reflect.Value, tag string) error {
 	panic("mock error")
 }
 
-func (c *MockArgContext) MockWire() *gsmock.Mocker12[reflect.Value, string, error] {
-	m := &gsmock.Mocker12[reflect.Value, string, error]{}
-	i := &gsmock.Invoker12[reflect.Value, string, error]{Mocker12: m}
+func (c *MockArgContext) MockWire() *gsmock.Mocker21[reflect.Value, string, error] {
+	m := &gsmock.Mocker21[reflect.Value, string, error]{}
+	i := &gsmock.Invoker21[reflect.Value, string, error]{Mocker21: m}
 	c.r.AddMocker(mockArgContextType, "Wire", i)
 	return m
 }

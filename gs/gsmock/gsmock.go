@@ -79,28 +79,16 @@ func Init(ctx context.Context) (*Manager, context.Context) {
 	return r, context.WithValue(ctx, &managerKey, r)
 }
 
+// InvokeContext attempts to call a mock implementation using context.
+func InvokeContext(ctx context.Context, typ reflect.Type, method string, params ...interface{}) ([]interface{}, bool) {
+	return Invoke(getManager(ctx), typ, method, params...)
+}
+
 // Invoke attempts to call a mock implementation of a given method.
 func Invoke(r *Manager, typ reflect.Type, method string, params ...interface{}) ([]interface{}, bool) {
 	if r == nil || !testing.Testing() {
 		return nil, false
 	}
-	return invoke(r, typ, method, params...)
-}
-
-// InvokeContext attempts to call a mock implementation using context.
-func InvokeContext(ctx context.Context, typ reflect.Type, method string, params ...interface{}) ([]interface{}, bool) {
-	if !testing.Testing() {
-		return nil, false
-	}
-	r := getManager(ctx)
-	if r == nil {
-		return nil, false
-	}
-	return invoke(r, typ, method, params...)
-}
-
-// invoke is a helper function that calls a mock implementation of a given method.
-func invoke(r *Manager, typ reflect.Type, method string, params ...interface{}) ([]interface{}, bool) {
 	mockers := r.GetMockers(typ, method)
 	for _, f := range mockers {
 		switch f.Mode() {
@@ -121,104 +109,52 @@ func invoke(r *Manager, typ reflect.Type, method string, params ...interface{}) 
 	return nil, false
 }
 
-// Invoke1 attempts to call a mock implementation of a given method.
-func Invoke1[R1 any](r *Manager, typ reflect.Type, method string, params ...interface{}) (r1 R1, ok bool) {
-	if r == nil || !testing.Testing() {
-		return
-	}
-	ret, ok := invoke(r, typ, method, params...)
-	if !ok {
-		return
-	}
-	r1, _ = ret[0].(R1)
-	ok = true
-	return
-}
-
-// Invoke2 attempts to call a mock implementation of a given method.
-func Invoke2[R1, R2 any](r *Manager, typ reflect.Type, method string, params ...interface{}) (r1 R1, r2 R2, ok bool) {
-	if r == nil || !testing.Testing() {
-		return
-	}
-	ret, ok := invoke(r, typ, method, params...)
-	if !ok {
-		return
-	}
-	r1, _ = ret[0].(R1)
-	r2, _ = ret[1].(R2)
-	ok = true
-	return
-}
-
-// Invoke3 attempts to call a mock implementation of a given method.
-func Invoke3[R1, R2, R3 any](r *Manager, typ reflect.Type, method string, params ...interface{}) (r1 R1, r2 R2, r3 R3, ok bool) {
-	if r == nil || !testing.Testing() {
-		return
-	}
-	ret, ok := invoke(r, typ, method, params...)
-	if !ok {
-		return
-	}
-	r1, _ = ret[0].(R1)
-	r2, _ = ret[1].(R2)
-	r3, _ = ret[2].(R3)
-	ok = true
-	return
-}
-
 // InvokeContext1 attempts to call a mock implementation using context.
 func InvokeContext1[R1 any](ctx context.Context, typ reflect.Type, method string, params ...interface{}) (r1 R1, ok bool) {
-	if !testing.Testing() {
-		return
-	}
-	r := getManager(ctx)
-	if r == nil {
-		return
-	}
-	ret, ok := invoke(r, typ, method, params...)
-	if !ok {
-		return
-	}
-	r1, _ = ret[0].(R1)
-	ok = true
+	return Invoke1[R1](getManager(ctx), typ, method, params...)
+}
+
+// Invoke1 attempts to call a mock implementation of a given method.
+func Invoke1[R1 any](r *Manager, typ reflect.Type, method string, params ...interface{}) (r1 R1, ok bool) {
+	r1, _, _, ok = Invoke3[R1, any, any](r, typ, method, params...)
 	return
 }
 
 // InvokeContext2 attempts to call a mock implementation using context.
 func InvokeContext2[R1, R2 any](ctx context.Context, typ reflect.Type, method string, params ...interface{}) (r1 R1, r2 R2, ok bool) {
-	if !testing.Testing() {
-		return
-	}
-	r := getManager(ctx)
-	if r == nil {
-		return
-	}
-	ret, ok := invoke(r, typ, method, params...)
-	if !ok {
-		return
-	}
-	r1, _ = ret[0].(R1)
-	r2, _ = ret[1].(R2)
-	ok = true
+	return Invoke2[R1, R2](getManager(ctx), typ, method, params...)
+}
+
+// Invoke2 attempts to call a mock implementation of a given method.
+func Invoke2[R1, R2 any](r *Manager, typ reflect.Type, method string, params ...interface{}) (r1 R1, r2 R2, ok bool) {
+	r1, r2, _, ok = Invoke3[R1, R2, any](r, typ, method, params...)
 	return
 }
 
 // InvokeContext3 attempts to call a mock implementation using context.
 func InvokeContext3[R1, R2, R3 any](ctx context.Context, typ reflect.Type, method string, params ...interface{}) (r1 R1, r2 R2, r3 R3, ok bool) {
-	if !testing.Testing() {
-		return
-	}
-	r := getManager(ctx)
-	if r == nil {
-		return
-	}
-	ret, ok := invoke(r, typ, method, params...)
+	return Invoke3[R1, R2, R3](getManager(ctx), typ, method, params...)
+}
+
+// Invoke3 attempts to call a mock implementation of a given method.
+func Invoke3[R1, R2, R3 any](r *Manager, typ reflect.Type, method string, params ...interface{}) (r1 R1, r2 R2, r3 R3, ok bool) {
+	ret, ok := Invoke(r, typ, method, params...)
 	if !ok {
 		return
 	}
-	r1, _ = ret[0].(R1)
-	r2, _ = ret[1].(R2)
-	r3, _ = ret[2].(R3)
+	switch len(ret) {
+	case 1:
+		r1, _ = ret[0].(R1)
+	case 2:
+		r1, _ = ret[0].(R1)
+		r2, _ = ret[1].(R2)
+	case 3:
+		r1, _ = ret[0].(R1)
+		r2, _ = ret[1].(R2)
+		r3, _ = ret[2].(R3)
+	default:
+		log.Printf("Warning: unexpected number of return values: %d", len(ret))
+	}
 	ok = true
 	return
 }
