@@ -17,7 +17,6 @@
 package gs_arg
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -205,7 +204,7 @@ type BindArg struct {
 func Bind(fn CallableFunc, args ...gs.Arg) *BindArg {
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func || t.NumOut() != 1 {
-		panic(errors.New("invalid option func"))
+		panic("invalid function type")
 	}
 	_, file, line, _ := runtime.Caller(1)
 	r, err := NewCallable(fn, args)

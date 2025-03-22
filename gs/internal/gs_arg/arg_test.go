@@ -389,3 +389,96 @@ func TestCallable(t *testing.T) {
 		assert.Equal(t, "1-test", v.Interface().(string))
 	})
 }
+
+func TestBindArg(t *testing.T) {
+
+	t.Run("invalid function type - 1", func(t *testing.T) {
+		fn := "not a function"
+		assert.Panic(t, func() {
+			Bind(fn)
+		}, "invalid function type")
+	})
+
+	t.Run("invalid function type - 2", func(t *testing.T) {
+		fn := func(a int, b string) (string, bool) {
+			return fmt.Sprintf("%d-%s", a, b), true
+		}
+		assert.Panic(t, func() {
+			Bind(fn)
+		}, "invalid function type")
+	})
+
+	t.Run("success", func(t *testing.T) {
+		fn := func(a int, b string) string {
+			return fmt.Sprintf("%d-%s", a, b)
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		bindArg := Bind(fn, args...)
+		ctx := gs.NewMockArgContext(nil)
+		v, err := bindArg.GetArgValue(ctx, reflect.TypeFor[string]())
+		assert.Nil(t, err)
+		assert.Equal(t, "1-test", v.Interface().(string))
+	})
+
+	// t.Run("condition not met", func(t *testing.T) {
+	// 	fn := func(a int, b string) string {
+	// 		return fmt.Sprintf("%d-%s", a, b)
+	// 	}
+	// 	args := []gs.Arg{
+	// 		Value(1),
+	// 		Value("test"),
+	// 	}
+	// 	bindArg := Bind(fn, args...)
+	// 	bindArg.Condition(gsmock.NewCondition(false))
+	// 	ctx := gs.NewMockArgContext(nil)
+	// 	v, err := bindArg.GetArgValue(ctx, reflect.TypeFor[string]())
+	// 	assert.Nil(t, err)
+	// 	assert.False(t, v.IsValid())
+	// })
+	//
+	// t.Run("condition met", func(t *testing.T) {
+	// 	fn := func(a int, b string) string {
+	// 		return fmt.Sprintf("%d-%s", a, b)
+	// 	}
+	// 	args := []gs.Arg{
+	// 		Value(1),
+	// 		Value("test"),
+	// 	}
+	// 	bindArg := Bind(fn, args...)
+	// 	bindArg.Condition(gsmock.NewCondition(true))
+	// 	ctx := gs.NewMockArgContext(nil)
+	// 	v, err := bindArg.GetArgValue(ctx, reflect.TypeFor[string]())
+	// 	assert.Nil(t, err)
+	// 	assert.Equal(t, "1-test", v.Interface().(string))
+	// })
+
+	// t.Run("error in argument processing", func(t *testing.T) {
+	// 	fn := func(a int, b string) string {
+	// 		return fmt.Sprintf("%d-%s", a, b)
+	// 	}
+	// 	args := []gs.Arg{
+	// 		Value(1),
+	// 		Value(2), // Invalid argument type
+	// 	}
+	// 	assert.Panic(t, func() {
+	// 		Bind(fn, args...)
+	// 	}, "GetArgValue error << cannot assign type:int to type:string")
+	// })
+	//
+	// t.Run("error in function execution", func(t *testing.T) {
+	// 	fn := func(a int, b string) (string, error) {
+	// 		return "", errors.New("execution error")
+	// 	}
+	// 	args := []gs.Arg{
+	// 		Value(1),
+	// 		Value("test"),
+	// 	}
+	// 	bindArg := Bind(fn, args...)
+	// 	ctx := gs.NewMockArgContext(nil)
+	// 	_, err := bindArg.GetArgValue(ctx, reflect.TypeFor[string]())
+	// 	assert.Error(t, err, "execution error")
+	// })
+}
