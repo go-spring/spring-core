@@ -111,9 +111,36 @@ func TestValueArg(t *testing.T) {
 
 func TestArgList(t *testing.T) {
 
-	t.Run("type error", func(t *testing.T) {
+	t.Run("invalid function type", func(t *testing.T) {
 		_, err := gs_arg.NewArgList(reflect.TypeFor[int](), nil)
 		assert.Error(t, err, "NewArgList error << invalid function type:int")
 	})
 
+	t.Run("mixed index and non-index args", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b string) {})
+		args := []gs.Arg{gs_arg.Index(0, gs_arg.Value(1)), gs_arg.Value("test")}
+		_, err := gs_arg.NewArgList(fnType, args)
+		assert.Error(t, err, "NewArgList error << all arguments must either have indexes or not have indexes")
+	})
+
+	t.Run("mixed non-index and index args", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b string) {})
+		args := []gs.Arg{gs_arg.Value(1), gs_arg.Index(1, gs_arg.Value("test"))}
+		_, err := gs_arg.NewArgList(fnType, args)
+		assert.Error(t, err, "NewArgList error << all arguments must either have indexes or not have indexes")
+	})
+
+	t.Run("invalid argument index -1", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b string) {})
+		args := []gs.Arg{gs_arg.Index(-1, gs_arg.Value(1))}
+		_, err := gs_arg.NewArgList(fnType, args)
+		assert.Error(t, err, "NewArgList error << invalid argument index -1")
+	})
+
+	t.Run("invalid argument index 2", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b string) {})
+		args := []gs.Arg{gs_arg.Index(2, gs_arg.Value(1))}
+		_, err := gs_arg.NewArgList(fnType, args)
+		assert.Error(t, err, "NewArgList error << invalid argument index 2")
+	})
 }

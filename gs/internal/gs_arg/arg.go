@@ -141,12 +141,12 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		case IndexArg:
 			useIdx = true
 			if notIdx {
-				err := fmt.Errorf("all args must have or have no index")
-				return nil, errutil.WrapError(err, "%v", args)
+				err := fmt.Errorf("all arguments must either have indexes or not have indexes")
+				return nil, errutil.WrapError(err, "NewArgList error")
 			}
 			if arg.Idx < 0 || arg.Idx >= fnType.NumIn() {
-				err := fmt.Errorf("got a wrong arg index %d", arg.Idx)
-				return nil, errutil.WrapError(err, "%v", args)
+				err := fmt.Errorf("invalid argument index %d", arg.Idx)
+				return nil, errutil.WrapError(err, "NewArgList error")
 			}
 			if arg.Idx < fixedArgCount {
 				fnArgs[arg.Idx] = arg.Arg
@@ -156,8 +156,8 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		default:
 			notIdx = true
 			if useIdx {
-				err := fmt.Errorf("all args must have or have no index")
-				return nil, errutil.WrapError(err, "%v", args)
+				err := fmt.Errorf("all arguments must either have indexes or not have indexes")
+				return nil, errutil.WrapError(err, "NewArgList error")
 			}
 			if i < fixedArgCount {
 				fnArgs[i] = arg
