@@ -195,9 +195,9 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 
 // BindArg represents a binding for an option function argument.
 type BindArg struct {
-	r        *Callable
-	fileLine string
-	c        []gs.Condition
+	r          *Callable
+	fileline   string
+	conditions []gs.Condition
 }
 
 // Bind creates a binding for an option function argument.
@@ -216,22 +216,22 @@ func Bind(fn CallableFunc, args ...gs.Arg) *BindArg {
 	return arg
 }
 
-// Condition sets a condition for invoking the option function.
-func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg {
-	arg.c = append(arg.c, conditions...)
-	return arg
-}
-
 // SetFileLine sets the file and line number of the function call.
 func (arg *BindArg) SetFileLine(file string, line int) {
-	arg.fileLine = fmt.Sprintf("%s:%d", file, line)
+	arg.fileline = fmt.Sprintf("%s:%d", file, line)
+}
+
+// Condition sets a condition for invoking the option function.
+func (arg *BindArg) Condition(c ...gs.Condition) *BindArg {
+	arg.conditions = append(arg.conditions, c...)
+	return arg
 }
 
 // GetArgValue retrieves the function's return value if conditions are met.
 func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 
 	// Checks if the condition is met.
-	for _, c := range arg.c {
+	for _, c := range arg.conditions {
 		ok, err := ctx.Check(c)
 		if err != nil {
 			return reflect.Value{}, err
@@ -241,7 +241,11 @@ func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 	}
 
 	// Calls the function and returns its result.
-	return arg.r.Call(ctx)
+	out, err := arg.r.Call(ctx)
+	if err != nil {
+		return reflect.Value{}, err
+	}
+	return out[0], nil
 }
 
 // CallableFunc is a function that can be called.
@@ -264,24 +268,10 @@ func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) {
 }
 
 // Call invokes the function with its bound arguments processed in the IoC container.
-func (r *Callable) Call(ctx gs.ArgContext) (reflect.Value, error) {
+func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 	in, err := r.argList.get(ctx)
 	if err != nil {
-		return reflect.Value{}, err
+		return nil, err
 	}
-
-	out := reflect.ValueOf(r.fn).Call(in)
-	n := len(out)
-	if n == 0 {
-		return reflect.Value{}, nil
-	}
-
-	o := out[n-1]
-	if util.IsErrorType(o.Type()) {
-		if i := o.Interface(); i != nil {
-			return out[0], i.(error)
-		}
-		return out[0], nil
-	}
-	return out[0], nil
+	return reflect.ValueOf(r.fn).Call(in), nil
 }

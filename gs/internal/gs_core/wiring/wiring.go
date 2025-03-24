@@ -766,13 +766,19 @@ func (c *Wiring) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error
 	}
 
 	// Call the bean's constructor and handle errors.
-	val, err := b.Callable().Call(NewArgContext(c, stack))
+	out, err := b.Callable().Call(NewArgContext(c, stack))
 	if err != nil {
 		return reflect.Value{}, err /* fmt.Errorf("%s:%s return error: %v", b.getClass(), b.ID(), err) */
 	}
 
+	if o := out[len(out)-1]; util.IsErrorType(o.Type()) {
+		if i := o.Interface(); i != nil {
+			return reflect.Value{}, i.(error)
+		}
+	}
+
 	// If the return value is of bean type, handle it accordingly.
-	if util.IsBeanType(val.Type()) {
+	if val := out[0]; util.IsBeanType(val.Type()) {
 		// If it's a non-pointer value type, convert it into a pointer and set it.
 		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsPropBindingTarget(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())

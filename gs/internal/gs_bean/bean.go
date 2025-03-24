@@ -133,8 +133,8 @@ func (d *BeanMetadata) Conditions() []gs.Condition {
 }
 
 // SetCondition adds a condition to the list of conditions for the bean.
-func (d *BeanMetadata) SetCondition(conditions ...gs.Condition) {
-	d.conditions = append(d.conditions, conditions...)
+func (d *BeanMetadata) SetCondition(c ...gs.Condition) {
+	d.conditions = append(d.conditions, c...)
 }
 
 // ConfigurationBean returns whether the bean is a configuration bean.

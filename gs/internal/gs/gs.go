@@ -191,7 +191,7 @@ type BeanRegistration interface {
 	SetDestroy(fn BeanDestroyFunc)
 	SetInitMethod(method string)
 	SetDestroyMethod(method string)
-	SetCondition(conditions ...Condition)
+	SetCondition(c ...Condition)
 	SetDependsOn(selectors ...BeanSelector)
 	SetExport(exports ...reflect.Type)
 	SetConfiguration(param ...ConfigurationParam)
@@ -251,8 +251,8 @@ func (d *beanBuilder[T]) DestroyMethod(method string) *T {
 }
 
 // Condition sets the conditions for the bean.
-func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
-	d.b.SetCondition(conditions...)
+func (d *beanBuilder[T]) Condition(c ...Condition) *T {
+	d.b.SetCondition(c...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

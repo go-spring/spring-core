@@ -320,7 +320,7 @@ func TestCallable(t *testing.T) {
 
 		ctx := gs.NewMockArgContext(nil)
 		_, err = callable.Call(ctx)
-		assert.Error(t, err, "execution error")
+		assert.Nil(t, err)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -337,7 +337,7 @@ func TestCallable(t *testing.T) {
 		ctx := gs.NewMockArgContext(nil)
 		v, err := callable.Call(ctx)
 		assert.Nil(t, err)
-		assert.Equal(t, "1-test", v.Interface().(string))
+		assert.Equal(t, "1-test", v[0].Interface().(string))
 	})
 
 	t.Run("success with variadic function", func(t *testing.T) {
@@ -355,7 +355,7 @@ func TestCallable(t *testing.T) {
 		ctx := gs.NewMockArgContext(nil)
 		v, err := callable.Call(ctx)
 		assert.Nil(t, err)
-		assert.Equal(t, "1-test1,test2", v.Interface().(string))
+		assert.Equal(t, "1-test1,test2", v[0].Interface().(string))
 	})
 
 	t.Run("function return none", func(t *testing.T) {
@@ -386,7 +386,7 @@ func TestCallable(t *testing.T) {
 		ctx := gs.NewMockArgContext(nil)
 		v, err := callable.Call(ctx)
 		assert.Nil(t, err)
-		assert.Equal(t, "1-test", v.Interface().(string))
+		assert.Equal(t, "1-test", v[0].Interface().(string))
 	})
 }
 
