@@ -17,6 +17,7 @@
 package gs_arg
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -193,6 +194,34 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 	return result, nil
 }
 
+// CallableFunc is a function that can be called.
+type CallableFunc = interface{}
+
+// Callable wraps a function and its binding arguments.
+type Callable struct {
+	fn      CallableFunc
+	argList *ArgList
+}
+
+// NewCallable creates a Callable by binding arguments to a function.
+func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) {
+	fnType := reflect.TypeOf(fn)
+	argList, err := NewArgList(fnType, args)
+	if err != nil {
+		return nil, err
+	}
+	return &Callable{fn: fn, argList: argList}, nil
+}
+
+// Call invokes the function with its bound arguments processed in the IoC container.
+func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
+	ret, err := r.argList.get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return reflect.ValueOf(r.fn).Call(ret), nil
+}
+
 // BindArg represents a binding for an option function argument.
 type BindArg struct {
 	r          *Callable
@@ -200,11 +229,28 @@ type BindArg struct {
 	conditions []gs.Condition
 }
 
+// validBindFunc checks if the given function is a valid binding function.
+func validBindFunc(fn CallableFunc) error {
+	t := reflect.TypeOf(fn)
+	if t.Kind() != reflect.Func {
+		return errors.New("invalid function type")
+	}
+	if numOut := t.NumOut(); numOut == 1 {
+		if o := t.Out(0); !util.IsErrorType(o) {
+			return nil
+		}
+	} else if numOut == 2 {
+		if o := t.Out(t.NumOut() - 1); util.IsErrorType(o) {
+			return nil
+		}
+	}
+	return errors.New("invalid function type")
+}
+
 // Bind creates a binding for an option function argument.
 func Bind(fn CallableFunc, args ...gs.Arg) *BindArg {
-	t := reflect.TypeOf(fn)
-	if t.Kind() != reflect.Func || t.NumOut() != 1 {
-		panic("invalid function type")
+	if err := validBindFunc(fn); err != nil {
+		panic(err)
 	}
 	_, file, line, _ := runtime.Caller(1)
 	r, err := NewCallable(fn, args)
@@ -246,32 +292,4 @@ func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 		return reflect.Value{}, err
 	}
 	return out[0], nil
-}
-
-// CallableFunc is a function that can be called.
-type CallableFunc = interface{}
-
-// Callable wraps a function and its binding arguments.
-type Callable struct {
-	fn      CallableFunc
-	argList *ArgList
-}
-
-// NewCallable creates a Callable by binding arguments to a function.
-func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) {
-	fnType := reflect.TypeOf(fn)
-	argList, err := NewArgList(fnType, args)
-	if err != nil {
-		return nil, err
-	}
-	return &Callable{fn: fn, argList: argList}, nil
-}
-
-// Call invokes the function with its bound arguments processed in the IoC container.
-func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
-	in, err := r.argList.get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return reflect.ValueOf(r.fn).Call(in), nil
 }
