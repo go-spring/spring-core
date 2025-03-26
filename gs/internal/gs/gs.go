@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+//go:generate mockgen -build_flags="-mod=mod" -package=gs -source=gs.go -destination=gs_mock.go
+
 package gs
 
 import (

@@ -291,5 +291,9 @@ func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 	if err != nil {
 		return reflect.Value{}, err
 	}
-	return out[0], nil
+	if len(out) == 1 {
+		return out[0], nil
+	}
+	err, _ = out[1].Interface().(error)
+	return out[0], err
 }
