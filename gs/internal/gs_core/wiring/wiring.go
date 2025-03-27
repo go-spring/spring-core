@@ -84,7 +84,7 @@ func (d *destroyer) after(b *gs_bean.BeanDefinition) {
 }
 
 // getBeforeDestroyers retrieves destroyers that should be processed before a given one for sorting purposes.
-func getBeforeDestroyers(destroyers *list.List, i interface{}) (*list.List, error) {
+func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
 	d := i.(*destroyer)
 	result := list.New()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
@@ -93,7 +93,7 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) (*list.List, erro
 			result.PushBack(c)
 		}
 	}
-	return result, nil
+	return result
 }
 
 /******************************* wiring stack ********************************/

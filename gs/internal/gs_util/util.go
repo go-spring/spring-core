@@ -23,7 +23,7 @@ import (
 
 // GetBeforeItems is a function type that returns a list of items
 // that must appear before the given current item in the sorting order.
-type GetBeforeItems func(sorting *list.List, current interface{}) (*list.List, error)
+type GetBeforeItems func(sorting *list.List, current interface{}) *list.List
 
 // TripleSort performs a three-way sort (processing, toSort, sorted)
 // to resolve dependencies and return a sorted list.
@@ -75,10 +75,7 @@ func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
 	}
 
 	// Retrieve dependencies for the current item.
-	l, err := fn(sorting, current)
-	if err != nil {
-		return err
-	}
+	l := fn(sorting, current)
 
 	// Add the current item to the processing list to mark it as being processed.
 	processing.PushBack(current)
@@ -98,7 +95,7 @@ func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
 
 		// If the dependency is not sorted but still needs sorting, process it recursively.
 		if !inSorted && inToSort {
-			err = tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
+			err := tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
 			if err != nil {
 				return err
 			}
