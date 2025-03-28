@@ -18,7 +18,6 @@ package gs_dync
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -29,8 +28,22 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 )
 
+// noCopy may be added to structs which must not be copied
+// after the first use.
+//
+// See https://golang.org/issues/8005#issuecomment-190753527
+// for details.
+//
+// Note that it must not be embedded, due to the Lock and Unlock methods.
+type noCopy struct{}
+
+// Lock is a no-op used by -copylocks checker from `go vet`.
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
+
 // Value represents a thread-safe object that can dynamically refresh its value.
 type Value[T any] struct {
+	_ noCopy
 	v atomic.Value
 }
 
@@ -109,21 +122,23 @@ func (p *Properties) Refresh(prop conf.Properties) (err error) {
 	old := p.prop
 	p.prop = prop
 
-	oldKeys := old.Keys()
-	newKeys := prop.Keys()
+	oldKeys := make(map[string]struct{})
+	for _, k := range old.Keys() {
+		oldKeys[k] = struct{}{}
+	}
 
 	changes := make(map[string]struct{})
-	{
-		for _, k := range newKeys {
-			if !old.Has(k) || old.Get(k) != prop.Get(k) {
-				changes[k] = struct{}{}
+	for _, k := range prop.Keys() {
+		if _, ok := oldKeys[k]; ok {
+			delete(oldKeys, k)
+			if old.Get(k) == prop.Get(k) {
+				continue
 			}
 		}
-		for _, k := range oldKeys {
-			if _, ok := changes[k]; !ok {
-				changes[k] = struct{}{}
-			}
-		}
+		changes[k] = struct{}{}
+	}
+	for k := range oldKeys {
+		changes[k] = struct{}{}
 	}
 
 	keys := make([]string, 0, len(changes))
@@ -193,7 +208,7 @@ func (e *Errors) Error() string {
 	for i, err := range e.arr {
 		sb.WriteString(err.Error())
 		if i < len(e.arr)-1 {
-			sb.WriteString("\n")
+			sb.WriteString("; ")
 		}
 	}
 	return sb.String()
@@ -203,42 +218,13 @@ func (e *Errors) Error() string {
 func (p *Properties) refreshObjects(objects []*refreshObject) error {
 	ret := &Errors{}
 	for _, obj := range objects {
-		err := p.safeRefreshObject(obj)
+		err := obj.target.OnRefresh(p.prop, obj.param)
 		ret.Append(err)
 	}
 	if ret.Len() == 0 {
 		return nil
 	}
 	return ret
-}
-
-// safeRefreshObject refreshes an object and recovers from panics.
-func (p *Properties) safeRefreshObject(obj *refreshObject) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
-	return obj.target.OnRefresh(p.prop, obj.param)
-}
-
-// RefreshBean refreshes a single refreshable object.
-// Optionally registers the object as refreshable if watch is true.
-func (p *Properties) RefreshBean(v gs.Refreshable, param conf.BindParam, watch bool) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	return p.doRefresh(v, param, watch)
-}
-
-// doRefresh performs the refresh operation and registers the object if watch is enabled.
-func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch bool) error {
-	if watch {
-		p.objects = append(p.objects, &refreshObject{
-			target: v,
-			param:  param,
-		})
-	}
-	return v.OnRefresh(p.prop, param)
 }
 
 // filter is used to selectively refresh objects and fields.
@@ -271,4 +257,23 @@ func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam, watch b
 		}
 	}
 	return conf.BindValue(p.prop, v.Elem(), v.Elem().Type(), param, f)
+}
+
+// RefreshBean refreshes a single refreshable object.
+// Optionally registers the object as refreshable if watch is true.
+func (p *Properties) RefreshBean(v gs.Refreshable, param conf.BindParam, watch bool) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.doRefresh(v, param, watch)
+}
+
+// doRefresh performs the refresh operation and registers the object if watch is enabled.
+func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch bool) error {
+	if watch {
+		p.objects = append(p.objects, &refreshObject{
+			target: v,
+			param:  param,
+		})
+	}
+	return v.OnRefresh(p.prop, param)
 }
