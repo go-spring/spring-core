@@ -53,7 +53,7 @@ func TestProperties_Get(t *testing.T) {
 
 		err := p.Set("a.b.c", "3")
 		assert.Nil(t, err)
-		err = p.Set("a.b.d", []string{"3"})
+		err = p.Merge(map[string]interface{}{"a.b.d": []string{"3"}})
 		assert.Nil(t, err)
 
 		v := p.Get("a.b.c")
@@ -61,25 +61,27 @@ func TestProperties_Get(t *testing.T) {
 		v = p.Get("a.b.d[0]")
 		assert.Equal(t, v, "3")
 
-		err = p.Set("Bool", true)
+		err = p.Merge(map[string]interface{}{"Bool": true})
 		assert.Nil(t, err)
-		err = p.Set("Int", 3)
+		err = p.Set("Int", "3")
 		assert.Nil(t, err)
-		err = p.Set("Uint", 3)
+		err = p.Set("Uint", "3")
 		assert.Nil(t, err)
-		err = p.Set("Float", 3.0)
+		err = p.Set("Float", "3.0")
 		assert.Nil(t, err)
 		err = p.Set("String", "3")
 		assert.Nil(t, err)
 		err = p.Set("Duration", "3s")
 		assert.Nil(t, err)
-		err = p.Set("StringSlice", []string{"3", "4"})
+		err = p.Merge(map[string]interface{}{"StringSlice": []string{"3", "4"}})
 		assert.Nil(t, err)
 		err = p.Set("Time", "2020-02-04 20:02:04")
 		assert.Nil(t, err)
-		err = p.Set("MapStringInterface", []interface{}{
-			map[interface{}]interface{}{
-				"1": 2,
+		err = p.Merge(map[string]interface{}{
+			"MapStringInterface": []interface{}{
+				map[interface{}]interface{}{
+					"1": 2,
+				},
 			},
 		})
 		assert.Nil(t, err)
@@ -157,7 +159,7 @@ func TestProperties_Get(t *testing.T) {
 	})
 
 	t.Run("slice slice", func(t *testing.T) {
-		p, err := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]interface{}{
 			"a": []interface{}{
 				[]interface{}{1, 2},
 				[]interface{}{3, 4},
@@ -167,7 +169,6 @@ func TestProperties_Get(t *testing.T) {
 				},
 			},
 		})
-		assert.Nil(t, err)
 		v := p.Get("a[0][0]")
 		assert.Equal(t, v, "1")
 		v = p.Get("a[0][1]")
@@ -200,7 +201,7 @@ func TestProperties_Ref(t *testing.T) {
 	t.Run("not config", func(t *testing.T) {
 		p := conf.New()
 		err := p.Bind(&httpLog)
-		assert.Error(t, err, "property key=app.dir not exist")
+		assert.Error(t, err, "property app.dir not exist")
 	})
 
 	t.Run("config", func(t *testing.T) {
@@ -238,7 +239,9 @@ func TestProperties_Ref(t *testing.T) {
 
 func TestBindSlice(t *testing.T) {
 	p := conf.New()
-	p.Set("a", []string{"1", "2"})
+	p.Merge(map[string]interface{}{
+		"a": []string{"1", "2"},
+	})
 	var ss []string
 	err := p.Bind(&ss, "${a}")
 	if err != nil {
@@ -278,25 +281,22 @@ func TestBindMap(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
 		var r map[string][3]map[string]string
-		p, err := conf.Map(m)
-		assert.Nil(t, err)
-		err = p.Bind(&r)
+		p := conf.Map(m)
+		err := p.Bind(&r)
 		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
 		var r map[string][]map[string]string
-		p, err := conf.Map(m)
-		assert.Nil(t, err)
-		err = p.Bind(&r)
+		p := conf.Map(m)
+		err := p.Bind(&r)
 		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
 	t.Run("", func(t *testing.T) {
 		var r map[string]map[string]map[string]string
-		p, err := conf.Map(m)
-		assert.Nil(t, err)
-		err = p.Bind(&r)
+		p := conf.Map(m)
+		err := p.Bind(&r)
 		assert.Error(t, err, "bind path=.* type=.* error: target should be value type")
 	})
 
@@ -306,19 +306,17 @@ func TestBindMap(t *testing.T) {
 			B2 string `value:"${b2}"`
 			B3 string `value:"${b3}"`
 		}
-		p, err := conf.Map(m)
-		assert.Nil(t, err)
-		err = p.Bind(&r)
+		p := conf.Map(m)
+		err := p.Bind(&r)
 		assert.Nil(t, err)
 		assert.Equal(t, r["a"].B1, "ab1")
 	})
 
 	t.Run("", func(t *testing.T) {
-		p, err := conf.Map(map[string]interface{}{"a.b1": "ab1"})
-		assert.Nil(t, err)
+		p := conf.Map(map[string]interface{}{"a.b1": "ab1"})
 		var r map[string]string
-		err = p.Bind(&r)
-		assert.Error(t, err, "bind path=map\\[string]string type=string error << property key=a isn't simple value")
+		err := p.Bind(&r)
+		assert.Error(t, err, "bind path=map\\[string]string type=string error << property a isn't simple value")
 	})
 
 	t.Run("", func(t *testing.T) {
@@ -327,11 +325,10 @@ func TestBindMap(t *testing.T) {
 			B map[string]string `value:"${b}"`
 		}
 		var r S
-		p, err := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]interface{}{
 			"a": "1", "b": 2,
 		})
-		assert.Nil(t, err)
-		err = p.Bind(&r)
+		err := p.Bind(&r)
 		assert.Error(t, err, "bind path=S\\.A type=map\\[string]string error << property 'a' is value")
 	})
 
@@ -340,9 +337,8 @@ func TestBindMap(t *testing.T) {
 			A map[string]string `value:"${a}"`
 			B map[string]string `value:"${b}"`
 		}
-		p, err := conf.Map(m)
-		assert.Nil(t, err)
-		err = p.Bind(&r)
+		p := conf.Map(m)
+		err := p.Bind(&r)
 		assert.Nil(t, err)
 		assert.Equal(t, r.A["b1"], "ab1")
 	})
@@ -365,11 +361,10 @@ func TestResolve(t *testing.T) {
 }
 
 func TestProperties_Has(t *testing.T) {
-	p, err := conf.Map(map[string]interface{}{
+	p := conf.Map(map[string]interface{}{
 		"a.b.c": "3",
 		"a.b.d": []string{"7", "8"},
 	})
-	assert.Nil(t, err)
 	assert.True(t, p.Has("a"))
 	assert.False(t, p.Has("a[0]"))
 	assert.True(t, p.Has("a.b"))
@@ -387,62 +382,84 @@ func TestProperties_Set(t *testing.T) {
 	t.Run("map nil", func(t *testing.T) {
 
 		p := conf.New()
-		err := p.Set("m", nil)
+		err := p.Merge(map[string]interface{}{"m": nil})
 		assert.Nil(t, err)
 		assert.False(t, p.Has("m"))
 		assert.Equal(t, p.Get("m"), "")
 
-		err = p.Set("m", map[string]string{"a": "b"})
+		err = p.Merge(map[string]interface{}{
+			"m": map[string]string{"a": "b"},
+		})
 		assert.Nil(t, err)
 		assert.Equal(t, p.Keys(), []string{"m.a"})
 
-		err = p.Set("m", 1)
+		err = p.Set("m", "1")
 		assert.Error(t, err, "property 'm' is a map but 'm' wants other type")
 
-		err = p.Set("m", []string{"b"})
+		err = p.Merge(map[string]interface{}{
+			"m": []string{"b"},
+		})
 		assert.Error(t, err, "property 'm' is a map but 'm\\[0]' wants other type")
 	})
 
 	t.Run("map empty", func(t *testing.T) {
 		p := conf.New()
-		err := p.Set("m", map[string]string{})
+		err := p.Merge(map[string]interface{}{
+			"m": map[string]string{},
+		})
 		assert.Nil(t, err)
 		assert.True(t, p.Has("m"))
 		assert.Equal(t, p.Get("m"), "")
-		err = p.Set("m", map[string]string{"a": "b"})
+		err = p.Merge(map[string]interface{}{
+			"m": map[string]string{"a": "b"},
+		})
 		assert.Nil(t, err)
 		assert.Equal(t, p.Keys(), []string{"m.a"})
 	})
 
 	t.Run("list nil", func(t *testing.T) {
 		p := conf.New()
-		err := p.Set("a", nil)
+		err := p.Merge(map[string]interface{}{
+			"a": nil,
+		})
 		assert.Nil(t, err)
 		assert.False(t, p.Has("a"))
 		assert.Equal(t, p.Get("a"), "")
-		err = p.Set("a", []string{"b"})
+		err = p.Merge(map[string]interface{}{
+			"a": []string{"b"},
+		})
 		assert.Nil(t, err)
 		assert.Equal(t, p.Keys(), []string{"a[0]"})
 	})
 
 	t.Run("list empty", func(t *testing.T) {
 		p := conf.New()
-		err := p.Set("a", []string{})
+		err := p.Merge(map[string]interface{}{
+			"a": []string{},
+		})
 		assert.Nil(t, err)
 		assert.True(t, p.Has("a"))
 		assert.Equal(t, p.Get("a"), "")
-		err = p.Set("a", []string{"b"})
+		err = p.Merge(map[string]interface{}{
+			"a": []string{"b"},
+		})
 		assert.Nil(t, err)
 		assert.Equal(t, p.Keys(), []string{"a[0]"})
 	})
 
 	t.Run("list", func(t *testing.T) {
 		p := conf.New()
-		err := p.Set("a", []string{"a", "aa", "aaa"})
+		err := p.Merge(map[string]interface{}{
+			"a": []string{"a", "aa", "aaa"},
+		})
 		assert.Nil(t, err)
-		err = p.Set("b", []int{1, 11, 111})
+		err = p.Merge(map[string]interface{}{
+			"b": []int{1, 11, 111},
+		})
 		assert.Nil(t, err)
-		err = p.Set("c", []float32{1, 1.1, 1.11})
+		err = p.Merge(map[string]interface{}{
+			"c": []float32{1, 1.1, 1.11},
+		})
 		assert.Nil(t, err)
 		assert.Equal(t, p.Get("a[0]"), "a")
 		assert.Equal(t, p.Get("a[1]"), "aa")

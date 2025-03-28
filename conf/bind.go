@@ -411,12 +411,12 @@ func resolve(p Properties, param BindParam) (string, error) {
 		return resolveString(p, val)
 	}
 	if p.Has(param.Key) {
-		return "", fmt.Errorf("property key=%s isn't simple value", param.Key)
+		return "", fmt.Errorf("property %s isn't simple value", param.Key)
 	}
 	if param.Tag.HasDef {
 		return resolveString(p, param.Tag.Def)
 	}
-	return "", fmt.Errorf("property key=%s %w", param.Key, ErrNotExist)
+	return "", fmt.Errorf("property %s %w", param.Key, ErrNotExist)
 }
 
 // resolveString returns property references processed string.

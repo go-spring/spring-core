@@ -131,12 +131,10 @@ func New() *MutableProperties {
 }
 
 // Map creates *MutableProperties from map.
-func Map(m map[string]interface{}) (*MutableProperties, error) {
+func Map(m map[string]interface{}) *MutableProperties {
 	p := New()
-	if err := p.Merge(m); err != nil {
-		return nil, err
-	}
-	return p, nil
+	_ = p.Merge(m)
+	return p
 }
 
 // Load creates *MutableProperties from file.
@@ -172,10 +170,10 @@ func (p *MutableProperties) Bytes(b []byte, ext string) error {
 
 // Merge flattens the map and sets all keys and values.
 func (p *MutableProperties) Merge(m map[string]interface{}) error {
-	s := util.FlattenMap(m)
-	return p.merge(s)
+	return p.merge(util.FlattenMap(m))
 }
 
+// merge flattens the map and sets all keys and values.
 func (p *MutableProperties) merge(m map[string]string) error {
 	for key, val := range m {
 		if err := p.storage.Set(key, val); err != nil {
@@ -219,13 +217,8 @@ func (p *MutableProperties) Get(key string, def ...string) string {
 // means when you set a slice or a map, an existing path will remain
 // when it doesn't exist in the slice or map even they share a same
 // prefix path.
-func (p *MutableProperties) Set(key string, val interface{}) error {
-	if key == "" {
-		return errors.New("key is empty")
-	}
-	m := make(map[string]string)
-	util.FlattenValue(key, val, m)
-	return p.merge(m)
+func (p *MutableProperties) Set(key string, val string) error {
+	return p.storage.Set(key, val)
 }
 
 // Resolve resolves string value that contains references to other

@@ -30,13 +30,10 @@ func TestExpr(t *testing.T) {
 	var i struct {
 		A int `value:"${a}" expr:"checkInt($)"`
 	}
-	p, err := conf.Map(map[string]interface{}{
+	p := conf.Map(map[string]interface{}{
 		"a": 4,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = p.Bind(&i); err != nil {
+	if err := p.Bind(&i); err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, 4, i.A)
