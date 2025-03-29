@@ -69,22 +69,19 @@ var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f          *gs_arg.Callable
-	init       gs.BeanInitFunc
-	destroy    gs.BeanDestroyFunc
-	dependsOn  []gs.BeanSelector
-	exports    []reflect.Type
-	conditions []gs.Condition
-	status     BeanStatus
-
-	file string
-	line int
+	f           *gs_arg.Callable
+	init        gs.BeanInitFunc
+	destroy     gs.BeanDestroyFunc
+	dependsOn   []gs.BeanSelector
+	exports     []reflect.Type
+	conditions  []gs.Condition
+	status      BeanStatus
+	fileLine    string
+	refreshable bool
+	refreshTag  string
 
 	configurationBean  bool
 	configurationParam gs.ConfigurationParam
-
-	refreshable bool
-	refreshTag  string
 }
 
 // validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
@@ -175,17 +172,17 @@ func (d *BeanMetadata) RefreshTag() string {
 // SetCaller sets the caller for the bean.
 func (d *BeanMetadata) SetCaller(skip int) {
 	_, file, line, _ := runtime.Caller(skip)
-	d.file, d.line = file, line
+	d.SetFileLine(file, line)
 }
 
 // FileLine returns the file and line number for the bean.
-func (d *BeanMetadata) FileLine() (string, int) {
-	return d.file, d.line
+func (d *BeanMetadata) FileLine() string {
+	return d.fileLine
 }
 
 // SetFileLine sets the file and line number for the bean.
 func (d *BeanMetadata) SetFileLine(file string, line int) {
-	d.file, d.line = file, line
+	d.fileLine = fmt.Sprintf("%s:%d", file, line)
 }
 
 // BeanRuntime holds runtime information about the bean.
@@ -328,7 +325,7 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
 			panic("only interface type can be exported")
 		}
 		if !d.Type().Implements(t) {
-			panic(fmt.Sprintf("%s doesn't implement interface %s", d, t))
+			panic(fmt.Sprintf("doesn't implement interface %s", t))
 		}
 		exported := false
 		for _, export := range d.exports {
@@ -355,7 +352,7 @@ func (d *BeanDefinition) SetRefreshable(tag string) {
 
 // OnProfiles sets the conditions for the bean based on the active profiles.
 func (d *BeanDefinition) OnProfiles(profiles string) {
-	c := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+	d.SetCondition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
 		val := strings.TrimSpace(ctx.Prop("spring.profiles.active"))
 		if val == "" {
 			return false, nil
@@ -369,8 +366,7 @@ func (d *BeanDefinition) OnProfiles(profiles string) {
 			}
 		}
 		return false, nil
-	})
-	d.conditions = append(d.conditions, c)
+	}))
 }
 
 // TypeAndName returns the type and name of the bean.
@@ -380,5 +376,5 @@ func (d *BeanDefinition) TypeAndName() (reflect.Type, string) {
 
 // String returns a string representation of the bean.
 func (d *BeanDefinition) String() string {
-	return fmt.Sprintf("name:%q %s:%d", d.name, d.file, d.line)
+	return fmt.Sprintf("name=%s %s", d.name, d.fileLine)
 }
