@@ -142,7 +142,7 @@ func TestArgList_New(t *testing.T) {
 			Value("test"),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.Error(t, err, "NewArgList error << all arguments must either have indexes or not have indexes")
+		assert.Error(t, err, "NewArgList error << arguments must be all indexed or non-indexed")
 	})
 
 	t.Run("mixed non-index and index args", func(t *testing.T) {
@@ -152,7 +152,7 @@ func TestArgList_New(t *testing.T) {
 			Index(1, Value("test")),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.Error(t, err, "NewArgList error << all arguments must either have indexes or not have indexes")
+		assert.Error(t, err, "NewArgList error << arguments must be all indexed or non-indexed")
 	})
 
 	t.Run("invalid argument index - 1", func(t *testing.T) {
@@ -340,7 +340,7 @@ func TestCallable_Call(t *testing.T) {
 
 	t.Run("error in get arg value", func(t *testing.T) {
 		fn := func(a int, b string) (string, error) {
-			return "", errors.New("execution error")
+			return "", nil
 		}
 		args := []gs.Arg{
 			Value(1),
@@ -364,8 +364,9 @@ func TestCallable_Call(t *testing.T) {
 		assert.Nil(t, err)
 
 		ctx := gs.NewMockArgContext(nil)
-		_, err = callable.Call(ctx)
+		v, err := callable.Call(ctx)
 		assert.Nil(t, err)
+		assert.Equal(t, len(v), 0)
 	})
 
 	t.Run("function return error", func(t *testing.T) {
@@ -387,7 +388,7 @@ func TestCallable_Call(t *testing.T) {
 		assert.Equal(t, "execution error", v[1].Interface().(error).Error())
 	})
 
-	t.Run("function return no error", func(t *testing.T) {
+	t.Run("success - 1", func(t *testing.T) {
 		fn := func(a int, b string) (string, error) {
 			return fmt.Sprintf("%d-%s", a, b), nil
 		}
@@ -401,10 +402,11 @@ func TestCallable_Call(t *testing.T) {
 		ctx := gs.NewMockArgContext(nil)
 		v, err := callable.Call(ctx)
 		assert.Nil(t, err)
+		assert.Equal(t, len(v), 2)
 		assert.Equal(t, "1-test", v[0].Interface().(string))
 	})
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("success - 2", func(t *testing.T) {
 		fn := func(a int, b string) string {
 			return fmt.Sprintf("%d-%s", a, b)
 		}
@@ -418,6 +420,7 @@ func TestCallable_Call(t *testing.T) {
 		ctx := gs.NewMockArgContext(nil)
 		v, err := callable.Call(ctx)
 		assert.Nil(t, err)
+		assert.Equal(t, len(v), 1)
 		assert.Equal(t, "1-test", v[0].Interface().(string))
 	})
 
@@ -436,6 +439,7 @@ func TestCallable_Call(t *testing.T) {
 		ctx := gs.NewMockArgContext(nil)
 		v, err := callable.Call(ctx)
 		assert.Nil(t, err)
+		assert.Equal(t, len(v), 1)
 		assert.Equal(t, "1-test1,test2", v[0].Interface().(string))
 	})
 }
@@ -477,7 +481,7 @@ func TestBindArg_Bind(t *testing.T) {
 		}
 		assert.Panic(t, func() {
 			Bind(fn, args...)
-		}, "NewArgList error << all arguments must either have indexes or not have indexes")
+		}, "NewArgList error << arguments must be all indexed or non-indexed")
 	})
 
 	t.Run("success - 1", func(t *testing.T) {
@@ -489,7 +493,7 @@ func TestBindArg_Bind(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		assert.Matches(t, arg.fileline, "gs/internal/gs_arg/arg_test.go:491")
+		assert.Matches(t, arg.fileline, "gs/internal/gs_arg/arg_test.go:495")
 	})
 
 	t.Run("success - 2", func(t *testing.T) {
@@ -501,7 +505,7 @@ func TestBindArg_Bind(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		assert.Matches(t, arg.fileline, "gs/internal/gs_arg/arg_test.go:503")
+		assert.Matches(t, arg.fileline, "gs/internal/gs_arg/arg_test.go:507")
 	})
 }
 

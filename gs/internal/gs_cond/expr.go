@@ -22,21 +22,21 @@ import (
 	"github.com/expr-lang/expr"
 )
 
-// funcMap holds a map of function names to their implementations.
-// These functions can be used within expressions passed to EvalExpr.
+// funcMap stores registered functions that can be referenced in expressions.
+// These functions are available for use in all expressions evaluated by EvalExpr.
 var funcMap = map[string]interface{}{}
 
-// RegisterExpressFunc registers an express function with a specified name.
-// The function can later be used in expressions evaluated by EvalExpr.
+// RegisterExpressFunc registers a function under the given name, making it available
+// for use in expressions evaluated by EvalExpr. Functions must be registered before
+// they are referenced in any expression.
 func RegisterExpressFunc(name string, fn interface{}) {
 	funcMap[name] = fn
 }
 
-// EvalExpr evaluates a given boolean expression (input) using the provided value (val).
-// The `input` parameter is a string that represents an expression expected to return a
-// boolean value. The `val` parameter is the data object that will be referred to as "$"
-// within the expression context.
-func EvalExpr(input string, val interface{}) (bool, error) {
+// EvalExpr evaluates a boolean expression using the provided value as the "$" variable.
+// `input` is a boolean expression string to evaluate, it must return a boolean result.
+// `val` is a string value accessible as "$" within the expression context.
+func EvalExpr(input string, val string) (bool, error) {
 	env := map[string]interface{}{"$": val}
 	for k, v := range funcMap {
 		env[k] = v

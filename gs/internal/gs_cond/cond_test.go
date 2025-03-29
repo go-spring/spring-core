@@ -104,23 +104,17 @@ func TestConditionString(t *testing.T) {
 func TestOnFunc(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		fn := func(ctx gs.CondContext) (bool, error) { return true, nil }
 		cond := OnFunc(fn)
-		ok, err := cond.Matches(ctx)
+		ok, err := cond.Matches(nil)
 		assert.True(t, ok)
 		assert.Nil(t, err)
 	})
 
 	t.Run("error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		fn := func(ctx gs.CondContext) (bool, error) { return false, errors.New("test error") }
 		cond := OnFunc(fn)
-		_, err := cond.Matches(ctx)
+		_, err := cond.Matches(nil)
 		assert.Error(t, err, "test error")
 	})
 }
@@ -179,7 +173,7 @@ func TestOnProperty(t *testing.T) {
 			ctx := gs.NewMockCondContext(ctrl)
 			ctx.EXPECT().Has("test.prop").Return(true)
 			ctx.EXPECT().Prop("test.prop").Return("42")
-			cond := OnProperty("test.prop").HavingValue("expr:$ == \"42\"")
+			cond := OnProperty("test.prop").HavingValue(`expr:$ == "42"`)
 			ok, _ := cond.Matches(ctx)
 			assert.True(t, ok)
 		})
@@ -371,31 +365,20 @@ func TestAnd(t *testing.T) {
 	})
 
 	t.Run("one condition", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		cond := And(trueCond)
-		ok, err := cond.Matches(ctx)
-		assert.Nil(t, err)
-		assert.True(t, ok)
+		assert.Equal(t, trueCond, cond)
 	})
 
 	t.Run("two conditions | true", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		cond := And(trueCond, trueCond)
-		ok, err := cond.Matches(ctx)
+		ok, err := cond.Matches(nil)
 		assert.Nil(t, err)
 		assert.True(t, ok)
 	})
 
 	t.Run("two conditions | false", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		cond := And(trueCond, falseCond)
-		ok, err := cond.Matches(ctx)
+		ok, err := cond.Matches(nil)
 		assert.Nil(t, err)
 		assert.False(t, ok)
 	})
@@ -420,31 +403,20 @@ func TestOr(t *testing.T) {
 	})
 
 	t.Run("one condition", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		cond := Or(trueCond)
-		ok, err := cond.Matches(ctx)
-		assert.Nil(t, err)
-		assert.True(t, ok)
+		assert.Equal(t, trueCond, cond)
 	})
 
 	t.Run("two conditions | true", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		cond := Or(trueCond, falseCond)
-		ok, err := cond.Matches(ctx)
+		ok, err := cond.Matches(nil)
 		assert.Nil(t, err)
 		assert.True(t, ok)
 	})
 
 	t.Run("two conditions | false", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		cond := Or(falseCond, falseCond)
-		ok, err := cond.Matches(ctx)
+		ok, err := cond.Matches(nil)
 		assert.Nil(t, err)
 		assert.False(t, ok)
 	})
@@ -469,31 +441,22 @@ func TestNone(t *testing.T) {
 	})
 
 	t.Run("one condition", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
 		cond := None(trueCond)
-		ok, err := cond.Matches(ctx)
-		assert.Nil(t, err)
-		assert.False(t, ok)
-	})
-
-	t.Run("two conditions | true", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
-		cond := None(trueCond, falseCond)
-		ok, err := cond.Matches(ctx)
+		ok, err := cond.Matches(nil)
 		assert.Nil(t, err)
 		assert.False(t, ok)
 	})
 
 	t.Run("two conditions | false", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		cond := None(trueCond, falseCond)
+		ok, err := cond.Matches(nil)
+		assert.Nil(t, err)
+		assert.False(t, ok)
+	})
+
+	t.Run("two conditions | true", func(t *testing.T) {
 		cond := None(falseCond, falseCond)
-		ok, err := cond.Matches(ctx)
+		ok, err := cond.Matches(nil)
 		assert.Nil(t, err)
 		assert.True(t, ok)
 	})

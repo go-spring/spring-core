@@ -24,17 +24,17 @@ import (
 )
 
 func TestEvalExpr(t *testing.T) {
-	_, err := EvalExpr("$", 3)
+	_, err := EvalExpr("$", "3")
 	assert.Error(t, err, "doesn't return bool value")
 
-	ok, err := EvalExpr("$==3", 3)
+	ok, err := EvalExpr("int($)==3", "3")
 	assert.Nil(t, err)
 	assert.True(t, ok)
 
-	RegisterExpressFunc("check", func(s string, i int) bool {
+	RegisterExpressFunc("equal", func(s string, i int) bool {
 		return s == strconv.Itoa(i)
 	})
-	ok, err = EvalExpr("check($,9)", "9")
+	ok, err = EvalExpr("equal($,9)", "9")
 	assert.Nil(t, err)
 	assert.True(t, ok)
 }
