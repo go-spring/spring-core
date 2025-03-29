@@ -124,11 +124,10 @@ func TestEnvironment(t *testing.T) {
 		defer func() {
 			_ = os.Unsetenv("GS_DB_HOST")
 		}()
-		props, err := conf.Map(map[string]interface{}{
+		props := conf.Map(map[string]interface{}{
 			"db": []string{"db2"},
 		})
-		assert.Nil(t, err)
-		err = NewEnvironment().CopyTo(props)
+		err := NewEnvironment().CopyTo(props)
 		assert.Error(t, err, "property 'db' is an array but 'db.host' wants other type")
 	})
 }

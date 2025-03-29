@@ -176,6 +176,7 @@ func NewPropertySources(configType ConfigType, configName string) *PropertySourc
 // Reset resets all the extra files.
 func (p *PropertySources) Reset() {
 	p.extraFiles = nil
+	p.extraDirs = nil
 }
 
 // AddDir adds a or more than one extra directories.
@@ -183,7 +184,10 @@ func (p *PropertySources) AddDir(dirs ...string) {
 	for _, d := range dirs {
 		info, err := os.Stat(d)
 		if err != nil {
-			panic(err)
+			if !os.IsNotExist(err) {
+				panic(err)
+			}
+			continue
 		}
 		if !info.IsDir() {
 			panic("should be a directory")
@@ -197,7 +201,10 @@ func (p *PropertySources) AddFile(files ...string) {
 	for _, f := range files {
 		info, err := os.Stat(f)
 		if err != nil {
-			panic(err)
+			if !os.IsNotExist(err) {
+				panic(err)
+			}
+			continue
 		}
 		if info.IsDir() {
 			panic("should be a file")
@@ -208,11 +215,12 @@ func (p *PropertySources) AddFile(files ...string) {
 
 // getDefaultDir returns the default configuration directory based on the configuration type.
 func (p *PropertySources) getDefaultDir(resolver conf.Properties) (configDir string, err error) {
-	if p.configType == ConfigTypeLocal {
-		return resolver.Resolve("${spring.app.config.dir:=./conf}")
-	} else if p.configType == ConfigTypeRemote {
-		return resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
-	} else {
+	switch p.configType {
+	case ConfigTypeLocal:
+		return resolver.Resolve("${spring.app.config-local.dir:=./conf}")
+	case ConfigTypeRemote:
+		return resolver.Resolve("${spring.app.config-remote.dir:=./conf/remote}")
+	default:
 		return "", fmt.Errorf("unknown config type: %s", p.configType)
 	}
 }
@@ -231,6 +239,7 @@ func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []st
 	if err != nil {
 		return nil, err
 	}
+
 	if activeProfiles = strings.TrimSpace(activeProfiles); activeProfiles != "" {
 		ss := strings.Split(activeProfiles, ",")
 		for _, s := range ss {
@@ -249,25 +258,21 @@ func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []st
 
 // loadFiles loads all configuration files and returns them as a list of Properties.
 func (p *PropertySources) loadFiles(resolver conf.Properties) ([]conf.Properties, error) {
-	var files []string
-	{
-		defaultDir, err := p.getDefaultDir(resolver)
-		if err != nil {
-			return nil, err
-		}
-		tempFiles, err := p.getFiles(defaultDir, resolver)
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, tempFiles...)
-	}
 
-	for _, dir := range p.extraDirs {
-		tempFiles, err := p.getFiles(dir, resolver)
+	defaultDir, err := p.getDefaultDir(resolver)
+	if err != nil {
+		return nil, err
+	}
+	dirs := append([]string{defaultDir}, p.extraDirs...)
+
+	var files []string
+	for _, dir := range dirs {
+		var temp []string
+		temp, err = p.getFiles(dir, resolver)
 		if err != nil {
 			return nil, err
 		}
-		files = append(files, tempFiles...)
+		files = append(files, temp...)
 	}
 	files = append(files, p.extraFiles...)
 

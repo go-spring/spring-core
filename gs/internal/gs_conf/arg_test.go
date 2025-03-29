@@ -65,11 +65,10 @@ func TestCommandArgs(t *testing.T) {
 	t.Run("set return error", func(t *testing.T) {
 		os.Args = []string{"test", "-D", "name=go-spring", "-D", "debug"}
 
-		p, err := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]interface{}{
 			"debug": []string{"true"},
 		})
-		assert.Nil(t, err)
-		err = NewCommandArgs().CopyTo(p)
+		err := NewCommandArgs().CopyTo(p)
 		assert.Error(t, err, "property 'debug' is an array but 'debug' wants other type")
 	})
 
