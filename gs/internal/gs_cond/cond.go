@@ -18,7 +18,6 @@ package gs_cond
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -97,35 +96,14 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 		return c.matchIfMissing, nil
 	}
 
-	// If there's no expected value to match, simply return true (property exists).
-	if c.havingValue == "" {
-		return true, nil
-	}
-
 	// Retrieve the property's value and compare it with the expected value.
 	val := ctx.Prop(c.name)
 	if !strings.HasPrefix(c.havingValue, "expr:") {
 		return val == c.havingValue, nil
 	}
 
-	getValue := func(val string) interface{} {
-		if b, err := strconv.ParseBool(val); err == nil {
-			return b
-		}
-		if i, err := strconv.ParseInt(val, 10, 64); err == nil {
-			return i
-		}
-		if u, err := strconv.ParseUint(val, 10, 64); err == nil {
-			return u
-		}
-		if f, err := strconv.ParseFloat(val, 64); err == nil {
-			return f
-		}
-		return val
-	}
-
 	// Evaluate the expression and return the result.
-	ok, err := EvalExpr(c.havingValue[5:], getValue(val))
+	ok, err := EvalExpr(c.havingValue[5:], val)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
@@ -141,7 +119,7 @@ func (c *onProperty) String() string {
 		sb.WriteString(c.havingValue)
 	}
 	if c.matchIfMissing {
-		sb.WriteString(", matchIfMissing=true")
+		sb.WriteString(", matchIfMissing")
 	}
 	sb.WriteString(")")
 	return sb.String()

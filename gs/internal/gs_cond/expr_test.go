@@ -25,6 +25,9 @@ import (
 )
 
 func TestEvalExpr(t *testing.T) {
+	_, err := gs_cond.EvalExpr("$", 3)
+	assert.Error(t, err, "doesn't return bool value")
+
 	ok, err := gs_cond.EvalExpr("$==3", 3)
 	assert.Nil(t, err)
 	assert.True(t, ok)
