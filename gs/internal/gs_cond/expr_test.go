@@ -14,28 +14,27 @@
  * limitations under the License.
  */
 
-package gs_cond_test
+package gs_cond
 
 import (
 	"strconv"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestEvalExpr(t *testing.T) {
-	_, err := gs_cond.EvalExpr("$", 3)
+	_, err := EvalExpr("$", 3)
 	assert.Error(t, err, "doesn't return bool value")
 
-	ok, err := gs_cond.EvalExpr("$==3", 3)
+	ok, err := EvalExpr("$==3", 3)
 	assert.Nil(t, err)
 	assert.True(t, ok)
 
-	gs_cond.RegisterExpressFunc("check", func(s string, i int) bool {
+	RegisterExpressFunc("check", func(s string, i int) bool {
 		return s == strconv.Itoa(i)
 	})
-	ok, err = gs_cond.EvalExpr("check($,9)", "9")
+	ok, err = EvalExpr("check($,9)", "9")
 	assert.Nil(t, err)
 	assert.True(t, ok)
 }

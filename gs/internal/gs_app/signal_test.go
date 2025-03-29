@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package gs_app_test
+package gs_app
 
 import (
 	"sync"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
@@ -29,7 +28,7 @@ func TestReadySignal(t *testing.T) {
 	t.Run("intercept", func(t *testing.T) {
 		const workers = 3
 
-		signal := gs_app.NewReadySignal()
+		signal := NewReadySignal()
 		for i := 0; i < workers; i++ {
 			num := i
 			signal.Add()
@@ -53,7 +52,7 @@ func TestReadySignal(t *testing.T) {
 		wg.Add(workers)
 		defer wg.Wait()
 
-		signal := gs_app.NewReadySignal()
+		signal := NewReadySignal()
 		for i := 0; i < workers; i++ {
 			signal.Add()
 			go func() {

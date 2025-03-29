@@ -205,22 +205,24 @@ func TestValueTag(t *testing.T) {
 	c := gs_core.New()
 
 	p := conf.New()
-	p.Set("int", int(3))
-	p.Set("uint", uint(3))
-	p.Set("float", float32(3))
-	p.Set("complex", complex(3, 0))
+	p.Set("int", "3")
+	p.Set("uint", "3")
+	p.Set("float", "3")
+	//p.Set("complex", complex(3, 0))
 	p.Set("string", "3")
-	p.Set("bool", true)
+	p.Set("bool", "true")
 
 	setting := &Setting{}
 	c.Object(setting)
 
-	p.Set("sub.int", int(4))
-	p.Set("sub.sub.int", int(5))
-	p.Set("sub_sub.int", int(6))
+	p.Set("sub.int", "4")
+	p.Set("sub.sub.int", "5")
+	p.Set("sub_sub.int", "6")
 
-	p.Set("int_slice", []int{1, 2})
-	p.Set("string_slice", []string{"1", "2"})
+	p.Set("int_slice[0]", "1")
+	p.Set("int_slice[1]", "2")
+	p.Set("string_slice[0]", "1")
+	p.Set("string_slice[1]", "2")
 	// c.Property("float_slice", []float64{1, 2})
 
 	err := c.RefreshProperties(p)
@@ -901,7 +903,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		}
 
 		prop := conf.New()
-		prop.Set("int", 0)
+		prop.Set("int", "0")
 
 		c := gs_core.New()
 		c.Object(&callDestroy{}).Init((*callDestroy).InitWithError)
@@ -942,7 +944,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		}
 
 		prop := conf.New()
-		prop.Set("int", 0)
+		prop.Set("int", "0")
 
 		c := gs_core.New()
 		c.Provide(func() destroyable { return &callDestroy{} }).Init(destroyable.InitWithError)
@@ -1990,7 +1992,7 @@ func TestClose(t *testing.T) {
 		// nil
 		{
 			prop := conf.New()
-			prop.Set("int", 0)
+			prop.Set("int", "0")
 
 			c := gs_core.New()
 			bd := c.Provide(func() destroyable { return &callDestroy{} }).Destroy(destroyable.DestroyWithError)
@@ -2070,8 +2072,8 @@ func TestNestValueField(t *testing.T) {
 	t.Run("private", func(t *testing.T) {
 
 		prop := conf.New()
-		prop.Set("sdk.wx.auto-create", true)
-		prop.Set("sdk.wx.enable", true)
+		prop.Set("sdk.wx.auto-create", "true")
+		prop.Set("sdk.wx.enable", "true")
 
 		c := gs_core.New()
 		c.Object(new(wxChannel))
@@ -2091,8 +2093,8 @@ func TestNestValueField(t *testing.T) {
 
 	t.Run("public", func(t *testing.T) {
 		prop := conf.New()
-		prop.Set("sdk.wx.auto-create", true)
-		prop.Set("sdk.wx.enable", true)
+		prop.Set("sdk.wx.auto-create", "true")
+		prop.Set("sdk.wx.enable", "true")
 
 		c := gs_core.New()
 		c.Object(new(WXChannel))
@@ -2340,7 +2342,7 @@ func TestDefaultSpringContext(t *testing.T) {
 
 		prop := conf.New()
 		prop.Set("president", "CaiYuanPei")
-		prop.Set("class_floor", 2)
+		prop.Set("class_floor", "2")
 
 		c := gs_core.New()
 		c.Provide(NewClassRoom, gs_arg.Bind(withClassName,
@@ -2865,18 +2867,18 @@ func TestDynamic(t *testing.T) {
 
 	{
 		p := conf.New()
-		p.Set("int", 4)
-		p.Set("float", 2.3)
-		p.Set("map.a", 1)
-		p.Set("map.b", 2)
-		p.Set("slice[0]", 3)
-		p.Set("slice[1]", 4)
-		p.Set("wrapper.int", 3)
-		p.Set("wrapper.float", 1.5)
-		p.Set("wrapper.map.a", 9)
-		p.Set("wrapper.map.b", 8)
-		p.Set("wrapper.slice[0]", 4)
-		p.Set("wrapper.slice[1]", 6)
+		p.Set("int", "4")
+		p.Set("float", "2.3")
+		p.Set("map.a", "1")
+		p.Set("map.b", "2")
+		p.Set("slice[0]", "3")
+		p.Set("slice[1]", "4")
+		p.Set("wrapper.int", "3")
+		p.Set("wrapper.float", "1.5")
+		p.Set("wrapper.map.a", "9")
+		p.Set("wrapper.map.b", "8")
+		p.Set("wrapper.slice[0]", "4")
+		p.Set("wrapper.slice[1]", "6")
 		c.RefreshProperties(p)
 	}
 
@@ -2889,18 +2891,18 @@ func TestDynamic(t *testing.T) {
 
 	{
 		p := conf.New()
-		p.Set("int", 6)
-		p.Set("float", 5.1)
-		p.Set("map.a", 9)
-		p.Set("map.b", 8)
-		p.Set("slice[0]", 7)
-		p.Set("slice[1]", 6)
-		p.Set("wrapper.int", 9)
-		p.Set("wrapper.float", 8.4)
-		p.Set("wrapper.map.a", 3)
-		p.Set("wrapper.map.b", 4)
-		p.Set("wrapper.slice[0]", 2)
-		p.Set("wrapper.slice[1]", 1)
+		p.Set("int", "6")
+		p.Set("float", "5.1")
+		p.Set("map.a", "9")
+		p.Set("map.b", "8")
+		p.Set("slice[0]", "7")
+		p.Set("slice[1]", "6")
+		p.Set("wrapper.int", "9")
+		p.Set("wrapper.float", "8.4")
+		p.Set("wrapper.map.a", "3")
+		p.Set("wrapper.map.b", "4")
+		p.Set("wrapper.slice[0]", "2")
+		p.Set("wrapper.slice[1]", "1")
 		err = c.RefreshProperties(p)
 		assert.Error(t, err, "validate failed on \"\\$<6\" for value 6")
 	}
@@ -2914,18 +2916,18 @@ func TestDynamic(t *testing.T) {
 
 	{
 		p := conf.New()
-		p.Set("int", 1)
-		p.Set("float", 5.1)
-		p.Set("map.a", 9)
-		p.Set("map.b", 8)
-		p.Set("slice[0]", 7)
-		p.Set("slice[1]", 6)
-		p.Set("wrapper.int", 9)
-		p.Set("wrapper.float", 8.4)
-		p.Set("wrapper.map.a", 3)
-		p.Set("wrapper.map.b", 4)
-		p.Set("wrapper.slice[0]", 2)
-		p.Set("wrapper.slice[1]", 1)
+		p.Set("int", "1")
+		p.Set("float", "5.1")
+		p.Set("map.a", "9")
+		p.Set("map.b", "8")
+		p.Set("slice[0]", "7")
+		p.Set("slice[1]", "6")
+		p.Set("wrapper.int", "9")
+		p.Set("wrapper.float", "8.4")
+		p.Set("wrapper.map.a", "3")
+		p.Set("wrapper.map.b", "4")
+		p.Set("wrapper.slice[0]", "2")
+		p.Set("wrapper.slice[1]", "1")
 		err = c.RefreshProperties(p)
 		assert.Nil(t, err)
 	}
