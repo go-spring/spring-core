@@ -89,9 +89,9 @@ type Properties struct {
 }
 
 // New creates and returns a new Properties instance.
-func New() *Properties {
+func New(p conf.Properties) *Properties {
 	return &Properties{
-		prop: conf.New(),
+		prop: p,
 	}
 }
 

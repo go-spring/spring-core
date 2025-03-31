@@ -300,10 +300,10 @@ type Wiring struct {
 	forceAutowireIsNullable bool
 }
 
-func New() *Wiring {
+func New(p conf.Properties) *Wiring {
 	return &Wiring{
 		state:       RefreshDefault,
-		p:           gs_dync.New(),
+		p:           gs_dync.New(p),
 		beansByName: make(map[string][]BeanRuntime),
 		beansByType: make(map[reflect.Type][]BeanRuntime),
 	}

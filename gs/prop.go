@@ -27,8 +27,8 @@ const (
 	AllowCircularReferencesProp = "spring.allow-circular-references"
 	ForceAutowireIsNullableProp = "spring.force-autowire-is-nullable"
 	ActiveProfilesProp          = "spring.profiles.active"
-	EnableAppJobsProp           = "spring.enable.app-jobs"
-	EnableAppServersProp        = "spring.enable.app-servers"
+	EnableAppJobsProp           = "spring.app.enable-jobs"
+	EnableAppServersProp        = "spring.app.enable-servers"
 	EnableSimpleHttpServerProp  = "spring.enable.simple-http-server"
 	EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
 )

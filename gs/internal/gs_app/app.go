@@ -52,8 +52,8 @@ type App struct {
 	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=*?}"`
 	Servers []gs.Server `autowire:"${spring.app.servers:=*?}"`
 
-	EnableJobs    bool `value:"${spring.enable.app-jobs:=true}"`
-	EnableServers bool `value:"${spring.enable.app-servers:=true}"`
+	EnableJobs    bool `value:"${spring.app.enable-jobs:=true}"`
+	EnableServers bool `value:"${spring.app.enable-servers:=true}"`
 }
 
 // NewApp creates and initializes a new application instance.
@@ -102,14 +102,8 @@ func (app *App) Start() error {
 		return err
 	}
 
-	// refreshes the container properties
-	err = app.C.RefreshProperties(p)
-	if err != nil {
-		return err
-	}
-
 	// refreshes the container
-	err = app.C.Refresh()
+	err = app.C.Refresh(p)
 	if err != nil {
 		return err
 	}

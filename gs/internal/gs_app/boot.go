@@ -104,14 +104,8 @@ func (b *BootImpl) Run() error {
 		return err
 	}
 
-	// Refresh properties in the container.
-	err = b.c.RefreshProperties(p)
-	if err != nil {
-		return err
-	}
-
 	// Refresh the container.
-	err = b.c.Refresh()
+	err = b.c.Refresh(p)
 	if err != nil {
 		return err
 	}

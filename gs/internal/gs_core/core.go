@@ -49,7 +49,6 @@ type Container struct {
 func New() *Container {
 	return &Container{
 		resolving: resolving.New(),
-		wiring:    wiring.New(),
 	}
 }
 
@@ -91,25 +90,26 @@ func (c *Container) RefreshProperties(p conf.Properties) error {
 }
 
 // Refresh initializes and wires all beans in the container.
-func (c *Container) Refresh() (err error) {
+func (c *Container) Refresh(p conf.Properties) (err error) {
 	if c.state != RefreshDefault {
 		return errors.New("container is refreshing or refreshed")
 	}
 	c.state = RefreshInit
 	start := time.Now()
 
-	err = c.resolving.RefreshInit(c.wiring.Properties())
+	err = c.resolving.RefreshInit(p)
 	if err != nil {
 		return err
 	}
 
 	c.state = Refreshing
 
-	beans, err := c.resolving.Refresh(c.wiring.Properties())
+	beans, err := c.resolving.Refresh(p)
 	if err != nil {
 		return err
 	}
 
+	c.wiring = wiring.New(p)
 	err = c.wiring.Refresh(beans)
 	if err != nil {
 		return err

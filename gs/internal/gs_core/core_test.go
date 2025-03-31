@@ -40,8 +40,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-func runTest(c *gs_core.Container, fn func(*gs_core.Container)) error {
-	err := c.Refresh()
+func runTest(p conf.Properties, c *gs_core.Container, fn func(*gs_core.Container)) error {
+	err := c.Refresh(p)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func TestContext(t *testing.T) {
 		c.Object(&e).Name("i3")
 		c.Object(&e).Name("i4")
 
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 
@@ -93,7 +93,7 @@ func TestContext(t *testing.T) {
 		c.Object(&e).Name("i4")
 		c.Object(&e).Name("i5")
 
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 }
@@ -151,7 +151,7 @@ func TestAutoWireBeans(t *testing.T) {
 		gs.As[fmt.Stringer](),
 	)
 
-	err := runTest(c, func(p *gs_core.Container) {})
+	err := runTest(conf.New(), c, func(p *gs_core.Container) {})
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(obj.MapTyType), 1)
@@ -225,10 +225,7 @@ func TestValueTag(t *testing.T) {
 	p.Set("string_slice[1]", "2")
 	// c.Property("float_slice", []float64{1, 2})
 
-	err := c.RefreshProperties(p)
-	assert.Nil(t, err)
-
-	err = c.Refresh()
+	err := c.Refresh(p)
 	assert.Nil(t, err)
 
 	fmt.Printf("%+v\n", setting)
@@ -283,7 +280,7 @@ func TestPrototypeBean(t *testing.T) {
 	f := &PrototypeBeanFactory{}
 	c.Object(f)
 
-	err := c.Refresh()
+	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 
 	s.Service("Li Lei")
@@ -350,10 +347,7 @@ func TestTypeConverter(t *testing.T) {
 	dbConfig := &DbConfig{}
 	c.Object(dbConfig)
 
-	err := c.RefreshProperties(prop)
-	assert.Nil(t, err)
-
-	err = c.Refresh()
+	err := c.Refresh(prop)
 	assert.Nil(t, err)
 
 	assert.Equal(t, b.EnvType, ENV_TEST)
@@ -385,7 +379,7 @@ func TestNestedBean(t *testing.T) {
 		gs.As[Grouper](),
 	)
 	c.Object(new(ProxyGrouper))
-	err := c.Refresh()
+	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 }
 
@@ -416,7 +410,7 @@ func (t *BeanThree) String() string {
 //
 // 	t.Run("panic", func(t *testing.T) {
 // 		c := gs_core.New()
-// 		err := runTest(c, func(p *gs_core.Container) {
+// 		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 // 			{
 // 				var s fmt.Stringer
 // 				err := p.Wire(s)
@@ -438,7 +432,7 @@ func (t *BeanThree) String() string {
 // 		c.Object(new(BeanTwo)).Export(
 // 			gs.As[Grouper](),
 // 		)
-// 		err := runTest(c, func(p *gs_core.Container) {
+// 		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 //
 // 			var two *BeanTwo
 // 			err := p.Wire(&two)
@@ -470,7 +464,7 @@ func (t *BeanThree) String() string {
 
 // func TestFindByName(t *testing.T) {
 //
-//	c := runTest(c,func(p gs.Context) {})
+//	c := runTest(conf.New(), c,func(p gs.Context) {})
 //	c.Object(&BeanZero{5})
 //	c.Object(new(BeanOne))
 //	c.Object(new(BeanTwo))
@@ -578,8 +572,7 @@ func TestRegisterBeanFn(t *testing.T) {
 		fmt.Println(teacher.Course())
 	}).Name("newTeacher")
 
-	c.RefreshProperties(prop)
-	err := runTest(c, func(p *gs_core.Container) {
+	err := runTest(prop, c, func(p *gs_core.Container) {
 
 		var st1 struct {
 			Value *Student `autowire:"st1"`
@@ -628,7 +621,7 @@ func TestProfile(t *testing.T) {
 	t.Run("bean:_c:", func(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&BeanZero{5})
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var b struct {
 				Value *BeanZero `autowire:""`
 			}
@@ -645,8 +638,7 @@ func TestProfile(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&BeanZero{5})
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var b struct {
 				Value *BeanZero `autowire:""`
 			}
@@ -666,7 +658,7 @@ func TestDependsOn(t *testing.T) {
 		c.Object(&BeanZero{5})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanFour))
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 
@@ -678,7 +670,7 @@ func TestDependsOn(t *testing.T) {
 			gs.BeanSelectorFor[*BeanOne](),
 			gs.BeanSelectorImpl{Name: "BeanZero"},
 		)
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 }
@@ -690,7 +682,7 @@ func TestDuplicate(t *testing.T) {
 		c.Object(&BeanZero{6})
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo))
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Error(t, err, "duplicate beans ")
 	})
 }
@@ -704,7 +696,7 @@ func TestDefaultProperties_WireFunc(t *testing.T) {
 	c.Object(func(int) int { return 6 })
 	obj := new(FuncObj)
 	c.Object(obj)
-	err := c.Refresh()
+	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 	i := obj.Fn(3)
 	assert.Equal(t, i, 6)
@@ -751,8 +743,7 @@ func TestRegisterBeanFn2(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(NewPtrManager)
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			var m struct {
 				Value Manager `autowire:""`
@@ -776,10 +767,9 @@ func TestRegisterBeanFn2(t *testing.T) {
 		prop.Set("manager.version", "1.0.0")
 
 		c := gs_core.New()
-		c.RefreshProperties(prop)
 
 		c.Provide(NewManager)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			var m struct {
 				Value Manager `autowire:""`
@@ -801,8 +791,7 @@ func TestRegisterBeanFn2(t *testing.T) {
 		prop.Set("manager.version", "1.0.0")
 		c := gs_core.New()
 		c.Provide(NewManagerRetError)
-		c.RefreshProperties(prop)
-		err := c.Refresh()
+		err := c.Refresh(prop)
 		assert.Error(t, err, "NewManagerRetError error")
 	})
 
@@ -813,8 +802,7 @@ func TestRegisterBeanFn2(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(NewManagerRetErrorNil)
 
-		c.RefreshProperties(prop)
-		err := c.Refresh()
+		err := c.Refresh(prop)
 		assert.Nil(t, err)
 	})
 
@@ -825,8 +813,7 @@ func TestRegisterBeanFn2(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(NewNullPtrManager)
 
-		c.RefreshProperties(prop)
-		err := c.Refresh()
+		err := c.Refresh(prop)
 		assert.Error(t, err, "return nil")
 	})
 }
@@ -882,7 +869,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 
 		c := gs_core.New()
 		c.Object(new(callDestroy)).Init((*callDestroy).Init)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var d struct {
 				Value *callDestroy `autowire:""`
 			}
@@ -898,7 +885,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		{
 			c := gs_core.New()
 			c.Object(&callDestroy{i: 1}).Init((*callDestroy).InitWithError)
-			err := c.Refresh()
+			err := c.Refresh(conf.New())
 			assert.Error(t, err, "error")
 		}
 
@@ -908,8 +895,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&callDestroy{}).Init((*callDestroy).InitWithError)
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var d struct {
 				Value *callDestroy `autowire:""`
 			}
@@ -923,7 +909,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 	t.Run("call interface init", func(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(func() destroyable { return new(callDestroy) }).Init(destroyable.Init)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var d struct {
 				Value destroyable `autowire:""`
 			}
@@ -939,7 +925,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		{
 			c := gs_core.New()
 			c.Provide(func() destroyable { return &callDestroy{i: 1} }).Init(destroyable.InitWithError)
-			err := c.Refresh()
+			err := c.Refresh(conf.New())
 			assert.Error(t, err, "error")
 		}
 
@@ -949,8 +935,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(func() destroyable { return &callDestroy{} }).Init(destroyable.InitWithError)
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var d struct {
 				Value destroyable `autowire:""`
 			}
@@ -964,7 +949,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 	t.Run("call nested init", func(t *testing.T) {
 		c := gs_core.New()
 		c.Object(new(nestedCallDestroy)).Init((*nestedCallDestroy).Init)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var d struct {
 				Value *nestedCallDestroy `autowire:""`
 			}
@@ -980,7 +965,7 @@ func TestRegisterBean_InitFunc(t *testing.T) {
 		c.Object(&nestedDestroyable{
 			destroyable: new(callDestroy),
 		}).Init((*nestedDestroyable).Init)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var d struct {
 				Value *nestedDestroyable `autowire:""`
 			}
@@ -1003,8 +988,7 @@ func TestValueBincoreng(t *testing.T) {
 	c := gs_core.New()
 	c.Object(new(RecoresCluster))
 
-	c.RefreshProperties(prop)
-	err := runTest(c, func(p *gs_core.Container) {
+	err := runTest(prop, c, func(p *gs_core.Container) {
 		var cluster struct {
 			Value *RecoresCluster `autowire:""`
 		}
@@ -1022,13 +1006,13 @@ func TestCollect(t *testing.T) {
 		c.Object(&struct {
 			Events []ServerInterface `autowire:""`
 		}{})
-		err := runTest(c, func(ctx *gs_core.Container) {})
+		err := runTest(conf.New(), c, func(ctx *gs_core.Container) {})
 		assert.Error(t, err, "no beans collected for \"\"")
 	})
 
 	t.Run("", func(t *testing.T) {
 		c := gs_core.New()
-		err := runTest(c, func(ctx *gs_core.Container) {
+		err := runTest(conf.New(), c, func(ctx *gs_core.Container) {
 			var Events struct {
 				Events []ServerInterface `autowire:""`
 			}
@@ -1043,13 +1027,13 @@ func TestCollect(t *testing.T) {
 		c.Object(&struct {
 			Events []ServerInterface `autowire:"?"`
 		}{})
-		err := runTest(c, func(ctx *gs_core.Container) {})
+		err := runTest(conf.New(), c, func(ctx *gs_core.Container) {})
 		assert.Nil(t, err)
 	})
 
 	t.Run("", func(t *testing.T) {
 		c := gs_core.New()
-		err := runTest(c, func(ctx *gs_core.Container) {
+		err := runTest(conf.New(), c, func(ctx *gs_core.Container) {
 			var Events struct {
 				Events []ServerInterface `autowire:"?"`
 			}
@@ -1067,8 +1051,7 @@ func TestCollect(t *testing.T) {
 		c.Object(new(RecoresCluster)).Name("one")
 		c.Object(new(RecoresCluster))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var rcs struct {
 				Value []*RecoresCluster `autowire:""`
 			}
@@ -1188,8 +1171,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(NewClassRoom)
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var cls struct {
 				Value *ClassRoom `autowire:""`
 			}
@@ -1209,8 +1191,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c := gs_core.New()
 		c.Provide(NewClassRoom, gs_arg.Bind(withClassName, gs_arg.Tag("${class_name:=二年级03班}"), gs_arg.Tag("${class_floor:=3}")))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var cls struct {
 				Value *ClassRoom `autowire:""`
 			}
@@ -1234,8 +1215,7 @@ func TestOptionConstructorArg(t *testing.T) {
 		c.Object(new(Student)).Name("Student1")
 		c.Object(new(Student)).Name("Student2")
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var cls struct {
 				Value *ClassRoom `autowire:""`
 			}
@@ -1266,7 +1246,7 @@ func TestOptionConstructorArg(t *testing.T) {
 	//	c.Object(&Student{}).Name("Student2")
 	//
 	//	c.RefreshProperties(prop)
-	//	err := runTest(c, func(p *gs_core.Container) {
+	//	err := runTest(conf.New(), c, func(p *gs_core.Container) {
 	//		var cls struct {
 	//			Value *ClassRoom `autowire:""`
 	//		}
@@ -1332,8 +1312,7 @@ func TestRegisterMethodBean(t *testing.T) {
 		parent := c.Object(new(Server))
 		c.Provide((*Server).Consumer, parent)
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			var s struct {
 				Value *Server `autowire:""`
@@ -1362,8 +1341,7 @@ func TestRegisterMethodBean(t *testing.T) {
 		parent := c.Object(new(Server)).Condition(gs_cond.Not(gs_cond.OnMissingProperty("a")))
 		c.Provide((*Server).Consumer, parent)
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			var s struct {
 				Value *Server `autowire:""`
@@ -1388,8 +1366,7 @@ func TestRegisterMethodBean(t *testing.T) {
 		parent := c.Object(new(Server))
 		c.Provide((*Server).ConsumerArg, parent, gs_arg.Tag("${i:=9}"))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			var s struct {
 				Value *Server `autowire:""`
@@ -1419,8 +1396,7 @@ func TestRegisterMethodBean(t *testing.T) {
 		c.Provide(ServerInterface.Consumer, parent).DependsOn(gs.BeanSelectorImpl{Name: "ServerInterface"})
 		c.Object(new(Service))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			var si struct {
 				Value ServerInterface `autowire:""`
@@ -1476,8 +1452,8 @@ func TestRegisterMethodBean(t *testing.T) {
 				parent := c.Object(new(Server)).DependsOn(gs.BeanSelectorImpl{Name: "Service"})
 				c.Provide((*Server).Consumer, parent).DependsOn(gs.BeanSelectorImpl{Name: "Service"})
 				c.Object(new(Service))
-				c.RefreshProperties(prop)
-				err := c.Refresh()
+
+				err := c.Refresh(prop)
 				if err != nil {
 					panic(err)
 				}
@@ -1493,8 +1469,7 @@ func TestRegisterMethodBean(t *testing.T) {
 		c := gs_core.New()
 		c.Object(new(Server))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var s struct {
 				Value *Server `autowire:""`
 			}
@@ -1513,8 +1488,7 @@ func TestRegisterMethodBean(t *testing.T) {
 		c.Object(new(Server))
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() })
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			var s struct {
 				Value *Server `autowire:""`
@@ -1556,8 +1530,7 @@ func TestRegisterMethodBean(t *testing.T) {
 		c.Object(new(Server))
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, gs_arg.Tag("Server"))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			var s struct {
 				Value *Server `autowire:""`
@@ -1586,8 +1559,7 @@ func TestRegisterMethodBean(t *testing.T) {
 		c.Object(new(Server))
 		c.Provide(func(s *Server) *Consumer { return s.Consumer() }, gs_arg.Tag("NULL"))
 
-		c.RefreshProperties(prop)
-		err := c.Refresh()
+		err := c.Refresh(prop)
 		assert.Error(t, err, "can't find bean, bean:\"NULL\" type:\"\\*gs_core_test.Server\"")
 	})
 }
@@ -1620,8 +1592,7 @@ func TestUserDefinedTypeProperty(t *testing.T) {
 
 	c.Object(&config)
 
-	c.RefreshProperties(prop)
-	err := c.Refresh()
+	err := c.Refresh(prop)
 	assert.Nil(t, err)
 
 	fmt.Printf("%+v\n", config)
@@ -1647,7 +1618,7 @@ func TestCircleAutowire(t *testing.T) {
 		c.Object(new(CircleA))
 		c.Object(new(CircleB))
 		c.Object(new(CircleC))
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 
@@ -1658,7 +1629,7 @@ func TestCircleAutowire(t *testing.T) {
 		c.Provide(func() *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 
@@ -1671,7 +1642,7 @@ func TestCircleAutowire(t *testing.T) {
 		c.Provide(func() *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 
@@ -1686,7 +1657,7 @@ func TestCircleAutowire(t *testing.T) {
 		c.Provide(func(a *CircleA) *CircleC {
 			return new(CircleC)
 		})
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Error(t, err, "found circular autowire")
 	})
 }
@@ -1763,8 +1734,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c.Object(&Var{"v2"}).Name("v2")
 		c.Provide(NewNilVarObj, gs_arg.Value(nil))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var obj struct {
 				Value *VarObj `autowire:""`
 			}
@@ -1785,8 +1755,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c.Object(&Var{"v2"}).Name("v2")
 		c.Provide(NewVarObj, gs_arg.Tag("${var.obj}"), gs_arg.Bind(withVar, gs_arg.Tag("v1")))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var obj struct {
 				Value *VarObj `autowire:""`
 			}
@@ -1808,8 +1777,7 @@ func TestRegisterOptionBean(t *testing.T) {
 		c.Object(&Var{"v2"}).Name("v2")
 		c.Provide(NewVarObj, gs_arg.Value("description"), gs_arg.Bind(withVar, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var obj struct {
 				Value *VarObj `autowire:""`
 			}
@@ -1832,7 +1800,7 @@ func TestRegisterOptionBean(t *testing.T) {
 			gs.As[interface{}](),
 		)
 		c.Provide(NewVarInterfaceObj, gs_arg.Bind(withVarInterface, gs_arg.Tag("v1")))
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var obj struct {
 				Value *VarInterfaceObj `autowire:""`
 			}
@@ -1852,7 +1820,7 @@ func TestRegisterOptionBean(t *testing.T) {
 			gs.As[interface{}](),
 		)
 		c.Provide(NewVarInterfaceObj, gs_arg.Bind(withVarInterface, gs_arg.Tag("v1"), gs_arg.Tag("v2")))
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var obj struct {
 				Value *VarInterfaceObj `autowire:""`
 			}
@@ -1894,7 +1862,7 @@ func TestClose(t *testing.T) {
 
 		c := gs_core.New()
 		c.Object(func() {}).Destroy(func(f func()) { called = true })
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 		c.Close()
 
@@ -1905,7 +1873,7 @@ func TestClose(t *testing.T) {
 		c := gs_core.New()
 		d := new(callDestroy)
 		c.Object(d).Destroy((*callDestroy).Destroy)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var d struct {
 				Value *callDestroy `autowire:""`
 			}
@@ -1924,7 +1892,7 @@ func TestClose(t *testing.T) {
 			c := gs_core.New()
 			d := &callDestroy{i: 1}
 			c.Object(d).Destroy((*callDestroy).DestroyWithError)
-			err := runTest(c, func(p *gs_core.Container) {
+			err := runTest(conf.New(), c, func(p *gs_core.Container) {
 				var d struct {
 					Value *callDestroy `autowire:""`
 				}
@@ -1941,7 +1909,7 @@ func TestClose(t *testing.T) {
 			c := gs_core.New()
 			d := &callDestroy{}
 			c.Object(d).Destroy((*callDestroy).DestroyWithError)
-			err := runTest(c, func(p *gs_core.Container) {
+			err := runTest(conf.New(), c, func(p *gs_core.Container) {
 				var d struct {
 					Value *callDestroy `autowire:""`
 				}
@@ -1957,7 +1925,7 @@ func TestClose(t *testing.T) {
 	t.Run("call interface destroy", func(t *testing.T) {
 		c := gs_core.New()
 		bd := c.Provide(func() destroyable { return new(callDestroy) }).Destroy(destroyable.Destroy)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 			var d struct {
 				Value destroyable `autowire:""`
 			}
@@ -1976,7 +1944,7 @@ func TestClose(t *testing.T) {
 		{
 			c := gs_core.New()
 			bd := c.Provide(func() destroyable { return &callDestroy{i: 1} }).Destroy(destroyable.DestroyWithError)
-			err := runTest(c, func(p *gs_core.Container) {
+			err := runTest(conf.New(), c, func(p *gs_core.Container) {
 				var d struct {
 					Value destroyable `autowire:""`
 				}
@@ -1997,8 +1965,7 @@ func TestClose(t *testing.T) {
 			c := gs_core.New()
 			bd := c.Provide(func() destroyable { return &callDestroy{} }).Destroy(destroyable.DestroyWithError)
 
-			c.RefreshProperties(prop)
-			err := runTest(c, func(p *gs_core.Container) {
+			err := runTest(prop, c, func(p *gs_core.Container) {
 				var d struct {
 					Value destroyable `autowire:""`
 				}
@@ -2030,7 +1997,7 @@ func TestNestedAutowireBean(t *testing.T) {
 	c.Object(&PtrNestedAutowireBean{
 		SubNestedAutowireBean: new(SubNestedAutowireBean),
 	})
-	err := runTest(c, func(p *gs_core.Container) {
+	err := runTest(conf.New(), c, func(p *gs_core.Container) {
 
 		var b struct {
 			Value *NestedAutowireBean `autowire:""`
@@ -2078,8 +2045,7 @@ func TestNestValueField(t *testing.T) {
 		c := gs_core.New()
 		c.Object(new(wxChannel))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var channel struct {
 				Value *wxChannel `autowire:""`
 			}
@@ -2099,8 +2065,7 @@ func TestNestValueField(t *testing.T) {
 		c := gs_core.New()
 		c.Object(new(WXChannel))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var channel struct {
 				Value *WXChannel `autowire:""`
 			}
@@ -2132,7 +2097,7 @@ func TestFnArgCollectBean(t *testing.T) {
 			assert.Equal(t, names, []string{"t1", "t2"})
 			return func() {}
 		})
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 }
@@ -2173,7 +2138,7 @@ func TestBeanCache(t *testing.T) {
 		).Name("f2")
 		c.Object(&server)
 
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 }
@@ -2191,7 +2156,7 @@ func (i Integer) Value() int {
 func TestIntInterface(t *testing.T) {
 	c := gs_core.New()
 	c.Provide(func() IntInterface { return Integer(5) })
-	err := c.Refresh()
+	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 }
 
@@ -2218,7 +2183,7 @@ func TestProperties(t *testing.T) {
 		b := new(ArrayProperties)
 		c := gs_core.New()
 		c.Object(b)
-		err := c.Refresh()
+		err := c.Refresh(conf.New())
 		assert.Nil(t, err)
 	})
 
@@ -2240,8 +2205,7 @@ func TestProperties(t *testing.T) {
 		c := gs_core.New()
 		c.Object(&obj)
 
-		c.RefreshProperties(prop)
-		err := c.Refresh()
+		err := c.Refresh(prop)
 		assert.Nil(t, err)
 
 		assert.Equal(t, obj.Int, 5)
@@ -2295,7 +2259,7 @@ func TestDestroy(t *testing.T) {
 			destroyArray[destroyIndex] = 4
 			destroyIndex++
 		})
-	err := c.Refresh()
+	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 	c.Close()
 
@@ -2313,7 +2277,7 @@ func TestDestroy(t *testing.T) {
 // func TestCreateBean(t *testing.T) {
 // 	c := gs_core.New()
 // 	c.Object(&ObjFactory{})
-// 	err := runTest(c, func(p *gs_core.Container) {
+// 	err := runTest(conf.New(), c, func(p *gs_core.Container) {
 // 		b, err := p.Wire((*ObjFactory).NewObj, gs_arg.Index(1, gs_arg.Tag("${i:=5}")))
 // 		fmt.Println(b, err)
 // 	})
@@ -2330,7 +2294,7 @@ func TestDefaultSpringContext(t *testing.T) {
 	// 		Condition(gs_cond.OnMissingBean("null")).
 	// 		Condition(gs_cond.OnMissingProperty("a"))
 	//
-	// 	err := runTest(c, func(p *gs_core.Container) {
+	// 	err := runTest(conf.New(), c, func(p *gs_core.Container) {
 	// 		var b *BeanZero
 	// 		err := p.Wire(&b)
 	// 		assert.Error(t, err, "can't find bean, bean:\"\"")
@@ -2350,8 +2314,7 @@ func TestDefaultSpringContext(t *testing.T) {
 			gs_arg.Tag("${class_floor:=3}"),
 		).Condition(gs_cond.OnProperty("class_name_enable")))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			var cls struct {
 				Value *ClassRoom `autowire:""`
 			}
@@ -2378,8 +2341,7 @@ func TestDefaultSpringContext(t *testing.T) {
 			).Condition(onProperty),
 		)
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 			// var cls *ClassRoom
 			// err := p.Wire(&cls)
 			// assert.Nil(t, err)
@@ -2399,8 +2361,7 @@ func TestDefaultSpringContext(t *testing.T) {
 		parent := c.Object(new(Server))
 		c.Provide((*Server).Consumer, parent).Condition(gs_cond.OnProperty("consumer.enable"))
 
-		c.RefreshProperties(prop)
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(prop, c, func(p *gs_core.Container) {
 
 			// var s *Server
 			// err := p.Wire(&s)
@@ -2456,7 +2417,7 @@ func TestDefaultSpringContext_ConditionOnBean(t *testing.T) {
 	c.Object(new(BeanTwo)).Condition(gs_cond.OnBeanSelector(gs.BeanSelectorImpl{Name: "BeanOne"}))
 	c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnBeanSelector(gs.BeanSelectorImpl{Name: "Null"}))
 
-	err := runTest(c, func(p *gs_core.Container) {
+	err := runTest(conf.New(), c, func(p *gs_core.Container) {
 
 		// var two *BeanTwo
 		// err := p.Wire(&two)
@@ -2475,7 +2436,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 		c.Object(new(BeanOne))
 		c.Object(new(BeanTwo)).Condition(gs_cond.OnMissingBeanSelector(gs.BeanSelectorImpl{Name: "BeanOne"}))
 		c.Object(new(BeanTwo)).Name("another_two").Condition(gs_cond.OnMissingBeanSelector(gs.BeanSelectorImpl{Name: "Null"}))
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 
 			// var two *BeanTwo
 			// err := p.Wire(&two)
@@ -2678,7 +2639,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 // 	// 	c.Object(func() {})
 // 	//
 // 	// 	c.RefreshProperties(prop)
-// 	// 	err := runTest(c, func(p *gs_core.Container) {
+// 	// 	err := runTest(conf.New(), c, func(p *gs_core.Container) {
 // 	// 		_, _ = p.Invoke(func(f func(), version string) {
 // 	// 			fmt.Println("version:", version)
 // 	// 		}, gs_arg.Tag(""), gs_arg.Tag("${version}"))
@@ -2695,7 +2656,7 @@ func TestDefaultSpringContext_ConditionOnMissingBean(t *testing.T) {
 // 	// 	c.Object(func() {})
 // 	//
 // 	// 	c.RefreshProperties(prop)
-// 	// 	err := runTest(c, func(p *gs_core.Container) {
+// 	// 	err := runTest(conf.New(), c, func(p *gs_core.Container) {
 // 	// 		fn := func(f func(), version string) {
 // 	// 			fmt.Println("version:", version)
 // 	// 		}
@@ -2716,7 +2677,7 @@ func TestEmptyStruct(t *testing.T) {
 	c.Object(objA)
 	objB := &emptyStructB{}
 	c.Object(objB)
-	err := c.Refresh()
+	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 
 	// objA 和 objB 的地址相同但是类型确实不一样。
@@ -2735,7 +2696,7 @@ func TestMapCollection(t *testing.T) {
 		c.Object(&mapValue{"a"}).Name("a")
 		c.Object(&mapValue{"b"}).Name("b")
 		c.Object(&mapValue{"c"}).Name("c").Condition(gs_cond.Not(gs_cond.OnMissingProperty("a")))
-		err := runTest(c, func(p *gs_core.Container) {
+		err := runTest(conf.New(), c, func(p *gs_core.Container) {
 
 			// var vSlice []*mapValue
 			// err := p.Wire(&vSlice)
@@ -2780,8 +2741,7 @@ func TestLazy(t *testing.T) {
 		}{}
 		c.Object(&d)
 
-		c.RefreshProperties(prop)
-		err := c.Refresh()
+		err := c.Refresh(prop)
 		assert.Nil(t, err)
 		assert.NotNil(t, d.b)
 		assert.NotNil(t, d.b.A)
@@ -2818,7 +2778,7 @@ func TestDestroyDependence(t *testing.T) {
 	c.Object(new(memory))
 	c.Object(new(table)).Name("aaa")
 	c.Object(new(table)).Name("bbb")
-	err := c.Refresh()
+	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 }
 
@@ -2855,7 +2815,7 @@ func TestDynamic(t *testing.T) {
 	c := gs_core.New()
 	c.Object(cfg)
 	c.Object(wrapper)
-	err := c.Refresh()
+	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 
 	{
@@ -2960,7 +2920,7 @@ func TestConfiguration(t *testing.T) {
 	c := gs_core.New()
 	c.Object(&ConfigurationBean{"123"}).Configuration(&gs.Configuration{Excludes: []string{"NewBean"}}).Name("123")
 	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration(&gs.Configuration{}).Name("456")
-	if err := c.Refresh(); err != nil {
+	if err := c.Refresh(conf.New()); err != nil {
 		t.Fatal(err)
 	}
 }

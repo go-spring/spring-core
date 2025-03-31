@@ -57,7 +57,7 @@ func TestValue(t *testing.T) {
 func TestDync(t *testing.T) {
 
 	t.Run("refresh bean", func(t *testing.T) {
-		p := New()
+		p := New(conf.New())
 		assert.Equal(t, p.ObjectsCount(), 0)
 
 		prop := conf.Map(map[string]interface{}{
@@ -113,7 +113,7 @@ func TestDync(t *testing.T) {
 	})
 
 	t.Run("refresh field", func(t *testing.T) {
-		p := New()
+		p := New(conf.New())
 		assert.Equal(t, p.ObjectsCount(), 0)
 
 		prop := conf.Map(map[string]interface{}{
@@ -168,7 +168,7 @@ func TestDync(t *testing.T) {
 	})
 
 	t.Run("refresh panic", func(t *testing.T) {
-		p := New()
+		p := New(conf.New())
 		mock := &MockPanicRefreshable{}
 
 		assert.Panic(t, func() {
@@ -185,7 +185,7 @@ func TestDync(t *testing.T) {
 	})
 
 	t.Run("concurrent refresh", func(t *testing.T) {
-		p := New()
+		p := New(conf.New())
 		var wg sync.WaitGroup
 
 		for i := 0; i < 100; i++ {
@@ -203,7 +203,7 @@ func TestDync(t *testing.T) {
 	})
 
 	t.Run("key matching", func(t *testing.T) {
-		p := New()
+		p := New(conf.New())
 		mock1 := &MockRefreshable{}
 		_ = p.RefreshBean(mock1, conf.BindParam{Key: "a.b"}, true)
 		mock2 := &MockRefreshable{}
