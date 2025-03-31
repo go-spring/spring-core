@@ -656,19 +656,15 @@ func (mr *MockBeanRegistrationMockRecorder) SetCondition(c ...any) *gomock.Call 
 }
 
 // SetConfiguration mocks base method.
-func (m *MockBeanRegistration) SetConfiguration(param ...ConfigurationParam) {
+func (m *MockBeanRegistration) SetConfiguration(c *Configuration) {
 	m.ctrl.T.Helper()
-	varargs := []any{}
-	for _, a := range param {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "SetConfiguration", varargs...)
+	m.ctrl.Call(m, "SetConfiguration", c)
 }
 
 // SetConfiguration indicates an expected call of SetConfiguration.
-func (mr *MockBeanRegistrationMockRecorder) SetConfiguration(param ...any) *gomock.Call {
+func (mr *MockBeanRegistrationMockRecorder) SetConfiguration(c any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockBeanRegistration)(nil).SetConfiguration), param...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockBeanRegistration)(nil).SetConfiguration), c)
 }
 
 // SetDependsOn mocks base method.

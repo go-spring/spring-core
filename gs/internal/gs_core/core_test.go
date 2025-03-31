@@ -2958,8 +2958,8 @@ func (c *ConfigurationBean) NewChild() *ChildBean {
 
 func TestConfiguration(t *testing.T) {
 	c := gs_core.New()
-	c.Object(&ConfigurationBean{"123"}).Configuration(gs.ConfigurationParam{Excludes: []string{"NewBean"}}).Name("123")
-	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration().Name("456")
+	c.Object(&ConfigurationBean{"123"}).Configuration(&gs.Configuration{Excludes: []string{"NewBean"}}).Name("123")
+	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration(&gs.Configuration{}).Name("456")
 	if err := c.Refresh(); err != nil {
 		t.Fatal(err)
 	}

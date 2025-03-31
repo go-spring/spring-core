@@ -66,7 +66,7 @@ func (c *Resolving) RefreshInit(p conf.Properties) error {
 
 	// processes configuration beans to register beans.
 	for _, b := range c.beans {
-		if !b.ConfigurationBean() {
+		if b.Configuration() == nil {
 			continue
 		}
 		var foundMock BeanMock
@@ -205,7 +205,7 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 		includes []*regexp.Regexp
 		excludes []*regexp.Regexp
 	)
-	param := bd.ConfigurationParam()
+	param := bd.Configuration()
 	ss := param.Includes
 	if len(ss) == 0 {
 		ss = []string{"New*"}

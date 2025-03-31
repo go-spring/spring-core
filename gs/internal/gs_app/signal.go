@@ -25,7 +25,7 @@ import (
 type ReadySignal struct {
 	wg sync.WaitGroup
 	ch chan struct{}
-	ct atomic.Bool
+	b  atomic.Bool
 }
 
 // NewReadySignal creates a new ReadySignal instance.
@@ -49,12 +49,12 @@ func (s *ReadySignal) TriggerAndWait() <-chan struct{} {
 
 // Intercepted returns true if the signal has been intercepted.
 func (s *ReadySignal) Intercepted() bool {
-	return s.ct.Load()
+	return s.b.Load()
 }
 
 // Intercept marks the signal as intercepted.
 func (s *ReadySignal) Intercept() {
-	s.ct.Store(true)
+	s.b.Store(true)
 	s.wg.Done()
 }
 

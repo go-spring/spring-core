@@ -41,14 +41,6 @@ func As[T any]() reflect.Type {
 	return t
 }
 
-// BeanInitFunc defines the prototype for initialization functions.
-// Examples: `func(bean)` or `func(bean) error`.
-type BeanInitFunc = interface{}
-
-// BeanDestroyFunc defines the prototype for destruction functions.
-// Examples: `func(bean)` or `func(bean) error`.
-type BeanDestroyFunc = interface{}
-
 // BeanSelector is an interface for selecting beans.
 type BeanSelector interface {
 	// TypeAndName returns the type and name of the bean.
@@ -93,7 +85,7 @@ func (s BeanSelectorImpl) String() string {
 	return sb.String()
 }
 
-/********************************** condition ********************************/
+/************************************ cond ***********************************/
 
 // Condition is an interface used for defining conditional logic
 // when registering beans in the IoC container.
@@ -177,8 +169,16 @@ type Server interface {
 
 /*********************************** bean ************************************/
 
-// ConfigurationParam holds parameters for bean setup configuration.
-type ConfigurationParam struct {
+// BeanInitFunc defines the prototype for initialization functions.
+// Examples: `func(bean)` or `func(bean) error`.
+type BeanInitFunc = interface{}
+
+// BeanDestroyFunc defines the prototype for destruction functions.
+// Examples: `func(bean)` or `func(bean) error`.
+type BeanDestroyFunc = interface{}
+
+// Configuration holds parameters for bean setup configuration.
+type Configuration struct {
 	Includes []string // Methods to include
 	Excludes []string // Methods to exclude
 }
@@ -196,7 +196,7 @@ type BeanRegistration interface {
 	SetCondition(c ...Condition)
 	SetDependsOn(selectors ...BeanSelector)
 	SetExport(exports ...reflect.Type)
-	SetConfiguration(param ...ConfigurationParam)
+	SetConfiguration(c *Configuration)
 	SetRefreshable(tag string)
 	SetCaller(skip int)
 	OnProfiles(profiles string)
@@ -289,8 +289,8 @@ func (d *beanBuilder[T]) Export(exports ...reflect.Type) *T {
 }
 
 // Configuration applies the configuration parameters to the bean.
-func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T {
-	d.b.SetConfiguration(param...)
+func (d *beanBuilder[T]) Configuration(c *Configuration) *T {
+	d.b.SetConfiguration(c)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

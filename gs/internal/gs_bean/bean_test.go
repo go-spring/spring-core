@@ -58,14 +58,14 @@ func TestBeanDefinition(t *testing.T) {
 		assert.Equal(t, bean.Interface(), a)
 		bean.SetStatus(StatusCreated)
 		assert.Equal(t, StatusCreated, bean.Status())
-		bean.SetCaller(0)
-		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean.go:174")
+		bean.SetCaller(1)
+		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:61")
 		bean.SetName("test-1")
 		assert.Equal(t, bean.Name(), "test-1")
 		beanType, beanName := bean.TypeAndName()
 		assert.Equal(t, beanType, reflect.TypeFor[*TestBean]())
 		assert.Equal(t, beanName, "test-1")
-		assert.Matches(t, bean.String(), `name=test-1 .*/gs/internal/gs_bean/bean.go:174`)
+		assert.Matches(t, bean.String(), `name=test-1 .*/gs/internal/gs_bean/bean_test.go:61`)
 	})
 
 	t.Run("depends on", func(t *testing.T) {

@@ -69,19 +69,16 @@ var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f           *gs_arg.Callable
-	init        gs.BeanInitFunc
-	destroy     gs.BeanDestroyFunc
-	dependsOn   []gs.BeanSelector
-	exports     []reflect.Type
-	conditions  []gs.Condition
-	status      BeanStatus
-	fileLine    string
-	refreshable bool
-	refreshTag  string
-
-	configurationBean  bool
-	configurationParam gs.ConfigurationParam
+	f             *gs_arg.Callable
+	init          gs.BeanInitFunc
+	destroy       gs.BeanDestroyFunc
+	dependsOn     []gs.BeanSelector
+	exports       []reflect.Type
+	conditions    []gs.Condition
+	status        BeanStatus
+	fileLine      string
+	refreshTag    string
+	configuration *gs.Configuration
 }
 
 // validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
@@ -134,34 +131,14 @@ func (d *BeanMetadata) SetCondition(c ...gs.Condition) {
 	d.conditions = append(d.conditions, c...)
 }
 
-// ConfigurationBean returns whether the bean is a configuration bean.
-func (d *BeanMetadata) ConfigurationBean() bool {
-	return d.configurationBean
-}
-
-// ConfigurationParam returns the configuration parameters for the bean.
-func (d *BeanMetadata) ConfigurationParam() gs.ConfigurationParam {
-	return d.configurationParam
+// Configuration returns the configuration parameters for the bean.
+func (d *BeanMetadata) Configuration() *gs.Configuration {
+	return d.configuration
 }
 
 // SetConfiguration sets the configuration flag and parameters for the bean.
-func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
-	d.configurationBean = true
-	if len(param) == 0 {
-		return
-	}
-	x := param[0]
-	if len(x.Includes) > 0 {
-		d.configurationParam.Includes = x.Includes
-	}
-	if len(x.Excludes) > 0 {
-		d.configurationParam.Excludes = x.Excludes
-	}
-}
-
-// Refreshable returns whether the bean is refreshable.
-func (d *BeanMetadata) Refreshable() bool {
-	return d.refreshable
+func (d *BeanDefinition) SetConfiguration(c *gs.Configuration) {
+	d.configuration = c
 }
 
 // RefreshTag returns the refresh tag of the bean.
@@ -346,7 +323,6 @@ func (d *BeanDefinition) SetRefreshable(tag string) {
 	if !d.Type().Implements(refreshableType) {
 		panic("must implement gs.Refreshable interface")
 	}
-	d.refreshable = true
 	d.refreshTag = tag
 }
 

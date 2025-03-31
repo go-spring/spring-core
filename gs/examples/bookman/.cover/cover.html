@@ -59,7 +59,7 @@
 				
 				<option value="file1">github.com/go-spring/spring-core/conf/bind.go (47.1%)</option>
 				
-				<option value="file2">github.com/go-spring/spring-core/conf/conf.go (82.7%)</option>
+				<option value="file2">github.com/go-spring/spring-core/conf/conf.go (84.1%)</option>
 				
 				<option value="file3">github.com/go-spring/spring-core/conf/expr.go (0.0%)</option>
 				
@@ -95,7 +95,7 @@
 				
 				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk/book_sdk.go (100.0%)</option>
 				
-				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (67.2%)</option>
+				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (69.0%)</option>
 				
 				<option value="file21">github.com/go-spring/spring-core/gs/http.go (94.1%)</option>
 				
@@ -111,17 +111,17 @@
 				
 				<option value="file27">github.com/go-spring/spring-core/gs/internal/gs_arg/arg.go (62.5%)</option>
 				
-				<option value="file28">github.com/go-spring/spring-core/gs/internal/gs_bean/bean.go (40.4%)</option>
+				<option value="file28">github.com/go-spring/spring-core/gs/internal/gs_bean/bean.go (44.3%)</option>
 				
-				<option value="file29">github.com/go-spring/spring-core/gs/internal/gs_cond/cond.go (22.0%)</option>
+				<option value="file29">github.com/go-spring/spring-core/gs/internal/gs_cond/cond.go (23.4%)</option>
 				
 				<option value="file30">github.com/go-spring/spring-core/gs/internal/gs_cond/expr.go (0.0%)</option>
 				
 				<option value="file31">github.com/go-spring/spring-core/gs/internal/gs_conf/arg.go (42.1%)</option>
 				
-				<option value="file32">github.com/go-spring/spring-core/gs/internal/gs_conf/conf.go (67.6%)</option>
+				<option value="file32">github.com/go-spring/spring-core/gs/internal/gs_conf/conf.go (67.0%)</option>
 				
-				<option value="file33">github.com/go-spring/spring-core/gs/internal/gs_conf/env.go (80.8%)</option>
+				<option value="file33">github.com/go-spring/spring-core/gs/internal/gs_conf/env.go (80.6%)</option>
 				
 				<option value="file34">github.com/go-spring/spring-core/gs/internal/gs_core/bean.go (66.7%)</option>
 				
@@ -131,13 +131,13 @@
 				
 				<option value="file37">github.com/go-spring/spring-core/gs/internal/gs_core/wiring/wiring.go (58.0%)</option>
 				
-				<option value="file38">github.com/go-spring/spring-core/gs/internal/gs_dync/dync.go (82.4%)</option>
+				<option value="file38">github.com/go-spring/spring-core/gs/internal/gs_dync/dync.go (81.0%)</option>
 				
-				<option value="file39">github.com/go-spring/spring-core/gs/internal/gs_util/util.go (65.7%)</option>
+				<option value="file39">github.com/go-spring/spring-core/gs/internal/gs_util/util.go (66.7%)</option>
 				
 				<option value="file40">github.com/go-spring/spring-core/gs/pprof.go (100.0%)</option>
 				
-				<option value="file41">github.com/go-spring/spring-core/gs/prop.go (28.6%)</option>
+				<option value="file41">github.com/go-spring/spring-core/gs/prop.go (33.3%)</option>
 				
 				<option value="file42">github.com/go-spring/spring-core/util/errutil/errutil.go (0.0%)</option>
 				
@@ -147,15 +147,17 @@
 				
 				<option value="file45">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.4%)</option>
 				
-				<option value="file46">github.com/go-spring/spring-core/util/map.go (100.0%)</option>
+				<option value="file46">github.com/go-spring/spring-core/util/list.go (0.0%)</option>
 				
-				<option value="file47">github.com/go-spring/spring-core/util/sysconf/sysconf.go (45.0%)</option>
+				<option value="file47">github.com/go-spring/spring-core/util/map.go (100.0%)</option>
 				
-				<option value="file48">github.com/go-spring/spring-core/util/syslog/syslog.go (86.7%)</option>
+				<option value="file48">github.com/go-spring/spring-core/util/sysconf/sysconf.go (45.0%)</option>
 				
-				<option value="file49">github.com/go-spring/spring-core/util/type.go (70.4%)</option>
+				<option value="file49">github.com/go-spring/spring-core/util/syslog/syslog.go (86.7%)</option>
 				
-				<option value="file50">github.com/go-spring/spring-core/util/value.go (35.7%)</option>
+				<option value="file50">github.com/go-spring/spring-core/util/type.go (70.4%)</option>
+				
+				<option value="file51">github.com/go-spring/spring-core/util/value.go (31.2%)</option>
 				
 				</select>
 			</div>
@@ -327,32 +329,32 @@ func (tag ParsedTag) String() string <span class="cov0" title="0">{
 }
 
 // ParseTag parses a value tag, returns its key, and default value, and splitter.
-func ParseTag(tag string) (ret ParsedTag, err error) <span class="cov5" title="44">{
+func ParseTag(tag string) (ret ParsedTag, err error) <span class="cov5" title="40">{
         i := strings.LastIndex(tag, "&gt;&gt;")
         if i == 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="44">j := strings.LastIndex(tag, "}")
+        <span class="cov5" title="40">j := strings.LastIndex(tag, "}")
         if j &lt;= 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="44">k := strings.Index(tag, "${")
+        <span class="cov5" title="40">k := strings.Index(tag, "${")
         if k &lt; 0 </span><span class="cov0" title="0">{
                 err = fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
                 return
         }</span>
-        <span class="cov5" title="44">if i &gt; j </span><span class="cov0" title="0">{
+        <span class="cov5" title="40">if i &gt; j </span><span class="cov0" title="0">{
                 ret.Splitter = strings.TrimSpace(tag[i+2:])
         }</span>
-        <span class="cov5" title="44">ss := strings.SplitN(tag[k+2:j], ":=", 2)
+        <span class="cov5" title="40">ss := strings.SplitN(tag[k+2:j], ":=", 2)
         ret.Key = ss[0]
-        if len(ss) &gt; 1 </span><span class="cov4" title="37">{
+        if len(ss) &gt; 1 </span><span class="cov4" title="33">{
                 ret.HasDef = true
                 ret.Def = ss[1]
         }</span>
-        <span class="cov5" title="44">return</span>
+        <span class="cov5" title="40">return</span>
 }
 
 type BindParam struct {
@@ -362,28 +364,28 @@ type BindParam struct {
         Validate reflect.StructTag // full field tag
 }
 
-func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error <span class="cov5" title="44">{
+func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error <span class="cov5" title="40">{
         param.Validate = validate
         parsedTag, err := ParseTag(tag)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov5" title="44">if parsedTag.Key == "" </span><span class="cov0" title="0">{ // ${:=} 默认值语法
+        <span class="cov5" title="40">if parsedTag.Key == "" </span><span class="cov0" title="0">{ // ${:=} 默认值语法
                 if parsedTag.HasDef </span><span class="cov0" title="0">{
                         param.Tag = parsedTag
                         return nil
                 }</span>
                 <span class="cov0" title="0">return fmt.Errorf("xxxx")</span> // todo
         }
-        <span class="cov5" title="44">if parsedTag.Key == "ROOT" </span><span class="cov0" title="0">{
+        <span class="cov5" title="40">if parsedTag.Key == "ROOT" </span><span class="cov0" title="0">{
                 parsedTag.Key = ""
         }</span>
-        <span class="cov5" title="44">if param.Key == "" </span><span class="cov4" title="38">{
+        <span class="cov5" title="40">if param.Key == "" </span><span class="cov4" title="34">{
                 param.Key = parsedTag.Key
         }</span> else<span class="cov2" title="6"> if parsedTag.Key != "" </span><span class="cov2" title="6">{
                 param.Key = param.Key + "." + parsedTag.Key
         }</span>
-        <span class="cov5" title="44">param.Tag = parsedTag
+        <span class="cov5" title="40">param.Tag = parsedTag
         return nil</span>
 }
 
@@ -392,15 +394,15 @@ type Filter interface {
 }
 
 // BindValue binds properties to a value.
-func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="22">{
+func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="21">{
 
         if !util.IsPropBindingTarget(t) </span><span class="cov0" title="0">{
                 err := errors.New("target should be value type")
                 return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
         }</span>
 
-        <span class="cov4" title="22">defer func() </span><span class="cov4" title="22">{
-                if RetErr == nil </span><span class="cov4" title="22">{
+        <span class="cov4" title="21">defer func() </span><span class="cov4" title="21">{
+                if RetErr == nil </span><span class="cov4" title="21">{
                         tag, ok := param.Validate.Lookup("expr")
                         if ok &amp;&amp; len(tag) &gt; 0 </span><span class="cov0" title="0">{
                                 err := validateField(tag, v.Interface())
@@ -411,7 +413,7 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
                 }
         }()
 
-        <span class="cov4" title="22">switch v.Kind() </span>{
+        <span class="cov4" title="21">switch v.Kind() </span>{
         case reflect.Map:<span class="cov1" title="1">
                 return bindMap(p, v, t, param, filter)</span>
         case reflect.Slice:<span class="cov0" title="0">
@@ -419,10 +421,10 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
         case reflect.Array:<span class="cov0" title="0">
                 err := errors.New("use slice instead of array")
                 return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)</span>
-        default:<span class="cov4" title="21"></span> // for linter
+        default:<span class="cov4" title="20"></span> // for linter
         }
 
-        <span class="cov4" title="21">fn := converters[t]
+        <span class="cov4" title="20">fn := converters[t]
         if fn == nil &amp;&amp; v.Kind() == reflect.Struct </span><span class="cov2" title="3">{
                 if err := bindStruct(p, v, t, param, filter); err != nil </span><span class="cov0" title="0">{
                         return err // no wrap
@@ -430,12 +432,12 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
                 <span class="cov2" title="3">return nil</span>
         }
 
-        <span class="cov4" title="18">val, err := resolve(p, param)
+        <span class="cov4" title="17">val, err := resolve(p, param)
         if err != nil </span><span class="cov0" title="0">{
                 return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
         }</span>
 
-        <span class="cov4" title="18">if fn != nil </span><span class="cov1" title="2">{
+        <span class="cov4" title="17">if fn != nil </span><span class="cov1" title="2">{
                 fnValue := reflect.ValueOf(fn)
                 out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
                 if !out[1].IsNil() </span><span class="cov0" title="0">{
@@ -446,7 +448,7 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
                 return nil</span>
         }
 
-        <span class="cov4" title="16">switch v.Kind() </span>{
+        <span class="cov4" title="15">switch v.Kind() </span>{
         case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:<span class="cov0" title="0">
                 var u uint64
                 if u, err = strconv.ParseUint(val, 0, 0); err == nil </span><span class="cov0" title="0">{
@@ -454,9 +456,9 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
                         return nil
                 }</span>
                 <span class="cov0" title="0">return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())</span>
-        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov2" title="6">
+        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov2" title="5">
                 var i int64
-                if i, err = strconv.ParseInt(val, 0, 0); err == nil </span><span class="cov2" title="6">{
+                if i, err = strconv.ParseInt(val, 0, 0); err == nil </span><span class="cov2" title="5">{
                         v.SetInt(i)
                         return nil
                 }</span>
@@ -673,23 +675,23 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
 }
 
 // resolve returns property references processed property value.
-func resolve(p Properties, param BindParam) (string, error) <span class="cov5" title="48">{
+func resolve(p Properties, param BindParam) (string, error) <span class="cov5" title="43">{
         const defVal = "@@def@@"
         val := p.Get(param.Key, defVal)
-        if val != defVal </span><span class="cov4" title="25">{
+        if val != defVal </span><span class="cov4" title="22">{
                 return resolveString(p, val)
         }</span>
-        <span class="cov4" title="23">if p.Has(param.Key) </span><span class="cov0" title="0">{
-                return "", fmt.Errorf("property key=%s isn't simple value", param.Key)
+        <span class="cov4" title="21">if p.Has(param.Key) </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("property %s isn't simple value", param.Key)
         }</span>
-        <span class="cov4" title="23">if param.Tag.HasDef </span><span class="cov4" title="23">{
+        <span class="cov4" title="21">if param.Tag.HasDef </span><span class="cov4" title="21">{
                 return resolveString(p, param.Tag.Def)
         }</span>
-        <span class="cov0" title="0">return "", fmt.Errorf("property key=%s %w", param.Key, ErrNotExist)</span>
+        <span class="cov0" title="0">return "", fmt.Errorf("property %s %w", param.Key, ErrNotExist)</span>
 }
 
 // resolveString returns property references processed string.
-func resolveString(p Properties, s string) (string, error) <span class="cov6" title="212">{
+func resolveString(p Properties, s string) (string, error) <span class="cov6" title="183">{
 
         var (
                 length = len(s)
@@ -698,18 +700,18 @@ func resolveString(p Properties, s string) (string, error) <span class="cov6" ti
                 end    = -1
         )
 
-        for i := 0; i &lt; length; i++ </span><span class="cov10" title="3702">{
-                if s[i] == '$' </span><span class="cov4" title="30">{
-                        if i &lt; length-1 &amp;&amp; s[i+1] == '{' </span><span class="cov4" title="30">{
-                                if count == 0 </span><span class="cov4" title="30">{
+        for i := 0; i &lt; length; i++ </span><span class="cov10" title="3216">{
+                if s[i] == '$' </span><span class="cov4" title="26">{
+                        if i &lt; length-1 &amp;&amp; s[i+1] == '{' </span><span class="cov4" title="26">{
+                                if count == 0 </span><span class="cov4" title="26">{
                                         start = i
                                 }</span>
-                                <span class="cov4" title="30">count++</span>
+                                <span class="cov4" title="26">count++</span>
                         }
-                } else<span class="cov9" title="3672"> if s[i] == '}' </span><span class="cov4" title="30">{
-                        if count &gt; 0 </span><span class="cov4" title="30">{
+                } else<span class="cov9" title="3190"> if s[i] == '}' </span><span class="cov4" title="26">{
+                        if count &gt; 0 </span><span class="cov4" title="26">{
                                 count--
-                                if count == 0 </span><span class="cov4" title="30">{
+                                if count == 0 </span><span class="cov4" title="26">{
                                         end = i
                                         break</span>
                                 }
@@ -717,16 +719,16 @@ func resolveString(p Properties, s string) (string, error) <span class="cov6" ti
                 }
         }
 
-        <span class="cov6" title="212">if start &lt; 0 </span><span class="cov6" title="182">{
+        <span class="cov6" title="183">if start &lt; 0 </span><span class="cov6" title="157">{
                 return s, nil
         }</span>
 
-        <span class="cov4" title="30">if end &lt; 0 || count &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov4" title="26">if end &lt; 0 || count &gt; 0 </span><span class="cov0" title="0">{
                 err := ErrInvalidSyntax
                 return "", fmt.Errorf("resolve string %q error: %w", s, err)
         }</span>
 
-        <span class="cov4" title="30">var param BindParam
+        <span class="cov4" title="26">var param BindParam
         _ = param.BindTag(s[start:end+1], "")
 
         s1, err := resolve(p, param)
@@ -734,12 +736,12 @@ func resolveString(p Properties, s string) (string, error) <span class="cov6" ti
                 return "", errutil.WrapError(err, "resolve string %q error", s)
         }</span>
 
-        <span class="cov4" title="30">s2, err := resolveString(p, s[end+1:])
+        <span class="cov4" title="26">s2, err := resolveString(p, s[end+1:])
         if err != nil </span><span class="cov0" title="0">{
                 return "", errutil.WrapError(err, "resolve string %q error", s)
         }</span>
 
-        <span class="cov4" title="30">return s[:start] + s1 + s2, nil</span>
+        <span class="cov4" title="26">return s[:start] + s1 + s2, nil</span>
 }
 </pre>
 		
@@ -796,7 +798,7 @@ func init() <span class="cov1" title="1">{
                 return cast.ToTimeE(strings.TrimSpace(s))
         }</span>)
 
-        <span class="cov1" title="1">RegisterConverter(func(s string) (time.Duration, error) </span><span class="cov1" title="2">{
+        <span class="cov1" title="1">RegisterConverter(func(s string) (time.Duration, error) </span><span class="cov2" title="2">{
                 return time.ParseDuration(strings.TrimSpace(s))
         }</span>)
 }
@@ -805,7 +807,7 @@ func init() <span class="cov1" title="1">{
 type Reader func(b []byte) (map[string]interface{}, error)
 
 // RegisterReader registers its Reader for some kind of file extension.
-func RegisterReader(r Reader, ext ...string) <span class="cov2" title="4">{
+func RegisterReader(r Reader, ext ...string) <span class="cov3" title="4">{
         for _, s := range ext </span><span class="cov3" title="6">{
                 readers[s] = r
         }</span>
@@ -825,7 +827,7 @@ type Converter[T any] func(string) (T, error)
 
 // RegisterConverter registers its converter for non-primitive type such as
 // time.Time, time.Duration, or other user-defined value type.
-func RegisterConverter[T any](fn Converter[T]) <span class="cov1" title="2">{
+func RegisterConverter[T any](fn Converter[T]) <span class="cov2" title="2">{
         t := reflect.TypeOf(fn)
         converters[t.Out(0)] = fn
 }</span>
@@ -869,65 +871,63 @@ type MutableProperties struct {
 }
 
 // New creates empty *MutableProperties.
-func New() *MutableProperties <span class="cov7" title="121">{
+func New() *MutableProperties <span class="cov7" title="103">{
         return &amp;MutableProperties{
                 storage: storage.NewStorage(),
         }
 }</span>
 
 // Map creates *MutableProperties from map.
-func Map(m map[string]interface{}) (*MutableProperties, error) <span class="cov0" title="0">{
+func Map(m map[string]interface{}) *MutableProperties <span class="cov0" title="0">{
         p := New()
-        if err := p.Merge(m); err != nil </span><span class="cov0" title="0">{
-                return nil, err
-        }</span>
-        <span class="cov0" title="0">return p, nil</span>
-}
+        _ = p.Merge(m)
+        return p
+}</span>
 
 // Load creates *MutableProperties from file.
-func Load(file string) (*MutableProperties, error) <span class="cov7" title="104">{
+func Load(file string) (*MutableProperties, error) <span class="cov7" title="88">{
         p := New()
-        if err := p.Load(file); err != nil </span><span class="cov7" title="92">{
+        if err := p.Load(file); err != nil </span><span class="cov7" title="78">{
                 return nil, err
         }</span>
-        <span class="cov4" title="12">return p, nil</span>
+        <span class="cov4" title="10">return p, nil</span>
 }
 
 // Load loads properties from file.
-func (p *MutableProperties) Load(file string) error <span class="cov7" title="104">{
+func (p *MutableProperties) Load(file string) error <span class="cov7" title="88">{
         b, err := os.ReadFile(file)
-        if err != nil </span><span class="cov7" title="92">{
+        if err != nil </span><span class="cov7" title="78">{
                 return err
         }</span>
-        <span class="cov4" title="12">return p.Bytes(b, filepath.Ext(file))</span>
+        <span class="cov4" title="10">return p.Bytes(b, filepath.Ext(file))</span>
 }
 
 // Bytes loads properties from []byte, ext is the file name extension.
-func (p *MutableProperties) Bytes(b []byte, ext string) error <span class="cov4" title="12">{
+func (p *MutableProperties) Bytes(b []byte, ext string) error <span class="cov4" title="10">{
         r, ok := readers[ext]
         if !ok </span><span class="cov0" title="0">{
                 return fmt.Errorf("unsupported file type %q", ext)
         }</span>
-        <span class="cov4" title="12">m, err := r(b)
+        <span class="cov4" title="10">m, err := r(b)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov4" title="12">return p.Merge(m)</span>
+        <span class="cov4" title="10">return p.Merge(m)</span>
 }
 
 // Merge flattens the map and sets all keys and values.
-func (p *MutableProperties) Merge(m map[string]interface{}) error <span class="cov4" title="12">{
-        s := util.FlattenMap(m)
-        return p.merge(s)
+func (p *MutableProperties) Merge(m map[string]interface{}) error <span class="cov4" title="10">{
+        return p.merge(util.FlattenMap(m))
 }</span>
 
-func (p *MutableProperties) merge(m map[string]string) error <span class="cov9" title="558">{
-        for key, val := range m </span><span class="cov10" title="656">{
+// merge flattens the map and sets all keys and values.
+func (p *MutableProperties) merge(m map[string]string) error <span class="cov6" title="32">{
+        for key, val := range m </span><span class="cov7" title="114">{
                 if err := p.storage.Set(key, val); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
         }
-        <span class="cov9" title="558">return nil</span>
+        <span class="cov6" title="32">return nil</span>
 }
 
 func (p *MutableProperties) Data() map[string]string <span class="cov0" title="0">{
@@ -935,12 +935,12 @@ func (p *MutableProperties) Data() map[string]string <span class="cov0" title="0
 }</span>
 
 // Keys returns all sorted keys.
-func (p *MutableProperties) Keys() []string <span class="cov3" title="8">{
+func (p *MutableProperties) Keys() []string <span class="cov4" title="8">{
         return p.storage.Keys()
 }</span>
 
 // Has returns whether key exists.
-func (p *MutableProperties) Has(key string) bool <span class="cov8" title="215">{
+func (p *MutableProperties) Has(key string) bool <span class="cov5" title="25">{
         return p.storage.Has(key)
 }</span>
 
@@ -950,12 +950,12 @@ func (p *MutableProperties) SubKeys(key string) ([]string, error) <span class="c
 }</span>
 
 // Get returns key's value, using Def to return a default value.
-func (p *MutableProperties) Get(key string, def ...string) string <span class="cov9" title="448">{
+func (p *MutableProperties) Get(key string, def ...string) string <span class="cov9" title="425">{
         val, ok := p.storage.Get(key)
-        if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="23">{
+        if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="21">{
                 return def[0]
         }</span>
-        <span class="cov9" title="425">return val</span>
+        <span class="cov9" title="404">return val</span>
 }
 
 // Set sets key's value to be a primitive type as int or string,
@@ -964,18 +964,13 @@ func (p *MutableProperties) Get(key string, def ...string) string <span class="c
 // means when you set a slice or a map, an existing path will remain
 // when it doesn't exist in the slice or map even they share a same
 // prefix path.
-func (p *MutableProperties) Set(key string, val interface{}) error <span class="cov9" title="520">{
-        if key == "" </span><span class="cov0" title="0">{
-                return errors.New("key is empty")
-        }</span>
-        <span class="cov9" title="520">m := make(map[string]string)
-        util.FlattenValue(key, val, m)
-        return p.merge(m)</span>
-}
+func (p *MutableProperties) Set(key string, val string) error <span class="cov10" title="446">{
+        return p.storage.Set(key, val)
+}</span>
 
 // Resolve resolves string value that contains references to other
 // properties, the references are defined by ${key:=def}.
-func (p *MutableProperties) Resolve(s string) (string, error) <span class="cov7" title="134">{
+func (p *MutableProperties) Resolve(s string) (string, error) <span class="cov7" title="114">{
         return resolveString(p, s)
 }</span>
 
@@ -990,7 +985,7 @@ func (p *MutableProperties) Bind(i interface{}, tag ...string) error <span class
         var v reflect.Value
         </span><span class="cov3" title="5">{
                 switch e := i.(type) </span>{
-                case reflect.Value:<span class="cov2" title="4">
+                case reflect.Value:<span class="cov3" title="4">
                         v = e</span>
                 default:<span class="cov1" title="1">
                         v = reflect.ValueOf(i)
@@ -1022,7 +1017,7 @@ func (p *MutableProperties) Bind(i interface{}, tag ...string) error <span class
 }
 
 // CopyTo copies properties into another by override.
-func (p *MutableProperties) CopyTo(out *MutableProperties) error <span class="cov5" title="26">{
+func (p *MutableProperties) CopyTo(out *MutableProperties) error <span class="cov5" title="22">{
         return out.merge(p.storage.RawData())
 }</span>
 </pre>
@@ -1141,17 +1136,17 @@ package prop
 import "github.com/magiconair/properties"
 
 // Read parses []byte in the properties format into map.
-func Read(b []byte) (map[string]interface{}, error) <span class="cov6" title="12">{
+func Read(b []byte) (map[string]interface{}, error) <span class="cov6" title="10">{
 
         p := properties.NewProperties()
         p.DisableExpansion = true
         _ = p.Load(b, properties.UTF8) // always no error
 
         ret := make(map[string]interface{})
-        for k, v := range p.Map() </span><span class="cov10" title="54">{
+        for k, v := range p.Map() </span><span class="cov10" title="45">{
                 ret[k] = v
         }</span>
-        <span class="cov6" title="12">return ret, nil</span>
+        <span class="cov6" title="10">return ret, nil</span>
 }
 </pre>
 		
@@ -1276,33 +1271,33 @@ func JoinPath(path []Path) string <span class="cov0" title="0">{
 }
 
 // SplitPath splits key into individual path elements.
-func SplitPath(key string) ([]Path, error) <span class="cov7" title="683">{
+func SplitPath(key string) ([]Path, error) <span class="cov7" title="585">{
         if key == "" </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="683">var (
+        <span class="cov7" title="585">var (
                 path        []Path
                 lastPos     int
                 lastChar    int32
                 openBracket bool
         )
-        for i, c := range key </span><span class="cov10" title="7880">{
+        for i, c := range key </span><span class="cov10" title="6829">{
                 switch c </span>{
                 case ' ':<span class="cov0" title="0">
                         return nil, fmt.Errorf("invalid key '%s'", key)</span>
-                case '.':<span class="cov7" title="629">
+                case '.':<span class="cov7" title="539">
                         if openBracket </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov7" title="629">if lastChar == ']' </span><span class="cov0" title="0">{
+                        <span class="cov7" title="539">if lastChar == ']' </span><span class="cov0" title="0">{
                                 lastPos = i + 1
                                 lastChar = c
                                 continue</span>
                         }
-                        <span class="cov7" title="629">if lastPos == i </span><span class="cov0" title="0">{
+                        <span class="cov7" title="539">if lastPos == i </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov7" title="629">path = append(path, Path{PathTypeKey, key[lastPos:i]})
+                        <span class="cov7" title="539">path = append(path, Path{PathTypeKey, key[lastPos:i]})
                         lastPos = i + 1
                         lastChar = c</span>
                 case '[':<span class="cov0" title="0">
@@ -1335,17 +1330,17 @@ func SplitPath(key string) ([]Path, error) <span class="cov7" title="683">{
                         lastPos = i + 1
                         openBracket = false
                         lastChar = c</span>
-                default:<span class="cov9" title="7251">
+                default:<span class="cov9" title="6290">
                         lastChar = c</span>
                 }
         }
-        <span class="cov7" title="683">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
+        <span class="cov7" title="585">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="683">if lastChar != ']' </span><span class="cov7" title="683">{
+        <span class="cov7" title="585">if lastChar != ']' </span><span class="cov7" title="585">{
                 path = append(path, Path{PathTypeKey, key[lastPos:]})
         }</span>
-        <span class="cov7" title="683">return path, nil</span>
+        <span class="cov7" title="585">return path, nil</span>
 }
 </pre>
 		
@@ -1393,7 +1388,7 @@ type Storage struct {
         data map[string]string
 }
 
-func NewStorage() *Storage <span class="cov7" title="121">{
+func NewStorage() *Storage <span class="cov7" title="103">{
         return &amp;Storage{
                 tree: &amp;treeNode{
                         node: nodeTypeNil,
@@ -1404,7 +1399,7 @@ func NewStorage() *Storage <span class="cov7" title="121">{
 }</span>
 
 // RawData returns the raw data of the storage.
-func (s *Storage) RawData() map[string]string <span class="cov5" title="26">{
+func (s *Storage) RawData() map[string]string <span class="cov5" title="22">{
         return s.data
 }</span>
 
@@ -1454,109 +1449,109 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) <span class="cov1"
 }
 
 // Has returns whether the key exists.
-func (s *Storage) Has(key string) bool <span class="cov8" title="262">{
+func (s *Storage) Has(key string) bool <span class="cov5" title="25">{
         if key == "" </span><span class="cov0" title="0">{
                 return false
         }</span>
-        <span class="cov8" title="262">if _, ok := s.data[key]; ok </span><span class="cov7" title="236">{
+        <span class="cov5" title="25">if _, ok := s.data[key]; ok </span><span class="cov1" title="1">{
                 return true
         }</span>
-        <span class="cov5" title="26">path, err := SplitPath(key)
+        <span class="cov5" title="24">path, err := SplitPath(key)
         if err != nil </span><span class="cov0" title="0">{
                 return false
         }</span>
-        <span class="cov5" title="26">tree := s.tree
-        for i, node := range path </span><span class="cov6" title="53">{
+        <span class="cov5" title="24">tree := s.tree
+        for i, node := range path </span><span class="cov6" title="49">{
                 m := tree.data.(map[string]*treeNode)
                 switch tree.node </span>{
                 case nodeTypeArray:<span class="cov0" title="0">
                         if node.Type != PathTypeIndex </span><span class="cov0" title="0">{
                                 return false
                         }</span>
-                case nodeTypeMap:<span class="cov5" title="27">
+                case nodeTypeMap:<span class="cov5" title="25">
                         if node.Type != PathTypeKey </span><span class="cov0" title="0">{
                                 return false
                         }</span>
-                default:<span class="cov5" title="26"></span> // for linter
+                default:<span class="cov5" title="24"></span> // for linter
                 }
-                <span class="cov6" title="53">v, ok := m[node.Elem]
-                if !ok </span><span class="cov5" title="26">{
+                <span class="cov6" title="49">v, ok := m[node.Elem]
+                if !ok </span><span class="cov5" title="24">{
                         return false
                 }</span>
-                <span class="cov5" title="27">if v.node == nodeTypeNil || v.node == nodeTypeValue </span><span class="cov0" title="0">{
+                <span class="cov5" title="25">if v.node == nodeTypeNil || v.node == nodeTypeValue </span><span class="cov0" title="0">{
                         return i == len(path)-1
                 }</span>
-                <span class="cov5" title="27">tree = v</span>
+                <span class="cov5" title="25">tree = v</span>
         }
         <span class="cov0" title="0">return true</span>
 }
 
 // Get returns the value of the key, and false if the key does not exist.
-func (s *Storage) Get(key string) (string, bool) <span class="cov8" title="429">{
+func (s *Storage) Get(key string) (string, bool) <span class="cov8" title="425">{
         val, ok := s.data[key]
         return val, ok
 }</span>
 
 // Set stores the value of the key.
-func (s *Storage) Set(key, val string) error <span class="cov9" title="656">{
+func (s *Storage) Set(key, val string) error <span class="cov9" title="560">{
         if key == "" </span><span class="cov0" title="0">{
                 return fmt.Errorf("key is empty")
         }</span>
-        <span class="cov9" title="656">tree, err := s.merge(key, val)
+        <span class="cov9" title="560">tree, err := s.merge(key, val)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov9" title="656">switch tree.node </span>{
-        case nodeTypeNil, nodeTypeValue:<span class="cov9" title="656">
+        <span class="cov9" title="560">switch tree.node </span>{
+        case nodeTypeNil, nodeTypeValue:<span class="cov9" title="560">
                 s.data[key] = val</span>
         default:<span class="cov0" title="0">
                 return fmt.Errorf("invalid node type %d", tree.node)</span>
         }
-        <span class="cov9" title="656">return nil</span>
+        <span class="cov9" title="560">return nil</span>
 }
 
-func (s *Storage) merge(key, val string) (*treeNode, error) <span class="cov9" title="656">{
+func (s *Storage) merge(key, val string) (*treeNode, error) <span class="cov9" title="560">{
         path, err := SplitPath(key)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov9" title="656">tree := s.tree
-        for i, pathNode := range path </span><span class="cov10" title="1220">{
-                if tree.node == nodeTypeMap </span><span class="cov9" title="564">{
+        <span class="cov9" title="560">tree := s.tree
+        for i, pathNode := range path </span><span class="cov10" title="1040">{
+                if tree.node == nodeTypeMap </span><span class="cov8" title="480">{
                         if pathNode.Type != PathTypeKey </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("property '%s' is a map but '%s' wants other type", JoinPath(path[:i]), key)
                         }</span>
                 }
-                <span class="cov10" title="1220">m := tree.data.(map[string]*treeNode)
+                <span class="cov10" title="1040">m := tree.data.(map[string]*treeNode)
                 v, ok := m[pathNode.Elem]
                 if v != nil &amp;&amp; v.node == nodeTypeNil </span><span class="cov0" title="0">{
                         delete(s.data, JoinPath(path[:i+1]))
                 }</span>
-                <span class="cov10" title="1220">if !ok || v.node == nodeTypeNil </span><span class="cov9" title="1013">{
-                        if i &lt; len(path)-1 </span><span class="cov8" title="363">{
+                <span class="cov10" title="1040">if !ok || v.node == nodeTypeNil </span><span class="cov9" title="865">{
+                        if i &lt; len(path)-1 </span><span class="cov8" title="310">{
                                 n := &amp;treeNode{
                                         data: make(map[string]*treeNode),
                                 }
                                 if path[i+1].Type == PathTypeIndex </span><span class="cov0" title="0">{
                                         n.node = nodeTypeArray
-                                }</span> else<span class="cov8" title="363"> {
+                                }</span> else<span class="cov8" title="310"> {
                                         n.node = nodeTypeMap
                                 }</span>
-                                <span class="cov8" title="363">m[pathNode.Elem] = n
+                                <span class="cov8" title="310">m[pathNode.Elem] = n
                                 tree = n
                                 continue</span>
                         }
-                        <span class="cov9" title="650">if val == "" </span><span class="cov0" title="0">{
+                        <span class="cov9" title="555">if val == "" </span><span class="cov0" title="0">{
                                 tree = &amp;treeNode{node: nodeTypeNil}
-                        }</span> else<span class="cov9" title="650"> {
+                        }</span> else<span class="cov9" title="555"> {
                                 tree = &amp;treeNode{node: nodeTypeValue}
                         }</span>
-                        <span class="cov9" title="650">m[pathNode.Elem] = tree
+                        <span class="cov9" title="555">m[pathNode.Elem] = tree
                         break</span> // break for 100% test
                 }
-                <span class="cov7" title="207">switch v.node </span>{
-                case nodeTypeMap:<span class="cov7" title="201">
-                        if i &lt; len(path)-1 </span><span class="cov7" title="201">{
+                <span class="cov7" title="175">switch v.node </span>{
+                case nodeTypeMap:<span class="cov7" title="170">
+                        if i &lt; len(path)-1 </span><span class="cov7" title="170">{
                                 tree = v
                                 continue</span>
                         }
@@ -1578,8 +1573,8 @@ func (s *Storage) merge(key, val string) (*treeNode, error) <span class="cov9" t
                                 return v, nil
                         }</span>
                         <span class="cov0" title="0">return nil, fmt.Errorf("property '%s' is an array but '%s' wants other type", JoinPath(path[:i+1]), key)</span>
-                case nodeTypeValue:<span class="cov3" title="6">
-                        if i == len(path)-1 </span><span class="cov3" title="6">{
+                case nodeTypeValue:<span class="cov3" title="5">
+                        if i == len(path)-1 </span><span class="cov3" title="5">{
                                 return v, nil
                         }</span>
                         <span class="cov0" title="0">return nil, fmt.Errorf("property '%s' is a value but '%s' wants other type", JoinPath(path[:i+1]), key)</span>
@@ -1587,7 +1582,7 @@ func (s *Storage) merge(key, val string) (*treeNode, error) <span class="cov9" t
                         return nil, fmt.Errorf("invalid node type %d", v.node)</span>
                 }
         }
-        <span class="cov9" title="650">return tree, nil</span>
+        <span class="cov9" title="555">return tree, nil</span>
 }
 </pre>
 		
@@ -1633,33 +1628,33 @@ func initRemoteConfig() error <span class="cov1" title="1">{
 
 // refreshRemoteConfig periodically refreshes the remote configuration
 func refreshRemoteConfig(ctx context.Context) error <span class="cov1" title="1">{
-        for </span><span class="cov10" title="6">{
+        for </span><span class="cov10" title="5">{
                 select </span>{
                 case &lt;-ctx.Done():<span class="cov1" title="1">
                         fmt.Println("config updater exit")
                         return nil</span>
-                case &lt;-time.After(time.Millisecond * 500):<span class="cov9" title="5">
+                case &lt;-time.After(time.Millisecond * 500):<span class="cov8" title="4">
                         if err := getRemoteConfig(); err != nil </span><span class="cov0" title="0">{
                                 fmt.Println("get remote config error:", err)
                                 return err
                         }</span>
-                        <span class="cov9" title="5">if err := gs.RefreshProperties(); err != nil </span><span class="cov0" title="0">{
+                        <span class="cov8" title="4">if err := gs.RefreshProperties(); err != nil </span><span class="cov0" title="0">{
                                 fmt.Println("refresh properties error:", err)
                                 return err
                         }</span>
-                        <span class="cov9" title="5">fmt.Println("refresh properties success")</span>
+                        <span class="cov8" title="4">fmt.Println("refresh properties success")</span>
                 }
         }
 }
 
 // getRemoteConfig fetches and writes the remote configuration to a local file
-func getRemoteConfig() error <span class="cov10" title="6">{
+func getRemoteConfig() error <span class="cov10" title="5">{
         err := os.MkdirAll("./conf/remote", os.ModePerm)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov10" title="6">const data = `
+        <span class="cov10" title="5">const data = `
 server.addr=0.0.0.0:9090
 
 log.access.name=access.log
@@ -2288,34 +2283,19 @@ func OnMissingProperty(name string) Condition <span class="cov0" title="0">{
         return gs_cond.OnMissingProperty(name)
 }</span>
 
-// OnBean creates a Condition based on a BeanSelector.
+// OnBean creates a Condition for when a specific bean exists.
 func OnBean[T any](name ...string) Condition <span class="cov1" title="1">{
-        return gs_cond.OnBeanSelector(BeanSelectorFor[T](name...))
-}</span>
-
-// OnBeanSelector creates a Condition based on a BeanSelector.
-func OnBeanSelector(s BeanSelector) Condition <span class="cov0" title="0">{
-        return gs_cond.OnBeanSelector(s)
+        return gs_cond.OnBean[T](name...)
 }</span>
 
 // OnMissingBean creates a Condition for when a specific bean is missing.
 func OnMissingBean[T any](name ...string) Condition <span class="cov0" title="0">{
-        return gs_cond.OnMissingBeanSelector(BeanSelectorFor[T](name...))
-}</span>
-
-// OnMissingBeanSelector creates a Condition for when a specific bean is missing.
-func OnMissingBeanSelector(s BeanSelector) Condition <span class="cov0" title="0">{
-        return gs_cond.OnMissingBeanSelector(s)
+        return gs_cond.OnMissingBean[T](name...)
 }</span>
 
 // OnSingleBean creates a Condition for when only one instance of a bean exists.
 func OnSingleBean[T any](name ...string) Condition <span class="cov0" title="0">{
-        return gs_cond.OnSingleBeanSelector(BeanSelectorFor[T](name...))
-}</span>
-
-// OnSingleBeanSelector creates a Condition for when only one instance of a bean exists.
-func OnSingleBeanSelector(s BeanSelector) Condition <span class="cov0" title="0">{
-        return gs_cond.OnSingleBeanSelector(s)
+        return gs_cond.OnSingleBean[T](name...)
 }</span>
 
 // RegisterExpressFunc registers a custom expression function.
@@ -2370,7 +2350,7 @@ type (
 var NewBean = gs_core.NewBean
 
 // BeanSelectorFor returns a BeanSelector for the given type.
-func BeanSelectorFor[T any](name ...string) BeanSelector <span class="cov1" title="1">{
+func BeanSelectorFor[T any](name ...string) BeanSelector <span class="cov0" title="0">{
         return gs.BeanSelectorFor[T](name...)
 }</span>
 
@@ -2430,7 +2410,7 @@ func ShutDown() <span class="cov1" title="1">{
 }</span>
 
 // Config returns the app configuration.
-func Config() *gs_conf.AppConfig <span class="cov6" title="5">{
+func Config() *gs_conf.AppConfig <span class="cov5" title="4">{
         return gs_app.GS.P
 }</span>
 
@@ -2457,12 +2437,12 @@ func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) <span 
 }</span>
 
 // RefreshProperties refreshes the app configuration.
-func RefreshProperties() error <span class="cov6" title="5">{
+func RefreshProperties() error <span class="cov5" title="4">{
         p, err := Config().Refresh()
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov6" title="5">return gs_app.GS.C.RefreshProperties(p)</span>
+        <span class="cov5" title="4">return gs_app.GS.C.RefreshProperties(p)</span>
 }
 
 /********************************** banner ***********************************/
@@ -2666,14 +2646,6 @@ func As[T any]() reflect.Type <span class="cov6" title="7">{
         <span class="cov6" title="7">return t</span>
 }
 
-// BeanInitFunc defines the prototype for initialization functions.
-// Examples: `func(bean)` or `func(bean) error`.
-type BeanInitFunc = interface{}
-
-// BeanDestroyFunc defines the prototype for destruction functions.
-// Examples: `func(bean)` or `func(bean) error`.
-type BeanDestroyFunc = interface{}
-
 // BeanSelector is an interface for selecting beans.
 type BeanSelector interface {
         // TypeAndName returns the type and name of the bean.
@@ -2718,7 +2690,7 @@ func (s BeanSelectorImpl) String() string <span class="cov0" title="0">{
         return sb.String()</span>
 }
 
-/********************************** condition ********************************/
+/************************************ cond ***********************************/
 
 // Condition is an interface used for defining conditional logic
 // when registering beans in the IoC container.
@@ -2802,8 +2774,16 @@ type Server interface {
 
 /*********************************** bean ************************************/
 
-// ConfigurationParam holds parameters for bean setup configuration.
-type ConfigurationParam struct {
+// BeanInitFunc defines the prototype for initialization functions.
+// Examples: `func(bean)` or `func(bean) error`.
+type BeanInitFunc = interface{}
+
+// BeanDestroyFunc defines the prototype for destruction functions.
+// Examples: `func(bean)` or `func(bean) error`.
+type BeanDestroyFunc = interface{}
+
+// Configuration holds parameters for bean setup configuration.
+type Configuration struct {
         Includes []string // Methods to include
         Excludes []string // Methods to exclude
 }
@@ -2821,7 +2801,7 @@ type BeanRegistration interface {
         SetCondition(c ...Condition)
         SetDependsOn(selectors ...BeanSelector)
         SetExport(exports ...reflect.Type)
-        SetConfiguration(param ...ConfigurationParam)
+        SetConfiguration(c *Configuration)
         SetRefreshable(tag string)
         SetCaller(skip int)
         OnProfiles(profiles string)
@@ -2914,8 +2894,8 @@ func (d *beanBuilder[T]) Export(exports ...reflect.Type) *T <span class="cov1" t
 }</span>
 
 // Configuration applies the configuration parameters to the bean.
-func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T <span class="cov0" title="0">{
-        d.b.SetConfiguration(param...)
+func (d *beanBuilder[T]) Configuration(c *Configuration) *T <span class="cov0" title="0">{
+        d.b.SetConfiguration(c)
         return *(**T)(unsafe.Pointer(&amp;d))
 }</span>
 
@@ -3620,19 +3600,15 @@ func (mr *MockBeanRegistrationMockRecorder) SetCondition(c ...any) *gomock.Call 
 }</span>
 
 // SetConfiguration mocks base method.
-func (m *MockBeanRegistration) SetConfiguration(param ...ConfigurationParam) <span class="cov0" title="0">{
+func (m *MockBeanRegistration) SetConfiguration(c *Configuration) <span class="cov0" title="0">{
         m.ctrl.T.Helper()
-        varargs := []any{}
-        for _, a := range param </span><span class="cov0" title="0">{
-                varargs = append(varargs, a)
-        }</span>
-        <span class="cov0" title="0">m.ctrl.Call(m, "SetConfiguration", varargs...)</span>
-}
+        m.ctrl.Call(m, "SetConfiguration", c)
+}</span>
 
 // SetConfiguration indicates an expected call of SetConfiguration.
-func (mr *MockBeanRegistrationMockRecorder) SetConfiguration(param ...any) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockBeanRegistrationMockRecorder) SetConfiguration(c any) *gomock.Call <span class="cov0" title="0">{
         mr.mock.ctrl.T.Helper()
-        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockBeanRegistration)(nil).SetConfiguration), param...)
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockBeanRegistration)(nil).SetConfiguration), c)
 }</span>
 
 // SetDependsOn mocks base method.
@@ -4140,7 +4116,7 @@ import (
 type ReadySignal struct {
         wg sync.WaitGroup
         ch chan struct{}
-        ct atomic.Bool
+        b  atomic.Bool
 }
 
 // NewReadySignal creates a new ReadySignal instance.
@@ -4164,12 +4140,12 @@ func (s *ReadySignal) TriggerAndWait() &lt;-chan struct{} <span class="cov10" ti
 
 // Intercepted returns true if the signal has been intercepted.
 func (s *ReadySignal) Intercepted() bool <span class="cov1" title="1">{
-        return s.ct.Load()
+        return s.b.Load()
 }</span>
 
 // Intercept marks the signal as intercepted.
 func (s *ReadySignal) Intercept() <span class="cov0" title="0">{
-        s.ct.Store(true)
+        s.b.Store(true)
         s.wg.Done()
 }</span>
 
@@ -4213,7 +4189,7 @@ import (
         "github.com/go-spring/spring-core/util/errutil"
 )
 
-// TagArg represents an argument that has a tag for binding or autowiring.
+// TagArg represents an argument resolved using a tag for property binding or dependency injection.
 type TagArg struct {
         Tag string
 }
@@ -4223,7 +4199,10 @@ func Tag(tag string) gs.Arg <span class="cov10" title="12">{
         return TagArg{Tag: tag}
 }</span>
 
-// GetArgValue returns the value of the argument based on its type.
+// GetArgValue resolves the tag to a value based on the target type.
+// For primitive types (int, string), it binds from configuration.
+// For structs/interfaces, it wires dependencies from the container.
+// It returns an error if the type is neither bindable nor injectable.
 func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov8" title="7">{
 
         // Binds property values based on the argument type.
@@ -4244,15 +4223,14 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
                 <span class="cov4" title="3">return v, nil</span>
         }
 
-        // The arg type must be either a property binding target or a bean injection target.
         <span class="cov0" title="0">err := fmt.Errorf("unsupported argument type: %s", t.String())
         return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")</span>
 }
 
-// IndexArg represents an argument that has an index.
+// IndexArg represents an argument with an explicit positional index in the function signature.
 type IndexArg struct {
-        Idx int    // Index of the argument.
-        Arg gs.Arg // The actual argument value.
+        Idx int    //The positional index (0-based).
+        Arg gs.Arg //The wrapped argument value.
 }
 
 // Index creates an IndexArg with the given index and argument.
@@ -4260,22 +4238,23 @@ func Index(n int, arg gs.Arg) gs.Arg <span class="cov6" title="4">{
         return IndexArg{Idx: n, Arg: arg}
 }</span>
 
-// GetArgValue is not implemented for IndexArg, it panics if called.
+// GetArgValue panics if called directly. IndexArg must be processed by ArgList.
 func (arg IndexArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov0" title="0">{
         panic(util.UnimplementedMethod)</span>
 }
 
-// ValueArg represents an argument with a fixed value.
+// ValueArg represents a fixed-value argument.
 type ValueArg struct {
-        v interface{} // The fixed value associated with this argument.
+        v interface{}
 }
 
-// Value returns a ValueArg with the specified value.
+// Value creates a fixed-value argument.
 func Value(v interface{}) gs.Arg <span class="cov0" title="0">{
         return ValueArg{v: v}
 }</span>
 
-// GetArgValue returns the value of the fixed argument.
+// GetArgValue returns the fixed value and validates type compatibility.
+// It returns an error if the value type is incompatible with the target type.
 func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov0" title="0">{
         if arg.v == nil </span><span class="cov0" title="0">{
                 return reflect.Zero(t), nil
@@ -4288,13 +4267,14 @@ func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
         <span class="cov0" title="0">return v, nil</span>
 }
 
-// ArgList represents a list of arguments for a function.
+// ArgList manages arguments for a function, supporting both fixed and variadic parameters.
 type ArgList struct {
-        fnType reflect.Type // Type of the function to be invoked.
-        args   []gs.Arg     // List of arguments for the function.
+        fnType reflect.Type // The reflected type of the target function.
+        args   []gs.Arg     // The argument list (indexed or non-indexed).
 }
 
-// NewArgList creates and validates an ArgList for the specified function.
+// NewArgList validates and creates an ArgList for a function. It returns errors
+// for invalid function types, mixed indexed/non-indexed args, or out-of-bounds indexes.
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span class="cov7" title="6">{
         if fnType.Kind() != reflect.Func </span><span class="cov0" title="0">{
                 err := fmt.Errorf("invalid function type:%s", fnType.String())
@@ -4308,7 +4288,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
         }</span>
 
         <span class="cov7" title="6">fnArgs := make([]gs.Arg, fixedArgCount)
-        for i := 0; i &lt; len(fnArgs); i++ </span><span class="cov8" title="7">{
+        for i := range fnArgs </span><span class="cov8" title="7">{
                 fnArgs[i] = Tag("")
         }</span>
 
@@ -4317,12 +4297,12 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
                 notIdx bool
         )
 
-        for i := 0; i &lt; len(args); i++ </span><span class="cov8" title="8">{
+        for i := range args </span><span class="cov8" title="8">{
                 switch arg := args[i].(type) </span>{
                 case IndexArg:<span class="cov6" title="4">
                         useIdx = true
                         if notIdx </span><span class="cov0" title="0">{
-                                err := fmt.Errorf("all arguments must either have indexes or not have indexes")
+                                err := errors.New("arguments must be all indexed or non-indexed")
                                 return nil, errutil.WrapError(err, "NewArgList error")
                         }</span>
                         <span class="cov6" title="4">if arg.Idx &lt; 0 || arg.Idx &gt;= fnType.NumIn() </span><span class="cov0" title="0">{
@@ -4337,7 +4317,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
                 default:<span class="cov6" title="4">
                         notIdx = true
                         if useIdx </span><span class="cov0" title="0">{
-                                err := fmt.Errorf("all arguments must either have indexes or not have indexes")
+                                err := errors.New("arguments must be all indexed or non-indexed")
                                 return nil, errutil.WrapError(err, "NewArgList error")
                         }</span>
                         <span class="cov6" title="4">if i &lt; fixedArgCount </span><span class="cov6" title="4">{
@@ -4351,13 +4331,13 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) <span clas
         <span class="cov7" title="6">return &amp;ArgList{fnType: fnType, args: fnArgs}, nil</span>
 }
 
-// get returns the processed argument values for the function call.
+// get resolves all arguments and returns their reflected values.
 func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov7" title="6">{
 
         fnType := r.fnType
         numIn := fnType.NumIn()
         variadic := fnType.IsVariadic()
-        result := make([]reflect.Value, 0)
+        result := make([]reflect.Value, 0, len(r.args))
 
         // Processes each argument and converts it to a [reflect.Value].
         for idx, arg := range r.args </span><span class="cov9" title="10">{
@@ -4383,13 +4363,14 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) <span class="c
 // CallableFunc is a function that can be called.
 type CallableFunc = interface{}
 
-// Callable wraps a function and its binding arguments.
+// Callable wraps a function and its bound arguments for invocation.
 type Callable struct {
         fn      CallableFunc
         argList *ArgList
 }
 
-// NewCallable creates a Callable by binding arguments to a function.
+// NewCallable binds arguments to a function and creates a Callable. It
+// returns errors for invalid function types or argument validation failures.
 func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class="cov7" title="6">{
         fnType := reflect.TypeOf(fn)
         argList, err := NewArgList(fnType, args)
@@ -4399,7 +4380,7 @@ func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) <span class=
         <span class="cov7" title="6">return &amp;Callable{fn: fn, argList: argList}, nil</span>
 }
 
-// Call invokes the function with its bound arguments processed in the IoC container.
+// Call invokes the function with resolved arguments.
 func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class="cov7" title="6">{
         ret, err := r.argList.get(ctx)
         if err != nil </span><span class="cov0" title="0">{
@@ -4408,14 +4389,17 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) <span class=
         <span class="cov7" title="6">return reflect.ValueOf(r.fn).Call(ret), nil</span>
 }
 
-// BindArg represents a binding for an option function argument.
+// BindArg represents a bound function with conditions for conditional execution.
 type BindArg struct {
-        r          *Callable
-        fileline   string
-        conditions []gs.Condition
+        r          *Callable      // The wrapped Callable.
+        fileline   string         // Source location of the Bind call (for debugging).
+        conditions []gs.Condition // Conditions that must be met to execute the function.
 }
 
-// validBindFunc checks if the given function is a valid binding function.
+// validBindFunc validates if a function is a valid binding target.
+// Valid signatures:
+//   - func(...) error
+//   - func(...) (T, error)
 func validBindFunc(fn CallableFunc) error <span class="cov4" title="3">{
         t := reflect.TypeOf(fn)
         if t.Kind() != reflect.Func </span><span class="cov0" title="0">{
@@ -4433,33 +4417,37 @@ func validBindFunc(fn CallableFunc) error <span class="cov4" title="3">{
         <span class="cov0" title="0">return errors.New("invalid function type")</span>
 }
 
-// Bind creates a binding for an option function argument.
+// Bind creates a binding for an option function. It panics on validation errors.
+// `fn` is The target function (must return error or (T, error)). `args` is the
+// bound arguments (indexed or non-indexed).
 func Bind(fn CallableFunc, args ...gs.Arg) *BindArg <span class="cov4" title="3">{
         if err := validBindFunc(fn); err != nil </span><span class="cov0" title="0">{
                 panic(err)</span>
         }
-        <span class="cov4" title="3">_, file, line, _ := runtime.Caller(1)
-        r, err := NewCallable(fn, args)
+        <span class="cov4" title="3">r, err := NewCallable(fn, args)
         if err != nil </span><span class="cov0" title="0">{
                 panic(err)</span>
         }
         <span class="cov4" title="3">arg := &amp;BindArg{r: r}
+        _, file, line, _ := runtime.Caller(1)
         arg.SetFileLine(file, line)
         return arg</span>
 }
 
-// SetFileLine sets the file and line number of the function call.
+// SetFileLine sets the source location of the Bind call.
 func (arg *BindArg) SetFileLine(file string, line int) <span class="cov4" title="3">{
         arg.fileline = fmt.Sprintf("%s:%d", file, line)
 }</span>
 
-// Condition sets a condition for invoking the option function.
+// Condition adds pre-execution conditions to the binding.
 func (arg *BindArg) Condition(c ...gs.Condition) *BindArg <span class="cov0" title="0">{
         arg.conditions = append(arg.conditions, c...)
         return arg
 }</span>
 
-// GetArgValue retrieves the function's return value if conditions are met.
+// GetArgValue executes the function if all conditions are met and returns the result.
+// It returns an invalid [reflect.Value] if conditions are not met. It also propagates
+// errors from the function or condition checks.
 func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) <span class="cov4" title="3">{
 
         // Checks if the condition is met.
@@ -4556,22 +4544,16 @@ var refreshableType = reflect.TypeFor[gs.Refreshable]()
 
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-        f          *gs_arg.Callable
-        init       gs.BeanInitFunc
-        destroy    gs.BeanDestroyFunc
-        dependsOn  []gs.BeanSelector
-        exports    []reflect.Type
-        conditions []gs.Condition
-        status     BeanStatus
-
-        file string
-        line int
-
-        configurationBean  bool
-        configurationParam gs.ConfigurationParam
-
-        refreshable bool
-        refreshTag  string
+        f             *gs_arg.Callable
+        init          gs.BeanInitFunc
+        destroy       gs.BeanDestroyFunc
+        dependsOn     []gs.BeanSelector
+        exports       []reflect.Type
+        conditions    []gs.Condition
+        status        BeanStatus
+        fileLine      string
+        refreshTag    string
+        configuration *gs.Configuration
 }
 
 // validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
@@ -4620,59 +4602,39 @@ func (d *BeanMetadata) Conditions() []gs.Condition <span class="cov5" title="16"
 }</span>
 
 // SetCondition adds a condition to the list of conditions for the bean.
-func (d *BeanMetadata) SetCondition(c ...gs.Condition) <span class="cov2" title="2">{
+func (d *BeanMetadata) SetCondition(c ...gs.Condition) <span class="cov2" title="3">{
         d.conditions = append(d.conditions, c...)
 }</span>
 
-// ConfigurationBean returns whether the bean is a configuration bean.
-func (d *BeanMetadata) ConfigurationBean() bool <span class="cov5" title="16">{
-        return d.configurationBean
-}</span>
-
-// ConfigurationParam returns the configuration parameters for the bean.
-func (d *BeanMetadata) ConfigurationParam() gs.ConfigurationParam <span class="cov0" title="0">{
-        return d.configurationParam
+// Configuration returns the configuration parameters for the bean.
+func (d *BeanMetadata) Configuration() *gs.Configuration <span class="cov5" title="16">{
+        return d.configuration
 }</span>
 
 // SetConfiguration sets the configuration flag and parameters for the bean.
-func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) <span class="cov0" title="0">{
-        d.configurationBean = true
-        if len(param) == 0 </span><span class="cov0" title="0">{
-                return
-        }</span>
-        <span class="cov0" title="0">x := param[0]
-        if len(x.Includes) &gt; 0 </span><span class="cov0" title="0">{
-                d.configurationParam.Includes = x.Includes
-        }</span>
-        <span class="cov0" title="0">if len(x.Excludes) &gt; 0 </span><span class="cov0" title="0">{
-                d.configurationParam.Excludes = x.Excludes
-        }</span>
-}
-
-// Refreshable returns whether the bean is refreshable.
-func (d *BeanMetadata) Refreshable() bool <span class="cov5" title="16">{
-        return d.refreshable
+func (d *BeanDefinition) SetConfiguration(c *gs.Configuration) <span class="cov0" title="0">{
+        d.configuration = c
 }</span>
 
 // RefreshTag returns the refresh tag of the bean.
-func (d *BeanMetadata) RefreshTag() string <span class="cov0" title="0">{
+func (d *BeanMetadata) RefreshTag() string <span class="cov5" title="16">{
         return d.refreshTag
 }</span>
 
 // SetCaller sets the caller for the bean.
 func (d *BeanMetadata) SetCaller(skip int) <span class="cov0" title="0">{
         _, file, line, _ := runtime.Caller(skip)
-        d.file, d.line = file, line
+        d.SetFileLine(file, line)
 }</span>
 
 // FileLine returns the file and line number for the bean.
-func (d *BeanMetadata) FileLine() (string, int) <span class="cov0" title="0">{
-        return d.file, d.line
+func (d *BeanMetadata) FileLine() string <span class="cov0" title="0">{
+        return d.fileLine
 }</span>
 
 // SetFileLine sets the file and line number for the bean.
 func (d *BeanMetadata) SetFileLine(file string, line int) <span class="cov5" title="16">{
-        d.file, d.line = file, line
+        d.fileLine = fmt.Sprintf("%s:%d", file, line)
 }</span>
 
 // BeanRuntime holds runtime information about the bean.
@@ -4815,7 +4777,7 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) <span class="cov4" t
                         panic("only interface type can be exported")</span>
                 }
                 <span class="cov4" title="7">if !d.Type().Implements(t) </span><span class="cov0" title="0">{
-                        panic(fmt.Sprintf("%s doesn't implement interface %s", d, t))</span>
+                        panic(fmt.Sprintf("doesn't implement interface %s", t))</span>
                 }
                 <span class="cov4" title="7">exported := false
                 for _, export := range d.exports </span><span class="cov0" title="0">{
@@ -4836,13 +4798,12 @@ func (d *BeanDefinition) SetRefreshable(tag string) <span class="cov0" title="0"
         if !d.Type().Implements(refreshableType) </span><span class="cov0" title="0">{
                 panic("must implement gs.Refreshable interface")</span>
         }
-        <span class="cov0" title="0">d.refreshable = true
-        d.refreshTag = tag</span>
+        <span class="cov0" title="0">d.refreshTag = tag</span>
 }
 
 // OnProfiles sets the conditions for the bean based on the active profiles.
 func (d *BeanDefinition) OnProfiles(profiles string) <span class="cov1" title="1">{
-        c := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) </span><span class="cov1" title="1">{
+        d.SetCondition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) </span><span class="cov1" title="1">{
                 val := strings.TrimSpace(ctx.Prop("spring.profiles.active"))
                 if val == "" </span><span class="cov0" title="0">{
                         return false, nil
@@ -4856,8 +4817,7 @@ func (d *BeanDefinition) OnProfiles(profiles string) <span class="cov1" title="1
                         }
                 }
                 <span class="cov0" title="0">return false, nil</span>
-        })
-        <span class="cov1" title="1">d.conditions = append(d.conditions, c)</span>
+        }))
 }
 
 // TypeAndName returns the type and name of the bean.
@@ -4867,7 +4827,7 @@ func (d *BeanDefinition) TypeAndName() (reflect.Type, string) <span class="cov0"
 
 // String returns a string representation of the bean.
 func (d *BeanDefinition) String() string <span class="cov0" title="0">{
-        return fmt.Sprintf("name:%q %s:%d", d.name, d.file, d.line)
+        return fmt.Sprintf("name=%s %s", d.name, d.fileLine)
 }</span>
 </pre>
 		
@@ -4891,7 +4851,6 @@ package gs_cond
 
 import (
         "fmt"
-        "strconv"
         "strings"
 
         "github.com/go-spring/spring-core/gs/internal/gs"
@@ -4970,35 +4929,14 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) <span class="cov1
                 return c.matchIfMissing, nil
         }</span>
 
-        // If there's no expected value to match, simply return true (property exists).
-        <span class="cov1" title="1">if c.havingValue == "" </span><span class="cov0" title="0">{
-                return true, nil
-        }</span>
-
         // Retrieve the property's value and compare it with the expected value.
         <span class="cov1" title="1">val := ctx.Prop(c.name)
         if !strings.HasPrefix(c.havingValue, "expr:") </span><span class="cov1" title="1">{
                 return val == c.havingValue, nil
         }</span>
 
-        <span class="cov0" title="0">getValue := func(val string) interface{} </span><span class="cov0" title="0">{
-                if b, err := strconv.ParseBool(val); err == nil </span><span class="cov0" title="0">{
-                        return b
-                }</span>
-                <span class="cov0" title="0">if i, err := strconv.ParseInt(val, 10, 64); err == nil </span><span class="cov0" title="0">{
-                        return i
-                }</span>
-                <span class="cov0" title="0">if u, err := strconv.ParseUint(val, 10, 64); err == nil </span><span class="cov0" title="0">{
-                        return u
-                }</span>
-                <span class="cov0" title="0">if f, err := strconv.ParseFloat(val, 64); err == nil </span><span class="cov0" title="0">{
-                        return f
-                }</span>
-                <span class="cov0" title="0">return val</span>
-        }
-
         // Evaluate the expression and return the result.
-        <span class="cov0" title="0">ok, err := EvalExpr(c.havingValue[5:], getValue(val))
+        <span class="cov0" title="0">ok, err := EvalExpr(c.havingValue[5:], val)
         if err != nil </span><span class="cov0" title="0">{
                 return false, errutil.WrapError(err, "condition matches error: %s", c)
         }</span>
@@ -5014,7 +4952,7 @@ func (c *onProperty) String() string <span class="cov0" title="0">{
                 sb.WriteString(c.havingValue)
         }</span>
         <span class="cov0" title="0">if c.matchIfMissing </span><span class="cov0" title="0">{
-                sb.WriteString(", matchIfMissing=true")
+                sb.WriteString(", matchIfMissing")
         }</span>
         <span class="cov0" title="0">sb.WriteString(")")
         return sb.String()</span>
@@ -5052,13 +4990,13 @@ type onBean struct {
 
 // OnBean creates a condition that evaluates to true if at least one bean
 // matches the specified type and name.
-func OnBean[T any](name ...string) gs.Condition <span class="cov0" title="0">{
+func OnBean[T any](name ...string) gs.Condition <span class="cov1" title="1">{
         return &amp;onBean{s: gs.BeanSelectorFor[T](name...)}
 }</span>
 
 // OnBeanSelector creates a condition that evaluates to true if at least one
 // bean matches the provided selector.
-func OnBeanSelector(s gs.BeanSelector) gs.Condition <span class="cov1" title="1">{
+func OnBeanSelector(s gs.BeanSelector) gs.Condition <span class="cov0" title="0">{
         return &amp;onBean{s: s}
 }</span>
 
@@ -5339,21 +5277,21 @@ import (
         "github.com/expr-lang/expr"
 )
 
-// funcMap holds a map of function names to their implementations.
-// These functions can be used within expressions passed to EvalExpr.
+// funcMap stores registered functions that can be referenced in expressions.
+// These functions are available for use in all expressions evaluated by EvalExpr.
 var funcMap = map[string]interface{}{}
 
-// RegisterExpressFunc registers an express function with a specified name.
-// The function can later be used in expressions evaluated by EvalExpr.
+// RegisterExpressFunc registers a function under the given name, making it available
+// for use in expressions evaluated by EvalExpr. Functions must be registered before
+// they are referenced in any expression.
 func RegisterExpressFunc(name string, fn interface{}) <span class="cov0" title="0">{
         funcMap[name] = fn
 }</span>
 
-// EvalExpr evaluates a given boolean expression (input) using the provided value (val).
-// The `input` parameter is a string that represents an expression expected to return a
-// boolean value. The `val` parameter is the data object that will be referred to as "$"
-// within the expression context.
-func EvalExpr(input string, val interface{}) (bool, error) <span class="cov0" title="0">{
+// EvalExpr evaluates a boolean expression using the provided value as the "$" variable.
+// `input` is a boolean expression string to evaluate, it must return a boolean result.
+// `val` is a string value accessible as "$" within the expression context.
+func EvalExpr(input string, val string) (bool, error) <span class="cov0" title="0">{
         env := map[string]interface{}{"$": val}
         for k, v := range funcMap </span><span class="cov0" title="0">{
                 env[k] = v
@@ -5412,19 +5350,19 @@ func NewCommandArgs() *CommandArgs <span class="cov3" title="2">{
 // CopyTo processes command-line parameters and sets them as key-value pairs
 // in the provided conf.Properties. Parameters should be passed in the form
 // of `-D key[=value/true]`.
-func (c *CommandArgs) CopyTo(out *conf.MutableProperties) error <span class="cov10" title="14">{
+func (c *CommandArgs) CopyTo(out *conf.MutableProperties) error <span class="cov10" title="12">{
         if len(os.Args) == 0 </span><span class="cov0" title="0">{
                 return nil
         }</span>
 
         // Default option prefix is "-D", but it can be overridden by the
         // environment variable `GS_ARGS_PREFIX`.
-        <span class="cov10" title="14">option := "-D"
+        <span class="cov10" title="12">option := "-D"
         if s := strings.TrimSpace(os.Getenv(CommandArgsPrefix)); s != "" </span><span class="cov0" title="0">{
                 option = s
         }</span>
 
-        <span class="cov10" title="14">cmdArgs := os.Args[1:]
+        <span class="cov10" title="12">cmdArgs := os.Args[1:]
         n := len(cmdArgs)
         for i := 0; i &lt; n; i++ </span><span class="cov0" title="0">{
                 if cmdArgs[i] == option </span><span class="cov0" title="0">{
@@ -5441,7 +5379,7 @@ func (c *CommandArgs) CopyTo(out *conf.MutableProperties) error <span class="cov
                         }</span>
                 }
         }
-        <span class="cov10" title="14">return nil</span>
+        <span class="cov10" title="12">return nil</span>
 }
 </pre>
 		
@@ -5495,45 +5433,45 @@ func NewAppConfig() *AppConfig <span class="cov1" title="1">{
 
 func merge(out *conf.MutableProperties, sources ...interface {
         CopyTo(out *conf.MutableProperties) error
-}) error <span class="cov6" title="14">{
-        for _, s := range sources </span><span class="cov8" title="46">{
-                if s != nil </span><span class="cov8" title="40">{
+}) error <span class="cov5" title="12">{
+        for _, s := range sources </span><span class="cov8" title="39">{
+                if s != nil </span><span class="cov8" title="34">{
                         if err := s.CopyTo(out); err != nil </span><span class="cov0" title="0">{
                                 return err
                         }</span>
                 }
         }
-        <span class="cov6" title="14">return nil</span>
+        <span class="cov5" title="12">return nil</span>
 }
 
 // Refresh merges all layers of configurations into a read-only properties.
-func (c *AppConfig) Refresh() (conf.Properties, error) <span class="cov4" title="6">{
+func (c *AppConfig) Refresh() (conf.Properties, error) <span class="cov4" title="5">{
         p := sysconf.Clone()
         err := merge(p, c.Environment, c.CommandArgs)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov4" title="6">localFiles, err := c.LocalFile.loadFiles(p)
+        <span class="cov4" title="5">localFiles, err := c.LocalFile.loadFiles(p)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov4" title="6">remoteFiles, err := c.RemoteFile.loadFiles(p)
+        <span class="cov4" title="5">remoteFiles, err := c.RemoteFile.loadFiles(p)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov4" title="6">var sources []interface {
+        <span class="cov4" title="5">var sources []interface {
                 CopyTo(out *conf.MutableProperties) error
         }
-        for _, file := range localFiles </span><span class="cov4" title="6">{
+        for _, file := range localFiles </span><span class="cov4" title="5">{
                 sources = append(sources, file)
         }</span>
-        <span class="cov4" title="6">for _, file := range remoteFiles </span><span class="cov4" title="6">{
+        <span class="cov4" title="5">for _, file := range remoteFiles </span><span class="cov4" title="5">{
                 sources = append(sources, file)
         }</span>
-        <span class="cov4" title="6">sources = append(sources, c.RemoteProp)
+        <span class="cov4" title="5">sources = append(sources, c.RemoteProp)
         sources = append(sources, c.Environment)
         sources = append(sources, c.CommandArgs)
 
@@ -5542,7 +5480,7 @@ func (c *AppConfig) Refresh() (conf.Properties, error) <span class="cov4" title=
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov4" title="6">return p, nil</span>
+        <span class="cov4" title="5">return p, nil</span>
 }
 
 /******************************** BootConfig *********************************/
@@ -5623,6 +5561,7 @@ func NewPropertySources(configType ConfigType, configName string) *PropertySourc
 // Reset resets all the extra files.
 func (p *PropertySources) Reset() <span class="cov0" title="0">{
         p.extraFiles = nil
+        p.extraDirs = nil
 }</span>
 
 // AddDir adds a or more than one extra directories.
@@ -5630,7 +5569,10 @@ func (p *PropertySources) AddDir(dirs ...string) <span class="cov0" title="0">{
         for _, d := range dirs </span><span class="cov0" title="0">{
                 info, err := os.Stat(d)
                 if err != nil </span><span class="cov0" title="0">{
-                        panic(err)</span>
+                        if !os.IsNotExist(err) </span><span class="cov0" title="0">{
+                                panic(err)</span>
+                        }
+                        <span class="cov0" title="0">continue</span>
                 }
                 <span class="cov0" title="0">if !info.IsDir() </span><span class="cov0" title="0">{
                         panic("should be a directory")</span>
@@ -5644,7 +5586,10 @@ func (p *PropertySources) AddFile(files ...string) <span class="cov0" title="0">
         for _, f := range files </span><span class="cov0" title="0">{
                 info, err := os.Stat(f)
                 if err != nil </span><span class="cov0" title="0">{
-                        panic(err)</span>
+                        if !os.IsNotExist(err) </span><span class="cov0" title="0">{
+                                panic(err)</span>
+                        }
+                        <span class="cov0" title="0">continue</span>
                 }
                 <span class="cov0" title="0">if info.IsDir() </span><span class="cov0" title="0">{
                         panic("should be a file")</span>
@@ -5654,18 +5599,19 @@ func (p *PropertySources) AddFile(files ...string) <span class="cov0" title="0">
 }
 
 // getDefaultDir returns the default configuration directory based on the configuration type.
-func (p *PropertySources) getDefaultDir(resolver conf.Properties) (configDir string, err error) <span class="cov5" title="13">{
-        if p.configType == ConfigTypeLocal </span><span class="cov4" title="7">{
-                return resolver.Resolve("${spring.app.config.dir:=./conf}")
-        }</span> else<span class="cov4" title="6"> if p.configType == ConfigTypeRemote </span><span class="cov4" title="6">{
-                return resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
-        }</span> else<span class="cov0" title="0"> {
-                return "", fmt.Errorf("unknown config type: %s", p.configType)
-        }</span>
+func (p *PropertySources) getDefaultDir(resolver conf.Properties) (configDir string, err error) <span class="cov5" title="11">{
+        switch p.configType </span>{
+        case ConfigTypeLocal:<span class="cov4" title="6">
+                return resolver.Resolve("${spring.app.config-local.dir:=./conf}")</span>
+        case ConfigTypeRemote:<span class="cov4" title="5">
+                return resolver.Resolve("${spring.app.config-remote.dir:=./conf/remote}")</span>
+        default:<span class="cov0" title="0">
+                return "", fmt.Errorf("unknown config type: %s", p.configType)</span>
+        }
 }
 
 // getFiles returns the list of configuration files based on the configuration directory and active profiles.
-func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []string, err error) <span class="cov5" title="13">{
+func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []string, err error) <span class="cov5" title="11">{
 
         files := []string{
                 fmt.Sprintf("%s/%s.properties", dir, p.configName),
@@ -5678,10 +5624,11 @@ func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []st
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov5" title="13">if activeProfiles = strings.TrimSpace(activeProfiles); activeProfiles != "" </span><span class="cov5" title="13">{
+
+        <span class="cov5" title="11">if activeProfiles = strings.TrimSpace(activeProfiles); activeProfiles != "" </span><span class="cov5" title="11">{
                 ss := strings.Split(activeProfiles, ",")
-                for _, s := range ss </span><span class="cov5" title="13">{
-                        if s = strings.TrimSpace(s); s != "" </span><span class="cov5" title="13">{
+                for _, s := range ss </span><span class="cov5" title="11">{
+                        if s = strings.TrimSpace(s); s != "" </span><span class="cov5" title="11">{
                                 files = append(files, []string{
                                         fmt.Sprintf("%s/%s-%s.properties", dir, p.configName, s),
                                         fmt.Sprintf("%s/%s-%s.yaml", dir, p.configName, s),
@@ -5691,49 +5638,45 @@ func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []st
                         }</span>
                 }
         }
-        <span class="cov5" title="13">return files, nil</span>
+        <span class="cov5" title="11">return files, nil</span>
 }
 
 // loadFiles loads all configuration files and returns them as a list of Properties.
-func (p *PropertySources) loadFiles(resolver conf.Properties) ([]conf.Properties, error) <span class="cov5" title="13">{
-        var files []string
-        </span><span class="cov5" title="13">{
-                defaultDir, err := p.getDefaultDir(resolver)
-                if err != nil </span><span class="cov0" title="0">{
-                        return nil, err
-                }</span>
-                <span class="cov5" title="13">tempFiles, err := p.getFiles(defaultDir, resolver)
-                if err != nil </span><span class="cov0" title="0">{
-                        return nil, err
-                }</span>
-                <span class="cov5" title="13">files = append(files, tempFiles...)</span>
-        }
+func (p *PropertySources) loadFiles(resolver conf.Properties) ([]conf.Properties, error) <span class="cov5" title="11">{
 
-        <span class="cov5" title="13">for _, dir := range p.extraDirs </span><span class="cov0" title="0">{
-                tempFiles, err := p.getFiles(dir, resolver)
+        defaultDir, err := p.getDefaultDir(resolver)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov5" title="11">dirs := append([]string{defaultDir}, p.extraDirs...)
+
+        var files []string
+        for _, dir := range dirs </span><span class="cov5" title="11">{
+                var temp []string
+                temp, err = p.getFiles(dir, resolver)
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, err
                 }</span>
-                <span class="cov0" title="0">files = append(files, tempFiles...)</span>
+                <span class="cov5" title="11">files = append(files, temp...)</span>
         }
-        <span class="cov5" title="13">files = append(files, p.extraFiles...)
+        <span class="cov5" title="11">files = append(files, p.extraFiles...)
 
         var ret []conf.Properties
-        for _, s := range files </span><span class="cov10" title="104">{
+        for _, s := range files </span><span class="cov10" title="88">{
                 filename, err := resolver.Resolve(s)
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, err
                 }</span>
-                <span class="cov10" title="104">c, err := conf.Load(filename)
-                if err != nil </span><span class="cov9" title="92">{
-                        if os.IsNotExist(err) </span><span class="cov9" title="92">{
+                <span class="cov10" title="88">c, err := conf.Load(filename)
+                if err != nil </span><span class="cov9" title="78">{
+                        if os.IsNotExist(err) </span><span class="cov9" title="78">{
                                 continue</span>
                         }
                         <span class="cov0" title="0">return nil, err</span>
                 }
-                <span class="cov5" title="12">ret = append(ret, c)</span>
+                <span class="cov5" title="10">ret = append(ret, c)</span>
         }
-        <span class="cov5" title="13">return ret, nil</span>
+        <span class="cov5" title="11">return ret, nil</span>
 }
 </pre>
 		
@@ -5778,126 +5721,107 @@ func NewEnvironment() *Environment <span class="cov1" title="2">{
 }</span>
 
 // lookupEnv searches for an environment variable by key in the environ slice.
-func lookupEnv(environ []string, key string) (value string, found bool) <span class="cov4" title="28">{
+func lookupEnv(environ []string, key string) (value string, found bool) <span class="cov4" title="24">{
         key = strings.TrimSpace(key) + "="
-        for _, s := range environ </span><span class="cov8" title="1036">{
+        for _, s := range environ </span><span class="cov8" title="888">{
                 if strings.HasPrefix(s, key) </span><span class="cov0" title="0">{
                         v := strings.TrimPrefix(s, key)
                         return strings.TrimSpace(v), true
                 }</span>
         }
-        <span class="cov4" title="28">return "", false</span>
+        <span class="cov4" title="24">return "", false</span>
 }
 
 // CopyTo add environment variables that matches IncludeEnvPatterns and
 // exclude environment variables that matches ExcludeEnvPatterns.
-func (c *Environment) CopyTo(p *conf.MutableProperties) error <span class="cov3" title="14">{
+func (c *Environment) CopyTo(p *conf.MutableProperties) error <span class="cov3" title="12">{
         environ := os.Environ()
         if len(environ) == 0 </span><span class="cov0" title="0">{
                 return nil
         }</span>
 
-        <span class="cov3" title="14">prefix := "GS_"
+        <span class="cov3" title="12">prefix := "GS_"
         if s := strings.TrimSpace(os.Getenv(EnvironmentPrefix)); s != "" </span><span class="cov0" title="0">{
                 prefix = s
         }</span>
 
-        <span class="cov3" title="14">toRex := func(patterns []string) ([]*regexp.Regexp, error) </span><span class="cov4" title="28">{
+        <span class="cov3" title="12">toRex := func(patterns []string) ([]*regexp.Regexp, error) </span><span class="cov4" title="24">{
                 var rex []*regexp.Regexp
-                for _, v := range patterns </span><span class="cov3" title="14">{
+                for _, v := range patterns </span><span class="cov3" title="12">{
                         exp, err := regexp.Compile(v)
                         if err != nil </span><span class="cov0" title="0">{
                                 return nil, err
                         }</span>
-                        <span class="cov3" title="14">rex = append(rex, exp)</span>
+                        <span class="cov3" title="12">rex = append(rex, exp)</span>
                 }
-                <span class="cov4" title="28">return rex, nil</span>
+                <span class="cov4" title="24">return rex, nil</span>
         }
 
-        <span class="cov3" title="14">includes := []string{".*"}
+        <span class="cov3" title="12">includes := []string{".*"}
         if s, ok := lookupEnv(environ, IncludeEnvPatterns); ok </span><span class="cov0" title="0">{
                 includes = strings.Split(s, ",")
         }</span>
-        <span class="cov3" title="14">includeRex, err := toRex(includes)
+        <span class="cov3" title="12">includeRex, err := toRex(includes)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov3" title="14">var excludes []string
+        <span class="cov3" title="12">var excludes []string
         if s, ok := lookupEnv(environ, ExcludeEnvPatterns); ok </span><span class="cov0" title="0">{
                 excludes = strings.Split(s, ",")
         }</span>
-        <span class="cov3" title="14">excludeRex, err := toRex(excludes)
+        <span class="cov3" title="12">excludeRex, err := toRex(excludes)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov3" title="14">matches := func(rex []*regexp.Regexp, s string) bool </span><span class="cov8" title="1036">{
-                for _, r := range rex </span><span class="cov7" title="518">{
-                        if r.MatchString(s) </span><span class="cov7" title="518">{
+        <span class="cov3" title="12">matches := func(rex []*regexp.Regexp, s string) bool </span><span class="cov8" title="888">{
+                for _, r := range rex </span><span class="cov7" title="444">{
+                        if r.MatchString(s) </span><span class="cov7" title="444">{
                                 return true
                         }</span>
                 }
-                <span class="cov7" title="518">return false</span>
+                <span class="cov7" title="444">return false</span>
         }
 
-        <span class="cov3" title="14">for _, env := range environ </span><span class="cov7" title="518">{
+        <span class="cov3" title="12">for _, env := range environ </span><span class="cov7" title="444">{
                 ss := strings.SplitN(env, "=", 2)
                 k, v := ss[0], ""
-                if len(ss) &gt; 1 </span><span class="cov7" title="518">{
+                if len(ss) &gt; 1 </span><span class="cov7" title="444">{
                         v = ss[1]
                 }</span>
 
-                <span class="cov7" title="518">var propKey string
+                <span class="cov7" title="444">var propKey string
                 if strings.HasPrefix(k, prefix) </span><span class="cov0" title="0">{
                         propKey = strings.TrimPrefix(k, prefix)
-                }</span> else<span class="cov7" title="518"> if matches(includeRex, k) &amp;&amp; !matches(excludeRex, k) </span><span class="cov7" title="518">{
+                }</span> else<span class="cov7" title="444"> if matches(includeRex, k) &amp;&amp; !matches(excludeRex, k) </span><span class="cov7" title="444">{
                         propKey = k
                 }</span> else<span class="cov0" title="0"> {
                         continue</span>
                 }
 
-                <span class="cov7" title="518">propKey = strings.ToLower(replaceKey(propKey))
+                <span class="cov7" title="444">propKey = strings.ToLower(replaceKey(propKey))
                 if err = p.Set(propKey, v); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
         }
-        <span class="cov3" title="14">return nil</span>
+        <span class="cov3" title="12">return nil</span>
 }
 
 // replaceKey replace '_' with '.'
-func replaceKey(s string) string <span class="cov7" title="518">{
-        var b strings.Builder
-
-        right := len(s) - 1
-        for </span><span class="cov7" title="518">{
-                if s[right] != '_' </span><span class="cov7" title="518">{
-                        break</span>
+func replaceKey(s string) string <span class="cov7" title="444">{
+        b := make([]byte, len(s)+2)
+        b[0] = '_'
+        b[len(b)-1] = '_'
+        copy(b[1:len(b)-1], s)
+        for i := 1; i &lt; len(b)-1; i++ </span><span class="cov10" title="4440">{
+                if b[i] == '_' </span><span class="cov7" title="336">{
+                        if b[i-1] != '_' &amp;&amp; b[i+1] != '_' </span><span class="cov7" title="288">{
+                                b[i] = '.'
+                        }</span>
                 }
-                <span class="cov0" title="0">right--</span>
         }
-
-        <span class="cov7" title="518">left := 0
-        for </span><span class="cov7" title="574">{
-                if s[left] != '_' </span><span class="cov7" title="518">{
-                        break</span>
-                }
-                <span class="cov5" title="56">b.WriteByte('_')
-                left++</span>
-        }
-
-        <span class="cov7" title="518">for i := left; i &lt;= right; i++ </span><span class="cov10" title="5124">{
-                if s[i] == '_' </span><span class="cov7" title="336">{
-                        b.WriteByte('.')
-                        continue</span>
-                }
-                <span class="cov9" title="4788">b.WriteByte(s[i])</span>
-        }
-
-        <span class="cov7" title="518">for i := right + 1; i &lt; len(s); i++ </span><span class="cov0" title="0">{
-                b.WriteByte('_')
-        }</span>
-        <span class="cov7" title="518">return b.String()</span>
+        <span class="cov7" title="444">return string(b[1 : len(b)-1])</span>
 }
 </pre>
 		
@@ -6273,7 +6197,7 @@ func (c *Resolving) RefreshInit(p conf.Properties) error <span class="cov3" titl
 
         // processes configuration beans to register beans.
         <span class="cov3" title="2">for _, b := range c.beans </span><span class="cov9" title="16">{
-                if !b.ConfigurationBean() </span><span class="cov9" title="16">{
+                if b.Configuration() == nil </span><span class="cov9" title="16">{
                         continue</span>
                 }
                 <span class="cov0" title="0">var foundMock BeanMock
@@ -6412,7 +6336,7 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
                 includes []*regexp.Regexp
                 excludes []*regexp.Regexp
         )
-        param := bd.ConfigurationParam()
+        param := bd.Configuration()
         ss := param.Includes
         if len(ss) == 0 </span><span class="cov0" title="0">{
                 ss = []string{"New*"}
@@ -6633,7 +6557,7 @@ func (d *destroyer) after(b *gs_bean.BeanDefinition) <span class="cov0" title="0
 }
 
 // getBeforeDestroyers retrieves destroyers that should be processed before a given one for sorting purposes.
-func getBeforeDestroyers(destroyers *list.List, i interface{}) (*list.List, error) <span class="cov3" title="3">{
+func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List <span class="cov3" title="3">{
         d := i.(*destroyer)
         result := list.New()
         for e := destroyers.Front(); e != nil; e = e.Next() </span><span class="cov6" title="9">{
@@ -6642,7 +6566,7 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) (*list.List, erro
                         result.PushBack(c)
                 }</span>
         }
-        <span class="cov3" title="3">return result, nil</span>
+        <span class="cov3" title="3">return result</span>
 }
 
 /******************************* wiring stack ********************************/
@@ -6862,7 +6786,7 @@ func (c *Wiring) Properties() conf.Properties <span class="cov4" title="4">{
         return c.p.Data()
 }</span>
 
-func (c *Wiring) RefreshProperties(p conf.Properties) error <span class="cov6" title="7">{
+func (c *Wiring) RefreshProperties(p conf.Properties) error <span class="cov5" title="6">{
         return c.p.Refresh(p)
 }</span>
 
@@ -7271,7 +7195,7 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span c
         watchRefresh := true
 
         // If the bean is refreshable, add it to the refreshable list.
-        if b.Refreshable() </span><span class="cov0" title="0">{
+        if tag := b.RefreshTag(); tag != "" </span><span class="cov0" title="0">{
                 i := b.Interface().(gs.Refreshable)
                 var param conf.BindParam
                 err = param.BindTag(b.RefreshTag(), "")
@@ -7539,7 +7463,6 @@ package gs_dync
 
 import (
         "encoding/json"
-        "fmt"
         "reflect"
         "sort"
         "strings"
@@ -7550,8 +7473,22 @@ import (
         "github.com/go-spring/spring-core/gs/internal/gs"
 )
 
+// noCopy may be added to structs which must not be copied
+// after the first use.
+//
+// See https://golang.org/issues/8005#issuecomment-190753527
+// for details.
+//
+// Note that it must not be embedded, due to the Lock and Unlock methods.
+type noCopy struct{}
+
+// Lock is a no-op used by -copylocks checker from `go vet`.
+func (*noCopy) Lock()   {<span class="cov0" title="0">}</span>
+func (*noCopy) Unlock() {<span class="cov0" title="0">}</span>
+
 // Value represents a thread-safe object that can dynamically refresh its value.
 type Value[T any] struct {
+        _ noCopy
         v atomic.Value
 }
 
@@ -7618,7 +7555,7 @@ func (p *Properties) ObjectsCount() int <span class="cov2" title="2">{
 }</span>
 
 // Refresh updates the properties and refreshes all bound objects as necessary.
-func (p *Properties) Refresh(prop conf.Properties) (err error) <span class="cov4" title="7">{
+func (p *Properties) Refresh(prop conf.Properties) (err error) <span class="cov4" title="6">{
         p.lock.Lock()
         defer p.lock.Unlock()
 
@@ -7627,45 +7564,47 @@ func (p *Properties) Refresh(prop conf.Properties) (err error) <span class="cov4
                 return nil
         }</span>
 
-        <span class="cov3" title="5">old := p.prop
+        <span class="cov3" title="4">old := p.prop
         p.prop = prop
 
-        oldKeys := old.Keys()
-        newKeys := prop.Keys()
+        oldKeys := make(map[string]struct{})
+        for _, k := range old.Keys() </span><span class="cov10" title="188">{
+                oldKeys[k] = struct{}{}
+        }</span>
 
-        changes := make(map[string]struct{})
-        </span><span class="cov3" title="5">{
-                for _, k := range newKeys </span><span class="cov10" title="235">{
-                        if !old.Has(k) || old.Get(k) != prop.Get(k) </span><span class="cov3" title="5">{
-                                changes[k] = struct{}{}
-                        }</span>
+        <span class="cov3" title="4">changes := make(map[string]struct{})
+        for _, k := range prop.Keys() </span><span class="cov10" title="188">{
+                if _, ok := oldKeys[k]; ok </span><span class="cov10" title="188">{
+                        delete(oldKeys, k)
+                        if old.Get(k) == prop.Get(k) </span><span class="cov9" title="184">{
+                                continue</span>
+                        }
                 }
-                <span class="cov3" title="5">for _, k := range oldKeys </span><span class="cov10" title="235">{
-                        if _, ok := changes[k]; !ok </span><span class="cov9" title="230">{
-                                changes[k] = struct{}{}
-                        }</span>
-                }
+                <span class="cov3" title="4">changes[k] = struct{}{}</span>
         }
+        <span class="cov3" title="4">for k := range oldKeys </span><span class="cov0" title="0">{
+                changes[k] = struct{}{}
+        }</span>
 
-        <span class="cov3" title="5">keys := make([]string, 0, len(changes))
-        for k := range changes </span><span class="cov10" title="235">{
+        <span class="cov3" title="4">keys := make([]string, 0, len(changes))
+        for k := range changes </span><span class="cov3" title="4">{
                 keys = append(keys, k)
         }</span>
-        <span class="cov3" title="5">sort.Strings(keys)
+        <span class="cov3" title="4">sort.Strings(keys)
         return p.refreshKeys(keys)</span>
 }
 
 // refreshKeys refreshes objects bound by the specified keys.
-func (p *Properties) refreshKeys(keys []string) (err error) <span class="cov3" title="5">{
+func (p *Properties) refreshKeys(keys []string) (err error) <span class="cov3" title="4">{
         updateIndexes := make(map[int]*refreshObject)
-        for _, key := range keys </span><span class="cov10" title="235">{
-                for index, o := range p.objects </span><span class="cov10" title="235">{
+        for _, key := range keys </span><span class="cov3" title="4">{
+                for index, o := range p.objects </span><span class="cov3" title="4">{
                         s := strings.TrimPrefix(key, o.param.Key)
-                        if len(s) == len(key) </span><span class="cov9" title="230">{ // Check if the key starts with the parameter key.
+                        if len(s) == len(key) </span><span class="cov0" title="0">{ // Check if the key starts with the parameter key.
                                 continue</span>
                         }
-                        <span class="cov3" title="5">if len(s) == 0 || s[0] == '.' || s[0] == '[' </span><span class="cov3" title="5">{
-                                if _, ok := updateIndexes[index]; !ok </span><span class="cov3" title="5">{
+                        <span class="cov3" title="4">if len(s) == 0 || s[0] == '.' || s[0] == '[' </span><span class="cov3" title="4">{
+                                if _, ok := updateIndexes[index]; !ok </span><span class="cov3" title="4">{
                                         updateIndexes[index] = o
                                 }</span>
                         }
@@ -7673,22 +7612,22 @@ func (p *Properties) refreshKeys(keys []string) (err error) <span class="cov3" t
         }
 
         // Sort and collect objects that need updating.
-        <span class="cov3" title="5">updateObjects := make([]*refreshObject, 0, len(updateIndexes))
-        </span><span class="cov3" title="5">{
+        <span class="cov3" title="4">updateObjects := make([]*refreshObject, 0, len(updateIndexes))
+        </span><span class="cov3" title="4">{
                 ints := make([]int, 0, len(updateIndexes))
-                for k := range updateIndexes </span><span class="cov3" title="5">{
+                for k := range updateIndexes </span><span class="cov3" title="4">{
                         ints = append(ints, k)
                 }</span>
-                <span class="cov3" title="5">sort.Ints(ints)
-                for _, k := range ints </span><span class="cov3" title="5">{
+                <span class="cov3" title="4">sort.Ints(ints)
+                for _, k := range ints </span><span class="cov3" title="4">{
                         updateObjects = append(updateObjects, updateIndexes[k])
                 }</span>
         }
 
-        <span class="cov3" title="5">if len(updateObjects) == 0 </span><span class="cov0" title="0">{
+        <span class="cov3" title="4">if len(updateObjects) == 0 </span><span class="cov0" title="0">{
                 return nil
         }</span>
-        <span class="cov3" title="5">return p.refreshObjects(updateObjects)</span>
+        <span class="cov3" title="4">return p.refreshObjects(updateObjects)</span>
 }
 
 // Errors represents a collection of errors.
@@ -7714,52 +7653,23 @@ func (e *Errors) Error() string <span class="cov0" title="0">{
         for i, err := range e.arr </span><span class="cov0" title="0">{
                 sb.WriteString(err.Error())
                 if i &lt; len(e.arr)-1 </span><span class="cov0" title="0">{
-                        sb.WriteString("\n")
+                        sb.WriteString("; ")
                 }</span>
         }
         <span class="cov0" title="0">return sb.String()</span>
 }
 
 // refreshObjects refreshes all provided objects and aggregates errors.
-func (p *Properties) refreshObjects(objects []*refreshObject) error <span class="cov3" title="5">{
+func (p *Properties) refreshObjects(objects []*refreshObject) error <span class="cov3" title="4">{
         ret := &amp;Errors{}
-        for _, obj := range objects </span><span class="cov3" title="5">{
-                err := p.safeRefreshObject(obj)
+        for _, obj := range objects </span><span class="cov3" title="4">{
+                err := obj.target.OnRefresh(p.prop, obj.param)
                 ret.Append(err)
         }</span>
         <span class="cov3" title="4">if ret.Len() == 0 </span><span class="cov3" title="4">{
                 return nil
         }</span>
         <span class="cov0" title="0">return ret</span>
-}
-
-// safeRefreshObject refreshes an object and recovers from panics.
-func (p *Properties) safeRefreshObject(obj *refreshObject) (err error) <span class="cov3" title="4">{
-        defer func() </span><span class="cov3" title="4">{
-                if r := recover(); r != nil </span><span class="cov0" title="0">{
-                        err = fmt.Errorf("panic: %v", r)
-                }</span>
-        }()
-        <span class="cov3" title="4">return obj.target.OnRefresh(p.prop, obj.param)</span>
-}
-
-// RefreshBean refreshes a single refreshable object.
-// Optionally registers the object as refreshable if watch is true.
-func (p *Properties) RefreshBean(v gs.Refreshable, param conf.BindParam, watch bool) error <span class="cov0" title="0">{
-        p.lock.Lock()
-        defer p.lock.Unlock()
-        return p.doRefresh(v, param, watch)
-}</span>
-
-// doRefresh performs the refresh operation and registers the object if watch is enabled.
-func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch bool) error <span class="cov1" title="1">{
-        if watch </span><span class="cov1" title="1">{
-                p.objects = append(p.objects, &amp;refreshObject{
-                        target: v,
-                        param:  param,
-                })
-        }</span>
-        <span class="cov1" title="1">return v.OnRefresh(p.prop, param)</span>
 }
 
 // filter is used to selectively refresh objects and fields.
@@ -7793,6 +7703,25 @@ func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam, watch b
         }
         <span class="cov2" title="2">return conf.BindValue(p.prop, v.Elem(), v.Elem().Type(), param, f)</span>
 }
+
+// RefreshBean refreshes a single refreshable object.
+// Optionally registers the object as refreshable if watch is true.
+func (p *Properties) RefreshBean(v gs.Refreshable, param conf.BindParam, watch bool) error <span class="cov0" title="0">{
+        p.lock.Lock()
+        defer p.lock.Unlock()
+        return p.doRefresh(v, param, watch)
+}</span>
+
+// doRefresh performs the refresh operation and registers the object if watch is enabled.
+func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch bool) error <span class="cov1" title="1">{
+        if watch </span><span class="cov1" title="1">{
+                p.objects = append(p.objects, &amp;refreshObject{
+                        target: v,
+                        param:  param,
+                })
+        }</span>
+        <span class="cov1" title="1">return v.OnRefresh(p.prop, param)</span>
+}
 </pre>
 		
 		<pre class="file" id="file39" style="display: none">/*
@@ -7820,7 +7749,7 @@ import (
 
 // GetBeforeItems is a function type that returns a list of items
 // that must appear before the given current item in the sorting order.
-type GetBeforeItems func(sorting *list.List, current interface{}) (*list.List, error)
+type GetBeforeItems func(sorting *list.List, current interface{}) *list.List
 
 // TripleSort performs a three-way sort (processing, toSort, sorted)
 // to resolve dependencies and return a sorted list.
@@ -7872,13 +7801,10 @@ func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
         }</span>
 
         // Retrieve dependencies for the current item.
-        <span class="cov6" title="3">l, err := fn(sorting, current)
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
+        <span class="cov6" title="3">l := fn(sorting, current)
 
         // Add the current item to the processing list to mark it as being processed.
-        <span class="cov6" title="3">processing.PushBack(current)
+        processing.PushBack(current)
 
         // Process dependencies for the current item.
         for e := l.Front(); e != nil; e = e.Next() </span><span class="cov0" title="0">{
@@ -7895,7 +7821,7 @@ func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
 
                 // If the dependency is not sorted but still needs sorting, process it recursively.
                 if !inSorted &amp;&amp; inToSort </span><span class="cov0" title="0">{
-                        err = tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
+                        err := tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
                         if err != nil </span><span class="cov0" title="0">{
                                 return err
                         }</span>
@@ -7991,7 +7917,10 @@ func NewSimplePProfServer(addr string) *SimplePProfServer <span class="cov8" tit
 package gs
 
 import (
+        "strconv"
+
         "github.com/go-spring/spring-core/util/sysconf"
+        "github.com/go-spring/spring-core/util/syslog"
 )
 
 const (
@@ -8004,46 +7933,45 @@ const (
         EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
 )
 
+func setProperty(key string, val string) <span class="cov10" title="2">{
+        if err := sysconf.Set(key, val); err != nil </span><span class="cov0" title="0">{
+                syslog.Errorf("failed to set %s: %v", key, err)
+        }</span>
+}
+
 // AllowCircularReferences enables or disables circular references between beans.
 func AllowCircularReferences(enable bool) <span class="cov0" title="0">{
-        err := sysconf.Set(AllowCircularReferencesProp, enable)
-        _ = err // Ignore error
+        setProperty(AllowCircularReferencesProp, strconv.FormatBool(enable))
 }</span>
 
 // ForceAutowireIsNullable forces autowire to be nullable.
 func ForceAutowireIsNullable(enable bool) <span class="cov0" title="0">{
-        err := sysconf.Set(ForceAutowireIsNullableProp, enable)
-        _ = err // Ignore error
+        setProperty(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
 }</span>
 
 // SetActiveProfiles sets the active profiles for the app.
-func SetActiveProfiles(profiles string) <span class="cov8" title="1">{
-        err := sysconf.Set(ActiveProfilesProp, profiles)
-        _ = err // Ignore error
+func SetActiveProfiles(profiles string) <span class="cov1" title="1">{
+        setProperty(ActiveProfilesProp, profiles)
 }</span>
 
 // EnableAppJobs enables or disables the app jobs.
 func EnableAppJobs(enable bool) <span class="cov0" title="0">{
-        err := sysconf.Set(EnableAppJobsProp, enable)
-        _ = err // Ignore error
+        setProperty(EnableAppJobsProp, strconv.FormatBool(enable))
 }</span>
 
 // EnableAppServers enables or disables the app servers.
 func EnableAppServers(enable bool) <span class="cov0" title="0">{
-        err := sysconf.Set(EnableAppServersProp, enable)
-        _ = err // Ignore error
+        setProperty(EnableAppServersProp, strconv.FormatBool(enable))
 }</span>
 
 // EnableSimpleHttpServer enables or disables the simple HTTP server.
 func EnableSimpleHttpServer(enable bool) <span class="cov0" title="0">{
-        err := sysconf.Set(EnableSimpleHttpServerProp, enable)
-        _ = err // Ignore error
+        setProperty(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
 }</span>
 
 // EnableSimplePProfServer enables or disables the simple pprof server.
-func EnableSimplePProfServer(enable bool) <span class="cov8" title="1">{
-        err := sysconf.Set(EnableSimplePProfServerProp, enable)
-        _ = err // Ignore error
+func EnableSimplePProfServer(enable bool) <span class="cov1" title="1">{
+        setProperty(EnableSimplePProfServerProp, strconv.FormatBool(enable))
 }</span>
 </pre>
 		
@@ -8107,21 +8035,21 @@ import (
 // FlattenMap flattens a nested map, array, or slice into a single-level map
 // with string keys and string values. It recursively processes each element
 // of the input map and adds its flattened representation to the result map.
-func FlattenMap(m map[string]interface{}) map[string]string <span class="cov4" title="12">{
+func FlattenMap(m map[string]interface{}) map[string]string <span class="cov6" title="10">{
         result := make(map[string]string)
-        for key, val := range m </span><span class="cov6" title="54">{
+        for key, val := range m </span><span class="cov10" title="45">{
                 FlattenValue(key, val, result)
         }</span>
-        <span class="cov4" title="12">return result</span>
+        <span class="cov6" title="10">return result</span>
 }
 
 // FlattenValue flattens a single value (which can be a map, array, slice,
 // or other types) into the result map.
-func FlattenValue(key string, val interface{}, result map[string]string) <span class="cov10" title="574">{
+func FlattenValue(key string, val interface{}, result map[string]string) <span class="cov10" title="45">{
         if val == nil </span><span class="cov0" title="0">{
                 return
         }</span>
-        <span class="cov10" title="574">switch v := reflect.ValueOf(val); v.Kind() </span>{
+        <span class="cov10" title="45">switch v := reflect.ValueOf(val); v.Kind() </span>{
         case reflect.Map:<span class="cov0" title="0">
                 if v.Len() == 0 </span><span class="cov0" title="0">{
                         result[key] = ""
@@ -8148,7 +8076,7 @@ func FlattenValue(key string, val interface{}, result map[string]string) <span c
                         }
                         <span class="cov0" title="0">FlattenValue(subKey, subValue, result)</span>
                 }
-        default:<span class="cov10" title="574">
+        default:<span class="cov10" title="45">
                 result[key] = cast.ToString(val)</span>
         }
 }
@@ -8201,7 +8129,7 @@ func newStatus() *Status <span class="cov10" title="8">{
 }</span>
 
 // done marks the goroutine as finished.
-func (s *Status) done() <span class="cov8" title="6">{
+func (s *Status) done() <span class="cov9" title="7">{
         s.wg.Done()
 }</span>
 
@@ -8371,17 +8299,64 @@ func stepRangesBackward(start, end, step int, fn func(i int)) <span class="cov0"
 package util
 
 import (
+        "container/list"
+)
+
+// ListOf creates a list of the given items.
+func ListOf[T any](a ...T) *list.List <span class="cov0" title="0">{
+        l := list.New()
+        for _, i := range a </span><span class="cov0" title="0">{
+                l.PushBack(i)
+        }</span>
+        <span class="cov0" title="0">return l</span>
+}
+
+// AllOfList returns a slice of all items in the given list.
+func AllOfList[T any](l *list.List) []T <span class="cov0" title="0">{
+        if l == nil </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov0" title="0">if l.Len() == 0 </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov0" title="0">ret := make([]T, 0, l.Len())
+        for e := l.Front(); e != nil; e = e.Next() </span><span class="cov0" title="0">{
+                ret = append(ret, e.Value.(T))
+        }</span>
+        <span class="cov0" title="0">return ret</span>
+}
+</pre>
+		
+		<pre class="file" id="file47" style="display: none">/*
+ * Copyright 2025 The Go-Spring Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package util
+
+import (
         "cmp"
         "slices"
 )
 
 // MapKeys returns the keys of the map m.
-func MapKeys[M ~map[K]V, K comparable, V any](m M) []K <span class="cov4" title="11">{
+func MapKeys[M ~map[K]V, K comparable, V any](m M) []K <span class="cov4" title="9">{
         r := make([]K, 0, len(m))
-        for k := range m </span><span class="cov10" title="473">{
+        for k := range m </span><span class="cov10" title="379">{
                 r = append(r, k)
         }</span>
-        <span class="cov4" title="11">return r</span>
+        <span class="cov4" title="9">return r</span>
 }
 
 // OrderedMapKeys returns the keys of the map m in sorted order.
@@ -8392,7 +8367,7 @@ func OrderedMapKeys[M ~map[K]V, K cmp.Ordered, V any](m M) []K <span class="cov4
 }</span>
 </pre>
 		
-		<pre class="file" id="file47" style="display: none">/*
+		<pre class="file" id="file48" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8421,6 +8396,13 @@ var (
         lock sync.Mutex
 )
 
+// Has returns whether the key exists.
+func Has(key string) bool <span class="cov0" title="0">{
+        lock.Lock()
+        defer lock.Unlock()
+        return prop.Has(key)
+}</span>
+
 // Get returns the property of the key.
 func Get(key string) string <span class="cov0" title="0">{
         lock.Lock()
@@ -8428,15 +8410,8 @@ func Get(key string) string <span class="cov0" title="0">{
         return prop.Get(key)
 }</span>
 
-// MustGet returns the property of the key, if not exist, returns the default value.
-func MustGet(key string, def string) string <span class="cov0" title="0">{
-        lock.Lock()
-        defer lock.Unlock()
-        return prop.Get(key, def)
-}</span>
-
 // Set sets the property of the key.
-func Set(key string, val interface{}) error <span class="cov3" title="2">{
+func Set(key string, val string) error <span class="cov3" title="2">{
         lock.Lock()
         defer lock.Unlock()
         return prop.Set(key, val)
@@ -8456,7 +8431,7 @@ func Clear() <span class="cov0" title="0">{
 }</span>
 
 // Clone copies all properties into another properties.
-func Clone() *conf.MutableProperties <span class="cov10" title="14">{
+func Clone() *conf.MutableProperties <span class="cov10" title="12">{
         lock.Lock()
         defer lock.Unlock()
         p := conf.New()
@@ -8466,7 +8441,7 @@ func Clone() *conf.MutableProperties <span class="cov10" title="14">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file48" style="display: none">/*
+		<pre class="file" id="file49" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8537,7 +8512,7 @@ func logMsg(level slog.Level, format string, a ...any) <span class="cov10" title
 }
 </pre>
 		
-		<pre class="file" id="file49" style="display: none">/*
+		<pre class="file" id="file50" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8603,9 +8578,9 @@ func IsConstructor(t reflect.Type) bool <span class="cov3" title="3">{
 
 // IsPrimitiveValueType returns true if the provided type t is a primitive value type,
 // such as int, uint, float, bool, or string.
-func IsPrimitiveValueType(t reflect.Type) bool <span class="cov10" title="42">{
+func IsPrimitiveValueType(t reflect.Type) bool <span class="cov10" title="41">{
         switch t.Kind() </span>{
-        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov6" title="10">
+        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov6" title="9">
                 return true</span>
         case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:<span class="cov0" title="0">
                 return true</span>
@@ -8623,21 +8598,21 @@ func IsPrimitiveValueType(t reflect.Type) bool <span class="cov10" title="42">{
 // IsPropBindingTarget returns true if the provided type t is a valid target for property binding.
 // This includes primitive value types or composite types (such as array, slice, map, or struct)
 // where the elements are primitive value types.
-func IsPropBindingTarget(t reflect.Type) bool <span class="cov9" title="41">{
+func IsPropBindingTarget(t reflect.Type) bool <span class="cov10" title="41">{
         switch t.Kind() </span>{
         case reflect.Map, reflect.Slice, reflect.Array:<span class="cov1" title="1">
                 t = t.Elem()</span> // for collection types, check the element type
         default:<span class="cov9" title="40"></span>
                 // do nothing
         }
-        <span class="cov9" title="41">return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct</span>
+        <span class="cov10" title="41">return IsPrimitiveValueType(t) || t.Kind() == reflect.Struct</span>
 }
 
 // IsBeanType returns true if the provided type t is considered a "bean" type.
 // A "bean" type includes a channel, function, interface, or a pointer to a struct.
 func IsBeanType(t reflect.Type) bool <span class="cov9" title="40">{
         switch t.Kind() </span>{
-        case reflect.Chan, reflect.Func, reflect.Interface:<span class="cov6" title="12">
+        case reflect.Chan, reflect.Func, reflect.Interface:<span class="cov7" title="12">
                 return true</span>
         case reflect.Ptr:<span class="cov9" title="28">
                 return t.Elem().Kind() == reflect.Struct</span>
@@ -8659,7 +8634,7 @@ func IsBeanInjectionTarget(t reflect.Type) bool <span class="cov7" title="15">{
 }
 </pre>
 		
-		<pre class="file" id="file50" style="display: none">/*
+		<pre class="file" id="file51" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8699,6 +8674,12 @@ func PatchValue(v reflect.Value) reflect.Value <span class="cov10" title="15">{
         ptrFlag := (*uintptr)(unsafe.Pointer(flag.UnsafeAddr()))
         *ptrFlag = *ptrFlag &amp;^ flagRO
         return v
+}</span>
+
+// FuncName returns the function name for a given function.
+func FuncName(fn interface{}) string <span class="cov0" title="0">{
+        _, _, fnName := FileLine(fn)
+        return fnName
 }</span>
 
 // FileLine returns the file, line number, and function name for a given function.

@@ -722,7 +722,7 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	watchRefresh := true
 
 	// If the bean is refreshable, add it to the refreshable list.
-	if b.Refreshable() {
+	if tag := b.RefreshTag(); tag != "" {
 		i := b.Interface().(gs.Refreshable)
 		var param conf.BindParam
 		err = param.BindTag(b.RefreshTag(), "")
