@@ -1,10 +1,30 @@
+/*
+ * Copyright 2025 The Go-Spring Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gs_app
 
 import (
+	"bytes"
+	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util/assert"
@@ -12,13 +32,37 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+var logBuf = &bytes.Buffer{}
+
+func init() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(logBuf, nil)))
+}
+
 func clean() {
+	logBuf.Reset()
 	os.Args = nil
 	os.Clearenv()
 	sysconf.Clear()
 }
 
 func TestApp(t *testing.T) {
+
+	t.Run("os signals", func(t *testing.T) {
+		t.Cleanup(clean)
+		app := NewApp()
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			p, err := os.FindProcess(os.Getpid())
+			assert.Nil(t, err)
+			err = p.Signal(os.Interrupt)
+			assert.Nil(t, err)
+			time.Sleep(50 * time.Millisecond)
+		}()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("Received signal: interrupt")
+	})
 
 	t.Run("config refresh error", func(t *testing.T) {
 		t.Cleanup(clean)
@@ -30,6 +74,7 @@ func TestApp(t *testing.T) {
 	})
 
 	t.Run("container refresh error", func(t *testing.T) {
+		t.Cleanup(clean)
 		app := NewApp()
 		app.C.Provide(func() (*http.Server, error) {
 			return nil, errors.New("fail to create bean")
@@ -39,6 +84,7 @@ func TestApp(t *testing.T) {
 	})
 
 	t.Run("runner return error", func(t *testing.T) {
+		t.Cleanup(clean)
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		r := gs.NewMockRunner(ctrl)
@@ -49,113 +95,207 @@ func TestApp(t *testing.T) {
 		assert.Error(t, err, "runner return error")
 	})
 
-}
+	t.Run("disable jobs & servers", func(t *testing.T) {
+		t.Cleanup(clean)
+		_ = sysconf.Set("spring.app.enable-jobs", "false")
+		_ = sysconf.Set("spring.app.enable-servers", "false")
+		app := NewApp()
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			assert.False(t, app.EnableJobs)
+			assert.False(t, app.EnableServers)
+			assert.Equal(t, len(app.Jobs), 0)
+			assert.Equal(t, len(app.Servers), 0)
+			assert.Equal(t, len(app.Runners), 0)
+			app.ShutDown()
+		}()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("shutdown complete")
+	})
 
-//func TestApp_Start_RunnerError(t *testing.T) {
-//	app := NewApp()
-//	mockRunner := new(gs.MockRunner)
-//	mockRunner.EXPECT().Run().Return(errors.New("runner error"))
-//	app.Runners = []gs.Runner{mockRunner}
-//
-//	// 模拟配置加载成功
-//	app.P = gs_conf.NewAppConfig() // 假设默认配置有效
-//
-//	err := app.Start()
-//	assert.Error(t, err, "runner error")
-//}
-//
-//func TestApp_JobsWithShutdown(t *testing.T) {
-//	app := NewApp()
-//	app.EnableJobs = true
-//
-//	mockJob := new(gs.MockJob)
-//	mockJob.EXPECT().Run(gomock.Any()).Return(errors.New("job error"))
-//	app.Jobs = []gs.Job{mockJob}
-//
-//	// 启动并快速触发关闭
-//	go func() {
-//		time.Sleep(100 * time.Millisecond)
-//		app.ShutDown()
-//	}()
-//
-//	err := app.Start()
-//	assert.Nil(t, err)
-//	assert.True(t, app.Exiting())
-//}
-//
-//func TestApp_ServersPanicRecovery(t *testing.T) {
-//	app := NewApp()
-//	app.EnableServers = true
-//
-//	mockServer := new(gs.MockServer)
-//	mockServer.EXPECT().ListenAndServe(gomock.Any()).Do(func() {
-//		panic("server panic")
-//	})
-//	app.Servers = []gs.Server{mockServer}
-//
-//	app.Start()
-//	assert.True(t, app.Exiting())
-//}
-//
-//func TestApp_ShutDown(t *testing.T) {
-//	app := NewApp()
-//	assert.False(t, app.Exiting())
-//
-//	app.ShutDown()
-//	assert.True(t, app.Exiting())
-//
-//	// 确保上下文被取消
-//	select {
-//	case <-app.ctx.Done():
-//	default:
-//		assert.Fail(t, "context should be canceled")
-//	}
-//}
-//
-//func TestApp_Stop(t *testing.T) {
-//	app := NewApp()
-//	mockServer := new(gs.MockServer)
-//	mockServer.EXPECT().Shutdown(gomock.Any()).Return(nil)
-//	app.Servers = []gs.Server{mockServer}
-//
-//	// 模拟等待组
-//	app.wg.Add(1)
-//	go func() {
-//		defer app.wg.Done()
-//		time.Sleep(50 * time.Millisecond)
-//	}()
-//
-//	app.Stop()
-//}
-//
-//func TestApp_RunWithSignal(t *testing.T) {
-//	app := NewApp()
-//
-//	// 模拟接收SIGTERM
-//	go func() {
-//		time.Sleep(100 * time.Millisecond)
-//		p, _ := os.FindProcess(os.Getpid())
-//		_ = p.Signal(syscall.SIGTERM)
-//	}()
-//
-//	err := app.Run()
-//	assert.Nil(t, err)
-//	assert.True(t, app.Exiting())
-//}
-//
-//// 测试并发安全
-//func TestApp_ConcurrentShutdown(t *testing.T) {
-//	app := NewApp()
-//	var wg sync.WaitGroup
-//
-//	for i := 0; i < 10; i++ {
-//		wg.Add(1)
-//		go func() {
-//			defer wg.Done()
-//			app.ShutDown()
-//		}()
-//	}
-//
-//	wg.Wait()
-//	assert.True(t, app.Exiting())
-//}
+	t.Run("job return error", func(t *testing.T) {
+		t.Cleanup(clean)
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		r := gs.NewMockJob(ctrl)
+		r.EXPECT().Run(gomock.Any()).Return(errors.New("job return error"))
+		app := NewApp()
+		app.C.Object(r).AsJob()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("job run error: job return error")
+	})
+
+	t.Run("job panic", func(t *testing.T) {
+		t.Cleanup(clean)
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		r := gs.NewMockJob(ctrl)
+		r.EXPECT().Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
+			panic("job panic")
+		})
+		app := NewApp()
+		app.C.Object(r).AsJob()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("panic: job panic")
+	})
+
+	t.Run("server return error", func(t *testing.T) {
+		t.Cleanup(clean)
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		r := gs.NewMockServer(ctrl)
+		r.EXPECT().Shutdown(gomock.Any()).Return(nil)
+		r.EXPECT().ListenAndServe(gomock.Any()).Return(errors.New("server return error"))
+		app := NewApp()
+		app.C.Object(r).AsServer()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("server serve error: server return error")
+	})
+
+	t.Run("server panic", func(t *testing.T) {
+		t.Cleanup(clean)
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		r := gs.NewMockServer(ctrl)
+		r.EXPECT().Shutdown(gomock.Any()).Return(nil)
+		r.EXPECT().ListenAndServe(gomock.Any()).DoAndReturn(func(sig gs.ReadySignal) error {
+			panic("server panic")
+		})
+		app := NewApp()
+		app.C.Object(r).AsServer()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("panic: server panic")
+	})
+
+	t.Run("success", func(t *testing.T) {
+		t.Cleanup(clean)
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		app := NewApp()
+		{
+			r1 := gs.NewMockRunner(ctrl)
+			r1.EXPECT().Run().Return(nil)
+			app.C.Object(r1).AsRunner().Name("r1")
+		}
+		{
+			r2 := gs.NewMockRunner(ctrl)
+			r2.EXPECT().Run().Return(nil)
+			app.C.Object(r2).AsRunner().Name("r2")
+		}
+		{
+			j1 := gs.NewMockJob(ctrl)
+			j1.EXPECT().Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
+				<-ctx.Done()
+				return nil
+			})
+			app.C.Object(j1).AsJob().Name("j1")
+		}
+		j2Wait := make(chan struct{})
+		{
+			j2 := gs.NewMockJob(ctrl)
+			j2.EXPECT().Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
+				for {
+					time.Sleep(time.Millisecond)
+					if app.Exiting() {
+						j2Wait <- struct{}{}
+						return nil
+					}
+				}
+			})
+			app.C.Object(j2).AsJob().Name("j2")
+		}
+		{
+			s1 := gs.NewMockServer(ctrl)
+			s1.EXPECT().Shutdown(gomock.Any()).Return(nil)
+			s1.EXPECT().ListenAndServe(gomock.Any()).DoAndReturn(func(sig gs.ReadySignal) error {
+				<-sig.TriggerAndWait()
+				return nil
+			})
+			app.C.Object(s1).AsServer().Name("s1")
+		}
+		{
+			s2 := gs.NewMockServer(ctrl)
+			s2.EXPECT().Shutdown(gomock.Any()).Return(nil)
+			s2.EXPECT().ListenAndServe(gomock.Any()).DoAndReturn(func(sig gs.ReadySignal) error {
+				<-sig.TriggerAndWait()
+				return nil
+			})
+			app.C.Object(s2).AsServer().Name("s2")
+		}
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			assert.Equal(t, app.ShutDownTimeout, time.Second*15)
+			assert.True(t, app.EnableJobs)
+			assert.True(t, app.EnableServers)
+			assert.Equal(t, len(app.Jobs), 2)
+			assert.Equal(t, len(app.Servers), 2)
+			assert.Equal(t, len(app.Runners), 2)
+			app.ShutDown()
+		}()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		<-j2Wait
+		assert.String(t, logBuf.String()).Contains("shutdown complete")
+	})
+
+	t.Run("shutdown timeout", func(t *testing.T) {
+		t.Cleanup(clean)
+		_ = sysconf.Set("spring.app.shutdown-timeout", "10ms")
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		app := NewApp()
+		s := gs.NewMockServer(ctrl)
+		s.EXPECT().Shutdown(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
+			return nil
+		})
+		s.EXPECT().ListenAndServe(gomock.Any()).DoAndReturn(func(sig gs.ReadySignal) error {
+			<-sig.TriggerAndWait()
+			time.Sleep(time.Second)
+			return nil
+		})
+		app.C.Object(s).AsServer()
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			app.ShutDown()
+		}()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("shutdown timeout")
+	})
+
+	t.Run("shutdown error", func(t *testing.T) {
+		t.Cleanup(clean)
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		app := NewApp()
+		s := gs.NewMockServer(ctrl)
+		s.EXPECT().Shutdown(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
+			return errors.New("server shutdown error")
+		})
+		s.EXPECT().ListenAndServe(gomock.Any()).DoAndReturn(func(sig gs.ReadySignal) error {
+			<-sig.TriggerAndWait()
+			return nil
+		})
+		app.C.Object(s).AsServer()
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			app.ShutDown()
+		}()
+		err := app.Run()
+		assert.Nil(t, err)
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("shutdown server failed: server shutdown error")
+	})
+}

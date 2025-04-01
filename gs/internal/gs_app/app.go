@@ -54,6 +54,8 @@ type App struct {
 
 	EnableJobs    bool `value:"${spring.app.enable-jobs:=true}"`
 	EnableServers bool `value:"${spring.app.enable-servers:=true}"`
+
+	ShutDownTimeout time.Duration `value:"${spring.app.shutdown-timeout:=15s}"`
 }
 
 // NewApp creates and initializes a new application instance.
@@ -169,7 +171,7 @@ func (app *App) Start() error {
 // Stop gracefully shuts down the application, ensuring all servers and
 // resources are properly closed.
 func (app *App) Stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	ctx, cancel := context.WithTimeout(context.Background(), app.ShutDownTimeout)
 	defer cancel()
 
 	waitChan := make(chan struct{})
