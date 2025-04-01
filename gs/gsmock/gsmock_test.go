@@ -48,8 +48,8 @@ type Response struct {
 
 // Get performs a request and retrieves a response, potentially using a mock implementation.
 func (c *Client) Get(ctx context.Context, req *Request, trace *Trace) (*Response, error) {
-	if r1, r2, ok := gsmock.InvokeContext2[*Response, error](ctx, clientType, "Get", ctx, req, trace); ok {
-		return r1, r2
+	if ret, ok := gsmock.InvokeContext(ctx, clientType, "Get", ctx, req, trace); ok {
+		return gsmock.Unbox2[*Response, error](ret)
 	}
 	return &Response{Message: "9:xxx"}, nil
 }
@@ -61,8 +61,8 @@ func MockGet(r *gsmock.Manager) *gsmock.Mocker32[context.Context, *Request, *Tra
 
 // GetWithHeader performs a request and retrieves a response with additional headers, potentially using a mock implementation.
 func (c *Client) GetWithHeader(ctx context.Context, req *Request, trace *Trace) (*Response, map[string]string, error) {
-	if r1, r2, r3, ok := gsmock.InvokeContext3[*Response, map[string]string, error](ctx, clientType, "GetWithHeader", ctx, req, trace); ok {
-		return r1, r2, r3
+	if ret, ok := gsmock.InvokeContext(ctx, clientType, "GetWithHeader", ctx, req, trace); ok {
+		return gsmock.Unbox3[*Response, map[string]string, error](ret)
 	}
 	return &Response{Message: "9:yyy"}, nil, nil
 }
@@ -240,8 +240,8 @@ func NewMockClient(r *gsmock.Manager) *MockClient {
 
 // Query mocks the Query method by invoking a registered mock implementation.
 func (c *MockClient) Query(req *Request, trace *Trace) (*Response, error) {
-	if r1, r2, ok := gsmock.Invoke2[*Response, error](c.r, mockClientType, "Query", req, trace); ok {
-		return r1, r2
+	if ret, ok := gsmock.Invoke(c.r, mockClientType, "Query", req, trace); ok {
+		return gsmock.Unbox2[*Response, error](ret)
 	}
 	panic("mock error")
 }
@@ -253,8 +253,8 @@ func (c *MockClient) MockQuery() *gsmock.Mocker22[*Request, *Trace, *Response, e
 
 // QueryWithHeader mocks the QueryWithHeader method by invoking a registered mock implementation.
 func (c *MockClient) QueryWithHeader(req *Request, trace *Trace) (*Response, map[string]string, error) {
-	if r1, r2, r3, ok := gsmock.Invoke3[*Response, map[string]string, error](c.r, mockClientType, "QueryWithHeader", req, trace); ok {
-		return r1, r2, r3
+	if ret, ok := gsmock.Invoke(c.r, mockClientType, "QueryWithHeader", req, trace); ok {
+		return gsmock.Unbox3[*Response, map[string]string, error](ret)
 	}
 	panic("mock error")
 }
