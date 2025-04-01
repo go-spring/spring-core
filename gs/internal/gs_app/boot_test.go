@@ -1,0 +1,83 @@
+/*
+ * Copyright 2025 The Go-Spring Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package gs_app
+
+import (
+	"bytes"
+	"errors"
+	"os"
+	"reflect"
+	"testing"
+
+	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/util/assert"
+	"github.com/go-spring/spring-core/util/sysconf"
+)
+
+func TestBoot(t *testing.T) {
+
+	t.Run("flag is false", func(t *testing.T) {
+		t.Cleanup(clean)
+		_ = sysconf.Set("a", "123")
+		_ = os.Setenv("GS_A_B", "456")
+		boot := NewBoot().(*BootImpl)
+		err := boot.Run()
+		assert.Nil(t, err)
+	})
+
+	t.Run("config refresh error", func(t *testing.T) {
+		t.Cleanup(clean)
+		_ = sysconf.Set("a", "123")
+		_ = os.Setenv("GS_A_B", "456")
+		boot := NewBoot().(*BootImpl)
+		boot.Object(bytes.NewBuffer(nil))
+		err := boot.Run()
+		assert.Error(t, err, "property 'a' is a value but 'a.b' wants other type")
+	})
+
+	t.Run("container refresh error", func(t *testing.T) {
+		t.Cleanup(clean)
+		boot := NewBoot().(*BootImpl)
+		boot.Provide(func() (*bytes.Buffer, error) {
+			return nil, errors.New("fail to create bean")
+		})
+		err := boot.Run()
+		assert.Error(t, err, "fail to create bean")
+	})
+
+	t.Run("runner return error", func(t *testing.T) {
+		t.Cleanup(clean)
+		boot := NewBoot().(*BootImpl)
+		boot.FuncRunner(func() error {
+			return errors.New("runner return error")
+		})
+		err := boot.Run()
+		assert.Error(t, err, "runner return error")
+	})
+
+	t.Run("success", func(t *testing.T) {
+		t.Cleanup(clean)
+		boot := NewBoot().(*BootImpl)
+		bd := gs_core.NewBean(reflect.ValueOf(funcRunner(func() error {
+			return nil
+		}))).AsRunner()
+		boot.Register(bd)
+		boot.Config().LocalFile.Reset()
+		err := boot.Run()
+		assert.Nil(t, err)
+	})
+}
