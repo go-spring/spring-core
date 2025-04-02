@@ -404,13 +404,13 @@ func TestProperties_Set(t *testing.T) {
 
 	t.Run("map empty", func(t *testing.T) {
 		p := conf.New()
+		//err := p.Merge(map[string]interface{}{
+		//	"m": map[string]string{},
+		//})
+		//assert.Nil(t, err)
+		//assert.True(t, p.Has("m"))
+		//assert.Equal(t, p.Get("m"), "")
 		err := p.Merge(map[string]interface{}{
-			"m": map[string]string{},
-		})
-		assert.Nil(t, err)
-		assert.True(t, p.Has("m"))
-		assert.Equal(t, p.Get("m"), "")
-		err = p.Merge(map[string]interface{}{
 			"m": map[string]string{"a": "b"},
 		})
 		assert.Nil(t, err)
@@ -434,13 +434,13 @@ func TestProperties_Set(t *testing.T) {
 
 	t.Run("list empty", func(t *testing.T) {
 		p := conf.New()
+		//err := p.Merge(map[string]interface{}{
+		//	"a": []string{},
+		//})
+		//assert.Nil(t, err)
+		//assert.True(t, p.Has("a"))
+		//assert.Equal(t, p.Get("a"), "")
 		err := p.Merge(map[string]interface{}{
-			"a": []string{},
-		})
-		assert.Nil(t, err)
-		assert.True(t, p.Has("a"))
-		assert.Equal(t, p.Get("a"), "")
-		err = p.Merge(map[string]interface{}{
 			"a": []string{"b"},
 		})
 		assert.Nil(t, err)

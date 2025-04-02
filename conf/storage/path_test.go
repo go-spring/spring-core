@@ -78,6 +78,10 @@ func TestSplitPath(t *testing.T) {
 			Err: errors.New("invalid key '[.]'"),
 		},
 		{
+			Key: "[x]",
+			Err: errors.New("invalid key '[x]'"),
+		},
+		{
 			Key: "[a.b]",
 			Err: errors.New("invalid key '[a.b]'"),
 		},
