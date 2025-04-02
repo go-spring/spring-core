@@ -196,7 +196,7 @@ type BeanRegistration interface {
 	SetCondition(c ...Condition)
 	SetDependsOn(selectors ...BeanSelector)
 	SetExport(exports ...reflect.Type)
-	SetConfiguration(c *Configuration)
+	SetConfiguration(c ...Configuration)
 	SetRefreshable(tag string)
 	SetCaller(skip int)
 	OnProfiles(profiles string)
@@ -289,8 +289,8 @@ func (d *beanBuilder[T]) Export(exports ...reflect.Type) *T {
 }
 
 // Configuration applies the configuration parameters to the bean.
-func (d *beanBuilder[T]) Configuration(c *Configuration) *T {
-	d.b.SetConfiguration(c)
+func (d *beanBuilder[T]) Configuration(c ...Configuration) *T {
+	d.b.SetConfiguration(c...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

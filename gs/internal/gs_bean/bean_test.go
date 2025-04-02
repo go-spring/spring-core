@@ -26,7 +26,19 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
+	"go.uber.org/mock/gomock"
 )
+
+func TestBeanStatus(t *testing.T) {
+	assert.Equal(t, BeanStatus(-2).String(), "unknown")
+	assert.Equal(t, StatusDeleted.String(), "deleted")
+	assert.Equal(t, StatusDefault.String(), "default")
+	assert.Equal(t, StatusResolving.String(), "resolving")
+	assert.Equal(t, StatusResolved.String(), "resolved")
+	assert.Equal(t, StatusCreating.String(), "creating")
+	assert.Equal(t, StatusCreated.String(), "created")
+	assert.Equal(t, StatusWired.String(), "wired")
+}
 
 type TestBeanInterface interface {
 	Dummy() int
@@ -51,21 +63,31 @@ func TestBeanDefinition(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		a := &TestBean{}
 		v := reflect.ValueOf(a)
+
 		bean := NewBean(v.Type(), v, nil, "test")
 		assert.Equal(t, bean.Name(), "test")
 		assert.Equal(t, bean.Type(), reflect.TypeFor[*TestBean]())
 		assert.Equal(t, bean.Value().Interface(), a)
 		assert.Equal(t, bean.Interface(), a)
+		assert.Nil(t, bean.Callable())
+
 		bean.SetStatus(StatusCreated)
 		assert.Equal(t, StatusCreated, bean.Status())
+
 		bean.SetCaller(1)
-		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:61")
+		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:77")
+
 		bean.SetName("test-1")
 		assert.Equal(t, bean.Name(), "test-1")
+
 		beanType, beanName := bean.TypeAndName()
 		assert.Equal(t, beanType, reflect.TypeFor[*TestBean]())
 		assert.Equal(t, beanName, "test-1")
-		assert.Matches(t, bean.String(), `name=test-1 .*/gs/internal/gs_bean/bean_test.go:61`)
+		assert.Matches(t, bean.String(), `name=test-1 .*/gs/internal/gs_bean/bean_test.go:77`)
+
+		assert.Nil(t, bean.BeanRuntime.Callable())
+		assert.Equal(t, bean.BeanRuntime.Status(), StatusWired)
+		assert.Equal(t, bean.BeanRuntime.String(), "test-1")
 	})
 
 	t.Run("depends on", func(t *testing.T) {
@@ -174,13 +196,120 @@ func TestBeanDefinition(t *testing.T) {
 		bean := NewBean(v.Type(), v, nil, "test")
 		bean.OnProfiles("dev,test")
 		assert.Equal(t, len(bean.Conditions()), 1)
+
+		t.Run("no profile property", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			ctx := gs.NewMockCondContext(ctrl)
+			ctx.EXPECT().Prop(gomock.Any()).Return("")
+			for _, c := range bean.Conditions() {
+				ok, err := c.Matches(ctx)
+				assert.Nil(t, err)
+				assert.False(t, ok)
+			}
+		})
+
+		t.Run("profile property not match", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			ctx := gs.NewMockCondContext(ctrl)
+			ctx.EXPECT().Prop(gomock.Any()).Return("prod")
+			for _, c := range bean.Conditions() {
+				ok, err := c.Matches(ctx)
+				assert.Nil(t, err)
+				assert.False(t, ok)
+			}
+		})
+
+		t.Run("profile property is dev", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			ctx := gs.NewMockCondContext(ctrl)
+			ctx.EXPECT().Prop(gomock.Any()).Return("dev")
+			for _, c := range bean.Conditions() {
+				ok, err := c.Matches(ctx)
+				assert.Nil(t, err)
+				assert.True(t, ok)
+			}
+		})
+
+		t.Run("profile property is test", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			ctx := gs.NewMockCondContext(ctrl)
+			ctx.EXPECT().Prop(gomock.Any()).Return("test")
+			for _, c := range bean.Conditions() {
+				ok, err := c.Matches(ctx)
+				assert.Nil(t, err)
+				assert.True(t, ok)
+			}
+		})
+
+		t.Run("profile property is dev&test", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			ctx := gs.NewMockCondContext(ctrl)
+			ctx.EXPECT().Prop(gomock.Any()).Return("dev,test")
+			for _, c := range bean.Conditions() {
+				ok, err := c.Matches(ctx)
+				assert.Nil(t, err)
+				assert.True(t, ok)
+			}
+		})
 	})
 
-	t.Run("refreshable", func(t *testing.T) {
+	t.Run("refreshable error", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := NewBean(v.Type(), v, nil, "test")
 		assert.Panic(t, func() {
-			bean.SetRefreshable("tag")
+			bean.SetRefreshable("${a:=3}")
 		}, "must implement gs.Refreshable interface")
+	})
+
+	t.Run("refreshable", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		r := gs.NewMockRefreshable(ctrl)
+		v := reflect.ValueOf(r)
+		bean := NewBean(v.Type(), v, nil, "test")
+		bean.SetRefreshable("${a:=3}")
+		assert.Equal(t, bean.RefreshTag(), "${a:=3}")
+	})
+
+	t.Run("configuration", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		r := gs.NewMockRefreshable(ctrl)
+		v := reflect.ValueOf(r)
+		bean := NewBean(v.Type(), v, nil, "test")
+		assert.Nil(t, bean.Configuration())
+
+		bean.SetConfiguration()
+		assert.NotNil(t, bean.Configuration())
+		assert.Nil(t, bean.Configuration().Includes)
+		assert.Nil(t, bean.Configuration().Excludes)
+
+		bean.SetConfiguration(gs.Configuration{
+			Includes: []string{"New.*"},
+		})
+		assert.NotNil(t, bean.Configuration())
+		assert.Equal(t, bean.Configuration().Includes, []string{"New.*"})
+	})
+
+	t.Run("mock error", func(t *testing.T) {
+		v := reflect.ValueOf(&bytes.Buffer{})
+		bean := NewBean(v.Type(), v, nil, "test")
+		bean.SetExport(gs.As[io.Writer]())
+		assert.Panic(t, func() {
+			bean.SetMock(bytes.NewReader(nil))
+		}, "mock object \\*bytes.Reader does not implement io.Writer")
+	})
+
+	t.Run("mock success", func(t *testing.T) {
+		v := reflect.ValueOf(&bytes.Buffer{})
+		bean := NewBean(v.Type(), v, nil, "test")
+		bean.SetExport(gs.As[io.Writer]())
+		bean.SetMock(bytes.NewBufferString(""))
 	})
 }

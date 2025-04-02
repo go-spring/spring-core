@@ -137,8 +137,15 @@ func (d *BeanMetadata) Configuration() *gs.Configuration {
 }
 
 // SetConfiguration sets the configuration flag and parameters for the bean.
-func (d *BeanDefinition) SetConfiguration(c *gs.Configuration) {
-	d.configuration = c
+func (d *BeanDefinition) SetConfiguration(c ...gs.Configuration) {
+	var cfg gs.Configuration
+	if len(c) > 0 {
+		cfg = c[0]
+	}
+	d.configuration = &gs.Configuration{
+		Includes: cfg.Includes,
+		Excludes: cfg.Excludes,
+	}
 }
 
 // RefreshTag returns the refresh tag of the bean.
@@ -227,13 +234,20 @@ func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *
 
 // SetMock sets the mock object for the bean, replacing its runtime information.
 func (d *BeanDefinition) SetMock(obj interface{}) {
+	v := reflect.ValueOf(obj)
+	t := v.Type()
+	for _, r := range d.exports {
+		if !t.Implements(r) {
+			panic(fmt.Sprintf("mock object %s does not implement %s", t, r))
+		}
+	}
 	*d = BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			exports: d.exports,
 		},
 		BeanRuntime: &BeanRuntime{
-			t:    reflect.TypeOf(obj),
-			v:    reflect.ValueOf(obj),
+			t:    t,
+			v:    v,
 			name: d.name,
 		},
 	}

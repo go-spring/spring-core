@@ -10,60 +10,12 @@
 package gs
 
 import (
-	context "context"
-	reflect "reflect"
+	"context"
+	"reflect"
 
-	conf "github.com/go-spring/spring-core/conf"
-	gomock "go.uber.org/mock/gomock"
+	"github.com/go-spring/spring-core/conf"
+	"go.uber.org/mock/gomock"
 )
-
-// MockBeanInitFunc is a mock of BeanInitFunc interface.
-type MockBeanInitFunc struct {
-	ctrl     *gomock.Controller
-	recorder *MockBeanInitFuncMockRecorder
-	isgomock struct{}
-}
-
-// MockBeanInitFuncMockRecorder is the mock recorder for MockBeanInitFunc.
-type MockBeanInitFuncMockRecorder struct {
-	mock *MockBeanInitFunc
-}
-
-// NewMockBeanInitFunc creates a new mock instance.
-func NewMockBeanInitFunc(ctrl *gomock.Controller) *MockBeanInitFunc {
-	mock := &MockBeanInitFunc{ctrl: ctrl}
-	mock.recorder = &MockBeanInitFuncMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockBeanInitFunc) EXPECT() *MockBeanInitFuncMockRecorder {
-	return m.recorder
-}
-
-// MockBeanDestroyFunc is a mock of BeanDestroyFunc interface.
-type MockBeanDestroyFunc struct {
-	ctrl     *gomock.Controller
-	recorder *MockBeanDestroyFuncMockRecorder
-	isgomock struct{}
-}
-
-// MockBeanDestroyFuncMockRecorder is the mock recorder for MockBeanDestroyFunc.
-type MockBeanDestroyFuncMockRecorder struct {
-	mock *MockBeanDestroyFunc
-}
-
-// NewMockBeanDestroyFunc creates a new mock instance.
-func NewMockBeanDestroyFunc(ctrl *gomock.Controller) *MockBeanDestroyFunc {
-	mock := &MockBeanDestroyFunc{ctrl: ctrl}
-	mock.recorder = &MockBeanDestroyFuncMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockBeanDestroyFunc) EXPECT() *MockBeanDestroyFuncMockRecorder {
-	return m.recorder
-}
 
 // MockBeanSelector is a mock of BeanSelector interface.
 type MockBeanSelector struct {
@@ -577,6 +529,54 @@ func (mr *MockServerMockRecorder) Shutdown(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Shutdown", reflect.TypeOf((*MockServer)(nil).Shutdown), ctx)
 }
 
+// MockBeanInitFunc is a mock of BeanInitFunc interface.
+type MockBeanInitFunc struct {
+	ctrl     *gomock.Controller
+	recorder *MockBeanInitFuncMockRecorder
+	isgomock struct{}
+}
+
+// MockBeanInitFuncMockRecorder is the mock recorder for MockBeanInitFunc.
+type MockBeanInitFuncMockRecorder struct {
+	mock *MockBeanInitFunc
+}
+
+// NewMockBeanInitFunc creates a new mock instance.
+func NewMockBeanInitFunc(ctrl *gomock.Controller) *MockBeanInitFunc {
+	mock := &MockBeanInitFunc{ctrl: ctrl}
+	mock.recorder = &MockBeanInitFuncMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockBeanInitFunc) EXPECT() *MockBeanInitFuncMockRecorder {
+	return m.recorder
+}
+
+// MockBeanDestroyFunc is a mock of BeanDestroyFunc interface.
+type MockBeanDestroyFunc struct {
+	ctrl     *gomock.Controller
+	recorder *MockBeanDestroyFuncMockRecorder
+	isgomock struct{}
+}
+
+// MockBeanDestroyFuncMockRecorder is the mock recorder for MockBeanDestroyFunc.
+type MockBeanDestroyFuncMockRecorder struct {
+	mock *MockBeanDestroyFunc
+}
+
+// NewMockBeanDestroyFunc creates a new mock instance.
+func NewMockBeanDestroyFunc(ctrl *gomock.Controller) *MockBeanDestroyFunc {
+	mock := &MockBeanDestroyFunc{ctrl: ctrl}
+	mock.recorder = &MockBeanDestroyFuncMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockBeanDestroyFunc) EXPECT() *MockBeanDestroyFuncMockRecorder {
+	return m.recorder
+}
+
 // MockBeanRegistration is a mock of BeanRegistration interface.
 type MockBeanRegistration struct {
 	ctrl     *gomock.Controller
@@ -656,15 +656,19 @@ func (mr *MockBeanRegistrationMockRecorder) SetCondition(c ...any) *gomock.Call 
 }
 
 // SetConfiguration mocks base method.
-func (m *MockBeanRegistration) SetConfiguration(c *Configuration) {
+func (m *MockBeanRegistration) SetConfiguration(c ...Configuration) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetConfiguration", c)
+	varargs := []any{}
+	for _, a := range c {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "SetConfiguration", varargs...)
 }
 
 // SetConfiguration indicates an expected call of SetConfiguration.
-func (mr *MockBeanRegistrationMockRecorder) SetConfiguration(c any) *gomock.Call {
+func (mr *MockBeanRegistrationMockRecorder) SetConfiguration(c ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockBeanRegistration)(nil).SetConfiguration), c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockBeanRegistration)(nil).SetConfiguration), c...)
 }
 
 // SetDependsOn mocks base method.
