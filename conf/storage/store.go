@@ -23,43 +23,40 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
+// treeNode represents a node in the hierarchical key structure.
+// It contains the type of the path and a map of child nodes.
 type treeNode struct {
 	Type PathType
 	Data map[string]*treeNode
 }
 
-// Storage is a key-value store that verifies the format of the key.
+// Storage is a key-value store that enforces hierarchical key structure validation.
+// It uses a tree to manage key paths and a map to store the actual key-value pairs.
 type Storage struct {
-	tree *treeNode
+	root *treeNode
 	data map[string]string
 }
 
+// NewStorage creates and initializes a new Storage instance.
 func NewStorage() *Storage {
 	return &Storage{
 		data: make(map[string]string),
 	}
 }
 
-// RawData returns the raw data of the storage.
+// RawData returns the underlying key-value map.
+// Note: This exposes internal state; use with caution.
 func (s *Storage) RawData() map[string]string {
 	return s.data
 }
 
-// Data returns the copied data of the storage.
-func (s *Storage) Data() map[string]string {
-	m := make(map[string]string)
-	for k, v := range s.data {
-		m[k] = v
-	}
-	return m
-}
-
-// Keys returns the sorted keys of the storage.
+// Keys returns all stored keys in lexicographical order.
 func (s *Storage) Keys() []string {
 	return util.OrderedMapKeys(s.data)
 }
 
-// SubKeys returns the sorted sub keys of the key.
+// SubKeys returns immediate child keys under the specified hierarchical key.
+// It returns an error if the key format is invalid or if conflicts occur in the tree.
 func (s *Storage) SubKeys(key string) (_ []string, err error) {
 	var path []Path
 	if key != "" {
@@ -67,10 +64,12 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) {
 			return nil, err
 		}
 	}
-	if s.tree == nil {
+
+	if s.root == nil {
 		return nil, nil
 	}
-	n := s.tree
+
+	n := s.root
 	for i, pathNode := range path {
 		if n == nil || pathNode.Type != n.Type {
 			return nil, fmt.Errorf("property conflict at path %s", JoinPath(path[:i+1]))
@@ -81,25 +80,30 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) {
 		}
 		n = v
 	}
+
 	if n == nil {
 		return nil, fmt.Errorf("property conflict at path %s", key)
 	}
 	return util.OrderedMapKeys(n.Data), nil
 }
 
-// Has returns whether the key exists.
+// Has checks if a key exists in the storage.
+// Returns false if the key format is invalid or the path doesn't exist.
 func (s *Storage) Has(key string) bool {
-	if key == "" || s.tree == nil {
+	if key == "" || s.root == nil {
 		return false
 	}
+
 	if _, ok := s.data[key]; ok {
 		return true
 	}
+
 	path, err := SplitPath(key)
 	if err != nil {
 		return false
 	}
-	n := s.tree
+
+	n := s.root
 	for _, node := range path {
 		if n == nil || node.Type != n.Type {
 			return false
@@ -113,28 +117,34 @@ func (s *Storage) Has(key string) bool {
 	return true
 }
 
-// Get returns the value of the key, and false if the key does not exist.
+// Get retrieves the value for a key.
+// Returns (value, true) if exists; (empty, false) otherwise.
 func (s *Storage) Get(key string) (string, bool) {
 	val, ok := s.data[key]
 	return val, ok
 }
 
-// Set stores the value of the key.
+// Set stores a key-value pair after validating the key's hierarchical structure.
+// Returns an error for empty keys/values or path conflicts.
 func (s *Storage) Set(key, val string) error {
 	if key == "" || val == "" {
 		return errors.New("key or value is empty")
 	}
+
 	path, err := SplitPath(key)
 	if err != nil {
 		return err
 	}
-	if s.tree == nil {
-		s.tree = &treeNode{
+
+	// Initialize tree root if empty
+	if s.root == nil {
+		s.root = &treeNode{
 			Type: path[0].Type,
 			Data: make(map[string]*treeNode),
 		}
 	}
-	n := s.tree
+
+	n := s.root
 	for i, pathNode := range path {
 		if n == nil || pathNode.Type != n.Type {
 			return fmt.Errorf("property conflict at path %s", JoinPath(path[:i+1]))
@@ -154,6 +164,7 @@ func (s *Storage) Set(key, val string) error {
 	if n != nil {
 		return fmt.Errorf("property conflict at path %s", key)
 	}
+
 	s.data[key] = val
 	return nil
 }

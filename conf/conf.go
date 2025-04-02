@@ -184,7 +184,11 @@ func (p *MutableProperties) merge(m map[string]string) error {
 }
 
 func (p *MutableProperties) Data() map[string]string {
-	return p.storage.Data()
+	m := make(map[string]string)
+	for k, v := range p.storage.RawData() {
+		m[k] = v
+	}
+	return m
 }
 
 // Keys returns all sorted keys.

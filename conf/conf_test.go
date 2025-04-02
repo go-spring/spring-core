@@ -329,7 +329,7 @@ func TestBindMap(t *testing.T) {
 			"a": "1", "b": 2,
 		})
 		err := p.Bind(&r)
-		assert.Error(t, err, "bind path=S\\.A type=map\\[string]string error << property 'a' is value")
+		assert.Error(t, err, "bind path=S\\.A type=map\\[string]string error << property conflict at path a")
 	})
 
 	t.Run("", func(t *testing.T) {
@@ -394,12 +394,12 @@ func TestProperties_Set(t *testing.T) {
 		assert.Equal(t, p.Keys(), []string{"m.a"})
 
 		err = p.Set("m", "1")
-		assert.Error(t, err, "property 'm' is a map but 'm' wants other type")
+		assert.Error(t, err, "property conflict at path m")
 
 		err = p.Merge(map[string]interface{}{
 			"m": []string{"b"},
 		})
-		assert.Error(t, err, "property 'm' is a map but 'm\\[0]' wants other type")
+		assert.Error(t, err, "property conflict at path m\\[0]")
 	})
 
 	t.Run("map empty", func(t *testing.T) {
