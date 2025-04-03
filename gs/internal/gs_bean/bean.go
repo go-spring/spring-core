@@ -64,9 +64,6 @@ func (status BeanStatus) String() string {
 	}
 }
 
-// refreshableType is the [reflect.Type] of the [gs.Refreshable] interface.
-var refreshableType = reflect.TypeFor[gs.Refreshable]()
-
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
 	f             *gs_arg.Callable
@@ -77,7 +74,6 @@ type BeanMetadata struct {
 	conditions    []gs.Condition
 	status        BeanStatus
 	fileLine      string
-	refreshTag    string
 	configuration *gs.Configuration
 }
 
@@ -146,11 +142,6 @@ func (d *BeanDefinition) SetConfiguration(c ...gs.Configuration) {
 		Includes: cfg.Includes,
 		Excludes: cfg.Excludes,
 	}
-}
-
-// RefreshTag returns the refresh tag of the bean.
-func (d *BeanMetadata) RefreshTag() string {
-	return d.refreshTag
 }
 
 // SetCaller sets the caller for the bean.
@@ -330,14 +321,6 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
 		}
 		d.exports = append(d.exports, t)
 	}
-}
-
-// SetRefreshable sets the refreshable flag and tag for the bean.
-func (d *BeanDefinition) SetRefreshable(tag string) {
-	if !d.Type().Implements(refreshableType) {
-		panic("must implement gs.Refreshable interface")
-	}
-	d.refreshTag = tag
 }
 
 // OnProfiles sets the conditions for the bean based on the active profiles.

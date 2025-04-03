@@ -719,24 +719,8 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	b.SetStatus(gs_bean.StatusCreated)
 
-	watchRefresh := true
-
-	// If the bean is refreshable, add it to the refreshable list.
-	if tag := b.RefreshTag(); tag != "" {
-		i := b.Interface().(gs.Refreshable)
-		var param conf.BindParam
-		err = param.BindTag(b.RefreshTag(), "")
-		if err != nil {
-			return err
-		}
-		if err = c.p.RefreshBean(i, param, true); err != nil {
-			return err
-		}
-		watchRefresh = false
-	}
-
 	// Wire the value of the bean.
-	err = c.WireBeanValue(v, v.Type(), watchRefresh, stack)
+	err = c.WireBeanValue(v, v.Type(), true, stack)
 	if err != nil {
 		return err
 	}

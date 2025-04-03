@@ -26,25 +26,18 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/util"
 )
-
-// noCopy may be added to structs which must not be copied
-// after the first use.
-//
-// See https://golang.org/issues/8005#issuecomment-190753527
-// for details.
-//
-// Note that it must not be embedded, due to the Lock and Unlock methods.
-type noCopy struct{}
-
-// Lock is a no-op used by -copylocks checker from `go vet`.
-func (*noCopy) Lock()   {}
-func (*noCopy) Unlock() {}
 
 // Value represents a thread-safe object that can dynamically refresh its value.
 type Value[T any] struct {
-	_ noCopy
 	v atomic.Value
+	c util.LazyChan[struct{}]
+}
+
+// Watch returns a channel that receives a signal when the value changes.
+func (r *Value[T]) Watch() <-chan struct{} {
+	return r.c.Get()
 }
 
 // Value retrieves the current value stored in the object.
@@ -67,6 +60,10 @@ func (r *Value[T]) OnRefresh(prop conf.Properties, param conf.BindParam) error {
 		return err
 	}
 	r.v.Store(o)
+	select {
+	case r.c.Get() <- struct{}{}:
+	default:
+	}
 	return nil
 }
 
@@ -239,7 +236,13 @@ func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	return true, f.doRefresh(v, param, f.watch)
+	if f.watch {
+		f.objects = append(f.objects, &refreshObject{
+			target: v,
+			param:  param,
+		})
+	}
+	return true, v.OnRefresh(f.prop, param)
 }
 
 // RefreshField refreshes a field of a bean, optionally registering it as refreshable.
@@ -257,23 +260,4 @@ func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam, watch b
 		}
 	}
 	return conf.BindValue(p.prop, v.Elem(), v.Elem().Type(), param, f)
-}
-
-// RefreshBean refreshes a single refreshable object.
-// Optionally registers the object as refreshable if watch is true.
-func (p *Properties) RefreshBean(v gs.Refreshable, param conf.BindParam, watch bool) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	return p.doRefresh(v, param, watch)
-}
-
-// doRefresh performs the refresh operation and registers the object if watch is enabled.
-func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch bool) error {
-	if watch {
-		p.objects = append(p.objects, &refreshObject{
-			target: v,
-			param:  param,
-		})
-	}
-	return v.OnRefresh(p.prop, param)
 }

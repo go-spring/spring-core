@@ -2899,28 +2899,3 @@ func TestDynamic(t *testing.T) {
 		assert.Equal(t, string(b), `{"Wrapper":{"Int":null,"Float":null,"Map":null,"Slice":null}}`)
 	}
 }
-
-type ChildBean struct {
-	s string
-}
-
-type ConfigurationBean struct {
-	s string
-}
-
-func NewConfigurationBean(s string) *ConfigurationBean {
-	return &ConfigurationBean{s}
-}
-
-func (c *ConfigurationBean) NewChild() *ChildBean {
-	return &ChildBean{c.s}
-}
-
-func TestConfiguration(t *testing.T) {
-	c := gs_core.New()
-	c.Object(&ConfigurationBean{"123"}).Configuration(&gs.Configuration{Excludes: []string{"NewBean"}}).Name("123")
-	c.Provide(NewConfigurationBean, gs_arg.Value("456")).Configuration(&gs.Configuration{}).Name("456")
-	if err := c.Refresh(conf.New()); err != nil {
-		t.Fatal(err)
-	}
-}

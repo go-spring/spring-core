@@ -197,7 +197,6 @@ type BeanRegistration interface {
 	SetDependsOn(selectors ...BeanSelector)
 	SetExport(exports ...reflect.Type)
 	SetConfiguration(c ...Configuration)
-	SetRefreshable(tag string)
 	SetCaller(skip int)
 	OnProfiles(profiles string)
 }
@@ -291,12 +290,6 @@ func (d *beanBuilder[T]) Export(exports ...reflect.Type) *T {
 // Configuration applies the configuration parameters to the bean.
 func (d *beanBuilder[T]) Configuration(c ...Configuration) *T {
 	d.b.SetConfiguration(c...)
-	return *(**T)(unsafe.Pointer(&d))
-}
-
-// Refreshable marks the bean as refreshable with the provided tag.
-func (d *beanBuilder[T]) Refreshable(tag string) *T {
-	d.b.SetRefreshable(tag)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

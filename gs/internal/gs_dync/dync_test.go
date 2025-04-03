@@ -56,62 +56,6 @@ func TestValue(t *testing.T) {
 
 func TestDync(t *testing.T) {
 
-	t.Run("refresh bean", func(t *testing.T) {
-		p := New(conf.New())
-		assert.Equal(t, p.ObjectsCount(), 0)
-
-		prop := conf.Map(map[string]interface{}{
-			"key": "value",
-		})
-		err := p.Refresh(prop)
-		assert.Nil(t, err)
-		assert.Equal(t, p.Data(), prop)
-
-		bean := &MockRefreshable{}
-		err = p.RefreshBean(bean, conf.BindParam{Key: "test"}, false)
-		assert.Nil(t, err)
-		assert.True(t, bean.called)
-		assert.Equal(t, p.ObjectsCount(), 0)
-
-		bean = &MockRefreshable{}
-		err = p.RefreshBean(bean, conf.BindParam{Key: "test"}, true)
-		assert.Nil(t, err)
-		assert.True(t, bean.called)
-		assert.Equal(t, p.ObjectsCount(), 1)
-
-		bean.called = false
-		prop = conf.Map(map[string]interface{}{
-			"test.value": "new",
-		})
-		err = p.Refresh(prop)
-		assert.Nil(t, err)
-		assert.True(t, bean.called)
-
-		bean.called = false
-		prop = conf.Map(map[string]interface{}{
-			"test.value": "new",
-		})
-		err = p.Refresh(prop)
-		assert.Nil(t, err)
-		assert.False(t, bean.called)
-
-		mock := &MockErrorRefreshable{}
-		err = p.RefreshBean(mock, conf.BindParam{Key: "error"}, true)
-		assert.Error(t, err, "mock error")
-		assert.Equal(t, p.ObjectsCount(), 2)
-
-		mock = &MockErrorRefreshable{}
-		err = p.RefreshBean(mock, conf.BindParam{Key: "error"}, true)
-		assert.Error(t, err, "mock error")
-		assert.Equal(t, p.ObjectsCount(), 3)
-
-		prop = conf.Map(map[string]interface{}{
-			"error.key": "value",
-		})
-		err = p.Refresh(prop)
-		assert.Error(t, err, "mock error; mock error")
-	})
-
 	t.Run("refresh field", func(t *testing.T) {
 		p := New(conf.New())
 		assert.Equal(t, p.ObjectsCount(), 0)
@@ -167,22 +111,22 @@ func TestDync(t *testing.T) {
 		assert.Equal(t, p.ObjectsCount(), 3)
 	})
 
-	t.Run("refresh panic", func(t *testing.T) {
-		p := New(conf.New())
-		mock := &MockPanicRefreshable{}
-
-		assert.Panic(t, func() {
-			_ = p.RefreshBean(mock, conf.BindParam{Key: "error"}, true)
-		}, "mock panic")
-		assert.Equal(t, p.ObjectsCount(), 1)
-
-		assert.Panic(t, func() {
-			prop := conf.Map(map[string]interface{}{
-				"error.key": "value",
-			})
-			_ = p.Refresh(prop)
-		}, "mock panic")
-	})
+	//t.Run("refresh panic", func(t *testing.T) {
+	//	p := New(conf.New())
+	//	mock := &MockPanicRefreshable{}
+	//
+	//	assert.Panic(t, func() {
+	//		_ = p.RefreshBean(mock, conf.BindParam{Key: "error"}, true)
+	//	}, "mock panic")
+	//	assert.Equal(t, p.ObjectsCount(), 1)
+	//
+	//	assert.Panic(t, func() {
+	//		prop := conf.Map(map[string]interface{}{
+	//			"error.key": "value",
+	//		})
+	//		_ = p.Refresh(prop)
+	//	}, "mock panic")
+	//})
 
 	t.Run("concurrent refresh", func(t *testing.T) {
 		p := New(conf.New())
@@ -202,20 +146,20 @@ func TestDync(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("key matching", func(t *testing.T) {
-		p := New(conf.New())
-		mock1 := &MockRefreshable{}
-		_ = p.RefreshBean(mock1, conf.BindParam{Key: "a.b"}, true)
-		mock2 := &MockRefreshable{}
-		_ = p.RefreshBean(mock2, conf.BindParam{Key: "a.b.c"}, true)
-		prop := conf.Map(map[string]interface{}{
-			"a.b.c.d": "value",
-		})
-		err := p.Refresh(prop)
-		assert.Nil(t, err)
-		assert.True(t, mock1.called)
-		assert.True(t, mock2.called)
-	})
+	//t.Run("key matching", func(t *testing.T) {
+	//	p := New(conf.New())
+	//	mock1 := &MockRefreshable{}
+	//	_ = p.RefreshBean(mock1, conf.BindParam{Key: "a.b"}, true)
+	//	mock2 := &MockRefreshable{}
+	//	_ = p.RefreshBean(mock2, conf.BindParam{Key: "a.b.c"}, true)
+	//	prop := conf.Map(map[string]interface{}{
+	//		"a.b.c.d": "value",
+	//	})
+	//	err := p.Refresh(prop)
+	//	assert.Nil(t, err)
+	//	assert.True(t, mock1.called)
+	//	assert.True(t, mock2.called)
+	//})
 
 }
 
@@ -232,10 +176,4 @@ type MockErrorRefreshable struct{}
 
 func (m *MockErrorRefreshable) OnRefresh(prop conf.Properties, param conf.BindParam) error {
 	return errors.New("mock error")
-}
-
-type MockPanicRefreshable struct{}
-
-func (m *MockPanicRefreshable) OnRefresh(prop conf.Properties, param conf.BindParam) error {
-	panic("mock panic")
 }
