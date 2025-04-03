@@ -150,7 +150,7 @@ func (s *Storage) Set(key, val string) error {
 			return fmt.Errorf("property conflict at path %s", JoinPath(path[:i+1]))
 		}
 		v, ok := n.Data[pathNode.Elem]
-		if !ok {
+		if !ok || v == nil {
 			if i < len(path)-1 {
 				v = &treeNode{
 					Type: path[i+1].Type,
