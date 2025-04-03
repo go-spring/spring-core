@@ -83,13 +83,13 @@ func (r *Value[T]) Value() T {
 
 // onRefresh updates the stored value with new properties and notifies listeners.
 func (r *Value[T]) onRefresh(prop conf.Properties, param conf.BindParam) error {
-	var o T
-	v := reflect.ValueOf(&o).Elem()
-	err := conf.BindValue(prop, v, v.Type(), param, nil)
+	t := reflect.TypeFor[T]()
+	v := reflect.New(t).Elem()
+	err := conf.BindValue(prop, v, t, param, nil)
 	if err != nil {
 		return err
 	}
-	r.v.Store(o)
+	r.v.Store(v.Interface())
 	r.notifyAll()
 	return nil
 }

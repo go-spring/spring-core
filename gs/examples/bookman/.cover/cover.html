@@ -59,7 +59,7 @@
 				
 				<option value="file1">github.com/go-spring/spring-core/conf/bind.go (47.1%)</option>
 				
-				<option value="file2">github.com/go-spring/spring-core/conf/conf.go (80.6%)</option>
+				<option value="file2">github.com/go-spring/spring-core/conf/conf.go (79.7%)</option>
 				
 				<option value="file3">github.com/go-spring/spring-core/conf/expr.go (0.0%)</option>
 				
@@ -73,7 +73,7 @@
 				
 				<option value="file8">github.com/go-spring/spring-core/conf/storage/path.go (26.8%)</option>
 				
-				<option value="file9">github.com/go-spring/spring-core/conf/storage/store.go (78.0%)</option>
+				<option value="file9">github.com/go-spring/spring-core/conf/storage/store.go (76.8%)</option>
 				
 				<option value="file10">github.com/go-spring/spring-core/gs/examples/bookman/src/app/bootstrap/bootstrap.go (73.9%)</option>
 				
@@ -131,7 +131,7 @@
 				
 				<option value="file37">github.com/go-spring/spring-core/gs/internal/gs_core/wiring/wiring.go (58.7%)</option>
 				
-				<option value="file38">github.com/go-spring/spring-core/gs/internal/gs_dync/dync.go (80.6%)</option>
+				<option value="file38">github.com/go-spring/spring-core/gs/internal/gs_dync/dync.go (77.4%)</option>
 				
 				<option value="file39">github.com/go-spring/spring-core/gs/internal/gs_util/util.go (66.7%)</option>
 				
@@ -139,27 +139,25 @@
 				
 				<option value="file41">github.com/go-spring/spring-core/gs/prop.go (33.3%)</option>
 				
-				<option value="file42">github.com/go-spring/spring-core/util/chan.go (100.0%)</option>
+				<option value="file42">github.com/go-spring/spring-core/util/errutil/errutil.go (0.0%)</option>
 				
-				<option value="file43">github.com/go-spring/spring-core/util/errutil/errutil.go (0.0%)</option>
+				<option value="file43">github.com/go-spring/spring-core/util/flat.go (28.0%)</option>
 				
-				<option value="file44">github.com/go-spring/spring-core/util/flat.go (28.0%)</option>
+				<option value="file44">github.com/go-spring/spring-core/util/goutil/goutil.go (27.5%)</option>
 				
-				<option value="file45">github.com/go-spring/spring-core/util/goutil/goutil.go (27.5%)</option>
+				<option value="file45">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.4%)</option>
 				
-				<option value="file46">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.4%)</option>
+				<option value="file46">github.com/go-spring/spring-core/util/list.go (0.0%)</option>
 				
-				<option value="file47">github.com/go-spring/spring-core/util/list.go (0.0%)</option>
+				<option value="file47">github.com/go-spring/spring-core/util/map.go (100.0%)</option>
 				
-				<option value="file48">github.com/go-spring/spring-core/util/map.go (100.0%)</option>
+				<option value="file48">github.com/go-spring/spring-core/util/sysconf/sysconf.go (50.0%)</option>
 				
-				<option value="file49">github.com/go-spring/spring-core/util/sysconf/sysconf.go (45.0%)</option>
+				<option value="file49">github.com/go-spring/spring-core/util/syslog/syslog.go (86.7%)</option>
 				
-				<option value="file50">github.com/go-spring/spring-core/util/syslog/syslog.go (86.7%)</option>
+				<option value="file50">github.com/go-spring/spring-core/util/type.go (70.4%)</option>
 				
-				<option value="file51">github.com/go-spring/spring-core/util/type.go (70.4%)</option>
-				
-				<option value="file52">github.com/go-spring/spring-core/util/value.go (31.2%)</option>
+				<option value="file51">github.com/go-spring/spring-core/util/value.go (31.2%)</option>
 				
 				</select>
 			</div>
@@ -573,7 +571,7 @@ func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error
         <span class="cov0" title="0">r := New()
         for i, s := range arrVal </span><span class="cov0" title="0">{
                 k := fmt.Sprintf("%s[%d]", param.Key, i)
-                if err = r.storage.Set(k, s); err != nil </span><span class="cov0" title="0">{
+                if err = r.Set(k, s); err != nil </span><span class="cov0" title="0">{
                         return nil, err
                 }</span>
         }
@@ -840,10 +838,10 @@ type Properties interface {
         Data() map[string]string
         // Keys returns keys of the properties.
         Keys() []string
-        // Has returns whether the key exists.
-        Has(key string) bool
         // SubKeys returns the sorted sub keys of the key.
         SubKeys(key string) ([]string, error)
+        // Has returns whether the key exists.
+        Has(key string) bool
         // Get returns key's value.
         Get(key string, def ...string) string
         // Resolve resolves string that contains references.
@@ -869,13 +867,13 @@ var _ Properties = (*MutableProperties)(nil)
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
 type MutableProperties struct {
-        storage *storage.Storage
+        *storage.Storage
 }
 
 // New creates empty *MutableProperties.
 func New() *MutableProperties <span class="cov7" title="101">{
         return &amp;MutableProperties{
-                storage: storage.NewStorage(),
+                Storage: storage.NewStorage(),
         }
 }</span>
 
@@ -924,8 +922,8 @@ func (p *MutableProperties) Merge(m map[string]interface{}) error <span class="c
 
 // merge flattens the map and sets all keys and values.
 func (p *MutableProperties) merge(m map[string]string) error <span class="cov6" title="32">{
-        for key, val := range m </span><span class="cov7" title="114">{
-                if err := p.storage.Set(key, val); err != nil </span><span class="cov0" title="0">{
+        for key, val := range m </span><span class="cov8" title="114">{
+                if err := p.Set(key, val); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
         }
@@ -934,7 +932,7 @@ func (p *MutableProperties) merge(m map[string]string) error <span class="cov6" 
 
 func (p *MutableProperties) Data() map[string]string <span class="cov0" title="0">{
         m := make(map[string]string)
-        for k, v := range p.storage.RawData() </span><span class="cov0" title="0">{
+        for k, v := range p.RawData() </span><span class="cov0" title="0">{
                 m[k] = v
         }</span>
         <span class="cov0" title="0">return m</span>
@@ -942,41 +940,21 @@ func (p *MutableProperties) Data() map[string]string <span class="cov0" title="0
 
 // Keys returns all sorted keys.
 func (p *MutableProperties) Keys() []string <span class="cov4" title="8">{
-        return p.storage.Keys()
-}</span>
-
-// Has returns whether key exists.
-func (p *MutableProperties) Has(key string) bool <span class="cov5" title="26">{
-        return p.storage.Has(key)
-}</span>
-
-// SubKeys returns the sorted sub keys of the key.
-func (p *MutableProperties) SubKeys(key string) ([]string, error) <span class="cov1" title="1">{
-        return p.storage.SubKeys(key)
+        return util.OrderedMapKeys(p.RawData())
 }</span>
 
 // Get returns key's value, using Def to return a default value.
-func (p *MutableProperties) Get(key string, def ...string) string <span class="cov9" title="426">{
-        val, ok := p.storage.Get(key)
+func (p *MutableProperties) Get(key string, def ...string) string <span class="cov10" title="426">{
+        val, ok := p.RawData()[key]
         if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="22">{
                 return def[0]
         }</span>
         <span class="cov9" title="404">return val</span>
 }
 
-// Set sets key's value to be a primitive type as int or string,
-// or a slice or map nested with primitive type elements. One thing
-// you should know is Set actions as overlap but not replace, that
-// means when you set a slice or a map, an existing path will remain
-// when it doesn't exist in the slice or map even they share a same
-// prefix path.
-func (p *MutableProperties) Set(key string, val string) error <span class="cov10" title="446">{
-        return p.storage.Set(key, val)
-}</span>
-
 // Resolve resolves string value that contains references to other
 // properties, the references are defined by ${key:=def}.
-func (p *MutableProperties) Resolve(s string) (string, error) <span class="cov7" title="114">{
+func (p *MutableProperties) Resolve(s string) (string, error) <span class="cov8" title="114">{
         return resolveString(p, s)
 }</span>
 
@@ -1024,7 +1002,7 @@ func (p *MutableProperties) Bind(i interface{}, tag ...string) error <span class
 
 // CopyTo copies properties into another by override.
 func (p *MutableProperties) CopyTo(out *MutableProperties) error <span class="cov5" title="22">{
-        return out.merge(p.storage.RawData())
+        return out.merge(p.RawData())
 }</span>
 </pre>
 		
@@ -1398,13 +1376,8 @@ func NewStorage() *Storage <span class="cov6" title="101">{
 
 // RawData returns the underlying key-value map.
 // Note: This exposes internal state; use with caution.
-func (s *Storage) RawData() map[string]string <span class="cov5" title="22">{
+func (s *Storage) RawData() map[string]string <span class="cov8" title="456">{
         return s.data
-}</span>
-
-// Keys returns all stored keys in lexicographical order.
-func (s *Storage) Keys() []string <span class="cov3" title="8">{
-        return util.OrderedMapKeys(s.data)
 }</span>
 
 // SubKeys returns immediate child keys under the specified hierarchical key.
@@ -1468,13 +1441,6 @@ func (s *Storage) Has(key string) bool <span class="cov5" title="26">{
         }
         <span class="cov0" title="0">return true</span>
 }
-
-// Get retrieves the value for a key.
-// Returns (value, true) if exists; (empty, false) otherwise.
-func (s *Storage) Get(key string) (string, bool) <span class="cov8" title="426">{
-        val, ok := s.data[key]
-        return val, ok
-}</span>
 
 // Set stores a key-value pair after validating the key's hierarchical structure.
 // Returns an error for empty keys/values or path conflicts.
@@ -2267,7 +2233,6 @@ func None(conditions ...Condition) Condition <span class="cov0" title="0">{
 /************************************ ioc ************************************/
 
 type (
-        Refreshable = gs.Refreshable
         Dync[T any] = gs_dync.Value[T]
 )
 
@@ -2564,8 +2529,6 @@ import (
         "reflect"
         "strings"
         "unsafe"
-
-        "github.com/go-spring/spring-core/conf"
 )
 
 // anyType is the [reflect.Type] of the [any] type.
@@ -2670,14 +2633,6 @@ type ArgContext interface {
         Bind(v reflect.Value, tag string) error
         // Wire wires dependent beans to the provided [reflect.Value].
         Wire(v reflect.Value, tag string) error
-}
-
-/*********************************** dync ************************************/
-
-// Refreshable represents an object that can be dynamically refreshed.
-type Refreshable interface {
-        // OnRefresh is called to refresh the properties when they change.
-        OnRefresh(prop conf.Properties, param conf.BindParam) error
 }
 
 /*********************************** app ************************************/
@@ -2886,7 +2841,6 @@ import (
         "context"
         "reflect"
 
-        "github.com/go-spring/spring-core/conf"
         "go.uber.org/mock/gomock"
 )
 
@@ -3196,44 +3150,6 @@ func (m *MockArgContext) Wire(v reflect.Value, tag string) error <span class="co
 func (mr *MockArgContextMockRecorder) Wire(v, tag any) *gomock.Call <span class="cov0" title="0">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Wire", reflect.TypeOf((*MockArgContext)(nil).Wire), v, tag)
-}</span>
-
-// MockRefreshable is a mock of Refreshable interface.
-type MockRefreshable struct {
-        ctrl     *gomock.Controller
-        recorder *MockRefreshableMockRecorder
-        isgomock struct{}
-}
-
-// MockRefreshableMockRecorder is the mock recorder for MockRefreshable.
-type MockRefreshableMockRecorder struct {
-        mock *MockRefreshable
-}
-
-// NewMockRefreshable creates a new mock instance.
-func NewMockRefreshable(ctrl *gomock.Controller) *MockRefreshable <span class="cov0" title="0">{
-        mock := &amp;MockRefreshable{ctrl: ctrl}
-        mock.recorder = &amp;MockRefreshableMockRecorder{mock}
-        return mock
-}</span>
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockRefreshable) EXPECT() *MockRefreshableMockRecorder <span class="cov0" title="0">{
-        return m.recorder
-}</span>
-
-// OnRefresh mocks base method.
-func (m *MockRefreshable) OnRefresh(prop conf.Properties, param conf.BindParam) error <span class="cov0" title="0">{
-        m.ctrl.T.Helper()
-        ret := m.ctrl.Call(m, "OnRefresh", prop, param)
-        ret0, _ := ret[0].(error)
-        return ret0
-}</span>
-
-// OnRefresh indicates an expected call of OnRefresh.
-func (mr *MockRefreshableMockRecorder) OnRefresh(prop, param any) *gomock.Call <span class="cov0" title="0">{
-        mr.mock.ctrl.T.Helper()
-        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnRefresh", reflect.TypeOf((*MockRefreshable)(nil).OnRefresh), prop, param)
 }</span>
 
 // MockRunner is a mock of Runner interface.
@@ -3634,18 +3550,6 @@ func (m *MockBeanRegistration) SetName(name string) <span class="cov0" title="0"
 func (mr *MockBeanRegistrationMockRecorder) SetName(name any) *gomock.Call <span class="cov0" title="0">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetName", reflect.TypeOf((*MockBeanRegistration)(nil).SetName), name)
-}</span>
-
-// SetRefreshable mocks base method.
-func (m *MockBeanRegistration) SetRefreshable(tag string) <span class="cov0" title="0">{
-        m.ctrl.T.Helper()
-        m.ctrl.Call(m, "SetRefreshable", tag)
-}</span>
-
-// SetRefreshable indicates an expected call of SetRefreshable.
-func (mr *MockBeanRegistrationMockRecorder) SetRefreshable(tag any) *gomock.Call <span class="cov0" title="0">{
-        mr.mock.ctrl.T.Helper()
-        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRefreshable", reflect.TypeOf((*MockBeanRegistration)(nil).SetRefreshable), tag)
 }</span>
 
 // Type mocks base method.
@@ -7374,20 +7278,50 @@ import (
         "sync/atomic"
 
         "github.com/go-spring/spring-core/conf"
-        "github.com/go-spring/spring-core/gs/internal/gs"
-        "github.com/go-spring/spring-core/util"
 )
+
+// refreshable represents an object that can be dynamically refreshed.
+type refreshable interface {
+        onRefresh(prop conf.Properties, param conf.BindParam) error
+}
+
+// Listener holds a channel to receive notifications.
+type Listener struct {
+        C chan struct{}
+}
+
+// listeners maintains a collection of listeners that can be notified on value updates.
+type listeners struct {
+        m sync.Mutex
+        a []*Listener
+}
+
+// NewListener creates and registers a new listener.
+func (r *listeners) NewListener() *Listener <span class="cov0" title="0">{
+        r.m.Lock()
+        defer r.m.Unlock()
+        l := &amp;Listener{C: make(chan struct{})}
+        r.a = append(r.a, l)
+        return l
+}</span>
+
+// notifyAll sends a notification signal to all registered listeners.
+func (r *listeners) notifyAll() <span class="cov3" title="5">{
+        r.m.Lock()
+        defer r.m.Unlock()
+        for _, l := range r.a </span><span class="cov0" title="0">{
+                select </span>{
+                case l.C &lt;- struct{}{}:<span class="cov0" title="0"></span>
+                default:<span class="cov0" title="0"></span>
+                }
+        }
+}
 
 // Value represents a thread-safe object that can dynamically refresh its value.
 type Value[T any] struct {
+        listeners
         v atomic.Value
-        c util.LazyChan[struct{}]
 }
-
-// Watch returns a channel that receives a signal when the value changes.
-func (r *Value[T]) Watch() &lt;-chan struct{} <span class="cov0" title="0">{
-        return r.c.Get()
-}</span>
 
 // Value retrieves the current value stored in the object.
 // If no value is set, it returns the zero value for the type T.
@@ -7400,20 +7334,17 @@ func (r *Value[T]) Value() T <span class="cov3" title="5">{
         <span class="cov3" title="5">return v</span>
 }
 
-// OnRefresh refreshes the value of the object by binding new properties.
-func (r *Value[T]) OnRefresh(prop conf.Properties, param conf.BindParam) error <span class="cov3" title="5">{
-        var o T
-        v := reflect.ValueOf(&amp;o).Elem()
-        err := conf.BindValue(prop, v, v.Type(), param, nil)
+// onRefresh updates the stored value with new properties and notifies listeners.
+func (r *Value[T]) onRefresh(prop conf.Properties, param conf.BindParam) error <span class="cov3" title="5">{
+        t := reflect.TypeFor[T]()
+        v := reflect.New(t).Elem()
+        err := conf.BindValue(prop, v, t, param, nil)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov3" title="5">r.v.Store(o)
-        select </span>{
-        case r.c.Get() &lt;- struct{}{}:<span class="cov0" title="0"></span>
-        default:<span class="cov3" title="5"></span>
-        }
-        <span class="cov3" title="5">return nil</span>
+        <span class="cov3" title="5">r.v.Store(v.Interface())
+        r.notifyAll()
+        return nil</span>
 }
 
 // MarshalJSON serializes the stored value as JSON.
@@ -7423,7 +7354,7 @@ func (r *Value[T]) MarshalJSON() ([]byte, error) <span class="cov0" title="0">{
 
 // refreshObject represents an object bound to dynamic properties that can be refreshed.
 type refreshObject struct {
-        target gs.Refreshable // The refreshable object.
+        target refreshable    // The refreshable object.
         param  conf.BindParam // Parameters used for refreshing.
 }
 
@@ -7564,7 +7495,7 @@ func (e *Errors) Error() string <span class="cov0" title="0">{
 func (p *Properties) refreshObjects(objects []*refreshObject) error <span class="cov3" title="4">{
         ret := &amp;Errors{}
         for _, obj := range objects </span><span class="cov3" title="4">{
-                err := obj.target.OnRefresh(p.prop, obj.param)
+                err := obj.target.onRefresh(p.prop, obj.param)
                 ret.Append(err)
         }</span>
         <span class="cov3" title="4">if ret.Len() == 0 </span><span class="cov3" title="4">{
@@ -7579,9 +7510,9 @@ type filter struct {
         watch bool // Whether to register objects as refreshable.
 }
 
-// Do attempts to refresh a single object if it implements the [gs.Refreshable] interface.
+// Do attempts to refresh a single object if it implements the [refreshable] interface.
 func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) <span class="cov3" title="4">{
-        v, ok := i.(gs.Refreshable)
+        v, ok := i.(refreshable)
         if !ok </span><span class="cov2" title="3">{
                 return false, nil
         }</span>
@@ -7591,7 +7522,7 @@ func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) <span cla
                         param:  param,
                 })
         }</span>
-        <span class="cov1" title="1">return true, v.OnRefresh(f.prop, param)</span>
+        <span class="cov1" title="1">return true, v.onRefresh(f.prop, param)</span>
 }
 
 // RefreshField refreshes a field of a bean, optionally registering it as refreshable.
@@ -7864,46 +7795,6 @@ func EnableSimplePProfServer(enable bool) <span class="cov1" title="1">{
 </pre>
 		
 		<pre class="file" id="file42" style="display: none">/*
- * Copyright 2025 The Go-Spring Authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package util
-
-import (
-        "sync"
-)
-
-// LazyChan is a struct that encapsulates a channel and a Mutex.
-// It ensures that the channel is lazily initialized and thread-safe.
-type LazyChan[T any] struct {
-        m sync.Mutex
-        c chan T
-}
-
-// Get returns the channel, initializing it lazily if it is nil.
-func (r *LazyChan[T]) Get() chan T <span class="cov10" title="5">{
-        r.m.Lock()
-        defer r.m.Unlock()
-        if r.c == nil </span><span class="cov1" title="1">{
-                r.c = make(chan T)
-        }</span>
-        <span class="cov10" title="5">return r.c</span>
-}
-</pre>
-		
-		<pre class="file" id="file43" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -7935,7 +7826,7 @@ func WrapError(err error, format string, args ...interface{}) error <span class=
 }</span>
 </pre>
 		
-		<pre class="file" id="file44" style="display: none">/*
+		<pre class="file" id="file43" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8010,7 +7901,7 @@ func FlattenValue(key string, val interface{}, result map[string]string) <span c
 }
 </pre>
 		
-		<pre class="file" id="file45" style="display: none">/*
+		<pre class="file" id="file44" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8150,7 +8041,7 @@ func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error))
 }
 </pre>
 		
-		<pre class="file" id="file46" style="display: none">/*
+		<pre class="file" id="file45" style="display: none">/*
  * Copyright 2025 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8208,7 +8099,7 @@ func stepRangesBackward(start, end, step int, fn func(i int)) <span class="cov0"
 }
 </pre>
 		
-		<pre class="file" id="file47" style="display: none">/*
+		<pre class="file" id="file46" style="display: none">/*
  * Copyright 2025 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8255,7 +8146,7 @@ func AllOfList[T any](l *list.List) []T <span class="cov0" title="0">{
 }
 </pre>
 		
-		<pre class="file" id="file48" style="display: none">/*
+		<pre class="file" id="file47" style="display: none">/*
  * Copyright 2025 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8295,7 +8186,7 @@ func OrderedMapKeys[M ~map[K]V, K cmp.Ordered, V any](m M) []K <span class="cov4
 }</span>
 </pre>
 		
-		<pre class="file" id="file49" style="display: none">/*
+		<pre class="file" id="file48" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8345,12 +8236,6 @@ func Set(key string, val string) error <span class="cov3" title="2">{
         return prop.Set(key, val)
 }</span>
 
-// Delete removes the property.
-func Delete(key string) <span class="cov0" title="0">{
-        lock.Lock()
-        defer lock.Unlock()
-}</span>
-
 // Clear clears all properties.
 func Clear() <span class="cov0" title="0">{
         lock.Lock()
@@ -8369,7 +8254,7 @@ func Clone() *conf.MutableProperties <span class="cov10" title="12">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file50" style="display: none">/*
+		<pre class="file" id="file49" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8440,7 +8325,7 @@ func logMsg(level slog.Level, format string, a ...any) <span class="cov10" title
 }
 </pre>
 		
-		<pre class="file" id="file51" style="display: none">/*
+		<pre class="file" id="file50" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -8562,7 +8447,7 @@ func IsBeanInjectionTarget(t reflect.Type) bool <span class="cov7" title="15">{
 }
 </pre>
 		
-		<pre class="file" id="file52" style="display: none">/*
+		<pre class="file" id="file51" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

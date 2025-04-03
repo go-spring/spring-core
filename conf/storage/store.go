@@ -50,11 +50,6 @@ func (s *Storage) RawData() map[string]string {
 	return s.data
 }
 
-// Keys returns all stored keys in lexicographical order.
-func (s *Storage) Keys() []string {
-	return util.OrderedMapKeys(s.data)
-}
-
 // SubKeys returns immediate child keys under the specified hierarchical key.
 // It returns an error if the key format is invalid or if conflicts occur in the tree.
 func (s *Storage) SubKeys(key string) (_ []string, err error) {
@@ -115,13 +110,6 @@ func (s *Storage) Has(key string) bool {
 		n = v
 	}
 	return true
-}
-
-// Get retrieves the value for a key.
-// Returns (value, true) if exists; (empty, false) otherwise.
-func (s *Storage) Get(key string) (string, bool) {
-	val, ok := s.data[key]
-	return val, ok
 }
 
 // Set stores a key-value pair after validating the key's hierarchical structure.

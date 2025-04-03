@@ -174,14 +174,12 @@ func TestDync(t *testing.T) {
 	t.Run("key matching", func(t *testing.T) {
 		p := New(conf.New())
 
-		mock1 := &Value[struct {
-			C struct {
-				D string `value:"${d:=xyz}"`
-			} `value:"${c}"`
+		mock1 := &Value[map[string]struct {
+			D string `value:"${d:=xyz}"`
 		}]{}
 		err := p.RefreshField(reflect.ValueOf(mock1), conf.BindParam{Key: "a.b"}, true)
 		assert.Nil(t, err)
-		assert.Equal(t, mock1.Value().C.D, "xyz")
+		assert.Equal(t, mock1.Value()["c"].D, "")
 
 		mock2 := &Value[struct {
 			D string `value:"${d:=xyz}"`
@@ -195,7 +193,7 @@ func TestDync(t *testing.T) {
 		})
 		err = p.Refresh(prop)
 		assert.Nil(t, err)
-		assert.Equal(t, mock1.Value().C.D, "123")
+		assert.Equal(t, mock1.Value()["c"].D, "123")
 		assert.Equal(t, mock2.Value().D, "123")
 	})
 

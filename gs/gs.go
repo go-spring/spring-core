@@ -137,7 +137,6 @@ func None(conditions ...Condition) Condition {
 /************************************ ioc ************************************/
 
 type (
-	Refreshable = gs.Refreshable
 	Dync[T any] = gs_dync.Value[T]
 )
 

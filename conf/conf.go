@@ -91,10 +91,10 @@ type Properties interface {
 	Data() map[string]string
 	// Keys returns keys of the properties.
 	Keys() []string
-	// Has returns whether the key exists.
-	Has(key string) bool
 	// SubKeys returns the sorted sub keys of the key.
 	SubKeys(key string) ([]string, error)
+	// Has returns whether the key exists.
+	Has(key string) bool
 	// Get returns key's value.
 	Get(key string, def ...string) string
 	// Resolve resolves string that contains references.
@@ -120,13 +120,13 @@ var _ Properties = (*MutableProperties)(nil)
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
 type MutableProperties struct {
-	storage *storage.Storage
+	*storage.Storage
 }
 
 // New creates empty *MutableProperties.
 func New() *MutableProperties {
 	return &MutableProperties{
-		storage: storage.NewStorage(),
+		Storage: storage.NewStorage(),
 	}
 }
 
@@ -176,7 +176,7 @@ func (p *MutableProperties) Merge(m map[string]interface{}) error {
 // merge flattens the map and sets all keys and values.
 func (p *MutableProperties) merge(m map[string]string) error {
 	for key, val := range m {
-		if err := p.storage.Set(key, val); err != nil {
+		if err := p.Set(key, val); err != nil {
 			return err
 		}
 	}
@@ -185,7 +185,7 @@ func (p *MutableProperties) merge(m map[string]string) error {
 
 func (p *MutableProperties) Data() map[string]string {
 	m := make(map[string]string)
-	for k, v := range p.storage.RawData() {
+	for k, v := range p.RawData() {
 		m[k] = v
 	}
 	return m
@@ -193,36 +193,16 @@ func (p *MutableProperties) Data() map[string]string {
 
 // Keys returns all sorted keys.
 func (p *MutableProperties) Keys() []string {
-	return p.storage.Keys()
-}
-
-// Has returns whether key exists.
-func (p *MutableProperties) Has(key string) bool {
-	return p.storage.Has(key)
-}
-
-// SubKeys returns the sorted sub keys of the key.
-func (p *MutableProperties) SubKeys(key string) ([]string, error) {
-	return p.storage.SubKeys(key)
+	return util.OrderedMapKeys(p.RawData())
 }
 
 // Get returns key's value, using Def to return a default value.
 func (p *MutableProperties) Get(key string, def ...string) string {
-	val, ok := p.storage.Get(key)
+	val, ok := p.RawData()[key]
 	if !ok && len(def) > 0 {
 		return def[0]
 	}
 	return val
-}
-
-// Set sets key's value to be a primitive type as int or string,
-// or a slice or map nested with primitive type elements. One thing
-// you should know is Set actions as overlap but not replace, that
-// means when you set a slice or a map, an existing path will remain
-// when it doesn't exist in the slice or map even they share a same
-// prefix path.
-func (p *MutableProperties) Set(key string, val string) error {
-	return p.storage.Set(key, val)
 }
 
 // Resolve resolves string value that contains references to other
@@ -275,5 +255,5 @@ func (p *MutableProperties) Bind(i interface{}, tag ...string) error {
 
 // CopyTo copies properties into another by override.
 func (p *MutableProperties) CopyTo(out *MutableProperties) error {
-	return out.merge(p.storage.RawData())
+	return out.merge(p.RawData())
 }
