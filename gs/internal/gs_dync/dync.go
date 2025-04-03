@@ -25,19 +25,49 @@ import (
 	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/util"
 )
+
+// refreshable represents an object that can be dynamically refreshed.
+type refreshable interface {
+	onRefresh(prop conf.Properties, param conf.BindParam) error
+}
+
+// Listener holds a channel to receive notifications.
+type Listener struct {
+	C chan struct{}
+}
+
+// listeners maintains a collection of listeners that can be notified on value updates.
+type listeners struct {
+	m sync.Mutex
+	a []*Listener
+}
+
+// NewListener creates and registers a new listener.
+func (r *listeners) NewListener() *Listener {
+	r.m.Lock()
+	defer r.m.Unlock()
+	l := &Listener{C: make(chan struct{})}
+	r.a = append(r.a, l)
+	return l
+}
+
+// notifyAll sends a notification signal to all registered listeners.
+func (r *listeners) notifyAll() {
+	r.m.Lock()
+	defer r.m.Unlock()
+	for _, l := range r.a {
+		select {
+		case l.C <- struct{}{}:
+		default:
+		}
+	}
+}
 
 // Value represents a thread-safe object that can dynamically refresh its value.
 type Value[T any] struct {
+	listeners
 	v atomic.Value
-	c util.LazyChan[struct{}]
-}
-
-// Watch returns a channel that receives a signal when the value changes.
-func (r *Value[T]) Watch() <-chan struct{} {
-	return r.c.Get()
 }
 
 // Value retrieves the current value stored in the object.
@@ -51,8 +81,8 @@ func (r *Value[T]) Value() T {
 	return v
 }
 
-// OnRefresh refreshes the value of the object by binding new properties.
-func (r *Value[T]) OnRefresh(prop conf.Properties, param conf.BindParam) error {
+// onRefresh updates the stored value with new properties and notifies listeners.
+func (r *Value[T]) onRefresh(prop conf.Properties, param conf.BindParam) error {
 	var o T
 	v := reflect.ValueOf(&o).Elem()
 	err := conf.BindValue(prop, v, v.Type(), param, nil)
@@ -60,10 +90,7 @@ func (r *Value[T]) OnRefresh(prop conf.Properties, param conf.BindParam) error {
 		return err
 	}
 	r.v.Store(o)
-	select {
-	case r.c.Get() <- struct{}{}:
-	default:
-	}
+	r.notifyAll()
 	return nil
 }
 
@@ -74,7 +101,7 @@ func (r *Value[T]) MarshalJSON() ([]byte, error) {
 
 // refreshObject represents an object bound to dynamic properties that can be refreshed.
 type refreshObject struct {
-	target gs.Refreshable // The refreshable object.
+	target refreshable    // The refreshable object.
 	param  conf.BindParam // Parameters used for refreshing.
 }
 
@@ -215,7 +242,7 @@ func (e *Errors) Error() string {
 func (p *Properties) refreshObjects(objects []*refreshObject) error {
 	ret := &Errors{}
 	for _, obj := range objects {
-		err := obj.target.OnRefresh(p.prop, obj.param)
+		err := obj.target.onRefresh(p.prop, obj.param)
 		ret.Append(err)
 	}
 	if ret.Len() == 0 {
@@ -230,9 +257,9 @@ type filter struct {
 	watch bool // Whether to register objects as refreshable.
 }
 
-// Do attempts to refresh a single object if it implements the [gs.Refreshable] interface.
+// Do attempts to refresh a single object if it implements the [refreshable] interface.
 func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
-	v, ok := i.(gs.Refreshable)
+	v, ok := i.(refreshable)
 	if !ok {
 		return false, nil
 	}
@@ -242,7 +269,7 @@ func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
 			param:  param,
 		})
 	}
-	return true, v.OnRefresh(f.prop, param)
+	return true, v.onRefresh(f.prop, param)
 }
 
 // RefreshField refreshes a field of a bean, optionally registering it as refreshable.

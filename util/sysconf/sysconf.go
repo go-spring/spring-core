@@ -48,12 +48,6 @@ func Set(key string, val string) error {
 	return prop.Set(key, val)
 }
 
-// Delete removes the property.
-func Delete(key string) {
-	lock.Lock()
-	defer lock.Unlock()
-}
-
 // Clear clears all properties.
 func Clear() {
 	lock.Lock()

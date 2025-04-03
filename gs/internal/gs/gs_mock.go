@@ -13,7 +13,6 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/go-spring/spring-core/conf"
 	"go.uber.org/mock/gomock"
 )
 
@@ -323,44 +322,6 @@ func (m *MockArgContext) Wire(v reflect.Value, tag string) error {
 func (mr *MockArgContextMockRecorder) Wire(v, tag any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Wire", reflect.TypeOf((*MockArgContext)(nil).Wire), v, tag)
-}
-
-// MockRefreshable is a mock of Refreshable interface.
-type MockRefreshable struct {
-	ctrl     *gomock.Controller
-	recorder *MockRefreshableMockRecorder
-	isgomock struct{}
-}
-
-// MockRefreshableMockRecorder is the mock recorder for MockRefreshable.
-type MockRefreshableMockRecorder struct {
-	mock *MockRefreshable
-}
-
-// NewMockRefreshable creates a new mock instance.
-func NewMockRefreshable(ctrl *gomock.Controller) *MockRefreshable {
-	mock := &MockRefreshable{ctrl: ctrl}
-	mock.recorder = &MockRefreshableMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockRefreshable) EXPECT() *MockRefreshableMockRecorder {
-	return m.recorder
-}
-
-// OnRefresh mocks base method.
-func (m *MockRefreshable) OnRefresh(prop conf.Properties, param conf.BindParam) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OnRefresh", prop, param)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// OnRefresh indicates an expected call of OnRefresh.
-func (mr *MockRefreshableMockRecorder) OnRefresh(prop, param any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnRefresh", reflect.TypeOf((*MockRefreshable)(nil).OnRefresh), prop, param)
 }
 
 // MockRunner is a mock of Runner interface.
@@ -761,18 +722,6 @@ func (m *MockBeanRegistration) SetName(name string) {
 func (mr *MockBeanRegistrationMockRecorder) SetName(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetName", reflect.TypeOf((*MockBeanRegistration)(nil).SetName), name)
-}
-
-// SetRefreshable mocks base method.
-func (m *MockBeanRegistration) SetRefreshable(tag string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetRefreshable", tag)
-}
-
-// SetRefreshable indicates an expected call of SetRefreshable.
-func (mr *MockBeanRegistrationMockRecorder) SetRefreshable(tag any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRefreshable", reflect.TypeOf((*MockBeanRegistration)(nil).SetRefreshable), tag)
 }
 
 // Type mocks base method.

@@ -23,8 +23,6 @@ import (
 	"reflect"
 	"strings"
 	"unsafe"
-
-	"github.com/go-spring/spring-core/conf"
 )
 
 // anyType is the [reflect.Type] of the [any] type.
@@ -129,14 +127,6 @@ type ArgContext interface {
 	Bind(v reflect.Value, tag string) error
 	// Wire wires dependent beans to the provided [reflect.Value].
 	Wire(v reflect.Value, tag string) error
-}
-
-/*********************************** dync ************************************/
-
-// Refreshable represents an object that can be dynamically refreshed.
-type Refreshable interface {
-	// OnRefresh is called to refresh the properties when they change.
-	OnRefresh(prop conf.Properties, param conf.BindParam) error
 }
 
 /*********************************** app ************************************/

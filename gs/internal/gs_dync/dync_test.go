@@ -28,30 +28,60 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
-func TestValue(t *testing.T) {
+type MockPanicRefreshable struct{}
 
+func (m *MockPanicRefreshable) onRefresh(prop conf.Properties, param conf.BindParam) error {
+	panic("mock panic")
+}
+
+type MockErrorRefreshable struct{}
+
+func (m *MockErrorRefreshable) onRefresh(prop conf.Properties, param conf.BindParam) error {
+	return errors.New("mock error")
+}
+
+func TestValue(t *testing.T) {
 	var v Value[int]
 	assert.Equal(t, v.Value(), 0)
 
-	prop := conf.Map(map[string]interface{}{
+	refresh := func(prop conf.Properties) error {
+		return v.onRefresh(prop, conf.BindParam{Key: "key"})
+	}
+
+	err := refresh(conf.Map(map[string]interface{}{
 		"key": "42",
-	})
-	err := v.OnRefresh(prop, conf.BindParam{Key: "key"})
+	}))
 	assert.Nil(t, err)
 	assert.Equal(t, v.Value(), 42)
 
-	b, err := json.Marshal(map[string]interface{}{"key": &v})
-	assert.Nil(t, err)
-	assert.JsonEqual(t, string(b), `{"key":42}`)
-
-	prop = conf.Map(map[string]interface{}{
+	err = refresh(conf.Map(map[string]interface{}{
 		"key": map[string]interface{}{
 			"value": "42",
 		},
-	})
-	err = v.OnRefresh(prop, conf.BindParam{Key: "key"})
+	}))
 	assert.Error(t, err, "bind path= type=int error << property key isn't simple value")
 
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-v.NewListener().C
+			assert.Equal(t, v.Value(), 59)
+		}()
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	err = refresh(conf.Map(map[string]interface{}{
+		"key": 59,
+	}))
+	assert.Nil(t, err)
+
+	wg.Wait()
+
+	b, err := json.Marshal(map[string]interface{}{"key": &v})
+	assert.Nil(t, err)
+	assert.JsonEqual(t, string(b), `{"key":59}`)
 }
 
 func TestDync(t *testing.T) {
@@ -104,29 +134,24 @@ func TestDync(t *testing.T) {
 		err = p.RefreshField(reflect.ValueOf(mock), conf.BindParam{Key: "config"}, true)
 		assert.Error(t, err, "mock error")
 		assert.Equal(t, p.ObjectsCount(), 2)
-
-		bean := &MockRefreshable{}
-		err = p.RefreshField(reflect.ValueOf(bean), conf.BindParam{Key: "config"}, true)
-		assert.Nil(t, err)
-		assert.Equal(t, p.ObjectsCount(), 3)
 	})
 
-	//t.Run("refresh panic", func(t *testing.T) {
-	//	p := New(conf.New())
-	//	mock := &MockPanicRefreshable{}
-	//
-	//	assert.Panic(t, func() {
-	//		_ = p.RefreshBean(mock, conf.BindParam{Key: "error"}, true)
-	//	}, "mock panic")
-	//	assert.Equal(t, p.ObjectsCount(), 1)
-	//
-	//	assert.Panic(t, func() {
-	//		prop := conf.Map(map[string]interface{}{
-	//			"error.key": "value",
-	//		})
-	//		_ = p.Refresh(prop)
-	//	}, "mock panic")
-	//})
+	t.Run("refresh panic", func(t *testing.T) {
+		p := New(conf.New())
+
+		assert.Panic(t, func() {
+			mock := &MockPanicRefreshable{}
+			_ = p.RefreshField(reflect.ValueOf(mock), conf.BindParam{Key: "error"}, true)
+		}, "mock panic")
+		assert.Equal(t, p.ObjectsCount(), 1)
+
+		assert.Panic(t, func() {
+			prop := conf.Map(map[string]interface{}{
+				"error.key": "value",
+			})
+			_ = p.Refresh(prop)
+		}, "mock panic")
+	})
 
 	t.Run("concurrent refresh", func(t *testing.T) {
 		p := New(conf.New())
@@ -146,34 +171,32 @@ func TestDync(t *testing.T) {
 		wg.Wait()
 	})
 
-	//t.Run("key matching", func(t *testing.T) {
-	//	p := New(conf.New())
-	//	mock1 := &MockRefreshable{}
-	//	_ = p.RefreshBean(mock1, conf.BindParam{Key: "a.b"}, true)
-	//	mock2 := &MockRefreshable{}
-	//	_ = p.RefreshBean(mock2, conf.BindParam{Key: "a.b.c"}, true)
-	//	prop := conf.Map(map[string]interface{}{
-	//		"a.b.c.d": "value",
-	//	})
-	//	err := p.Refresh(prop)
-	//	assert.Nil(t, err)
-	//	assert.True(t, mock1.called)
-	//	assert.True(t, mock2.called)
-	//})
+	t.Run("key matching", func(t *testing.T) {
+		p := New(conf.New())
 
-}
+		mock1 := &Value[struct {
+			C struct {
+				D string `value:"${d:=xyz}"`
+			} `value:"${c}"`
+		}]{}
+		err := p.RefreshField(reflect.ValueOf(mock1), conf.BindParam{Key: "a.b"}, true)
+		assert.Nil(t, err)
+		assert.Equal(t, mock1.Value().C.D, "xyz")
 
-type MockRefreshable struct {
-	called bool
-}
+		mock2 := &Value[struct {
+			D string `value:"${d:=xyz}"`
+		}]{}
+		err = p.RefreshField(reflect.ValueOf(mock2), conf.BindParam{Key: "a.b.c"}, true)
+		assert.Nil(t, err)
+		assert.Equal(t, mock2.Value().D, "xyz")
 
-func (m *MockRefreshable) OnRefresh(prop conf.Properties, param conf.BindParam) error {
-	m.called = true
-	return nil
-}
+		prop := conf.Map(map[string]interface{}{
+			"a.b.c.d": "123",
+		})
+		err = p.Refresh(prop)
+		assert.Nil(t, err)
+		assert.Equal(t, mock1.Value().C.D, "123")
+		assert.Equal(t, mock2.Value().D, "123")
+	})
 
-type MockErrorRefreshable struct{}
-
-func (m *MockErrorRefreshable) OnRefresh(prop conf.Properties, param conf.BindParam) error {
-	return errors.New("mock error")
 }
