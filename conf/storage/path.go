@@ -88,8 +88,8 @@ func SplitPath(key string) ([]Path, error) {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			if i == 0 || lastChar == ']' {
-				lastPos = i + 1
 				openBracket = true
+				lastPos = i + 1
 				lastChar = c
 				continue
 			}
@@ -97,8 +97,8 @@ func SplitPath(key string) ([]Path, error) {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			path = append(path, Path{PathTypeKey, key[lastPos:i]})
-			lastPos = i + 1
 			openBracket = true
+			lastPos = i + 1
 			lastChar = c
 		case ']':
 			if !openBracket || lastPos == i {
@@ -110,8 +110,8 @@ func SplitPath(key string) ([]Path, error) {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			path = append(path, Path{PathTypeIndex, s})
-			lastPos = i + 1
 			openBracket = false
+			lastPos = i + 1
 			lastChar = c
 		default:
 			lastChar = c

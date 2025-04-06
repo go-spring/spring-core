@@ -130,47 +130,29 @@ func New() *MutableProperties {
 	}
 }
 
-// Map creates *MutableProperties from map.
-func Map(m map[string]interface{}) *MutableProperties {
-	p := New()
-	_ = p.Merge(m)
-	return p
-}
-
 // Load creates *MutableProperties from file.
 func Load(file string) (*MutableProperties, error) {
-	p := New()
-	if err := p.Load(file); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
-
-// Load loads properties from file.
-func (p *MutableProperties) Load(file string) error {
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return p.Bytes(b, filepath.Ext(file))
-}
-
-// Bytes loads properties from []byte, ext is the file name extension.
-func (p *MutableProperties) Bytes(b []byte, ext string) error {
+	ext := filepath.Ext(file)
 	r, ok := readers[ext]
 	if !ok {
-		return fmt.Errorf("unsupported file type %q", ext)
+		return nil, fmt.Errorf("unsupported file type %q", ext)
 	}
 	m, err := r(b)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return p.Merge(m)
+	return Map(m), nil
 }
 
-// Merge flattens the map and sets all keys and values.
-func (p *MutableProperties) Merge(m map[string]interface{}) error {
-	return p.merge(util.FlattenMap(m))
+// Map creates *MutableProperties from map.
+func Map(m map[string]interface{}) *MutableProperties {
+	p := New()
+	_ = p.merge(util.FlattenMap(m))
+	return p
 }
 
 // merge flattens the map and sets all keys and values.

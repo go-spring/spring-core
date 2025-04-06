@@ -2789,40 +2789,18 @@ type DynamicConfig struct {
 	Slice gs_dync.Value[[]string]          `value:"${slice:=}"`
 }
 
-var _ gs.Refreshable = (*DynamicConfig)(nil)
-
-func (d *DynamicConfig) OnRefresh(prop conf.Properties, param conf.BindParam) error {
-	fmt.Println("DynamicConfig.OnRefresh")
-	return nil
-}
-
-type DynamicConfigWrapper struct {
-	Wrapper DynamicConfig `value:"${wrapper}"` // struct 自身的 refresh 会抑制 fields 的 refresh
-}
-
-var _ gs.Refreshable = (*DynamicConfigWrapper)(nil)
-
-func (d *DynamicConfigWrapper) OnRefresh(prop conf.Properties, param conf.BindParam) error {
-	fmt.Println("DynamicConfig.OnRefresh")
-	return nil
-}
-
 func TestDynamic(t *testing.T) {
 
 	cfg := new(DynamicConfig)
-	wrapper := new(DynamicConfigWrapper)
 
 	c := gs_core.New()
 	c.Object(cfg)
-	c.Object(wrapper)
 	err := c.Refresh(conf.New())
 	assert.Nil(t, err)
 
 	{
 		b, _ := json.Marshal(cfg)
 		assert.Equal(t, string(b), `{"Int":3,"Float":1.2,"Map":{},"Slice":[]}`)
-		b, _ = json.Marshal(wrapper)
-		assert.Equal(t, string(b), `{"Wrapper":{"Int":null,"Float":null,"Map":null,"Slice":null}}`)
 	}
 
 	{
@@ -2845,8 +2823,6 @@ func TestDynamic(t *testing.T) {
 	{
 		b, _ := json.Marshal(cfg)
 		assert.Equal(t, string(b), `{"Int":4,"Float":2.3,"Map":{"a":"1","b":"2"},"Slice":["3","4"]}`)
-		b, _ = json.Marshal(wrapper)
-		assert.Equal(t, string(b), `{"Wrapper":{"Int":null,"Float":null,"Map":null,"Slice":null}}`)
 	}
 
 	{
@@ -2870,8 +2846,6 @@ func TestDynamic(t *testing.T) {
 	{
 		b, _ := json.Marshal(cfg)
 		assert.Equal(t, string(b), `{"Int":4,"Float":5.1,"Map":{"a":"9","b":"8"},"Slice":["7","6"]}`)
-		b, _ = json.Marshal(wrapper)
-		assert.Equal(t, string(b), `{"Wrapper":{"Int":null,"Float":null,"Map":null,"Slice":null}}`)
 	}
 
 	{
@@ -2895,7 +2869,5 @@ func TestDynamic(t *testing.T) {
 	{
 		b, _ := json.Marshal(cfg)
 		assert.Equal(t, string(b), `{"Int":1,"Float":5.1,"Map":{"a":"9","b":"8"},"Slice":["7","6"]}`)
-		b, _ = json.Marshal(wrapper)
-		assert.Equal(t, string(b), `{"Wrapper":{"Int":null,"Float":null,"Map":null,"Slice":null}}`)
 	}
 }

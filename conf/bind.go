@@ -233,19 +233,19 @@ func bindSlice(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 	}
 
 	for i := 0; ; i++ {
-		e := reflect.New(et).Elem()
+		ev := reflect.New(et).Elem()
 		subParam := BindParam{
 			Key:  fmt.Sprintf("%s[%d]", param.Key, i),
 			Path: fmt.Sprintf("%s[%d]", param.Path, i),
 		}
-		err = BindValue(p, e, et, subParam, filter)
+		err = BindValue(p, ev, et, subParam, filter)
 		if errors.Is(err, ErrNotExist) {
 			break
 		}
 		if err != nil {
 			return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
-		slice = reflect.Append(slice, e)
+		slice = reflect.Append(slice, ev)
 	}
 	return nil
 }

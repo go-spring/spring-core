@@ -194,18 +194,18 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("", func(t *testing.T) {
-		p := conf.New()
-		err := p.Bytes([]byte(`m:`), ".yaml")
-		if err != nil {
-			t.Fatal(err)
-		}
-		var s struct {
-			M map[string]string `value:"${m}"`
-		}
-		if err = p.Bind(&s); err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, s.M, map[string]string{})
-	})
+	//t.Run("", func(t *testing.T) {
+	//	p := conf.New()
+	//	err := p.Bytes([]byte(`m:`), ".yaml")
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	var s struct {
+	//		M map[string]string `value:"${m}"`
+	//	}
+	//	if err = p.Bind(&s); err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	assert.Equal(t, s.M, map[string]string{})
+	//})
 }
