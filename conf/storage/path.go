@@ -69,7 +69,7 @@ func SplitPath(key string) ([]Path, error) {
 		case ' ':
 			return nil, fmt.Errorf("invalid key '%s'", key)
 		case '.':
-			if openBracket {
+			if openBracket || lastChar == '.' {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			if lastChar == ']' {
@@ -77,14 +77,15 @@ func SplitPath(key string) ([]Path, error) {
 				lastChar = c
 				continue
 			}
-			if lastPos == i {
+			_, err := strconv.ParseUint(key[lastPos:i], 10, 64)
+			if err == nil {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			path = append(path, Path{PathTypeKey, key[lastPos:i]})
 			lastPos = i + 1
 			lastChar = c
 		case '[':
-			if openBracket {
+			if openBracket || lastChar == '.' {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			if i == 0 || lastChar == ']' {
@@ -93,7 +94,8 @@ func SplitPath(key string) ([]Path, error) {
 				lastChar = c
 				continue
 			}
-			if lastChar == '.' || lastPos == i {
+			_, err := strconv.ParseUint(key[lastPos:i], 10, 64)
+			if err == nil {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			path = append(path, Path{PathTypeKey, key[lastPos:i]})
@@ -101,7 +103,7 @@ func SplitPath(key string) ([]Path, error) {
 			lastPos = i + 1
 			lastChar = c
 		case ']':
-			if !openBracket || lastPos == i {
+			if !openBracket {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			s := key[lastPos:i]
@@ -114,6 +116,9 @@ func SplitPath(key string) ([]Path, error) {
 			lastPos = i + 1
 			lastChar = c
 		default:
+			if lastChar == ']' {
+				return nil, fmt.Errorf("invalid key '%s'", key)
+			}
 			lastChar = c
 		}
 	}
@@ -121,6 +126,10 @@ func SplitPath(key string) ([]Path, error) {
 		return nil, fmt.Errorf("invalid key '%s'", key)
 	}
 	if lastChar != ']' {
+		_, err := strconv.ParseUint(key[lastPos:], 10, 64)
+		if err == nil {
+			return nil, fmt.Errorf("invalid key '%s'", key)
+		}
 		path = append(path, Path{PathTypeKey, key[lastPos:]})
 	}
 	return path, nil

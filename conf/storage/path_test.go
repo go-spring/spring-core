@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package storage_test
+package storage
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
-	"github.com/go-spring/spring-core/conf/storage"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
@@ -29,7 +27,7 @@ func TestSplitPath(t *testing.T) {
 	var testcases = []struct {
 		Key  string
 		Err  error
-		Path []storage.Path
+		Path []Path
 	}{
 		{
 			Key: "",
@@ -44,12 +42,24 @@ func TestSplitPath(t *testing.T) {
 			Err: errors.New("invalid key '.'"),
 		},
 		{
+			Key: "..",
+			Err: errors.New("invalid key '..'"),
+		},
+		{
 			Key: "[",
 			Err: errors.New("invalid key '['"),
 		},
 		{
+			Key: "[[",
+			Err: errors.New("invalid key '[['"),
+		},
+		{
 			Key: "]",
 			Err: errors.New("invalid key ']'"),
+		},
+		{
+			Key: "]]",
+			Err: errors.New("invalid key ']]'"),
 		},
 		{
 			Key: "[]",
@@ -57,8 +67,8 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "[0]",
-			Path: []storage.Path{
-				{storage.PathTypeIndex, "0"},
+			Path: []Path{
+				{PathTypeIndex, "0"},
 			},
 		},
 		{
@@ -78,8 +88,8 @@ func TestSplitPath(t *testing.T) {
 			Err: errors.New("invalid key '[.]'"),
 		},
 		{
-			Key: "[x]",
-			Err: errors.New("invalid key '[x]'"),
+			Key: "[a]",
+			Err: errors.New("invalid key '[a]'"),
 		},
 		{
 			Key: "[a.b]",
@@ -87,8 +97,8 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a",
-			Path: []storage.Path{
-				{storage.PathTypeKey, "a"},
+			Path: []Path{
+				{PathTypeKey, "a"},
 			},
 		},
 		{
@@ -97,10 +107,14 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a.b",
-			Path: []storage.Path{
-				{storage.PathTypeKey, "a"},
-				{storage.PathTypeKey, "b"},
+			Path: []Path{
+				{PathTypeKey, "a"},
+				{PathTypeKey, "b"},
 			},
+		},
+		{
+			Key: "a..b",
+			Err: errors.New("invalid key 'a..b'"),
 		},
 		{
 			Key: "a[",
@@ -112,21 +126,29 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a[0]",
-			Path: []storage.Path{
-				{storage.PathTypeKey, "a"},
-				{storage.PathTypeIndex, "0"},
+			Path: []Path{
+				{PathTypeKey, "a"},
+				{PathTypeIndex, "0"},
 			},
+		},
+		{
+			Key: "0[0]",
+			Err: errors.New("invalid key '0[0]'"),
 		},
 		{
 			Key: "a.[0]",
 			Err: errors.New("invalid key 'a.[0]'"),
 		},
 		{
+			Key: "a.0.b",
+			Err: errors.New("invalid key 'a.0.b'"),
+		},
+		{
 			Key: "a[0].b",
-			Path: []storage.Path{
-				{storage.PathTypeKey, "a"},
-				{storage.PathTypeIndex, "0"},
-				{storage.PathTypeKey, "b"},
+			Path: []Path{
+				{PathTypeKey, "a"},
+				{PathTypeIndex, "0"},
+				{PathTypeKey, "b"},
 			},
 		},
 		{
@@ -134,25 +156,45 @@ func TestSplitPath(t *testing.T) {
 			Err: errors.New("invalid key 'a.[0].b'"),
 		},
 		{
+			Key: "a[0]..b",
+			Err: errors.New("invalid key 'a[0]..b'"),
+		},
+		{
 			Key: "a[0][0]",
-			Path: []storage.Path{
-				{storage.PathTypeKey, "a"},
-				{storage.PathTypeIndex, "0"},
-				{storage.PathTypeIndex, "0"},
+			Path: []Path{
+				{PathTypeKey, "a"},
+				{PathTypeIndex, "0"},
+				{PathTypeIndex, "0"},
 			},
 		},
 		{
 			Key: "a.[0].[0]",
 			Err: errors.New("invalid key 'a.[0].[0]'"),
 		},
+		{
+			Key: "a[0]b",
+			Err: errors.New("invalid key 'a[0]b'"),
+		},
+		{
+			Key: "a[0].b",
+			Path: []Path{
+				{PathTypeKey, "a"},
+				{PathTypeIndex, "0"},
+				{PathTypeKey, "b"},
+			},
+		},
+		{
+			Key: "a[0].b.0",
+			Err: errors.New("invalid key 'a[0].b.0'"),
+		},
 	}
-	for i, c := range testcases {
-		p, err := storage.SplitPath(c.Key)
-		assert.Equal(t, err, c.Err, fmt.Sprintf("index: %d key: %q", i, c.Key))
-		assert.Equal(t, p, c.Path, fmt.Sprintf("index:%d key: %q", i, c.Key))
-		if err == nil {
-			s := storage.JoinPath(p)
-			assert.Equal(t, s, c.Key, fmt.Sprintf("index:%d key: %q", i, c.Key))
+	for _, c := range testcases {
+		p, err := SplitPath(c.Key)
+		if err != nil {
+			assert.Equal(t, err, c.Err)
+			continue
 		}
+		assert.Equal(t, p, c.Path)
+		assert.Equal(t, JoinPath(p), c.Key)
 	}
 }
