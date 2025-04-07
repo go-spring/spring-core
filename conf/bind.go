@@ -206,14 +206,10 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 			return nil
 		}
 		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
-	case reflect.String:
+	default:
 		v.SetString(val)
 		return nil
-	default: // for linter
 	}
-
-	err = errors.New("unsupported bind type")
-	return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 }
 
 // bindSlice binds properties to a slice value.

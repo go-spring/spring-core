@@ -126,6 +126,7 @@ type Extra struct {
 	Float64  float64        `value:"${float64:=6.4}" expr:"abs($-6.4)<0.000001"`
 	String   string         `value:"${str:=xyz}" expr:"$==\"xyz\""`
 	Duration time.Duration  `value:"${duration:=10s}"`
+	Strs     []string       `value:"${:=1,2,3}"`
 	Ints     []int          `value:"${:=}"`
 	Map      map[string]int `value:"${:=}"`
 }
@@ -148,11 +149,85 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Error(t, err, "target should be value type")
 	})
 
+	t.Run("validate error", func(t *testing.T) {
+		var s struct {
+			Value int `value:"${v}" expr:"$>9"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": "1",
+		}).Bind(&s)
+		assert.Error(t, err, "validate failed on .* for value 1")
+	})
+
 	t.Run("array error", func(t *testing.T) {
 		err := conf.New().Bind(new(struct {
 			Arr [3]string `value:"${arr:=1,2,3}"`
 		}))
 		assert.Error(t, err, "use slice instead of array")
+	})
+
+	t.Run("type error - 1", func(t *testing.T) {
+		var s struct {
+			Value int `value:"${v}"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": "abc",
+		}).Bind(&s)
+		assert.Error(t, err, "strconv.ParseInt: parsing .*: invalid syntax")
+	})
+
+	t.Run("type error - 2", func(t *testing.T) {
+		var s struct {
+			Value uint `value:"${v}"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": "abc",
+		}).Bind(&s)
+		assert.Error(t, err, "strconv.ParseUint: parsing .*: invalid syntax")
+	})
+
+	t.Run("type error - 3", func(t *testing.T) {
+		var s struct {
+			Value float32 `value:"${v}"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": "abc",
+		}).Bind(&s)
+		assert.Error(t, err, "strconv.ParseFloat: parsing .*: invalid syntax")
+	})
+
+	t.Run("type error - 4", func(t *testing.T) {
+		var s struct {
+			Value bool `value:"${v}"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": "abc",
+		}).Bind(&s)
+		assert.Error(t, err, "strconv.ParseBool: parsing .*: invalid syntax")
+	})
+
+	t.Run("slice error", func(t *testing.T) {
+		var s struct {
+			Value []int `value:"${v}"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": []interface{}{
+				"1", "2", "a",
+			},
+		}).Bind(&s)
+		assert.Error(t, err, "strconv.ParseInt: parsing .*: invalid syntax")
+	})
+
+	t.Run("map error", func(t *testing.T) {
+		var s struct {
+			Value map[string]int `value:"${v}"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": []interface{}{
+				"1", "2", "3",
+			},
+		}).Bind(&s)
+		assert.Error(t, err, "property v.0 not exist")
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -213,6 +288,7 @@ func TestProperties_Bind(t *testing.T) {
 				Float64:  6.4,
 				String:   "xyz",
 				Duration: time.Second * 10,
+				Strs:     []string{"1", "2", "3"},
 				Ints:     []int{},
 				Map:      map[string]int{},
 			},
