@@ -280,5 +280,6 @@ func TestBeanDefinition(t *testing.T) {
 		bean := NewBean(v.Type(), v, nil, "test")
 		bean.SetExport(gs.As[io.Writer]())
 		bean.SetMock(bytes.NewBufferString(""))
+		assert.True(t, bean.Mocked())
 	})
 }
