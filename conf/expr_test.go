@@ -27,14 +27,50 @@ func TestExpr(t *testing.T) {
 	conf.RegisterValidateFunc("checkInt", func(i int) bool {
 		return i < 5
 	})
-	var i struct {
-		A int `value:"${a}" expr:"checkInt($)"`
-	}
-	p := conf.Map(map[string]interface{}{
-		"a": 4,
+
+	t.Run("success", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"checkInt($)"`
+		}
+		p := conf.Map(map[string]interface{}{
+			"a": 4,
+		})
+		err := p.Bind(&v)
+		assert.Nil(t, err)
+		assert.Equal(t, 4, v.A)
 	})
-	if err := p.Bind(&i); err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, 4, i.A)
+
+	t.Run("return false", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"checkInt($)"`
+		}
+		p := conf.Map(map[string]interface{}{
+			"a": 14,
+		})
+		err := p.Bind(&v)
+		assert.Error(t, err, "validate failed on .* for value 14")
+	})
+
+	t.Run("syntax error", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"checkInt($2)"`
+		}
+		p := conf.Map(map[string]interface{}{
+			"a": 4,
+		})
+		err := p.Bind(&v)
+		assert.Error(t, err, "eval .* returns error")
+	})
+
+	t.Run("return not bool", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"$+$"`
+		}
+		p := conf.Map(map[string]interface{}{
+			"a": 4,
+		})
+		err := p.Bind(&v)
+		assert.Error(t, err, "eval .* doesn't return bool value")
+	})
+
 }
