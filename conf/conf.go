@@ -139,7 +139,7 @@ func Load(file string) (*MutableProperties, error) {
 	ext := filepath.Ext(file)
 	r, ok := readers[ext]
 	if !ok {
-		return nil, fmt.Errorf("unsupported file type %q", ext)
+		return nil, fmt.Errorf("unsupported file type %s", ext)
 	}
 	m, err := r(b)
 	if err != nil {

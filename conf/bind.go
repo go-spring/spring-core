@@ -452,7 +452,7 @@ func resolveString(p Properties, s string) (string, error) {
 		return s, nil
 	}
 
-	if end < 0 || count > 0 {
+	if end < 0 {
 		err := ErrInvalidSyntax
 		return "", fmt.Errorf("resolve string %q error: %w", s, err)
 	}
