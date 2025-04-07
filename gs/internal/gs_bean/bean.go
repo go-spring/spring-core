@@ -73,8 +73,14 @@ type BeanMetadata struct {
 	exports       []reflect.Type
 	conditions    []gs.Condition
 	status        BeanStatus
+	mocked        bool
 	fileLine      string
 	configuration *gs.Configuration
+}
+
+// Mocked returns true if the bean is mocked.
+func (d *BeanMetadata) Mocked() bool {
+	return d.mocked
 }
 
 // validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
@@ -225,20 +231,14 @@ func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *
 
 // SetMock sets the mock object for the bean, replacing its runtime information.
 func (d *BeanDefinition) SetMock(obj interface{}) {
-	v := reflect.ValueOf(obj)
-	t := v.Type()
-	for _, r := range d.exports {
-		if !t.Implements(r) {
-			panic(fmt.Sprintf("mock object %s does not implement %s", t, r))
-		}
-	}
 	*d = BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			exports: d.exports,
+			mocked:  true,
 		},
 		BeanRuntime: &BeanRuntime{
-			t:    t,
-			v:    v,
+			t:    reflect.TypeOf(obj),
+			v:    reflect.ValueOf(obj),
 			name: d.name,
 		},
 	}

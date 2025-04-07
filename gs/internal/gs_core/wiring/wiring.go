@@ -719,18 +719,22 @@ func (c *Wiring) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	b.SetStatus(gs_bean.StatusCreated)
 
-	// Wire the value of the bean.
-	err = c.WireBeanValue(v, v.Type(), true, stack)
-	if err != nil {
-		return err
-	}
+	// Check if the bean has a value and wire it if it does.
+	if v.IsValid() && !b.Mocked() {
 
-	// Execute the bean's initialization function, if it exists.
-	if b.Init() != nil {
-		fnValue := reflect.ValueOf(b.Init())
-		out := fnValue.Call([]reflect.Value{b.Value()})
-		if len(out) > 0 && !out[0].IsNil() {
-			return out[0].Interface().(error)
+		// Wire the value of the bean.
+		err = c.WireBeanValue(v, v.Type(), true, stack)
+		if err != nil {
+			return err
+		}
+
+		// Execute the bean's initialization function, if it exists.
+		if b.Init() != nil {
+			fnValue := reflect.ValueOf(b.Init())
+			out := fnValue.Call([]reflect.Value{b.Value()})
+			if len(out) > 0 && !out[0].IsNil() {
+				return out[0].Interface().(error)
+			}
 		}
 	}
 
@@ -752,11 +756,17 @@ func (c *Wiring) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error
 	// Call the bean's constructor and handle errors.
 	out, err := b.Callable().Call(NewArgContext(c, stack))
 	if err != nil {
-		return reflect.Value{}, err /* fmt.Errorf("%s:%s return error: %v", b.getClass(), b.ID(), err) */
+		if c.forceAutowireIsNullable {
+			return reflect.Value{}, nil
+		}
+		return reflect.Value{}, err
 	}
 
 	if o := out[len(out)-1]; util.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
+			if c.forceAutowireIsNullable {
+				return reflect.Value{}, nil
+			}
 			return reflect.Value{}, i.(error)
 		}
 	}

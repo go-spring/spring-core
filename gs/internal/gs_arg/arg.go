@@ -47,7 +47,7 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 	if util.IsPropBindingTarget(t) {
 		v := reflect.New(t).Elem()
 		if err := ctx.Bind(v, arg.Tag); err != nil {
-			return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")
+			return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
 		}
 		return v, nil
 	}
@@ -56,13 +56,13 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 	if util.IsBeanInjectionTarget(t) {
 		v := reflect.New(t).Elem()
 		if err := ctx.Wire(v, arg.Tag); err != nil {
-			return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")
+			return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
 		}
 		return v, nil
 	}
 
 	err := fmt.Errorf("unsupported argument type: %s", t.String())
-	return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")
+	return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
 }
 
 // IndexArg represents an argument with an explicit positional index in the function signature.
@@ -100,7 +100,7 @@ func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 	v := reflect.ValueOf(arg.v)
 	if !v.Type().AssignableTo(t) {
 		err := fmt.Errorf("cannot assign type:%T to type:%s", arg.v, t.String())
-		return reflect.Value{}, errutil.WrapError(err, "GetArgValue error")
+		return reflect.Value{}, errutil.WrapError(err, "ValueArg::GetArgValue error")
 	}
 	return v, nil
 }
