@@ -258,30 +258,8 @@ func TestBeanDefinition(t *testing.T) {
 		})
 	})
 
-	t.Run("refreshable error", func(t *testing.T) {
-		v := reflect.ValueOf(&TestBean{})
-		bean := NewBean(v.Type(), v, nil, "test")
-		assert.Panic(t, func() {
-			bean.SetRefreshable("${a:=3}")
-		}, "must implement gs.Refreshable interface")
-	})
-
-	t.Run("refreshable", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		r := gs.NewMockRefreshable(ctrl)
-		v := reflect.ValueOf(r)
-		bean := NewBean(v.Type(), v, nil, "test")
-		bean.SetRefreshable("${a:=3}")
-		assert.Equal(t, bean.RefreshTag(), "${a:=3}")
-	})
-
 	t.Run("configuration", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		r := gs.NewMockRefreshable(ctrl)
-		v := reflect.ValueOf(r)
+		v := reflect.ValueOf(&TestBean{})
 		bean := NewBean(v.Type(), v, nil, "test")
 		assert.Nil(t, bean.Configuration())
 
@@ -295,15 +273,6 @@ func TestBeanDefinition(t *testing.T) {
 		})
 		assert.NotNil(t, bean.Configuration())
 		assert.Equal(t, bean.Configuration().Includes, []string{"New.*"})
-	})
-
-	t.Run("mock error", func(t *testing.T) {
-		v := reflect.ValueOf(&bytes.Buffer{})
-		bean := NewBean(v.Type(), v, nil, "test")
-		bean.SetExport(gs.As[io.Writer]())
-		assert.Panic(t, func() {
-			bean.SetMock(bytes.NewReader(nil))
-		}, "mock object \\*bytes.Reader does not implement io.Writer")
 	})
 
 	t.Run("mock success", func(t *testing.T) {

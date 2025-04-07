@@ -128,6 +128,6 @@ func TestEnvironment(t *testing.T) {
 			"db": []string{"db2"},
 		})
 		err := NewEnvironment().CopyTo(props)
-		assert.Error(t, err, "property 'db' is an array but 'db.host' wants other type")
+		assert.Error(t, err, "property conflict at path db.host")
 	})
 }

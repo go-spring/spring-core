@@ -70,7 +70,7 @@ func TestApp(t *testing.T) {
 		_ = os.Setenv("GS_A_B", "456")
 		app := NewApp()
 		err := app.Run()
-		assert.Error(t, err, "property 'a' is a value but 'a.b' wants other type")
+		assert.Error(t, err, "property conflict at path a.b")
 	})
 
 	t.Run("container refresh error", func(t *testing.T) {

@@ -67,7 +67,7 @@ func TestAppConfig(t *testing.T) {
 		_ = os.Setenv("GS_A", "a")
 		_ = os.Setenv("GS_A_B", "a.b")
 		_, err := NewAppConfig().Refresh()
-		assert.Error(t, err, "property 'a' is a value but 'a.b' wants other type")
+		assert.Error(t, err, "property conflict at path a.b")
 	})
 
 	t.Run("merge error - 2", func(t *testing.T) {
@@ -75,7 +75,7 @@ func TestAppConfig(t *testing.T) {
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
 		_ = sysconf.Set("http.server[0].addr", "0.0.0.0:8080")
 		_, err := NewAppConfig().Refresh()
-		assert.Error(t, err, "property 'http.server' is an array but 'http.server.addr' wants other type")
+		assert.Error(t, err, "property conflict at path http.server.addr")
 	})
 }
 
@@ -106,7 +106,7 @@ func TestBootConfig(t *testing.T) {
 		_ = os.Setenv("GS_A", "a")
 		_ = os.Setenv("GS_A_B", "a.b")
 		_, err := NewBootConfig().Refresh()
-		assert.Error(t, err, "property 'a' is a value but 'a.b' wants other type")
+		assert.Error(t, err, "property conflict at path a.b")
 	})
 
 	t.Run("merge error - 2", func(t *testing.T) {
@@ -114,7 +114,7 @@ func TestBootConfig(t *testing.T) {
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
 		_ = sysconf.Set("http.server[0].addr", "0.0.0.0:8080")
 		_, err := NewBootConfig().Refresh()
-		assert.Error(t, err, "property 'http.server' is an array but 'http.server.addr' wants other type")
+		assert.Error(t, err, "property conflict at path http.server.addr")
 	})
 }
 

@@ -69,7 +69,7 @@ func TestCommandArgs(t *testing.T) {
 			"debug": []string{"true"},
 		})
 		err := NewCommandArgs().CopyTo(p)
-		assert.Error(t, err, "property 'debug' is an array but 'debug' wants other type")
+		assert.Error(t, err, "property conflict at path debug")
 	})
 
 	t.Run("custom prefix", func(t *testing.T) {

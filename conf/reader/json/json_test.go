@@ -14,4 +14,38 @@
  * limitations under the License.
  */
 
-package json_test
+package json
+
+import (
+	"testing"
+
+	"github.com/go-spring/spring-core/util/assert"
+)
+
+func TestRead(t *testing.T) {
+
+	t.Run("error", func(t *testing.T) {
+		_, err := Read([]byte(`{`))
+		assert.Error(t, err, "unexpected end of JSON input")
+	})
+
+	t.Run("basic type", func(t *testing.T) {
+		r, err := Read([]byte(`{
+		    "bool": false,
+		    "int": 3,
+		    "float": 3.0,
+		    "string": "hello",
+		    "date": "2018-02-17",
+		    "time": "2018-02-17T15:02:31+08:00"
+		}`))
+		assert.Nil(t, err)
+		assert.Equal(t, r, map[string]interface{}{
+			"bool":   false,
+			"int":    float64(3),
+			"float":  3.0,
+			"string": "hello",
+			"date":   "2018-02-17",
+			"time":   "2018-02-17T15:02:31+08:00",
+		})
+	})
+}

@@ -46,7 +46,7 @@ func TestBoot(t *testing.T) {
 		boot := NewBoot().(*BootImpl)
 		boot.Object(bytes.NewBuffer(nil))
 		err := boot.Run()
-		assert.Error(t, err, "property 'a' is a value but 'a.b' wants other type")
+		assert.Error(t, err, "property conflict at path a.b")
 	})
 
 	t.Run("container refresh error", func(t *testing.T) {
