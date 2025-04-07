@@ -93,62 +93,145 @@ func TestSplitter(t *testing.T) {
 	})
 }
 
+type DBConnection struct {
+	UserName string `value:"${username}"`
+	Password string `value:"${password}"`
+	Url      string `value:"${url}"`
+	Port     string `value:"${port}"`
+}
+
+type TaggedNestedDB struct {
+	DBConnection `value:"${conn}"`
+	DB           string `value:"${db}"`
+}
+
+type UntaggedNestedDB struct {
+	DBConnection
+	DB string `value:"${db}"`
+}
+
+type Extra struct {
+	Bool     bool           `value:"${bool:=true}" expr:"$"`
+	Int      int            `value:"${int:=4}" expr:"$==4"`
+	Int8     int8           `value:"${int8:=8}" expr:"$==8"`
+	Int16    int16          `value:"${int16:=16}" expr:"$==16"`
+	Int32    int32          `value:"${int32:=32}" expr:"$==32"`
+	Int64    int64          `value:"${int32:=64}" expr:"$==64"`
+	Uint     uint           `value:"${uint:=4}" expr:"$==4"`
+	Uint8    uint8          `value:"${uint8:=8}" expr:"$==8"`
+	Uint16   uint16         `value:"${uint16:=16}" expr:"$==16"`
+	Uint32   uint32         `value:"${uint32:=32}" expr:"$==32"`
+	Uint64   uint64         `value:"${uint32:=64}" expr:"$==64"`
+	Float32  float32        `value:"${float32:=3.2}" expr:"abs($-3.2)<0.000001"`
+	Float64  float64        `value:"${float64:=6.4}" expr:"abs($-6.4)<0.000001"`
+	String   string         `value:"${str:=xyz}" expr:"$==\"xyz\""`
+	Duration time.Duration  `value:"${duration:=10s}"`
+	Ints     []int          `value:"${:=}"`
+	Map      map[string]int `value:"${:=}"`
+}
+
+type DBConfig struct {
+	DB0   []TaggedNestedDB   `value:"${tagged.db}"`
+	DB1   []UntaggedNestedDB `value:"${db}"`
+	Extra Extra              `value:"${extra}"`
+}
+
 func TestProperties_Bind(t *testing.T) {
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("target error - 1", func(t *testing.T) {
+		err := conf.New().Bind(5)
+		assert.Error(t, err, "should be a ptr")
+	})
 
+	t.Run("target error - 1", func(t *testing.T) {
+		err := conf.New().Bind(new(*int))
+		assert.Error(t, err, "target should be value type")
+	})
+
+	t.Run("array error", func(t *testing.T) {
+		err := conf.New().Bind(new(struct {
+			Arr [3]string `value:"${arr:=1,2,3}"`
+		}))
+		assert.Error(t, err, "use slice instead of array")
+	})
+
+	t.Run("success", func(t *testing.T) {
+		expect := DBConfig{
+			DB0: []TaggedNestedDB{
+				{
+					DBConnection: DBConnection{
+						UserName: "root",
+						Password: "123456",
+						Url:      "1.1.1.1",
+						Port:     "3306",
+					},
+					DB: "db1",
+				},
+				{
+					DBConnection: DBConnection{
+						UserName: "root",
+						Password: "123456",
+						Url:      "1.1.1.1",
+						Port:     "3306",
+					},
+					DB: "db2",
+				},
+			},
+			DB1: []UntaggedNestedDB{
+				{
+					DBConnection: DBConnection{
+						UserName: "root",
+						Password: "123456",
+						Url:      "1.1.1.1",
+						Port:     "3306",
+					},
+					DB: "db1",
+				},
+				{
+					DBConnection: DBConnection{
+						UserName: "root",
+						Password: "123456",
+						Url:      "1.1.1.1",
+						Port:     "3306",
+					},
+					DB: "db2",
+				},
+			},
+			Extra: Extra{
+				Bool:     true,
+				Int:      int(4),
+				Int8:     int8(8),
+				Int16:    int16(16),
+				Int32:    int32(32),
+				Int64:    int64(64),
+				Uint:     uint(4),
+				Uint8:    uint8(8),
+				Uint16:   uint16(16),
+				Uint32:   uint32(32),
+				Uint64:   uint64(64),
+				Float32:  float32(3.2),
+				Float64:  6.4,
+				String:   "xyz",
+				Duration: time.Second * 10,
+				Ints:     []int{},
+				Map:      map[string]int{},
+			},
+		}
+
+		p, err := conf.Load("./testdata/config/app.yaml")
+		assert.Nil(t, err)
+
+		var c DBConfig
+		err = p.Bind(&c)
+		assert.Nil(t, err)
+		assert.Equal(t, c, expect)
+
+		err = p.Bind(&c, "${prefix}")
+		assert.Nil(t, err)
+		assert.Equal(t, c, expect)
 	})
 }
 
-//type DB struct {
-//	UserName string `value:"${username}" expr:"len($)>=4"`
-//	Password string `value:"${password}"`
-//	Url      string `value:"${url}"`
-//	Port     string `value:"${port}"`
-//	DB       string `value:"${db}"`
-//}
-//
-//type DbConfig struct {
-//	DB []DB `value:"${db}"`
-//}
-//
-//type DBConnection struct {
-//	UserName string `value:"${username}"`
-//	Password string `value:"${password}"`
-//	Url      string `value:"${url}"`
-//	Port     string `value:"${port}"`
-//}
-//
-//type UntaggedNestedDB struct {
-//	DBConnection
-//	DB string `value:"${db}"`
-//}
-//
-//type TaggedNestedDB struct {
-//	DBConnection `value:"${tag}"`
-//	DB           string `value:"${db}"`
-//}
-//
-//type TagNestedDbConfig struct {
-//	DB0 []TaggedNestedDB   `value:"${tagged.db}"`
-//	DB1 []UntaggedNestedDB `value:"${db}"`
-//}
-//
-//type NestedDB struct {
-//	DBConnection
-//	DB string `value:"${db}"`
-//}
-//
-//type NestedDbConfig struct {
-//	DB      []NestedDB     `value:"${db}"`
-//	Ints    []int          `value:"${:=}"`
-//	Map     map[string]int `value:"${:=}"`
-//	MapDef  map[string]int `value:"${x:=}"`
-//	Structs []struct {
-//		V string `value:"${v:=#v}"`
-//	} `value:"${:=}"`
-//}
-//
 //type NestedDbMapConfig struct {
 //	DB map[string]NestedDB `value:"${db_map}"`
 //}

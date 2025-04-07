@@ -44,8 +44,8 @@ func TestProperties_Load(t *testing.T) {
 	})
 
 	t.Run("unsupported ext", func(t *testing.T) {
-		_, err := conf.Load("./testdata/config/app.ini")
-		assert.Error(t, err, "unsupported file type .ini")
+		_, err := conf.Load("./testdata/config/app.unknown")
+		assert.Error(t, err, "unsupported file type .unknown")
 	})
 
 	t.Run("syntax error", func(t *testing.T) {

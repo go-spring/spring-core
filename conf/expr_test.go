@@ -72,5 +72,4 @@ func TestExpr(t *testing.T) {
 		err := p.Bind(&v)
 		assert.Error(t, err, "eval .* doesn't return bool value")
 	})
-
 }
