@@ -55,8 +55,8 @@ func TestStorage(t *testing.T) {
 			"a": "b",
 		})
 
-		err = s.Set("a", "")
-		assert.Error(t, err, "key or value is empty")
+		//err = s.Set("a", "")
+		//assert.Error(t, err, "key or value is empty")
 		err = s.Set("a.y", "x")
 		assert.Error(t, err, "property conflict at path a.y")
 		err = s.Set("a[0]", "x")
@@ -101,8 +101,8 @@ func TestStorage(t *testing.T) {
 		assert.False(t, s.Has("m[0]"))
 		assert.False(t, s.Has("m.x[0]"))
 
-		err = s.Set("m", "")
-		assert.Error(t, err, "key or value is empty")
+		//err = s.Set("m", "")
+		//assert.Error(t, err, "key or value is empty")
 		err = s.Set("m", "a")
 		assert.Error(t, err, "property conflict at path m")
 		err = s.Set("m.x.z", "w")
@@ -154,8 +154,8 @@ func TestStorage(t *testing.T) {
 			"[0]": "p",
 		})
 
-		err = s.Set("[0]", "")
-		assert.Error(t, err, "key or value is empty")
+		//err = s.Set("[0]", "")
+		//assert.Error(t, err, "key or value is empty")
 		err = s.Set("[0]x", "f")
 		assert.Error(t, err, "invalid key '\\[0]x'")
 		err = s.Set("[0].x", "f")
@@ -209,8 +209,8 @@ func TestStorage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, subKeys, []string{"0", "1"})
 
-		err = s.Set("s", "")
-		assert.Error(t, err, "key or value is empty")
+		//err = s.Set("s", "")
+		//assert.Error(t, err, "key or value is empty")
 		err = s.Set("s", "w")
 		assert.Error(t, err, "property conflict at path s")
 		err = s.Set("s.x", "f")

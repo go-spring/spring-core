@@ -115,8 +115,8 @@ func (s *Storage) Has(key string) bool {
 // Set stores a key-value pair after validating the key's hierarchical structure.
 // Returns an error for empty keys/values or path conflicts.
 func (s *Storage) Set(key, val string) error {
-	if key == "" || val == "" {
-		return errors.New("key or value is empty")
+	if key == "" {
+		return errors.New("key is empty")
 	}
 
 	path, err := SplitPath(key)

@@ -26,6 +26,7 @@ func TestRead(t *testing.T) {
 
 	t.Run("basic type", func(t *testing.T) {
 		r, err := Read([]byte(`
+			empty=
 			bool=false
 			int=3
 			float=3.0
@@ -35,6 +36,7 @@ func TestRead(t *testing.T) {
 		`))
 		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
+			"empty":  "",
 			"bool":   "false",
 			"int":    "3",
 			"float":  "3.0",

@@ -104,7 +104,7 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 			param.Tag = parsedTag
 			return nil
 		}
-		return fmt.Errorf("xxxx") // todo
+		return fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
 	}
 	if parsedTag.Key == "ROOT" {
 		parsedTag.Key = ""

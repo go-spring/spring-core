@@ -93,6 +93,118 @@ func TestSplitter(t *testing.T) {
 	})
 }
 
+func TestParseTag(t *testing.T) {
+
+	t.Run("normal", func(t *testing.T) {
+		tag, err := conf.ParseTag("${a}")
+		assert.Nil(t, err)
+		assert.Equal(t, tag.String(), "${a}")
+	})
+
+	t.Run("default", func(t *testing.T) {
+		tag, err := conf.ParseTag("${a:=123}")
+		assert.Nil(t, err)
+		assert.Equal(t, tag.String(), "${a:=123}")
+	})
+
+	t.Run("splitter", func(t *testing.T) {
+		tag, err := conf.ParseTag("${a:=1,2,3}>>splitter")
+		assert.Nil(t, err)
+		assert.Equal(t, tag.String(), "${a:=1,2,3}>>splitter")
+	})
+
+	t.Run("error - 1", func(t *testing.T) {
+		_, err := conf.ParseTag(">>splitter")
+		assert.Error(t, err, "parse tag .* error: invalid syntax")
+	})
+
+	t.Run("error - 2", func(t *testing.T) {
+		_, err := conf.ParseTag("${a:=1,2,3")
+		assert.Error(t, err, "parse tag .* error: invalid syntax")
+	})
+
+	t.Run("error - 3", func(t *testing.T) {
+		_, err := conf.ParseTag("{a:=1,2,3}")
+		assert.Error(t, err, "parse tag .* error: invalid syntax")
+	})
+}
+
+func TestBindParam(t *testing.T) {
+
+	t.Run("root", func(t *testing.T) {
+		var param conf.BindParam
+		err := param.BindTag("${ROOT}", "")
+		assert.Nil(t, err)
+		assert.Equal(t, param, conf.BindParam{})
+	})
+
+	t.Run("normal", func(t *testing.T) {
+		var param conf.BindParam
+		err := param.BindTag("${a:=1,2,3}>>splitter", "")
+		assert.Nil(t, err)
+		assert.Equal(t, param, conf.BindParam{
+			Key:  "a",
+			Path: "",
+			Tag: conf.ParsedTag{
+				Key:      "a",
+				Def:      "1,2,3",
+				HasDef:   true,
+				Splitter: "splitter",
+			},
+			Validate: "",
+		})
+	})
+
+	t.Run("sub path", func(t *testing.T) {
+		var param = conf.BindParam{
+			Key:  "s",
+			Path: "Struct",
+		}
+		err := param.BindTag("${a:=1,2,3}>>splitter", "")
+		assert.Nil(t, err)
+		assert.Equal(t, param, conf.BindParam{
+			Key:  "s.a",
+			Path: "Struct",
+			Tag: conf.ParsedTag{
+				Key:      "a",
+				Def:      "1,2,3",
+				HasDef:   true,
+				Splitter: "splitter",
+			},
+			Validate: "",
+		})
+	})
+
+	t.Run("default", func(t *testing.T) {
+		var param conf.BindParam
+		err := param.BindTag("${:=1,2,3}>>splitter", "")
+		assert.Nil(t, err)
+		assert.Equal(t, param, conf.BindParam{
+			Key:  "",
+			Path: "",
+			Tag: conf.ParsedTag{
+				Key:      "",
+				Def:      "1,2,3",
+				HasDef:   true,
+				Splitter: "splitter",
+			},
+			Validate: "",
+		})
+	})
+
+	t.Run("error - 1", func(t *testing.T) {
+		var param conf.BindParam
+		err := param.BindTag("a:=123", "")
+		assert.Error(t, err, "parse tag .* error: invalid syntax")
+	})
+
+	t.Run("error - 2", func(t *testing.T) {
+		var param conf.BindParam
+		err := param.BindTag("${}", "")
+		assert.Error(t, err, "parse tag .* error: invalid syntax")
+	})
+}
+
 type DBConnection struct {
 	UserName string `value:"${username}"`
 	Password string `value:"${password}"`
@@ -111,24 +223,24 @@ type UntaggedNestedDB struct {
 }
 
 type Extra struct {
-	Bool     bool           `value:"${bool:=true}" expr:"$"`
-	Int      int            `value:"${int:=4}" expr:"$==4"`
-	Int8     int8           `value:"${int8:=8}" expr:"$==8"`
-	Int16    int16          `value:"${int16:=16}" expr:"$==16"`
-	Int32    int32          `value:"${int32:=32}" expr:"$==32"`
-	Int64    int64          `value:"${int32:=64}" expr:"$==64"`
-	Uint     uint           `value:"${uint:=4}" expr:"$==4"`
-	Uint8    uint8          `value:"${uint8:=8}" expr:"$==8"`
-	Uint16   uint16         `value:"${uint16:=16}" expr:"$==16"`
-	Uint32   uint32         `value:"${uint32:=32}" expr:"$==32"`
-	Uint64   uint64         `value:"${uint32:=64}" expr:"$==64"`
-	Float32  float32        `value:"${float32:=3.2}" expr:"abs($-3.2)<0.000001"`
-	Float64  float64        `value:"${float64:=6.4}" expr:"abs($-6.4)<0.000001"`
-	String   string         `value:"${str:=xyz}" expr:"$==\"xyz\""`
-	Duration time.Duration  `value:"${duration:=10s}"`
-	Strs     []string       `value:"${:=1,2,3}"`
-	Ints     []int          `value:"${:=}"`
-	Map      map[string]int `value:"${:=}"`
+	Bool     bool          `value:"${bool:=true}" expr:"$"`
+	Int      int           `value:"${int:=4}" expr:"$==4"`
+	Int8     int8          `value:"${int8:=8}" expr:"$==8"`
+	Int16    int16         `value:"${int16:=16}" expr:"$==16"`
+	Int32    int32         `value:"${int32:=32}" expr:"$==32"`
+	Int64    int64         `value:"${int32:=64}" expr:"$==64"`
+	Uint     uint          `value:"${uint:=4}" expr:"$==4"`
+	Uint8    uint8         `value:"${uint8:=8}" expr:"$==8"`
+	Uint16   uint16        `value:"${uint16:=16}" expr:"$==16"`
+	Uint32   uint32        `value:"${uint32:=32}" expr:"$==32"`
+	Uint64   uint64        `value:"${uint32:=64}" expr:"$==64"`
+	Float32  float32       `value:"${float32:=3.2}" expr:"abs($-3.2)<0.000001"`
+	Float64  float64       `value:"${float64:=6.4}" expr:"abs($-6.4)<0.000001"`
+	String   string        `value:"${str:=xyz}" expr:"$==\"xyz\""`
+	Duration time.Duration `value:"${duration:=10s}"`
+	IntsV0   []int         `value:"${intsV0:=}"`
+	IntsV1   []int         `value:"${intsV1:=1,2,3}"`
+	IntsV2   []int         `value:"${intsV2}"`
 }
 
 type DBConfig struct {
@@ -137,7 +249,24 @@ type DBConfig struct {
 	Extra Extra              `value:"${extra}"`
 }
 
+type UnnamedDefault struct {
+	Strs []string       `value:"${:=1,2,3}"`
+	Ints []int          `value:"${:=}"`
+	Map  map[string]int `value:"${:=}"`
+}
+
 func TestProperties_Bind(t *testing.T) {
+
+	t.Run("unnamed default", func(t *testing.T) {
+		var s UnnamedDefault
+		err := conf.New().Bind(&s)
+		assert.Nil(t, err)
+		assert.Equal(t, s, UnnamedDefault{
+			Strs: []string{"1", "2", "3"},
+			Ints: []int{},
+			Map:  map[string]int{},
+		})
+	})
 
 	t.Run("target error - 1", func(t *testing.T) {
 		err := conf.New().Bind(5)
@@ -206,7 +335,7 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Error(t, err, "strconv.ParseBool: parsing .*: invalid syntax")
 	})
 
-	t.Run("slice error", func(t *testing.T) {
+	t.Run("slice error - 1", func(t *testing.T) {
 		var s struct {
 			Value []int `value:"${v}"`
 		}
@@ -216,6 +345,22 @@ func TestProperties_Bind(t *testing.T) {
 			},
 		}).Bind(&s)
 		assert.Error(t, err, "strconv.ParseInt: parsing .*: invalid syntax")
+	})
+
+	t.Run("slice error - 2", func(t *testing.T) {
+		var s struct {
+			Value []int `value:"${v}"`
+		}
+		err := conf.New().Bind(&s)
+		assert.Error(t, err, "property \"v\" not exist")
+	})
+
+	t.Run("slice error - 3", func(t *testing.T) {
+		var s struct {
+			Value []image.Rectangle `value:"${v:={(1,2)(3,4)}"`
+		}
+		err := conf.New().Bind(&s)
+		assert.Error(t, err, "can't find converter for image.Rectangle")
 	})
 
 	t.Run("map error", func(t *testing.T) {
@@ -288,13 +433,20 @@ func TestProperties_Bind(t *testing.T) {
 				Float64:  6.4,
 				String:   "xyz",
 				Duration: time.Second * 10,
-				Strs:     []string{"1", "2", "3"},
-				Ints:     []int{},
-				Map:      map[string]int{},
+				IntsV0:   []int{},
+				IntsV1:   []int{1, 2, 3},
+				IntsV2:   []int{1, 2, 3},
 			},
 		}
 
 		p, err := conf.Load("./testdata/config/app.yaml")
+		assert.Nil(t, err)
+
+		err = p.Set("extra.intsV0", "")
+		assert.Nil(t, err)
+		err = p.Set("extra.intsV2", "1,2,3")
+		assert.Nil(t, err)
+		err = p.Set("prefix.extra.intsV2", "1,2,3")
 		assert.Nil(t, err)
 
 		var c DBConfig
