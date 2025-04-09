@@ -19,6 +19,8 @@ package conf_test
 import (
 	"errors"
 	"image"
+	"io"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +33,12 @@ import (
 func init() {
 	conf.RegisterConverter(PointConverter)
 	conf.RegisterSplitter("PointSplitter", PointSplitter)
+}
+
+type funcFilter func(i interface{}, param conf.BindParam) (bool, error)
+
+func (f funcFilter) Do(i interface{}, param conf.BindParam) (bool, error) {
+	return f(i, param)
 }
 
 func PointConverter(val string) (image.Point, error) {
@@ -86,10 +94,16 @@ func TestSplitter(t *testing.T) {
 		assert.Equal(t, points, []image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
 	})
 
-	t.Run("error", func(t *testing.T) {
+	t.Run("split error", func(t *testing.T) {
 		var points []image.Point
 		err := conf.New().Bind(&points, "${:=(1}>>PointSplitter")
 		assert.Error(t, err, "split error")
+	})
+
+	t.Run("unknown splitter", func(t *testing.T) {
+		var points []image.Point
+		err := conf.New().Bind(&points, "${:=(1}>>UnknownSplitter")
+		assert.Error(t, err, "unknown splitter 'UnknownSplitter'")
 	})
 }
 
@@ -223,24 +237,26 @@ type UntaggedNestedDB struct {
 }
 
 type Extra struct {
-	Bool     bool          `value:"${bool:=true}" expr:"$"`
-	Int      int           `value:"${int:=4}" expr:"$==4"`
-	Int8     int8          `value:"${int8:=8}" expr:"$==8"`
-	Int16    int16         `value:"${int16:=16}" expr:"$==16"`
-	Int32    int32         `value:"${int32:=32}" expr:"$==32"`
-	Int64    int64         `value:"${int32:=64}" expr:"$==64"`
-	Uint     uint          `value:"${uint:=4}" expr:"$==4"`
-	Uint8    uint8         `value:"${uint8:=8}" expr:"$==8"`
-	Uint16   uint16        `value:"${uint16:=16}" expr:"$==16"`
-	Uint32   uint32        `value:"${uint32:=32}" expr:"$==32"`
-	Uint64   uint64        `value:"${uint32:=64}" expr:"$==64"`
-	Float32  float32       `value:"${float32:=3.2}" expr:"abs($-3.2)<0.000001"`
-	Float64  float64       `value:"${float64:=6.4}" expr:"abs($-6.4)<0.000001"`
-	String   string        `value:"${str:=xyz}" expr:"$==\"xyz\""`
-	Duration time.Duration `value:"${duration:=10s}"`
-	IntsV0   []int         `value:"${intsV0:=}"`
-	IntsV1   []int         `value:"${intsV1:=1,2,3}"`
-	IntsV2   []int         `value:"${intsV2}"`
+	Bool     bool           `value:"${bool:=true}" expr:"$"`
+	Int      int            `value:"${int:=4}" expr:"$==4"`
+	Int8     int8           `value:"${int8:=8}" expr:"$==8"`
+	Int16    int16          `value:"${int16:=16}" expr:"$==16"`
+	Int32    int32          `value:"${int32:=32}" expr:"$==32"`
+	Int64    int64          `value:"${int32:=64}" expr:"$==64"`
+	Uint     uint           `value:"${uint:=4}" expr:"$==4"`
+	Uint8    uint8          `value:"${uint8:=8}" expr:"$==8"`
+	Uint16   uint16         `value:"${uint16:=16}" expr:"$==16"`
+	Uint32   uint32         `value:"${uint32:=32}" expr:"$==32"`
+	Uint64   uint64         `value:"${uint32:=64}" expr:"$==64"`
+	Float32  float32        `value:"${float32:=3.2}" expr:"abs($-3.2)<0.000001"`
+	Float64  float64        `value:"${float64:=6.4}" expr:"abs($-6.4)<0.000001"`
+	String   string         `value:"${str:=xyz}" expr:"$==\"xyz\""`
+	Duration time.Duration  `value:"${duration:=10s}"`
+	IntsV0   []int          `value:"${intsV0:=}"`
+	IntsV1   []int          `value:"${intsV1:=1,2,3}"`
+	IntsV2   []int          `value:"${intsV2}"`
+	MapV0    map[string]int `value:"${mapV0:=}"`
+	MapV2    map[string]int `value:"${mapV2}"`
 }
 
 type DBConfig struct {
@@ -266,6 +282,12 @@ func TestProperties_Bind(t *testing.T) {
 			Ints: []int{},
 			Map:  map[string]int{},
 		})
+	})
+
+	t.Run("BindTag error", func(t *testing.T) {
+		var i int
+		err := conf.New().Bind(&i, "$")
+		assert.Error(t, err, "parse tag '\\$' error: invalid syntax")
 	})
 
 	t.Run("target error - 1", func(t *testing.T) {
@@ -363,7 +385,15 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Error(t, err, "can't find converter for image.Rectangle")
 	})
 
-	t.Run("map error", func(t *testing.T) {
+	t.Run("map error - 1", func(t *testing.T) {
+		var s struct {
+			Value map[string]int `value:"${v:=a:b,1:2}"`
+		}
+		err := conf.New().Bind(&s)
+		assert.Error(t, err, "map can't have a non-empty default value")
+	})
+
+	t.Run("map error - 2", func(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
@@ -373,6 +403,69 @@ func TestProperties_Bind(t *testing.T) {
 			},
 		}).Bind(&s)
 		assert.Error(t, err, "property v.0 not exist")
+	})
+
+	t.Run("map error - 3", func(t *testing.T) {
+		var s struct {
+			Value map[string]int `value:"${v}"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": "a:b,1:2",
+		}).Bind(&s)
+		assert.Error(t, err, "property conflict at path v")
+	})
+
+	t.Run("map error - 4", func(t *testing.T) {
+		var s struct {
+			Value map[string]int `value:"${v}"`
+		}
+		err := conf.New().Bind(&s)
+		assert.Error(t, err, "property \"v\" not exist")
+	})
+
+	t.Run("struct error - 1", func(t *testing.T) {
+		var s struct {
+			Value struct {
+				Int int
+			} `value:"${v:={123}}"`
+		}
+		err := conf.New().Bind(&s)
+		assert.Error(t, err, "struct can't have a non-empty default value")
+	})
+
+	t.Run("struct error - 2", func(t *testing.T) {
+		var s struct {
+			int `value:"${v}"`
+		}
+		err := conf.Map(map[string]interface{}{
+			"v": "123",
+		}).Bind(&s)
+		assert.Nil(t, err)
+		assert.Equal(t, s.int, 0)
+	})
+
+	t.Run("struct error - 3", func(t *testing.T) {
+		var s struct {
+			Value int `value:"v"`
+		}
+		err := conf.New().Bind(&s)
+		assert.Error(t, err, "parse tag 'v' error: invalid syntax")
+	})
+
+	t.Run("struct error - 4", func(t *testing.T) {
+		var s struct {
+			io.Reader
+		}
+		err := conf.New().Bind(&s)
+		assert.Nil(t, err)
+	})
+
+	t.Run("reflect.Value", func(t *testing.T) {
+		var i int
+		v := reflect.ValueOf(&i).Elem()
+		err := conf.New().Bind(v, "${:=3}")
+		assert.Nil(t, err)
+		assert.Equal(t, i, 3)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -436,6 +529,8 @@ func TestProperties_Bind(t *testing.T) {
 				IntsV0:   []int{},
 				IntsV1:   []int{1, 2, 3},
 				IntsV2:   []int{1, 2, 3},
+				MapV0:    map[string]int{},
+				MapV2:    map[string]int{"a": 1, "b": 2},
 			},
 		}
 
@@ -449,6 +544,15 @@ func TestProperties_Bind(t *testing.T) {
 		err = p.Set("prefix.extra.intsV2", "1,2,3")
 		assert.Nil(t, err)
 
+		err = p.Set("extra.mapV2.a", "1")
+		assert.Nil(t, err)
+		err = p.Set("extra.mapV2.b", "2")
+		assert.Nil(t, err)
+		err = p.Set("prefix.extra.mapV2.a", "1")
+		assert.Nil(t, err)
+		err = p.Set("prefix.extra.mapV2.b", "2")
+		assert.Nil(t, err)
+
 		var c DBConfig
 		err = p.Bind(&c)
 		assert.Nil(t, err)
@@ -458,141 +562,58 @@ func TestProperties_Bind(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, c, expect)
 	})
-}
 
-//type NestedDbMapConfig struct {
-//	DB map[string]NestedDB `value:"${db_map}"`
-//}
-//
-//func TestProperties_Bind(t *testing.T) {
-//
-//	t.Run("default", func(t *testing.T) {
-//		p := conf.New()
-//		v := &struct {
-//			S struct {
-//				V int `value:"${:=3}"`
-//			} `value:"${s:=}"`
-//		}{}
-//		err := p.Bind(v)
-//		assert.Nil(t, err)
-//		assert.Equal(t, v.S.V, 3)
-//	})
-//
-//	t.Run("simple bind", func(t *testing.T) {
-//		p, err := conf.Load("testdata/config/app.yaml")
-//		assert.Nil(t, err)
-//
-//		dbConfig1 := DbConfig{}
-//		err = p.Bind(&dbConfig1)
-//		assert.Nil(t, err)
-//
-//		dbConfig2 := DbConfig{}
-//		err = p.Bind(&dbConfig2, "${prefix}")
-//		assert.Nil(t, err)
-//
-//		// 实际上是取的两个节点，只是值是一样的而已
-//		assert.Equal(t, dbConfig1, dbConfig2)
-//	})
-//
-//	t.Run("struct bind with tag", func(t *testing.T) {
-//
-//		p, err := conf.Load("testdata/config/app.yaml")
-//		assert.Nil(t, err)
-//
-//		dbConfig := TagNestedDbConfig{}
-//		err = p.Bind(&dbConfig)
-//		assert.Nil(t, err)
-//
-//		fmt.Println(dbConfig)
-//	})
-//
-//	t.Run("struct bind without tag", func(t *testing.T) {
-//
-//		p, err := conf.Load("testdata/config/app.yaml")
-//		assert.Nil(t, err)
-//
-//		dbConfig1 := NestedDbConfig{}
-//		err = p.Bind(&dbConfig1)
-//		assert.Nil(t, err)
-//
-//		dbConfig2 := NestedDbConfig{}
-//		err = p.Bind(&dbConfig2, "${prefix}")
-//		assert.Nil(t, err)
-//
-//		// 实际上是取的两个节点，只是值是一样的而已
-//		assert.Equal(t, dbConfig1, dbConfig2)
-//		assert.Equal(t, len(dbConfig1.DB), 2)
-//	})
-//
-//	t.Run("simple map bind", func(t *testing.T) {
-//
-//		p := conf.New()
-//		err := p.Set("a.b1", "b1")
-//		assert.Nil(t, err)
-//		err = p.Set("a.b2", "b2")
-//		assert.Nil(t, err)
-//		err = p.Set("a.b3", "b3")
-//		assert.Nil(t, err)
-//
-//		var m map[string]string
-//		err = p.Bind(&m, "${a}")
-//		assert.Nil(t, err)
-//
-//		assert.Equal(t, len(m), 3)
-//		assert.Equal(t, m["b1"], "b1")
-//	})
-//
-//	t.Run("simple bind from file", func(t *testing.T) {
-//
-//		p, err := conf.Load("testdata/config/app.yaml")
-//		assert.Nil(t, err)
-//
-//		var m map[string]string
-//		err = p.Bind(&m, "${camera}")
-//		assert.Nil(t, err)
-//
-//		assert.Equal(t, len(m), 3)
-//		assert.Equal(t, m["floor1"], "camera_floor1")
-//	})
-//
-//	t.Run("struct bind from file", func(t *testing.T) {
-//
-//		p, err := conf.Load("testdata/config/app.yaml")
-//		assert.Nil(t, err)
-//
-//		var m map[string]NestedDB
-//		err = p.Bind(&m, "${db_map}")
-//		assert.Nil(t, err)
-//
-//		assert.Equal(t, len(m), 2)
-//		assert.Equal(t, m["d1"].DB, "db1")
-//
-//		dbConfig2 := NestedDbMapConfig{}
-//		err = p.Bind(&dbConfig2, "${prefix_map}")
-//		assert.Nil(t, err)
-//
-//		assert.Equal(t, len(dbConfig2.DB), 2)
-//		assert.Equal(t, dbConfig2.DB["d1"].DB, "db1")
-//	})
-//
-//	t.Run("ignore interface", func(t *testing.T) {
-//		p := conf.New()
-//		err := p.Bind(&struct{ fmt.Stringer }{})
-//		assert.Nil(t, err)
-//	})
-//
-//	//t.Run("", func(t *testing.T) {
-//	//	p := conf.New()
-//	//	err := p.Bytes([]byte(`m:`), ".yaml")
-//	//	if err != nil {
-//	//		t.Fatal(err)
-//	//	}
-//	//	var s struct {
-//	//		M map[string]string `value:"${m}"`
-//	//	}
-//	//	if err = p.Bind(&s); err != nil {
-//	//		t.Fatal(err)
-//	//	}
-//	//	assert.Equal(t, s.M, map[string]string{})
-//	//})
-//}
+	t.Run("filter false", func(t *testing.T) {
+		var param conf.BindParam
+		err := param.BindTag("${ROOT}", "")
+		assert.Nil(t, err)
+
+		var s struct {
+			Value int `value:"${v:=3}"`
+		}
+
+		v := reflect.ValueOf(&s).Elem()
+		err = conf.BindValue(conf.New(), v, v.Type(), param,
+			funcFilter(func(i interface{}, param conf.BindParam) (bool, error) {
+				return false, nil
+			}))
+		assert.Nil(t, err)
+		assert.Equal(t, s.Value, 3)
+	})
+
+	t.Run("filter true", func(t *testing.T) {
+		var param conf.BindParam
+		err := param.BindTag("${ROOT}", "")
+		assert.Nil(t, err)
+
+		var s struct {
+			Value int `value:"${v:=3}"`
+		}
+
+		v := reflect.ValueOf(&s).Elem()
+		err = conf.BindValue(conf.New(), v, v.Type(), param,
+			funcFilter(func(i interface{}, param conf.BindParam) (bool, error) {
+				return true, nil
+			}))
+		assert.Nil(t, err)
+		assert.Equal(t, s.Value, 0)
+	})
+
+	t.Run("filter error", func(t *testing.T) {
+		var param conf.BindParam
+		err := param.BindTag("${ROOT}", "")
+		assert.Nil(t, err)
+
+		var s struct {
+			Value int `value:"${v:=3}"`
+		}
+
+		v := reflect.ValueOf(&s).Elem()
+		err = conf.BindValue(conf.New(), v, v.Type(), param,
+			funcFilter(func(i interface{}, param conf.BindParam) (bool, error) {
+				return false, errors.New("filter error")
+			}))
+		assert.Error(t, err, "filter error")
+		assert.Equal(t, s.Value, 0)
+	})
+}

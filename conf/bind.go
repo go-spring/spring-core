@@ -290,7 +290,7 @@ func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error
 			return nil, fmt.Errorf("split error: %w, value: %q", err, strVal)
 		}
 	} else {
-		return nil, fmt.Errorf("unknown splitter %q", s)
+		return nil, fmt.Errorf("unknown splitter '%s'", s)
 	}
 
 	r := New()
@@ -320,6 +320,13 @@ func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, fil
 		if param.Tag.HasDef {
 			return nil
 		}
+	}
+
+	if !p.Has(param.Key) {
+		if param.Tag.HasDef {
+			return nil
+		}
+		return fmt.Errorf("property %q %w", param.Key, ErrNotExist)
 	}
 
 	keys, err := p.SubKeys(param.Key)
