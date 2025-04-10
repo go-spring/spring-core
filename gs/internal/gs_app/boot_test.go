@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-core/gs/internal/gs_core"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/util/assert"
 	"github.com/go-spring/spring-core/util/sysconf"
 )
@@ -72,7 +72,7 @@ func TestBoot(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Cleanup(clean)
 		boot := NewBoot().(*BootImpl)
-		bd := gs_core.NewBean(reflect.ValueOf(funcRunner(func() error {
+		bd := gs_bean.NewBeanV2(reflect.ValueOf(funcRunner(func() error {
 			return nil
 		}))).AsRunner()
 		boot.Register(bd)

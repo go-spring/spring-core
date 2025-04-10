@@ -26,9 +26,9 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
-	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 )
 
@@ -152,7 +152,7 @@ type (
 )
 
 // NewBean creates a new BeanDefinition.
-var NewBean = gs_core.NewBean
+var NewBean = gs_bean.NewBeanV2
 
 // BeanSelectorFor returns a BeanSelector for the given type.
 func BeanSelectorFor[T any](name ...string) BeanSelector {

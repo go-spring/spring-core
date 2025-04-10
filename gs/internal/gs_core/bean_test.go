@@ -25,14 +25,13 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
-	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
 // newBean 该方法是为了平衡调用栈的深度，一般情况下 gs.NewBean 不应该被直接使用。
 func newBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
-	return gs_core.NewBean(objOrCtor, ctorArgs...)
+	return gs_bean.NewBeanV2(objOrCtor, ctorArgs...)
 }
 
 // func TestParseSingletonTag(t *testing.T) {
