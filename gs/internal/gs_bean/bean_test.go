@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/util"
 	"github.com/go-spring/spring-core/util/assert"
 	"go.uber.org/mock/gomock"
@@ -56,7 +57,8 @@ func InitTestBeanV2(*TestBean) error    { return nil }
 func DestroyTestBean(*TestBean)         {}
 func DestroyTestBeanV2(*TestBean) error { return nil }
 
-func (t *TestBean) Dummy() int { return t.dummy }
+func (t *TestBean) Dummy() int       { return t.dummy }
+func (t *TestBean) Clone() *TestBean { return &TestBean{} }
 
 func TestBeanDefinition(t *testing.T) {
 
@@ -75,7 +77,7 @@ func TestBeanDefinition(t *testing.T) {
 		assert.Equal(t, StatusCreated, bean.Status())
 
 		bean.SetCaller(1)
-		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:77")
+		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:79")
 
 		bean.SetName("test-1")
 		assert.Equal(t, bean.Name(), "test-1")
@@ -83,7 +85,7 @@ func TestBeanDefinition(t *testing.T) {
 		beanType, beanName := bean.TypeAndName()
 		assert.Equal(t, beanType, reflect.TypeFor[*TestBean]())
 		assert.Equal(t, beanName, "test-1")
-		assert.Matches(t, bean.String(), `name=test-1 .*/gs/internal/gs_bean/bean_test.go:77`)
+		assert.Matches(t, bean.String(), `name=test-1 .*/gs/internal/gs_bean/bean_test.go:79`)
 
 		assert.Nil(t, bean.BeanRuntime.Callable())
 		assert.Equal(t, bean.BeanRuntime.Status(), StatusWired)
@@ -281,5 +283,134 @@ func TestBeanDefinition(t *testing.T) {
 		bean.SetExport(gs.As[io.Writer]())
 		bean.SetMock(bytes.NewBufferString(""))
 		assert.True(t, bean.Mocked())
+	})
+}
+
+func TestNewBean(t *testing.T) {
+
+	t.Run("type error", func(t *testing.T) {
+
+		assert.Panic(t, func() {
+			NewBean(new(int))
+		}, "bean must be ref type")
+
+		assert.Panic(t, func() {
+			var r **TestBean
+			NewBean(r)
+		}, "bean must be ref type")
+	})
+
+	t.Run("value error", func(t *testing.T) {
+		assert.Panic(t, func() {
+			NewBean((*TestBean)(nil))
+		}, "bean can't be nil")
+	})
+
+	t.Run("object", func(t *testing.T) {
+		bean := NewBean(&TestBean{})
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "TestBean")
+		assert.Equal(t, beanX.Type(), reflect.TypeFor[*TestBean]())
+	})
+
+	t.Run("object - reflect.Value", func(t *testing.T) {
+		bean := NewBean(reflect.ValueOf(&TestBean{}))
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "TestBean")
+		assert.Equal(t, beanX.Type(), reflect.TypeFor[*TestBean]())
+	})
+
+	t.Run("function - reflect.Value", func(t *testing.T) {
+		fn := func(int, int) string { return "" }
+		bean := NewBean(reflect.ValueOf(fn)).Name("TestFunc")
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "TestFunc")
+		assert.Equal(t, beanX.Type(), reflect.TypeOf(fn))
+	})
+
+	t.Run("constructor error", func(t *testing.T) {
+
+		assert.Panic(t, func() {
+			NewBean(func() {})
+		}, "constructor should be func\\(...\\)bean or func\\(...\\)\\(bean, error\\)")
+
+		assert.Panic(t, func() {
+			NewBean(func() (int, string) { return 0, "" })
+		}, "constructor should be func\\(...\\)bean or func\\(...\\)\\(bean, error\\)")
+
+		assert.Panic(t, func() {
+			NewBean(
+				func(a int, b int) int { return a + b },
+				gs_arg.Tag("${v:=3}"),
+				gs_arg.Index(1, gs_arg.Tag("${v:=3}")),
+			)
+		}, "NewArgList error << arguments must be all indexed or non-indexed")
+
+		assert.Panic(t, func() {
+			NewBean(func() int { return 0 })
+		}, "bean must be ref type")
+	})
+
+	t.Run("constructor", func(t *testing.T) {
+		fn := func(int, int) *TestBean { return nil }
+		bean := NewBean(fn).Name("NewTestBean")
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "NewTestBean")
+		assert.Equal(t, beanX.Type(), reflect.TypeFor[*TestBean]())
+	})
+
+	t.Run("method - 1", func(t *testing.T) {
+		bean := NewBean((*TestBean).Clone)
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "Clone")
+		assert.Equal(t, len(beanX.Conditions()), 1)
+	})
+
+	t.Run("method - 2", func(t *testing.T) {
+		parent := NewBean(&TestBean{})
+		bean := NewBean((*TestBean).Clone, parent)
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "Clone")
+		assert.Equal(t, len(beanX.Conditions()), 1)
+	})
+
+	t.Run("method - 3", func(t *testing.T) {
+		parent := NewBean(&TestBean{})
+		bean := NewBean((*TestBean).Clone, gs_arg.Index(0, parent))
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "Clone")
+		assert.Equal(t, len(beanX.Conditions()), 1)
+	})
+
+	t.Run("method - 4", func(t *testing.T) {
+		parent := gs.NewRegisteredBean(
+			NewBean(&TestBean{}).BeanRegistration(),
+		)
+		bean := NewBean((*TestBean).Clone, parent)
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "Clone")
+		assert.Equal(t, len(beanX.Conditions()), 1)
+	})
+
+	t.Run("method - 5", func(t *testing.T) {
+		parent := gs.NewRegisteredBean(
+			NewBean(&TestBean{}).BeanRegistration(),
+		)
+		bean := NewBean((*TestBean).Clone, gs_arg.Index(0, parent))
+		beanX := bean.BeanRegistration().(*BeanDefinition)
+		assert.Equal(t, beanX.Name(), "Clone")
+		assert.Equal(t, len(beanX.Conditions()), 1)
+	})
+
+	t.Run("method error - 1", func(t *testing.T) {
+		assert.Panic(t, func() {
+			NewBean((*TestBean).Clone, gs_arg.Tag(""))
+		}, "ctorArgs\\[0] should be \\*RegisteredBean or \\*BeanDefinition or IndexArg\\[0]")
+	})
+
+	t.Run("method error - 2", func(t *testing.T) {
+		assert.Panic(t, func() {
+			NewBean((*TestBean).Clone, gs_arg.Index(0, gs_arg.Tag("")))
+		}, "the arg of IndexArg\\[0] should be \\*RegisteredBean or \\*BeanDefinition")
 	})
 }

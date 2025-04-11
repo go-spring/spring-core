@@ -453,10 +453,6 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		}
 	}
 
-	if t.Kind() == reflect.Ptr && !util.IsPropBindingTarget(t.Elem()) {
-		panic("bean should be *val but not *ref")
-	}
-
 	// Extract the final type name for bean naming
 	if name == "" {
 		s := strings.Split(t.String(), ".")
