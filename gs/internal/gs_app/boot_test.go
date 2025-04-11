@@ -72,9 +72,9 @@ func TestBoot(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Cleanup(clean)
 		boot := NewBoot().(*BootImpl)
-		bd := gs_bean.NewBeanV2(reflect.ValueOf(funcRunner(func() error {
+		bd := gs_bean.NewBean(reflect.ValueOf(funcRunner(func() error {
 			return nil
-		}))).AsRunner()
+		}))).AsRunner().Caller(1)
 		boot.Register(bd)
 		boot.Config().LocalFile.Reset()
 		err := boot.Run()

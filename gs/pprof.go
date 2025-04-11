@@ -22,11 +22,9 @@ import (
 )
 
 func init() {
-	Register(
-		NewBean(
-			NewSimplePProfServer,
-			TagArg("${pprof.server.addr:=0.0.0.0:9981}"),
-		),
+	Provide(
+		NewSimplePProfServer,
+		TagArg("${pprof.server.addr:=0.0.0.0:9981}"),
 	).Condition(
 		OnProperty(EnableAppServersProp).HavingValue("true").MatchIfMissing(),
 		OnProperty(EnableSimplePProfServerProp).HavingValue("true").MatchIfMissing(),

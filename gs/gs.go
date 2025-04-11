@@ -152,7 +152,9 @@ type (
 )
 
 // NewBean creates a new BeanDefinition.
-var NewBean = gs_bean.NewBeanV2
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+	return gs_bean.NewBean(objOrCtor, ctorArgs...).Caller(1)
+}
 
 // BeanSelectorFor returns a BeanSelector for the given type.
 func BeanSelectorFor[T any](name ...string) BeanSelector {
@@ -179,7 +181,7 @@ func (f funcRunner) Run() error {
 
 // FuncRunner creates a Runner from a function.
 func FuncRunner(fn func() error) *RegisteredBean {
-	return Object(funcRunner(fn)).AsRunner()
+	return Object(funcRunner(fn)).AsRunner().Caller(1)
 }
 
 // funcJob is a function type that implements the Job interface.
@@ -191,7 +193,7 @@ func (f funcJob) Run(ctx context.Context) error {
 
 // FuncJob creates a Job from a function.
 func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
-	return Object(funcJob(fn)).AsJob()
+	return Object(funcJob(fn)).AsJob().Caller(1)
 }
 
 // Run runs the app and waits for an interrupt signal to exit.
@@ -221,14 +223,14 @@ func Config() *gs_conf.AppConfig {
 
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
-	b := NewBean(reflect.ValueOf(i))
-	return gs_app.GS.C.Register(b)
+	b := gs_bean.NewBean(reflect.ValueOf(i))
+	return gs_app.GS.C.Register(b).Caller(1)
 }
 
 // Provide registers a bean definition for a given constructor.
 func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
-	b := NewBean(ctor, args...)
-	return gs_app.GS.C.Register(b)
+	b := gs_bean.NewBean(ctor, args...)
+	return gs_app.GS.C.Register(b).Caller(1)
 }
 
 // Register registers a bean definition.

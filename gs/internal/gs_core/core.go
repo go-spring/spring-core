@@ -59,14 +59,14 @@ func (c *Container) Mock(obj interface{}, target gs.BeanSelector) {
 
 // Object registers a bean in object form.
 func (c *Container) Object(i interface{}) *gs.RegisteredBean {
-	b := gs_bean.NewBeanV2(reflect.ValueOf(i))
-	return c.Register(b)
+	b := gs_bean.NewBean(reflect.ValueOf(i))
+	return c.Register(b).Caller(1)
 }
 
 // Provide registers a bean in constructor function form.
 func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
-	b := gs_bean.NewBeanV2(ctor, args...)
-	return c.Register(b)
+	b := gs_bean.NewBean(ctor, args...)
+	return c.Register(b).Caller(1)
 }
 
 // Register registers a bean definition.

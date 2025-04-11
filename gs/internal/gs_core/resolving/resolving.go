@@ -10,6 +10,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/util"
 )
 
 type GroupFunc = func(p conf.Properties) ([]*gs.BeanDefinition, error)
@@ -244,10 +245,12 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 			if !x.MatchString(m.Name) {
 				continue
 			}
-			b := gs_bean.NewBeanV2(m.Func.Interface(), gs_arg.Tag(bd.Name())).
+			b := gs_bean.NewBean(m.Func.Interface(), gs_arg.Tag(bd.Name())).
 				Name(bd.Name() + "_" + m.Name).
 				Condition(gs_cond.OnBeanSelector(bd)).
 				BeanRegistration().(*gs_bean.BeanDefinition)
+			file, line, _ := util.FileLine(m.Func.Interface())
+			b.SetFileLine(file, line)
 			newBeans = append(newBeans, b)
 			break
 		}

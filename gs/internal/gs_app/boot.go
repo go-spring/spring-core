@@ -68,15 +68,15 @@ func (b *BootImpl) Config() *gs_conf.BootConfig {
 // Object registers an object bean.
 func (b *BootImpl) Object(i interface{}) *gs.RegisteredBean {
 	b.flag = true
-	bd := gs_bean.NewBeanV2(reflect.ValueOf(i))
-	return b.c.Register(bd)
+	bd := gs_bean.NewBean(reflect.ValueOf(i))
+	return b.c.Register(bd).Caller(1)
 }
 
 // Provide registers a bean using a constructor function.
 func (b *BootImpl) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	b.flag = true
-	bd := gs_bean.NewBeanV2(ctor, args...)
-	return b.c.Register(bd)
+	bd := gs_bean.NewBean(ctor, args...)
+	return b.c.Register(bd).Caller(1)
 }
 
 // Register registers a BeanDefinition instance.
@@ -88,8 +88,8 @@ func (b *BootImpl) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 // FuncRunner creates a Runner from a function.
 func (b *BootImpl) FuncRunner(fn func() error) *gs.RegisteredBean {
 	b.flag = true
-	bd := gs_bean.NewBeanV2(reflect.ValueOf(funcRunner(fn)))
-	return b.c.Register(bd).AsRunner()
+	bd := gs_bean.NewBean(reflect.ValueOf(funcRunner(fn)))
+	return b.c.Register(bd).AsRunner().Caller(1)
 }
 
 // Run executes the application's boot process.

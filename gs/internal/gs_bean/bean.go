@@ -214,8 +214,8 @@ type BeanDefinition struct {
 	*BeanRuntime
 }
 
-// NewBean creates a new bean definition.
-func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition {
+// makeBean creates a new bean definition.
+func makeBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition {
 	return &BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			f:      f,
@@ -352,10 +352,11 @@ func (d *BeanDefinition) String() string {
 	return fmt.Sprintf("name=%s %s", d.name, d.fileLine)
 }
 
-// NewBeanV2 creates a new bean definition. When registering a normal function,
+// NewBean creates a new bean definition. When registering a normal function,
 // use reflect.ValueOf(fn) to avoid conflicts with constructors.
-func NewBeanV2(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
+	var f *gs_arg.Callable
 	var v reflect.Value
 	var fromValue bool
 	var name string
@@ -378,9 +379,6 @@ func NewBeanV2(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	if !v.IsValid() || v.IsNil() {
 		panic("bean can't be nil")
 	}
-
-	var f *gs_arg.Callable
-	_, file, line, _ := runtime.Caller(1)
 
 	// If objOrCtor is a function (not from reflect.Value),
 	// process it as a constructor
@@ -465,12 +463,9 @@ func NewBeanV2(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 		name = strings.TrimPrefix(s[len(s)-1], "*")
 	}
 
-	d := NewBean(t, v, f, name)
-	d.SetFileLine(file, line)
-
-	bd := gs.NewBeanDefinition(d)
+	d := makeBean(t, v, f, name)
 	if cond != nil {
-		bd.Condition(cond)
+		d.SetCondition(cond)
 	}
-	return bd
+	return gs.NewBeanDefinition(d)
 }

@@ -64,7 +64,7 @@ func TestBeanDefinition(t *testing.T) {
 		a := &TestBean{}
 		v := reflect.ValueOf(a)
 
-		bean := NewBean(v.Type(), v, nil, "test")
+		bean := makeBean(v.Type(), v, nil, "test")
 		assert.Equal(t, bean.Name(), "test")
 		assert.Equal(t, bean.Type(), reflect.TypeFor[*TestBean]())
 		assert.Equal(t, bean.Value().Interface(), a)
@@ -92,7 +92,7 @@ func TestBeanDefinition(t *testing.T) {
 
 	t.Run("depends on", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
-		bean := NewBean(v.Type(), v, nil, "test")
+		bean := makeBean(v.Type(), v, nil, "test")
 		selector := gs.BeanSelectorFor[*http.ServeMux]()
 		bean.SetDependsOn(selector)
 		assert.Equal(t, bean.DependsOn(), []gs.BeanSelector{selector})
@@ -100,7 +100,7 @@ func TestBeanDefinition(t *testing.T) {
 
 	t.Run("init function", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
-		bean := NewBean(v.Type(), v, nil, "test")
+		bean := makeBean(v.Type(), v, nil, "test")
 		assert.Panic(t, func() {
 			bean.SetInit(3)
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
@@ -139,7 +139,7 @@ func TestBeanDefinition(t *testing.T) {
 
 	t.Run("destroy function", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
-		bean := NewBean(v.Type(), v, nil, "test")
+		bean := makeBean(v.Type(), v, nil, "test")
 		assert.Panic(t, func() {
 			bean.SetDestroy(3)
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
@@ -178,7 +178,7 @@ func TestBeanDefinition(t *testing.T) {
 
 	t.Run("export", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
-		bean := NewBean(v.Type(), v, nil, "test")
+		bean := makeBean(v.Type(), v, nil, "test")
 		bean.SetExport(gs.As[TestBeanInterface]())
 		assert.Equal(t, len(bean.Exports()), 1)
 		bean.SetExport(gs.As[TestBeanInterface]())
@@ -193,7 +193,7 @@ func TestBeanDefinition(t *testing.T) {
 
 	t.Run("on profiles", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
-		bean := NewBean(v.Type(), v, nil, "test")
+		bean := makeBean(v.Type(), v, nil, "test")
 		bean.OnProfiles("dev,test")
 		assert.Equal(t, len(bean.Conditions()), 1)
 
@@ -260,7 +260,7 @@ func TestBeanDefinition(t *testing.T) {
 
 	t.Run("configuration", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
-		bean := NewBean(v.Type(), v, nil, "test")
+		bean := makeBean(v.Type(), v, nil, "test")
 		assert.Nil(t, bean.Configuration())
 
 		bean.SetConfiguration()
@@ -277,7 +277,7 @@ func TestBeanDefinition(t *testing.T) {
 
 	t.Run("mock success", func(t *testing.T) {
 		v := reflect.ValueOf(&bytes.Buffer{})
-		bean := NewBean(v.Type(), v, nil, "test")
+		bean := makeBean(v.Type(), v, nil, "test")
 		bean.SetExport(gs.As[io.Writer]())
 		bean.SetMock(bytes.NewBufferString(""))
 		assert.True(t, bean.Mocked())
