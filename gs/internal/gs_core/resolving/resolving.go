@@ -246,7 +246,7 @@ func (c *Resolving) scanConfiguration0(bd *gs_bean.BeanDefinition) ([]*gs_bean.B
 func (c *Resolving) patchMocks() error {
 	for _, x := range c.mocks {
 		var found []*gs_bean.BeanDefinition
-		vt := reflect.TypeOf(x.Object)
+		ot := reflect.TypeOf(x.Object)
 		t, s := x.Target.TypeAndName()
 		switch t.Kind() {
 		case reflect.Interface:
@@ -266,7 +266,7 @@ func (c *Resolving) patchMocks() error {
 						continue
 					}
 					for _, et := range b.Exports() {
-						if !vt.Implements(et) {
+						if !ot.Implements(et) {
 							return fmt.Errorf("found unimplemented interfaces")
 						}
 					}
@@ -281,8 +281,10 @@ func (c *Resolving) patchMocks() error {
 					if !foundType {
 						continue
 					}
-					if len(b.Exports()) > 1 {
-						return fmt.Errorf("found unimplemented interfaces")
+					for _, et := range b.Exports() {
+						if !ot.Implements(et) {
+							return fmt.Errorf("found unimplemented interfaces")
+						}
 					}
 				}
 				if s != "" && s != b.Name() { // name is not equal
@@ -296,7 +298,7 @@ func (c *Resolving) patchMocks() error {
 					continue
 				}
 				for _, et := range b.Exports() {
-					if !vt.Implements(et) {
+					if !ot.Implements(et) {
 						return fmt.Errorf("found unimplemented interfaces")
 					}
 				}

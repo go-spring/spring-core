@@ -21,15 +21,15 @@ import (
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_core/wiring"
+	"github.com/go-spring/spring-core/gs/internal/gs_core/injecting"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestBind(t *testing.T) {
 
 	t.Run("zero argument", func(t *testing.T) {
-		stack := wiring.NewStack()
-		ctx := wiring.NewArgContext(&wiring.Wiring{}, stack)
+		stack := injecting.NewStack()
+		ctx := injecting.NewArgContext(&injecting.Injecting{}, stack)
 		fn := func() {}
 		p, err := gs_arg.NewCallable(fn, []gs.Arg{})
 		if err != nil {
@@ -42,8 +42,8 @@ func TestBind(t *testing.T) {
 	})
 
 	t.Run("one value argument", func(t *testing.T) {
-		stack := wiring.NewStack()
-		ctx := wiring.NewArgContext(&wiring.Wiring{}, stack)
+		stack := injecting.NewStack()
+		ctx := injecting.NewArgContext(&injecting.Injecting{}, stack)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i
@@ -61,7 +61,7 @@ func TestBind(t *testing.T) {
 		assert.Equal(t, expectInt, 3)
 	})
 
-	//t.Run("one ctx value argument", func(t *testing.T) {
+	// t.Run("one ctx value argument", func(t *testing.T) {
 	//	x := gs_dync.New()
 	//	prop, err := conf.Map(map[string]interface{}{"a.b.c": 3})
 	//	if err != nil {
@@ -71,8 +71,8 @@ func TestBind(t *testing.T) {
 	//	if err != nil {
 	//		t.Fatal(err)
 	//	}
-	//	stack := wiring.NewWiringStack()
-	//	ctx := wiring.NewArgContext(&wiring.Wiring{P: x}, stack)
+	//	stack := wiring.NewInjectingStack()
+	//	ctx := wiring.NewArgContext(&wiring.Injecting{P: x}, stack)
 	//	expectInt := 0
 	//	fn := func(i int) {
 	//		expectInt = i
@@ -89,15 +89,15 @@ func TestBind(t *testing.T) {
 	//	}
 	//	assert.Equal(t, expectInt, 3)
 	//	assert.Equal(t, len(values), 0)
-	//})
+	// })
 
-	//t.Run("one ctx named bean argument", func(t *testing.T) {
+	// t.Run("one ctx named bean argument", func(t *testing.T) {
 	//	type st struct {
 	//		i int
 	//	}
 	//	b := gs_core.NewBean(&st{3}).Name("a").BeanRegistration().(*gs_bean.BeanDefinition).BeanRuntime
-	//	stack := wiring.NewWiringStack()
-	//	ctx := wiring.NewArgContext(&wiring.Wiring{
+	//	stack := wiring.NewInjectingStack()
+	//	ctx := wiring.NewArgContext(&wiring.Injecting{
 	//		BeansByName: map[string][]wiring.BeanRuntime{
 	//			"a": {b},
 	//		},
@@ -123,15 +123,15 @@ func TestBind(t *testing.T) {
 	//	}
 	//	assert.Equal(t, expectInt, 3)
 	//	assert.Equal(t, len(values), 0)
-	//})
+	// })
 
-	//t.Run("one ctx unnamed bean argument", func(t *testing.T) {
+	// t.Run("one ctx unnamed bean argument", func(t *testing.T) {
 	//	type st struct {
 	//		i int
 	//	}
 	//	b := gs_core.NewBean(&st{3}).Name("a").BeanRegistration().(*gs_bean.BeanDefinition).BeanRuntime
-	//	stack := wiring.NewWiringStack()
-	//	ctx := wiring.NewArgContext(&wiring.Wiring{
+	//	stack := wiring.NewInjectingStack()
+	//	ctx := wiring.NewArgContext(&wiring.Injecting{
 	//		BeansByName: map[string][]wiring.BeanRuntime{
 	//			"a": {b},
 	//		},
@@ -155,6 +155,6 @@ func TestBind(t *testing.T) {
 	//	}
 	//	assert.Equal(t, expectInt, 3)
 	//	assert.Equal(t, len(values), 0)
-	//})
+	// })
 
 }
