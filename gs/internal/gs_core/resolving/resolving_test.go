@@ -105,8 +105,8 @@ func TestResolving(t *testing.T) {
 				"b": "",
 			},
 		})
-		beans, err := r.Refresh(p)
+		err := r.Refresh(p)
 		assert.Nil(t, err)
-		assert.Equal(t, len(beans), 6)
+		assert.Equal(t, len(r.Beans()), 6)
 	})
 }

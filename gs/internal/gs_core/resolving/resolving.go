@@ -17,6 +17,7 @@
 package resolving
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -46,7 +47,7 @@ type BeanMock struct {
 
 // Resolving manages mocks, beans, and group functions.
 type Resolving struct {
-	State refreshState
+	state refreshState
 	mocks []BeanMock
 	beans []*gs_bean.BeanDefinition
 	funcs []GroupFunc
@@ -57,15 +58,39 @@ func New() *Resolving {
 	return &Resolving{}
 }
 
+// Beans returns all managed beans.
+func (c *Resolving) Beans() []*gs_bean.BeanDefinition {
+	var beans []*gs_bean.BeanDefinition
+	for _, b := range c.beans {
+		if b.Status() == gs_bean.StatusDeleted {
+			continue
+		}
+		beans = append(beans, b)
+	}
+	return beans
+}
+
 // Mock registers a mock object with a specified bean selector.
 func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) {
 	x := BeanMock{Object: obj, Target: target}
 	c.mocks = append(c.mocks, x)
 }
 
+// Object registers a bean in object form.
+func (c *Resolving) Object(i interface{}) *gs.RegisteredBean {
+	b := gs_bean.NewBean(reflect.ValueOf(i))
+	return c.Register(b).Caller(1)
+}
+
+// Provide registers a bean in constructor function form.
+func (c *Resolving) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+	b := gs_bean.NewBean(ctor, args...)
+	return c.Register(b).Caller(1)
+}
+
 // Register adds a bean definition to the list of managed beans.
 func (c *Resolving) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
-	if c.State >= Refreshing {
+	if c.state >= Refreshing {
 		return gs.NewRegisteredBean(b.BeanRegistration())
 	}
 	bd := b.BeanRegistration().(*gs_bean.BeanDefinition)
@@ -79,37 +104,39 @@ func (c *Resolving) GroupRegister(fn GroupFunc) {
 }
 
 // Refresh validates and resolves all beans in the system.
-func (c *Resolving) Refresh(p conf.Properties) ([]*gs_bean.BeanDefinition, error) {
-	c.State = Refreshing
+func (c *Resolving) Refresh(p conf.Properties) error {
+	if c.state != RefreshDefault {
+		return errors.New("container is refreshing or refreshed")
+	}
+	c.state = Refreshing
 
 	// patches all group functions to register beans.
 	if err := c.patchFuncs(p); err != nil {
-		return nil, err
+		return err
 	}
 
 	// scans all configuration beans to register beans.
 	if err := c.scanConfiguration(); err != nil {
-		return nil, err
+		return err
 	}
 
 	// patches all mocks to the beans.
 	if err := c.patchMocks(); err != nil {
-		return nil, err
+		return err
 	}
 
 	// resolves all beans in the system.
 	if err := c.resolveBean(p); err != nil {
-		return nil, err
+		return err
 	}
 
 	// checks all beans in the system for duplicate definitions.
-	beans, err := c.checkDuplicate()
-	if err != nil {
-		return nil, err
+	if err := c.checkDuplicate(); err != nil {
+		return err
 	}
 
-	c.State = Refreshed
-	return beans, nil
+	c.state = Refreshed
+	return nil
 }
 
 func (c *Resolving) patchFuncs(p conf.Properties) error {
@@ -301,13 +328,11 @@ func (c *Resolving) resolveBean(p conf.Properties) error {
 	return nil
 }
 
-func (c *Resolving) checkDuplicate() ([]*gs_bean.BeanDefinition, error) {
+func (c *Resolving) checkDuplicate() error {
 	type BeanID struct {
 		s string
 		t reflect.Type
 	}
-
-	var beans []*gs_bean.BeanDefinition
 	beansByID := make(map[BeanID]*gs_bean.BeanDefinition)
 	for _, b := range c.beans {
 		if b.Status() == gs_bean.StatusDeleted {
@@ -315,12 +340,11 @@ func (c *Resolving) checkDuplicate() ([]*gs_bean.BeanDefinition, error) {
 		}
 		beanID := BeanID{b.Name(), b.Type()}
 		if d, ok := beansByID[beanID]; ok {
-			return nil, fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
+			return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
 		}
 		beansByID[beanID] = b
-		beans = append(beans, b)
 	}
-	return beans, nil
+	return nil
 }
 
 type CondContext struct {

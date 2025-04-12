@@ -20,53 +20,36 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/resolving"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/wiring"
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
 type Container struct {
-	resolving *resolving.Resolving
-	wiring    *wiring.Wiring
+	*resolving.Resolving
+	wiring *wiring.Wiring
 }
 
 // New creates a IoC container.
 func New() *Container {
 	return &Container{
-		resolving: resolving.New(),
+		Resolving: resolving.New(),
 	}
 }
 
-// Mock mocks the bean with the given object.
-func (c *Container) Mock(obj interface{}, target gs.BeanSelector) {
-	c.resolving.Mock(obj, target)
-}
-
-// Object registers a bean in object form.
-func (c *Container) Object(i interface{}) *gs.RegisteredBean {
-	b := gs_bean.NewBean(reflect.ValueOf(i))
-	return c.Register(b).Caller(1)
-}
-
-// Provide registers a bean in constructor function form.
-func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
-	b := gs_bean.NewBean(ctor, args...)
-	return c.Register(b).Caller(1)
-}
-
-// Register registers a bean definition.
-func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
-	return c.resolving.Register(b)
-}
-
-// GroupRegister registers a group function.
-func (c *Container) GroupRegister(fn resolving.GroupFunc) {
-	c.resolving.GroupRegister(fn)
+// Refresh initializes and wires all beans in the container.
+func (c *Container) Refresh(p conf.Properties) error {
+	if err := c.Resolving.Refresh(p); err != nil {
+		return err
+	}
+	c.wiring = wiring.New(p)
+	if err := c.wiring.Refresh(c.Beans()); err != nil {
+		return err
+	}
+	c.Resolving = nil
+	return nil
 }
 
 // RefreshProperties updates the properties of the container.
@@ -74,44 +57,17 @@ func (c *Container) RefreshProperties(p conf.Properties) error {
 	return c.wiring.RefreshProperties(p)
 }
 
-// Refresh initializes and wires all beans in the container.
-func (c *Container) Refresh(p conf.Properties) (err error) {
-	if c.resolving.State != resolving.RefreshDefault {
-		return errors.New("container is refreshing or refreshed")
-	}
-	start := time.Now()
-
-	beans, err := c.resolving.Refresh(p)
-	if err != nil {
-		return err
-	}
-
-	c.wiring = wiring.New(p)
-	err = c.wiring.Refresh(beans)
-	if err != nil {
-		return err
-	}
-
-	c.resolving = nil
-	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
-		len(beans), time.Now().Sub(start))
-	return nil
-}
-
 // Wire injects dependencies into the given object.
 func (c *Container) Wire(obj interface{}) error {
-
 	if !testing.Testing() {
 		return errors.New("not allowed to call Wire method in non-test mode")
 	}
-
 	stack := wiring.NewStack()
 	defer func() {
 		if len(stack.Beans) > 0 {
 			syslog.Infof("wiring path %s", stack.Path())
 		}
 	}()
-
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
 	return c.wiring.WireBeanValue(v, t, false, stack)

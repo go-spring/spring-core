@@ -309,10 +309,6 @@ func New(p conf.Properties) *Wiring {
 	}
 }
 
-func (c *Wiring) Properties() conf.Properties {
-	return c.p.Data()
-}
-
 func (c *Wiring) RefreshProperties(p conf.Properties) error {
 	return c.p.Refresh(p)
 }
