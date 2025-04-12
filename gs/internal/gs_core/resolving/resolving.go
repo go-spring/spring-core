@@ -243,79 +243,86 @@ func (c *Resolving) scanConfiguration0(bd *gs_bean.BeanDefinition) ([]*gs_bean.B
 	return newBeans, nil
 }
 
+// isBeanMatched checks if the bean is matched with the target type.
+func isBeanMatched(targetType reflect.Type, bean *gs_bean.BeanDefinition) (bool, error) {
+
+	// primitive type
+	if targetType.Kind() != reflect.Interface {
+		if targetType == bean.Type() { // type is not same
+			return true, nil
+		}
+		return false, nil
+	}
+
+	// interface type
+	if bean.Type().Kind() == reflect.Interface {
+		if targetType == bean.Type() { // type is same
+			return true, nil
+		}
+		foundType := false
+		for _, et := range bean.Exports() {
+			if et == targetType {
+				foundType = true
+				break
+			}
+		}
+		if foundType {
+			return false, fmt.Errorf("found unimplemented interfaces")
+		}
+		return false, nil
+	}
+
+	foundType := false
+	for _, et := range bean.Exports() {
+		if et == targetType {
+			foundType = true
+			break
+		}
+	}
+	if !foundType {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (c *Resolving) patchMocks() error {
 	for _, x := range c.mocks {
-		var found []*gs_bean.BeanDefinition
-		ot := reflect.TypeOf(x.Object)
-		t, s := x.Target.TypeAndName()
-		switch t.Kind() {
-		case reflect.Interface:
-			for _, b := range c.beans {
-				if b.Type().Kind() == reflect.Interface {
-					if t != b.Type() { // type is not same
-						foundType := false
-						for _, et := range b.Exports() {
-							if et == t {
-								foundType = true
-								break
-							}
-						}
-						if foundType {
-							return fmt.Errorf("found unimplemented interfaces")
-						}
-						continue
-					}
-					for _, et := range b.Exports() {
-						if !ot.Implements(et) {
-							return fmt.Errorf("found unimplemented interfaces")
-						}
-					}
-				} else {
-					foundType := false
-					for _, et := range b.Exports() {
-						if et == t {
-							foundType = true
-							break
-						}
-					}
-					if !foundType {
-						continue
-					}
-					for _, et := range b.Exports() {
-						if !ot.Implements(et) {
-							return fmt.Errorf("found unimplemented interfaces")
-						}
-					}
-				}
-				if s != "" && s != b.Name() { // name is not equal
-					continue
-				}
-				found = append(found, b)
-			}
-		default:
-			for _, b := range c.beans {
-				if t != b.Type() { // type is not same
-					continue
-				}
-				for _, et := range b.Exports() {
-					if !ot.Implements(et) {
-						return fmt.Errorf("found unimplemented interfaces")
-					}
-				}
-				if s != "" && s != b.Name() { // name is not equal
-					continue
-				}
-				found = append(found, b)
-			}
+		if err := c.patchMock(x); err != nil {
+			return err
 		}
-		if len(found) == 0 {
+	}
+	return nil
+}
+
+func (c *Resolving) patchMock(x BeanMock) error {
+	var found []*gs_bean.BeanDefinition
+	vt := reflect.TypeOf(x.Object)
+	t, s := x.Target.TypeAndName()
+	for _, b := range c.beans {
+		matched, err := isBeanMatched(t, b)
+		if err != nil {
+			return err
+		}
+		if !matched {
 			continue
 		}
-		if len(found) > 1 {
-			return fmt.Errorf("found duplicate mocked beans")
+		for _, et := range b.Exports() {
+			if !vt.Implements(et) {
+				return fmt.Errorf("found unimplemented interfaces")
+			}
 		}
-		found[0].SetMock(x.Object)
+		if s != "" && s != b.Name() { // name is not equal
+			continue
+		}
+		found = append(found, b)
 	}
+	if len(found) == 0 {
+		return nil
+	}
+	if len(found) > 1 {
+		return fmt.Errorf("found duplicate mocked beans")
+	}
+	found[0].SetMock(x.Object)
 	return nil
 }
 

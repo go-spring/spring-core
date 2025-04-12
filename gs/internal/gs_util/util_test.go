@@ -86,7 +86,6 @@ func TestTripleSort(t *testing.T) {
 			}
 			return l
 		}
-
 		sorting := util.ListOf("A", "B", "C")
 		sorted, err := TripleSort(sorting, getBefore)
 		assert.Nil(t, err)

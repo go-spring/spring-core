@@ -42,7 +42,11 @@ type MyLogger struct {
 	Name string
 }
 
-func NewLogger(name string) *MyLogger {
+func NewLogger(name string) Logger {
+	return &MyLogger{Name: name}
+}
+
+func NewMyLogger(name string) *MyLogger {
 	return &MyLogger{Name: name}
 }
 
@@ -80,7 +84,7 @@ func TestResolving(t *testing.T) {
 				}
 				for _, name := range keys {
 					arg := gs_arg.Tag(fmt.Sprintf("logger.%s", name))
-					l := gs_bean.NewBean(NewLogger, arg).
+					l := gs_bean.NewBean(NewMyLogger, arg).
 						Export(gs.As[Logger](), gs.As[CtxLogger]()).
 						Name(name)
 					beans = append(beans, l)
@@ -88,8 +92,8 @@ func TestResolving(t *testing.T) {
 				return
 			})
 			r.Provide(NewLogger, gs_arg.Value("c")).Name("c")
-			r.Mock(NewLogger("a@mocked"), gs.BeanSelectorFor[Logger]("a"))
-			r.Mock(NewLogger("b@mocked"), gs.BeanSelectorFor[CtxLogger]("b"))
+			r.Mock(NewMyLogger("a@mocked"), gs.BeanSelectorFor[Logger]("a"))
+			r.Mock(NewMyLogger("b@mocked"), gs.BeanSelectorFor[CtxLogger]("b"))
 		}
 		{
 			b := r.Provide(http.NewServeMux).
