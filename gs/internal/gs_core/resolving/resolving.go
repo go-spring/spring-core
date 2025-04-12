@@ -294,7 +294,7 @@ func (c *Resolving) resolveBean(p conf.Properties) error {
 	// resolves all beans on their condition.
 	ctx := &CondContext{p: p, c: c}
 	for _, b := range c.beans {
-		if err := ctx.resolveBean0(b); err != nil {
+		if err := ctx.resolveBean(b); err != nil {
 			return err
 		}
 	}
@@ -329,7 +329,7 @@ type CondContext struct {
 }
 
 // resolveBean verifies if a bean meets its conditions.
-func (c *CondContext) resolveBean0(b *gs_bean.BeanDefinition) error {
+func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error {
 	if b.Status() >= gs_bean.StatusResolving {
 		return nil
 	}
@@ -382,7 +382,7 @@ func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 		if name != "" && name != b.Name() {
 			continue
 		}
-		if err := c.resolveBean0(b); err != nil {
+		if err := c.resolveBean(b); err != nil {
 			return nil, err
 		}
 		if b.Status() == gs_bean.StatusDeleted {
