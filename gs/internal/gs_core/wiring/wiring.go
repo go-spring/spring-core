@@ -332,9 +332,6 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 	// registers all beans
 	var beans []*gs_bean.BeanDefinition
 	for _, b := range inputBeans {
-		if b.Status() == gs_bean.StatusDeleted {
-			continue
-		}
 		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
 		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 		for _, t := range b.Exports() {
@@ -377,23 +374,23 @@ func (c *Wiring) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 		return err
 	}
 
-	// registers all beans
-	c.beansByName = make(map[string][]BeanRuntime)
-	c.beansByType = make(map[reflect.Type][]BeanRuntime)
-	for _, b := range beans {
-		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
-		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
-		for _, t := range b.Exports() {
-			c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
-		}
-	}
-
 	if !testing.Testing() {
 		if c.p.ObjectsCount() == 0 {
 			c.p = nil
 		}
 		c.beansByName = nil
 		c.beansByType = nil
+		return nil
+	}
+
+	c.beansByName = make(map[string][]BeanRuntime)
+	c.beansByType = make(map[reflect.Type][]BeanRuntime)
+	for _, b := range inputBeans {
+		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
+		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
+		for _, t := range b.Exports() {
+			c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
+		}
 	}
 	return nil
 }

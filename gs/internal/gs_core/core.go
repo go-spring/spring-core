@@ -30,17 +30,7 @@ import (
 	"github.com/go-spring/spring-core/util/syslog"
 )
 
-type refreshState int
-
-const (
-	RefreshDefault = refreshState(iota) // Not refreshed
-	RefreshInit                         // Preparing to refresh
-	Refreshing                          // Currently refreshing
-	Refreshed                           // Already refreshed
-)
-
 type Container struct {
-	state     refreshState
 	resolving *resolving.Resolving
 	wiring    *wiring.Wiring
 }
@@ -71,11 +61,7 @@ func (c *Container) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
 
 // Register registers a bean definition.
 func (c *Container) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
-	x := b.BeanRegistration().(*gs_bean.BeanDefinition)
-	if c.state < Refreshing {
-		c.resolving.Register(x)
-	}
-	return gs.NewRegisteredBean(x)
+	return c.resolving.Register(b)
 }
 
 // GroupRegister registers a group function.
@@ -90,18 +76,10 @@ func (c *Container) RefreshProperties(p conf.Properties) error {
 
 // Refresh initializes and wires all beans in the container.
 func (c *Container) Refresh(p conf.Properties) (err error) {
-	if c.state != RefreshDefault {
+	if c.resolving.State != resolving.RefreshDefault {
 		return errors.New("container is refreshing or refreshed")
 	}
-	c.state = RefreshInit
 	start := time.Now()
-
-	err = c.resolving.RefreshInit(p)
-	if err != nil {
-		return err
-	}
-
-	c.state = Refreshing
 
 	beans, err := c.resolving.Refresh(p)
 	if err != nil {
@@ -115,7 +93,6 @@ func (c *Container) Refresh(p conf.Properties) (err error) {
 	}
 
 	c.resolving = nil
-	c.state = Refreshed
 	syslog.Debugf("container is refreshed successfully, %d beans cost %v",
 		len(beans), time.Now().Sub(start))
 	return nil
@@ -142,5 +119,7 @@ func (c *Container) Wire(obj interface{}) error {
 
 // Close closes the container and cleans up resources.
 func (c *Container) Close() {
-	c.wiring.Close()
+	if c.wiring != nil {
+		c.wiring.Close()
+	}
 }
