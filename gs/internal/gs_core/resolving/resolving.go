@@ -116,7 +116,7 @@ func (c *Resolving) Refresh(p conf.Properties) error {
 	}
 
 	// scans all configuration beans to register beans.
-	if err := c.scanConfiguration(); err != nil {
+	if err := c.scanConfigurations(); err != nil {
 		return err
 	}
 
@@ -126,12 +126,12 @@ func (c *Resolving) Refresh(p conf.Properties) error {
 	}
 
 	// resolves all beans in the system.
-	if err := c.resolveBean(p); err != nil {
+	if err := c.resolveBeans(p); err != nil {
 		return err
 	}
 
 	// checks all beans in the system for duplicate definitions.
-	if err := c.checkDuplicate(); err != nil {
+	if err := c.checkDuplicateBeans(); err != nil {
 		return err
 	}
 
@@ -154,13 +154,13 @@ func (c *Resolving) patchFuncs(p conf.Properties) error {
 	return nil
 }
 
-func (c *Resolving) scanConfiguration() error {
+func (c *Resolving) scanConfigurations() error {
 	// processes configuration beans to register beans.
 	for _, b := range c.beans {
 		if b.Configuration() == nil {
 			continue
 		}
-		var foundMock BeanMock
+		var found []BeanMock
 		for _, x := range c.mocks {
 			t, s := x.Target.TypeAndName()
 			if s != "" && s != b.Name() {
@@ -169,27 +169,29 @@ func (c *Resolving) scanConfiguration() error {
 			if t != b.Type() {
 				continue
 			}
-			foundMock = x
-			break
+			found = append(found, x)
 		}
-		if foundMock.Target != nil {
-			b.SetMock(foundMock.Object)
+		if n := len(found); n > 1 {
+			return fmt.Errorf("duplicate mock bean for %s", b.Name())
+		} else if n == 1 {
+			b.SetMock(found[0].Object)
 			continue
 		}
-		newBeans, err := c.scanConfiguration0(b)
+		temp, err := c.scanConfiguration(b)
 		if err != nil {
 			return err
 		}
-		c.beans = append(c.beans, newBeans...)
+		c.beans = append(c.beans, temp...)
 	}
 	return nil
 }
 
-func (c *Resolving) scanConfiguration0(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
+func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
 	var (
 		includes []*regexp.Regexp
 		excludes []*regexp.Regexp
 	)
+
 	param := bd.Configuration()
 	ss := param.Includes
 	if len(ss) == 0 {
@@ -203,6 +205,7 @@ func (c *Resolving) scanConfiguration0(bd *gs_bean.BeanDefinition) ([]*gs_bean.B
 		}
 		includes = append(includes, x)
 	}
+
 	ss = param.Excludes
 	for _, s := range ss {
 		var x *regexp.Regexp
@@ -212,10 +215,12 @@ func (c *Resolving) scanConfiguration0(bd *gs_bean.BeanDefinition) ([]*gs_bean.B
 		}
 		excludes = append(excludes, x)
 	}
-	var newBeans []*gs_bean.BeanDefinition
+
+	var ret []*gs_bean.BeanDefinition
 	n := bd.Type().NumMethod()
 	for i := 0; i < n; i++ {
 		m := bd.Type().Method(i)
+
 		skip := false
 		for _, x := range excludes {
 			if x.MatchString(m.Name) {
@@ -226,6 +231,7 @@ func (c *Resolving) scanConfiguration0(bd *gs_bean.BeanDefinition) ([]*gs_bean.B
 		if skip {
 			continue
 		}
+
 		for _, x := range includes {
 			if !x.MatchString(m.Name) {
 				continue
@@ -236,11 +242,11 @@ func (c *Resolving) scanConfiguration0(bd *gs_bean.BeanDefinition) ([]*gs_bean.B
 				BeanRegistration().(*gs_bean.BeanDefinition)
 			file, line, _ := util.FileLine(m.Func.Interface())
 			b.SetFileLine(file, line)
-			newBeans = append(newBeans, b)
+			ret = append(ret, b)
 			break
 		}
 	}
-	return newBeans, nil
+	return ret, nil
 }
 
 // isBeanMatched checks if the bean is matched with the target type.
@@ -297,7 +303,7 @@ func (c *Resolving) patchMock(x BeanMock) error {
 	return nil
 }
 
-func (c *Resolving) resolveBean(p conf.Properties) error {
+func (c *Resolving) resolveBeans(p conf.Properties) error {
 	// resolves all beans on their condition.
 	ctx := &CondContext{p: p, c: c}
 	for _, b := range c.beans {
@@ -308,7 +314,7 @@ func (c *Resolving) resolveBean(p conf.Properties) error {
 	return nil
 }
 
-func (c *Resolving) checkDuplicate() error {
+func (c *Resolving) checkDuplicateBeans() error {
 	type BeanID struct {
 		s string
 		t reflect.Type
@@ -318,11 +324,14 @@ func (c *Resolving) checkDuplicate() error {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		beanID := BeanID{b.Name(), b.Type()}
-		if d, ok := beansByID[beanID]; ok {
-			return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
+		types := append(b.Exports(), b.Type())
+		for _, t := range types {
+			beanID := BeanID{b.Name(), t}
+			if d, ok := beansByID[beanID]; ok {
+				return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
+			}
+			beansByID[beanID] = b
 		}
-		beansByID[beanID] = b
 	}
 	return nil
 }
@@ -363,8 +372,8 @@ func (c *CondContext) Prop(key string, def ...string) string {
 
 // Find searches for beans that match the specified selector.
 func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
+	var found []gs.CondBean
 	t, name := s.TypeAndName()
-	var result []gs.CondBean
 	for _, b := range c.c.beans {
 		if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted {
 			continue
@@ -378,7 +387,7 @@ func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		result = append(result, b)
+		found = append(found, b)
 	}
-	return result, nil
+	return found, nil
 }
