@@ -19,6 +19,7 @@ package gs_app
 import (
 	"reflect"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
@@ -99,15 +100,18 @@ func (b *BootImpl) Run() error {
 	}
 	b.c.Object(b)
 
+	var p conf.Properties
+
 	// Refresh the boot configuration.
-	p, err := b.p.Refresh()
-	if err != nil {
-		return err
+	{
+		var err error
+		if p, err = b.p.Refresh(); err != nil {
+			return err
+		}
 	}
 
 	// Refresh the container.
-	err = b.c.Refresh(p)
-	if err != nil {
+	if err := b.c.Refresh(p); err != nil {
 		return err
 	}
 

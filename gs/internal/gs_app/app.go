@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
@@ -98,15 +99,18 @@ func (app *App) Run() error {
 // loading, IoC container refreshing, dependency injection, and runs
 // runners, jobs and servers.
 func (app *App) Start() error {
+	var p conf.Properties
+
 	// loads the layered app properties
-	p, err := app.P.Refresh()
-	if err != nil {
-		return err
+	{
+		var err error
+		if p, err = app.P.Refresh(); err != nil {
+			return err
+		}
 	}
 
 	// refreshes the container
-	err = app.C.Refresh(p)
-	if err != nil {
+	if err := app.C.Refresh(p); err != nil {
 		return err
 	}
 

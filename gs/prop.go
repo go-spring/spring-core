@@ -27,8 +27,8 @@ const (
 	AllowCircularReferencesProp = "spring.allow-circular-references"
 	ForceAutowireIsNullableProp = "spring.force-autowire-is-nullable"
 	ActiveProfilesProp          = "spring.profiles.active"
-	EnableAppJobsProp           = "spring.app.enable-jobs"
-	EnableAppServersProp        = "spring.app.enable-servers"
+	EnableJobsProp              = "spring.app.enable-jobs"
+	EnableServersProp           = "spring.app.enable-servers"
 	EnableSimpleHttpServerProp  = "spring.enable.simple-http-server"
 	EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
 )
@@ -54,14 +54,14 @@ func SetActiveProfiles(profiles string) {
 	setProperty(ActiveProfilesProp, profiles)
 }
 
-// EnableAppJobs enables or disables the app jobs.
-func EnableAppJobs(enable bool) {
-	setProperty(EnableAppJobsProp, strconv.FormatBool(enable))
+// EnableJobs enables or disables the app jobs.
+func EnableJobs(enable bool) {
+	setProperty(EnableJobsProp, strconv.FormatBool(enable))
 }
 
-// EnableAppServers enables or disables the app servers.
-func EnableAppServers(enable bool) {
-	setProperty(EnableAppServersProp, strconv.FormatBool(enable))
+// EnableServers enables or disables the app servers.
+func EnableServers(enable bool) {
+	setProperty(EnableServersProp, strconv.FormatBool(enable))
 }
 
 // EnableSimpleHttpServer enables or disables the simple HTTP server.

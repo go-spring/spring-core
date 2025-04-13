@@ -31,7 +31,7 @@ func init() {
 		IndexArg(1, BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}"))),
 	).Condition(
 		OnBean[*http.ServeMux](),
-		OnProperty(EnableAppServersProp).HavingValue("true").MatchIfMissing(),
+		OnProperty(EnableServersProp).HavingValue("true").MatchIfMissing(),
 		OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
 	).AsServer()
 }
