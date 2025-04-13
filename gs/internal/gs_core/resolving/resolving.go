@@ -163,10 +163,10 @@ func (c *Resolving) scanConfiguration() error {
 		var foundMock BeanMock
 		for _, x := range c.mocks {
 			t, s := x.Target.TypeAndName()
-			if t != b.Type() { // type is not same
+			if s != "" && s != b.Name() {
 				continue
 			}
-			if s != "" && s != b.Name() { // name is not equal
+			if t != b.Type() {
 				continue
 			}
 			foundMock = x
@@ -244,45 +244,23 @@ func (c *Resolving) scanConfiguration0(bd *gs_bean.BeanDefinition) ([]*gs_bean.B
 }
 
 // isBeanMatched checks if the bean is matched with the target type.
-func isBeanMatched(targetType reflect.Type, bean *gs_bean.BeanDefinition) (bool, error) {
-
-	// primitive type
-	if targetType.Kind() != reflect.Interface {
-		if targetType == bean.Type() { // type is not same
-			return true, nil
-		}
-		return false, nil
+func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool {
+	if s != "" && s != b.Name() {
+		return false
 	}
-
-	// interface type
-	if bean.Type().Kind() == reflect.Interface {
-		if targetType == bean.Type() { // type is same
-			return true, nil
-		}
-		foundType := false
-		for _, et := range bean.Exports() {
-			if et == targetType {
-				foundType = true
+	if t != nil && t != b.Type() {
+		var found bool
+		for _, et := range b.Exports() {
+			if et == t {
+				found = true
 				break
 			}
 		}
-		if foundType {
-			return false, fmt.Errorf("found unimplemented interfaces")
-		}
-		return false, nil
-	}
-
-	foundType := false
-	for _, et := range bean.Exports() {
-		if et == targetType {
-			foundType = true
-			break
+		if !found {
+			return false
 		}
 	}
-	if !foundType {
-		return false, nil
-	}
-	return true, nil
+	return true
 }
 
 func (c *Resolving) patchMocks() error {
@@ -299,20 +277,13 @@ func (c *Resolving) patchMock(x BeanMock) error {
 	vt := reflect.TypeOf(x.Object)
 	t, s := x.Target.TypeAndName()
 	for _, b := range c.beans {
-		matched, err := isBeanMatched(t, b)
-		if err != nil {
-			return err
-		}
-		if !matched {
+		if !isBeanMatched(t, s, b) {
 			continue
 		}
 		for _, et := range b.Exports() {
 			if !vt.Implements(et) {
 				return fmt.Errorf("found unimplemented interfaces")
 			}
-		}
-		if s != "" && s != b.Name() { // name is not equal
-			continue
 		}
 		found = append(found, b)
 	}
@@ -398,21 +369,7 @@ func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 		if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
-		if t != nil {
-			if b.Type() != t {
-				foundType := false
-				for _, typ := range b.Exports() {
-					if typ == t {
-						foundType = true
-						break
-					}
-				}
-				if !foundType {
-					continue
-				}
-			}
-		}
-		if name != "" && name != b.Name() {
+		if !isBeanMatched(t, name, b) {
 			continue
 		}
 		if err := c.resolveBean(b); err != nil {
