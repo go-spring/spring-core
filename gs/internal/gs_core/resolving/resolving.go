@@ -91,7 +91,7 @@ func (c *Resolving) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
 // Register adds a bean definition to the list of managed beans.
 func (c *Resolving) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	if c.state >= Refreshing {
-		return gs.NewRegisteredBean(b.BeanRegistration())
+		panic("container is refreshing or refreshed")
 	}
 	bd := b.BeanRegistration().(*gs_bean.BeanDefinition)
 	c.beans = append(c.beans, bd)
@@ -172,7 +172,7 @@ func (c *Resolving) scanConfigurations() error {
 			foundMocks = append(foundMocks, mock)
 		}
 		if n := len(foundMocks); n > 1 {
-			return fmt.Errorf("duplicate mock bean for %s", b.Name())
+			return fmt.Errorf("found duplicate mock bean for '%s'", b.Name())
 		} else if n == 1 {
 			b.SetMock(foundMocks[0].Object)
 			continue
@@ -286,7 +286,7 @@ func (c *Resolving) patchMock(mock BeanMock) error {
 		}
 		for _, et := range b.Exports() {
 			if !vt.Implements(et) {
-				return fmt.Errorf("found unimplemented interfaces")
+				return fmt.Errorf("found unimplemented interface")
 			}
 		}
 		foundBeans = append(foundBeans, b)

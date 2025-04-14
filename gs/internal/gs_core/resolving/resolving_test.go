@@ -17,6 +17,7 @@
 package resolving
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -33,6 +34,10 @@ import (
 type Logger interface {
 	Print(msg string)
 }
+
+type SimpleLogger struct{}
+
+func (l *SimpleLogger) Print(msg string) {}
 
 type CtxLogger interface {
 	CtxPrint(ctx context.Context, msg string)
@@ -72,7 +77,75 @@ func (b *TestBean) NewChildV2() *ChildBean {
 	return &ChildBean{b.Value}
 }
 
+func (b *TestBean) Echo() {}
+
 func TestResolving(t *testing.T) {
+
+	t.Run("register error", func(t *testing.T) {
+		r := New()
+		err := r.Refresh(conf.New())
+		assert.Nil(t, err)
+		assert.Panic(t, func() {
+			r.Register(&gs.BeanDefinition{})
+		}, "container is refreshing or refreshed")
+	})
+
+	t.Run("group error", func(t *testing.T) {
+		r := New()
+		r.GroupRegister(func(p conf.Properties) ([]*gs.BeanDefinition, error) {
+			return nil, fmt.Errorf("group error")
+		})
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "group error")
+	})
+
+	t.Run("configuration error - 1", func(t *testing.T) {
+		r := New()
+		r.Object(&TestBean{Value: 1}).Configuration()
+		r.Mock(&TestBean{Value: 9}, gs.BeanSelectorFor[*TestBean]())
+		r.Mock(&TestBean{Value: 9}, gs.BeanSelectorFor[*TestBean]())
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "found duplicate mock bean for 'TestBean'")
+	})
+
+	t.Run("configuration error - 2", func(t *testing.T) {
+		r := New()
+		r.Object(&TestBean{Value: 1}).Configuration(
+			gs.Configuration{
+				Includes: []string{"*"},
+			},
+		)
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "error parsing regexp: missing argument to repetition operator: `*`")
+	})
+
+	t.Run("configuration error - 3", func(t *testing.T) {
+		r := New()
+		r.Object(&TestBean{Value: 1}).Configuration(
+			gs.Configuration{
+				Excludes: []string{"*"},
+			},
+		)
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "error parsing regexp: missing argument to repetition operator: `*`")
+	})
+
+	t.Run("mock error", func(t *testing.T) {
+		r := New()
+		r.Provide(NewMyLogger, gs_arg.Value("a")).
+			Export(gs.As[Logger](), gs.As[CtxLogger]())
+		r.Mock(&SimpleLogger{}, gs.BeanSelectorFor[Logger]())
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "found unimplemented interface")
+	})
+
+	t.Run("repeat refresh", func(t *testing.T) {
+		r := New()
+		err := r.Refresh(conf.New())
+		assert.Nil(t, err)
+		err = r.Refresh(conf.New())
+		assert.Error(t, err, "container is refreshing or refreshed")
+	})
 
 	t.Run("success", func(t *testing.T) {
 		r := New()
@@ -105,6 +178,11 @@ func TestResolving(t *testing.T) {
 			assert.Equal(t, b.BeanRegistration().Name(), "ServeMux")
 		}
 		{
+			b := r.Object(&http.Server{}).
+				Condition(gs_cond.OnBean[*http.ServeMux]())
+			assert.Equal(t, b.BeanRegistration().Name(), "Server")
+		}
+		{
 			b := r.Object(&TestBean{Value: 1}).Configuration().Name("TestBean")
 			assert.Equal(t, b.BeanRegistration().Name(), "TestBean")
 			r.Mock(&TestBean{Value: 2}, b)
@@ -117,6 +195,9 @@ func TestResolving(t *testing.T) {
 			assert.Equal(t, b.BeanRegistration().Name(), "TestBean-2")
 			r.Mock(&ChildBean{Value: 2}, gs.BeanSelectorFor[*ChildBean]())
 		}
+		{
+			r.Mock(&bytes.Buffer{}, gs.BeanSelectorFor[*bytes.Buffer]())
+		}
 
 		p := conf.Map(map[string]interface{}{
 			"logger": map[string]string{
@@ -126,6 +207,6 @@ func TestResolving(t *testing.T) {
 		})
 		err := r.Refresh(p)
 		assert.Nil(t, err)
-		assert.Equal(t, len(r.Beans()), 7)
+		assert.Equal(t, len(r.Beans()), 8)
 	})
 }
