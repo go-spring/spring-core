@@ -29,15 +29,15 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
-type refreshState int
+type RefreshState int
 
 const (
-	RefreshDefault = refreshState(iota)
+	RefreshDefault = RefreshState(iota)
 	Refreshing
 	Refreshed
 )
 
-type GroupFunc = func(p conf.Properties) ([]*gs.BeanDefinition, error)
+type BeanGroupFunc = func(p conf.Properties) ([]*gs.BeanDefinition, error)
 
 // BeanMock represents a mocked bean with an object and a target selector.
 type BeanMock struct {
@@ -47,10 +47,10 @@ type BeanMock struct {
 
 // Resolving manages mocks, beans, and group functions.
 type Resolving struct {
-	state refreshState
+	state RefreshState
 	mocks []BeanMock
 	beans []*gs_bean.BeanDefinition
-	funcs []GroupFunc
+	funcs []BeanGroupFunc
 }
 
 // New creates a new Resolving instance.
@@ -72,8 +72,8 @@ func (c *Resolving) Beans() []*gs_bean.BeanDefinition {
 
 // Mock registers a mock object with a specified bean selector.
 func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) {
-	x := BeanMock{Object: obj, Target: target}
-	c.mocks = append(c.mocks, x)
+	mock := BeanMock{Object: obj, Target: target}
+	c.mocks = append(c.mocks, mock)
 }
 
 // Object registers a bean in object form.
@@ -99,7 +99,7 @@ func (c *Resolving) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 }
 
 // GroupRegister registers a group function for bean resolution.
-func (c *Resolving) GroupRegister(fn GroupFunc) {
+func (c *Resolving) GroupRegister(fn BeanGroupFunc) {
 	c.funcs = append(c.funcs, fn)
 }
 
@@ -160,21 +160,21 @@ func (c *Resolving) scanConfigurations() error {
 		if b.Configuration() == nil {
 			continue
 		}
-		var found []BeanMock
-		for _, x := range c.mocks {
-			t, s := x.Target.TypeAndName()
+		var foundMocks []BeanMock
+		for _, mock := range c.mocks {
+			t, s := mock.Target.TypeAndName()
 			if s != "" && s != b.Name() {
 				continue
 			}
 			if t != b.Type() {
 				continue
 			}
-			found = append(found, x)
+			foundMocks = append(foundMocks, mock)
 		}
-		if n := len(found); n > 1 {
+		if n := len(foundMocks); n > 1 {
 			return fmt.Errorf("duplicate mock bean for %s", b.Name())
 		} else if n == 1 {
-			b.SetMock(found[0].Object)
+			b.SetMock(foundMocks[0].Object)
 			continue
 		}
 		temp, err := c.scanConfiguration(b)
@@ -195,25 +195,23 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 	param := bd.Configuration()
 	ss := param.Includes
 	if len(ss) == 0 {
-		ss = []string{"New*"}
+		ss = []string{"New.*"}
 	}
 	for _, s := range ss {
-		var x *regexp.Regexp
-		x, err := regexp.Compile(s)
+		p, err := regexp.Compile(s)
 		if err != nil {
 			return nil, err
 		}
-		includes = append(includes, x)
+		includes = append(includes, p)
 	}
 
 	ss = param.Excludes
 	for _, s := range ss {
-		var x *regexp.Regexp
-		x, err := regexp.Compile(s)
+		p, err := regexp.Compile(s)
 		if err != nil {
 			return nil, err
 		}
-		excludes = append(excludes, x)
+		excludes = append(excludes, p)
 	}
 
 	var ret []*gs_bean.BeanDefinition
@@ -222,8 +220,8 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 		m := bd.Type().Method(i)
 
 		skip := false
-		for _, x := range excludes {
-			if x.MatchString(m.Name) {
+		for _, p := range excludes {
+			if p.MatchString(m.Name) {
 				skip = true
 				break
 			}
@@ -232,8 +230,8 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 			continue
 		}
 
-		for _, x := range includes {
-			if !x.MatchString(m.Name) {
+		for _, p := range includes {
+			if !p.MatchString(m.Name) {
 				continue
 			}
 			b := gs_bean.NewBean(m.Func.Interface(), gs.NewBeanDefinition(bd)).
@@ -270,18 +268,18 @@ func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool {
 }
 
 func (c *Resolving) patchMocks() error {
-	for _, x := range c.mocks {
-		if err := c.patchMock(x); err != nil {
+	for _, mock := range c.mocks {
+		if err := c.patchMock(mock); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *Resolving) patchMock(x BeanMock) error {
-	var found []*gs_bean.BeanDefinition
-	vt := reflect.TypeOf(x.Object)
-	t, s := x.Target.TypeAndName()
+func (c *Resolving) patchMock(mock BeanMock) error {
+	var foundBeans []*gs_bean.BeanDefinition
+	vt := reflect.TypeOf(mock.Object)
+	t, s := mock.Target.TypeAndName()
 	for _, b := range c.beans {
 		if !isBeanMatched(t, s, b) {
 			continue
@@ -291,15 +289,15 @@ func (c *Resolving) patchMock(x BeanMock) error {
 				return fmt.Errorf("found unimplemented interfaces")
 			}
 		}
-		found = append(found, b)
+		foundBeans = append(foundBeans, b)
 	}
-	if len(found) == 0 {
+	if len(foundBeans) == 0 {
 		return nil
 	}
-	if len(found) > 1 {
+	if len(foundBeans) > 1 {
 		return fmt.Errorf("found duplicate mocked beans")
 	}
-	found[0].SetMock(x.Object)
+	foundBeans[0].SetMock(mock.Object)
 	return nil
 }
 
