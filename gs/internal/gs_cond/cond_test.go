@@ -121,6 +121,17 @@ func TestOnFunc(t *testing.T) {
 
 func TestOnProperty(t *testing.T) {
 
+	t.Run("property exist", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		ctx := gs.NewMockCondContext(ctrl)
+		ctx.EXPECT().Has("test.prop").Return(true)
+		cond := OnProperty("test.prop")
+		ok, err := cond.Matches(ctx)
+		assert.True(t, ok)
+		assert.Nil(t, err)
+	})
+
 	t.Run("property exist and match", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()

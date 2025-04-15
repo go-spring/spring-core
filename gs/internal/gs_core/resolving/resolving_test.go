@@ -19,6 +19,7 @@ package resolving
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -87,7 +88,7 @@ func TestResolving(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Panic(t, func() {
 			r.Register(&gs.BeanDefinition{})
-		}, "container is refreshing or refreshed")
+		}, "container is refreshing or already refreshed")
 	})
 
 	t.Run("group error", func(t *testing.T) {
@@ -130,7 +131,7 @@ func TestResolving(t *testing.T) {
 		assert.Error(t, err, "error parsing regexp: missing argument to repetition operator: `*`")
 	})
 
-	t.Run("mock error", func(t *testing.T) {
+	t.Run("mock error - 1", func(t *testing.T) {
 		r := New()
 		r.Provide(NewMyLogger, gs_arg.Value("a")).
 			Export(gs.As[Logger](), gs.As[CtxLogger]())
@@ -139,12 +140,62 @@ func TestResolving(t *testing.T) {
 		assert.Error(t, err, "found unimplemented interface")
 	})
 
+	t.Run("mock error - 2", func(t *testing.T) {
+		r := New()
+		r.Object(&TestBean{Value: 1}).Name("TestBean-1")
+		r.Object(&TestBean{Value: 2}).Name("TestBean-2")
+		r.Mock(&TestBean{}, gs.BeanSelectorFor[*TestBean]())
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "found duplicate mocked beans")
+	})
+
+	t.Run("resolve error - 1", func(t *testing.T) {
+		r := New()
+		r.Object(&TestBean{Value: 1}).Condition(
+			gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+				return false, errors.New("condition error")
+			}),
+		)
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "condition matches error: .* << condition error")
+	})
+
+	t.Run("resolve error - 2", func(t *testing.T) {
+		r := New()
+		r.Object(&TestBean{Value: 1}).Condition(
+			gs_cond.OnBean[*TestBean](),
+		)
+		r.Object(&TestBean{Value: 1}).Condition(
+			gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+				return false, errors.New("condition error")
+			}),
+		)
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "condition matches error: .* << condition error")
+	})
+
+	t.Run("duplicate bean - 1", func(t *testing.T) {
+		r := New()
+		r.Object(&TestBean{Value: 1})
+		r.Object(&TestBean{Value: 2})
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "found duplicate beans")
+	})
+
+	t.Run("duplicate bean - 1", func(t *testing.T) {
+		r := New()
+		r.Object(&MyLogger{}).Name("a").Export(gs.As[Logger]())
+		r.Object(&SimpleLogger{}).Name("a").Export(gs.As[Logger]())
+		err := r.Refresh(conf.New())
+		assert.Error(t, err, "found duplicate beans")
+	})
+
 	t.Run("repeat refresh", func(t *testing.T) {
 		r := New()
 		err := r.Refresh(conf.New())
 		assert.Nil(t, err)
 		err = r.Refresh(conf.New())
-		assert.Error(t, err, "container is refreshing or refreshed")
+		assert.Error(t, err, "container is already refreshing or refreshed")
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -169,18 +220,19 @@ func TestResolving(t *testing.T) {
 			r.Mock(NewMyLogger("b@mocked"), gs.BeanSelectorFor[CtxLogger]("b"))
 		}
 		{
-			b := r.Provide(http.NewServeMux).
-				Condition(gs_cond.OnProperty("Enable.ServeMux"))
-			assert.Equal(t, b.BeanRegistration().Name(), "NewServeMux")
-		}
-		{
-			b := r.Provide(http.NewServeMux).Name("ServeMux")
-			assert.Equal(t, b.BeanRegistration().Name(), "ServeMux")
-		}
-		{
 			b := r.Object(&http.Server{}).
 				Condition(gs_cond.OnBean[*http.ServeMux]())
 			assert.Equal(t, b.BeanRegistration().Name(), "Server")
+		}
+		{
+			b := r.Provide(http.NewServeMux).Name("ServeMux-1").
+				Condition(gs_cond.OnProperty("Enable.ServeMux-1").HavingValue("true"))
+			assert.Equal(t, b.BeanRegistration().Name(), "ServeMux-1")
+		}
+		{
+			b := r.Provide(http.NewServeMux).Name("ServeMux-2").
+				Condition(gs_cond.OnProperty("Enable.ServeMux-2").HavingValue("true"))
+			assert.Equal(t, b.BeanRegistration().Name(), "ServeMux-2")
 		}
 		{
 			b := r.Object(&TestBean{Value: 1}).Configuration().Name("TestBean")
@@ -203,6 +255,9 @@ func TestResolving(t *testing.T) {
 			"logger": map[string]string{
 				"a": "",
 				"b": "",
+			},
+			"Enable": map[string]interface{}{
+				"ServeMux-2": true,
 			},
 		})
 		err := r.Refresh(p)

@@ -66,9 +66,9 @@ type OnPropertyInterface interface {
 // in the context. It allows for complex matching behaviors such as matching missing
 // properties or evaluating expressions.
 type onProperty struct {
-	name           string // The name of the property to check.
-	havingValue    string // The expected value or expression to match.
-	matchIfMissing bool   // Whether to match if the property is missing.
+	name           string      // The name of the property to check.
+	matchIfMissing bool        // Whether to match if the property is missing.
+	havingValue    interface{} // The expected value or expression to match.
 }
 
 // OnProperty creates a condition based on the presence and value of a specified property.
@@ -96,14 +96,21 @@ func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
 		return c.matchIfMissing, nil
 	}
 
+	// If the expected value is nil, the condition is always true.
+	if c.havingValue == nil {
+		return true, nil
+	}
+
+	havingValue := c.havingValue.(string)
+
 	// Retrieve the property's value and compare it with the expected value.
 	val := ctx.Prop(c.name)
-	if !strings.HasPrefix(c.havingValue, "expr:") {
-		return val == c.havingValue, nil
+	if !strings.HasPrefix(havingValue, "expr:") {
+		return val == havingValue, nil
 	}
 
 	// Evaluate the expression and return the result.
-	ok, err := EvalExpr(c.havingValue[5:], val)
+	ok, err := EvalExpr(havingValue[5:], val)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
 	}
@@ -114,9 +121,9 @@ func (c *onProperty) String() string {
 	var sb strings.Builder
 	sb.WriteString("OnProperty(name=")
 	sb.WriteString(c.name)
-	if c.havingValue != "" {
+	if c.havingValue != nil {
 		sb.WriteString(", havingValue=")
-		sb.WriteString(c.havingValue)
+		sb.WriteString(c.havingValue.(string))
 	}
 	if c.matchIfMissing {
 		sb.WriteString(", matchIfMissing")
