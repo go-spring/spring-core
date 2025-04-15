@@ -108,8 +108,8 @@ type lazyField struct {
 // Stack tracks the injection path of beans and their destroyers.
 type Stack struct {
 	destroyers   *list.List
-	destroyerMap map[string]*destroyer
-	Beans        []*gs_bean.BeanDefinition
+	destroyerMap map[gs.BeanID]*destroyer
+	beans        []*gs_bean.BeanDefinition
 	lazyFields   []lazyField
 }
 
@@ -117,40 +117,44 @@ type Stack struct {
 func NewStack() *Stack {
 	return &Stack{
 		destroyers:   list.New(),
-		destroyerMap: make(map[string]*destroyer),
+		destroyerMap: make(map[gs.BeanID]*destroyer),
 	}
 }
 
 // pushBack adds a bean to the injection path.
 func (s *Stack) pushBack(b *gs_bean.BeanDefinition) {
 	syslog.Debugf("push %s %s", b, b.Status())
-	s.Beans = append(s.Beans, b)
+	s.beans = append(s.beans, b)
 }
 
 // popBack removes the last bean from the injection path.
 func (s *Stack) popBack() {
-	n := len(s.Beans)
-	b := s.Beans[n-1]
-	s.Beans = s.Beans[:n-1]
+	n := len(s.beans)
+	b := s.beans[n-1]
+	s.beans = s.beans[:n-1]
 	syslog.Debugf("pop %s %s", b, b.Status())
 }
 
 // Path returns the injection path as a string.
 func (s *Stack) Path() (path string) {
-	for _, b := range s.Beans {
+	for _, b := range s.beans {
 		path += fmt.Sprintf("=> %s ↩\n", b)
 	}
 	return path[:len(path)-1] // Remove the trailing newline.
 }
 
 // saveDestroyer tracks a bean with a destroy function, ensuring no duplicates.
-func (s *Stack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer {
-	d, ok := s.destroyerMap[b.Name()] // todo
+func (s *Stack) saveDestroyer(b *gs_bean.BeanDefinition) {
+	beanID := gs.BeanID{Name: b.Name(), Type: b.Type()}
+	d, ok := s.destroyerMap[beanID]
 	if !ok {
 		d = &destroyer{current: b}
-		s.destroyerMap[b.Name()] = d
+		s.destroyerMap[beanID] = d
 	}
-	return d
+	if i := s.destroyers.Back(); i != nil {
+		d.after(i.Value.(*gs_bean.BeanDefinition))
+	}
+	s.destroyers.PushBack(b)
 }
 
 // getSortedDestroyers sorts beans with destroy functions by dependency order.
@@ -233,14 +237,14 @@ func (a *ArgContext) Wire(v reflect.Value, tag string) error {
 
 /************************************ wire ***********************************/
 
-// wireTag represents a parsed injection tag in the format TypeName:BeanName?.
-type wireTag struct {
+// WireTag represents a parsed injection tag in the format TypeName:BeanName?.
+type WireTag struct {
 	beanName string // Bean name for injection.
 	nullable bool   // Whether the injection can be nil.
 }
 
 // String converts a wireTag back to its string representation.
-func (tag wireTag) String() string {
+func (tag WireTag) String() string {
 	b := bytes.NewBuffer(nil)
 	b.WriteString(tag.beanName)
 	if tag.nullable {
@@ -250,7 +254,7 @@ func (tag wireTag) String() string {
 }
 
 // toWireString converts a slice of wireTags to a comma-separated string.
-func toWireString(tags []wireTag) string {
+func toWireString(tags []WireTag) string {
 	var buf bytes.Buffer
 	for i, tag := range tags {
 		buf.WriteString(tag.String())
@@ -262,26 +266,19 @@ func toWireString(tags []wireTag) string {
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
-func parseWireTag(p conf.Properties, str string, needResolve bool) (tag wireTag, err error) {
-
+func parseWireTag(p conf.Properties, str string) (tag WireTag, err error) {
 	if str == "" {
 		return
 	}
-
-	if needResolve {
-		if strings.HasPrefix(str, "${") {
-			str, err = p.Resolve(str)
-			if err != nil {
-				return
-			}
+	if strings.HasPrefix(str, "${") {
+		if str, err = p.Resolve(str); err != nil {
+			return
 		}
 	}
-
 	if n := len(str) - 1; str[n] == '?' {
 		tag.nullable = true
 		str = str[:n]
 	}
-
 	tag.beanName = str
 	return
 }
@@ -313,25 +310,23 @@ func (c *Injecting) RefreshProperties(p conf.Properties) error {
 	return c.p.Refresh(p)
 }
 
-func (c *Injecting) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
+func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 
 	c.allowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
 	c.forceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
 	// registers all beans
-	var beans []*gs_bean.BeanDefinition
-	for _, b := range inputBeans {
+	for _, b := range beans {
 		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
 		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
 		for _, t := range b.Exports() {
 			c.beansByType[t] = append(c.beansByType[t], b)
 		}
-		beans = append(beans, b)
 	}
 
 	stack := NewStack()
 	defer func() {
-		if err != nil || len(stack.Beans) > 0 {
+		if err != nil || len(stack.beans) > 0 {
 			err = fmt.Errorf("%s ↩\n%s", err, stack.Path())
 			syslog.Errorf("%s", err.Error())
 		}
@@ -374,7 +369,7 @@ func (c *Injecting) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) {
 
 	c.beansByName = make(map[string][]BeanRuntime)
 	c.beansByType = make(map[reflect.Type][]BeanRuntime)
-	for _, b := range inputBeans {
+	for _, b := range beans {
 		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
 		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
 		for _, t := range b.Exports() {
@@ -391,7 +386,7 @@ func (c *Injecting) Wire(obj interface{}) error {
 	}
 	stack := NewStack()
 	defer func() {
-		if len(stack.Beans) > 0 {
+		if len(stack.beans) > 0 {
 			syslog.Infof("injecting path %s", stack.Path())
 		}
 	}()
@@ -431,7 +426,7 @@ func (c *Injecting) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 
 // getSingleBean retrieves the bean corresponding to the specified tag and assigns it to `v`.
 // `v` should be an uninitialized value.
-func (c *Injecting) getBean(t reflect.Type, tag wireTag, stack *Stack) (BeanRuntime, error) {
+func (c *Injecting) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRuntime, error) {
 
 	// Check if the type of `v` is a valid bean receiver type.
 	if !util.IsBeanInjectionTarget(t) {
@@ -516,7 +511,7 @@ func (c *Injecting) getBean(t reflect.Type, tag wireTag, stack *Stack) (BeanRunt
 
 // getMultiBeans collects beans into the given slice or map value `v`.
 // It supports dependency injection by resolving matching beans based on tags.
-func (c *Injecting) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) {
+func (c *Injecting) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) {
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Map {
 		return nil, fmt.Errorf("should be slice or map in collection mode")
@@ -680,18 +675,14 @@ func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	// Record the destroy function for the bean, if it exists.
 	if b.Destroy() != nil {
 		haveDestroy = true
-		d := stack.saveDestroyer(b)
-		if i := stack.destroyers.Back(); i != nil {
-			d.after(i.Value.(*gs_bean.BeanDefinition))
-		}
-		stack.destroyers.PushBack(b)
+		stack.saveDestroyer(b)
 	}
 
 	stack.pushBack(b)
 
 	// Detect circular dependency.
 	if b.Status() == gs_bean.StatusCreating && b.Callable() != nil {
-		prev := stack.Beans[len(stack.Beans)-2]
+		prev := stack.beans[len(stack.beans)-2]
 		if prev.Status() == gs_bean.StatusCreating {
 			return errors.New("found circular autowire")
 		}
@@ -907,10 +898,10 @@ func (c *Injecting) autowire(v reflect.Value, str string, stack *Stack) error {
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		{
-			var tags []wireTag
+			var tags []WireTag
 			if str != "" && str != "?" {
 				for _, s := range strings.Split(str, ",") {
-					g, err := parseWireTag(c.p.Data(), s, true)
+					g, err := parseWireTag(c.p.Data(), s)
 					if err != nil {
 						return err
 					}
@@ -950,7 +941,7 @@ func (c *Injecting) autowire(v reflect.Value, str string, stack *Stack) error {
 			return nil
 		}
 	default:
-		tag, err := parseWireTag(c.p.Data(), str, true)
+		tag, err := parseWireTag(c.p.Data(), str)
 		if err != nil {
 			return err
 		}

@@ -23,38 +23,43 @@ import (
 	"strings"
 )
 
+// PathType represents the type of a path segment.
 type PathType int
 
 const (
-	PathTypeKey   PathType = iota // PathTypeKey is map key like a/b in a[0][1].b
-	PathTypeIndex                 // PathTypeIndex is array index like 0/1 in a[0][1].b
+	PathTypeKey   PathType = iota // PathTypeKey indicates a named key in a map.
+	PathTypeIndex                 // PathTypeIndex indicates a numeric index in a list.
 )
 
+// Path represents a segment of a hierarchical path.
+// Each segment is either a key (e.g., "user") or an index (e.g., "0").
 type Path struct {
-	Type PathType
-	Elem string
+	Type PathType // Type determines whether the segment is a key or index.
+	Elem string   // Elem holds the actual key or index value as a string.
 }
 
-// JoinPath joins all path elements into a single path.
+// JoinPath constructs a string representation from a slice of Path segments.
+// Keys are joined with '.', and indices are represented as '[i]'.
 func JoinPath(path []Path) string {
-	var s strings.Builder
+	var sb strings.Builder
 	for i, p := range path {
 		switch p.Type {
 		case PathTypeKey:
 			if i > 0 {
-				s.WriteString(".")
+				sb.WriteString(".")
 			}
-			s.WriteString(p.Elem)
+			sb.WriteString(p.Elem)
 		case PathTypeIndex:
-			s.WriteString("[")
-			s.WriteString(p.Elem)
-			s.WriteString("]")
+			sb.WriteString("[")
+			sb.WriteString(p.Elem)
+			sb.WriteString("]")
 		}
 	}
-	return s.String()
+	return sb.String()
 }
 
-// SplitPath splits key into individual path elements.
+// SplitPath parses a string path into a slice of Path segments.
+// It supports keys separated by '.' and indices enclosed in brackets (e.g., "users[0].name").
 func SplitPath(key string) (_ []Path, err error) {
 	if key == "" {
 		return nil, fmt.Errorf("invalid key '%s'", key)
@@ -124,7 +129,7 @@ func SplitPath(key string) (_ []Path, err error) {
 	return path, nil
 }
 
-// appendKey appends a key to the path.
+// appendKey appends a key segment to the path.
 func appendKey(path []Path, s string) ([]Path, error) {
 	_, err := strconv.ParseUint(s, 10, 64)
 	if err == nil {
@@ -134,7 +139,7 @@ func appendKey(path []Path, s string) ([]Path, error) {
 	return path, nil
 }
 
-// appendIndex appends an index to the path.
+// appendIndex appends an index segment to the path.
 func appendIndex(path []Path, s string) ([]Path, error) {
 	_, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {

@@ -159,6 +159,12 @@ type Server interface {
 
 /*********************************** bean ************************************/
 
+// BeanID represents the unique identifier for a bean.
+type BeanID struct {
+	Type reflect.Type
+	Name string
+}
+
 // BeanInitFunc defines the prototype for initialization functions.
 // Examples: `func(bean)` or `func(bean) error`.
 type BeanInitFunc = interface{}

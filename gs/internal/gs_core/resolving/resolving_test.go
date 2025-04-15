@@ -44,21 +44,21 @@ type CtxLogger interface {
 	CtxPrint(ctx context.Context, msg string)
 }
 
-type MyLogger struct {
+type ZeroLogger struct {
 	Name string
 }
 
 func NewLogger(name string) Logger {
-	return &MyLogger{Name: name}
+	return NewZeroLogger(name)
 }
 
-func NewMyLogger(name string) *MyLogger {
-	return &MyLogger{Name: name}
+func NewZeroLogger(name string) *ZeroLogger {
+	return &ZeroLogger{Name: name}
 }
 
-func (l *MyLogger) Print(msg string) {}
+func (l *ZeroLogger) Print(msg string) {}
 
-func (l *MyLogger) CtxPrint(ctx context.Context, msg string) {}
+func (l *ZeroLogger) CtxPrint(ctx context.Context, msg string) {}
 
 type ChildBean struct {
 	Value int
@@ -133,7 +133,7 @@ func TestResolving(t *testing.T) {
 
 	t.Run("mock error - 1", func(t *testing.T) {
 		r := New()
-		r.Provide(NewMyLogger, gs_arg.Value("a")).
+		r.Provide(NewZeroLogger, gs_arg.Value("a")).
 			Export(gs.As[Logger](), gs.As[CtxLogger]())
 		r.Mock(&SimpleLogger{}, gs.BeanSelectorFor[Logger]())
 		err := r.Refresh(conf.New())
@@ -184,7 +184,7 @@ func TestResolving(t *testing.T) {
 
 	t.Run("duplicate bean - 1", func(t *testing.T) {
 		r := New()
-		r.Object(&MyLogger{}).Name("a").Export(gs.As[Logger]())
+		r.Object(&ZeroLogger{}).Name("a").Export(gs.As[Logger]())
 		r.Object(&SimpleLogger{}).Name("a").Export(gs.As[Logger]())
 		err := r.Refresh(conf.New())
 		assert.Error(t, err, "found duplicate beans")
@@ -208,7 +208,7 @@ func TestResolving(t *testing.T) {
 				}
 				for _, name := range keys {
 					arg := gs_arg.Tag(fmt.Sprintf("logger.%s", name))
-					l := gs_bean.NewBean(NewMyLogger, arg).
+					l := gs_bean.NewBean(NewZeroLogger, arg).
 						Export(gs.As[Logger](), gs.As[CtxLogger]()).
 						Name(name)
 					beans = append(beans, l)
@@ -216,8 +216,8 @@ func TestResolving(t *testing.T) {
 				return
 			})
 			r.Provide(NewLogger, gs_arg.Value("c")).Name("c")
-			r.Mock(NewMyLogger("a@mocked"), gs.BeanSelectorFor[Logger]("a"))
-			r.Mock(NewMyLogger("b@mocked"), gs.BeanSelectorFor[CtxLogger]("b"))
+			r.Mock(NewZeroLogger("a@mocked"), gs.BeanSelectorFor[Logger]("a"))
+			r.Mock(NewZeroLogger("b@mocked"), gs.BeanSelectorFor[CtxLogger]("b"))
 		}
 		{
 			b := r.Object(&http.Server{}).

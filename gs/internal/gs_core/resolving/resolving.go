@@ -329,17 +329,13 @@ func (c *Resolving) resolveBeans(p conf.Properties) error {
 
 // checkDuplicateBeans ensures no duplicate type/name combinations exist.
 func (c *Resolving) checkDuplicateBeans() error {
-	type BeanID struct {
-		s string
-		t reflect.Type
-	}
-	beansByID := make(map[BeanID]*gs_bean.BeanDefinition)
+	beansByID := make(map[gs.BeanID]*gs_bean.BeanDefinition)
 	for _, b := range c.beans {
 		if b.Status() == gs_bean.StatusDeleted {
 			continue
 		}
 		for _, t := range append(b.Exports(), b.Type()) {
-			beanID := BeanID{b.Name(), t}
+			beanID := gs.BeanID{Name: b.Name(), Type: t}
 			if d, ok := beansByID[beanID]; ok {
 				return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
 			}
