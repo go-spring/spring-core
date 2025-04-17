@@ -55,14 +55,6 @@ func (l *ZeroLogger) Print(msg string) {}
 
 func (l *ZeroLogger) CtxPrint(ctx context.Context, msg string) {}
 
-type CycleBean struct {
-	Bean *LazyBean `autowire:""`
-}
-
-type LazyBean struct {
-	Bean *CycleBean `autowire:""`
-}
-
 type Filter interface {
 	Do(ctx context.Context)
 }
@@ -126,11 +118,18 @@ func extractBeans(beans []*gs.BeanDefinition) []*gs_bean.BeanDefinition {
 func TestInjecting(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
-		r := New()
+		r := New(conf.Map(map[string]interface{}{
+			"spring": map[string]interface{}{
+				"allow-circular-references": true,
+			},
+			"logger": map[string]interface{}{
+				"biz": map[string]interface{}{
+					"file": "biz.log",
+				},
+			},
+		}))
 
 		beans := []*gs.BeanDefinition{
-			objectBean(&CycleBean{}),
-			objectBean(&LazyBean{}).Destroy(func(*LazyBean) {}),
 			objectBean(&Repository{}).InitMethod("Init").Destroy(func(r *Repository) {
 				r.stop <- struct{}{}
 			}),
@@ -143,19 +142,7 @@ func TestInjecting(t *testing.T) {
 				Export(gs.As[Logger](), gs.As[CtxLogger]()),
 		}
 
-		err := r.RefreshProperties(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
-				"allow-circular-references": true,
-			},
-			"logger": map[string]interface{}{
-				"biz": map[string]interface{}{
-					"file": "biz.log",
-				},
-			},
-		}))
-		assert.Nil(t, err)
-
-		err = r.Refresh(extractBeans(beans))
+		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
 
 		time.Sleep(time.Millisecond * 50)
@@ -242,5 +229,105 @@ func TestWireTag(t *testing.T) {
 			{"c", true},
 		}
 		assert.Equal(t, toWireString(tags), "a?,b,c?")
+	})
+}
+
+type A struct {
+	B *B `autowire:""`
+}
+
+type B struct {
+	C *C `autowire:""`
+}
+
+type C struct {
+	A *A `autowire:"?"`
+	D *D `autowire:"?"`
+}
+
+type D struct {
+	E *E `autowire:""`
+}
+
+type E struct {
+	c *C
+	g *G
+}
+
+func NewE(c *C, g *G) *E {
+	return &E{c: c, g: g}
+}
+
+type F struct {
+	G *G `autowire:""`
+}
+
+type G struct {
+	e *E
+}
+
+func NewG(e *E) *G {
+	return &G{e: e}
+}
+
+func TestCircularBean(t *testing.T) {
+
+	t.Run("not truly circular - 1", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(&A{}),
+			objectBean(&B{}),
+			objectBean(&C{}),
+		}
+		err := r.RefreshProperties(conf.New())
+		assert.Nil(t, err)
+		err = r.Refresh(extractBeans(beans))
+		assert.Nil(t, err)
+		var s struct {
+			A *A `autowire:""`
+			B *B `autowire:""`
+			C *C `autowire:""`
+		}
+		err = r.Wire(&s)
+		assert.Nil(t, err)
+		assert.Equal(t, s.A.B, s.B)
+		assert.Equal(t, s.B.C, s.C)
+		assert.Equal(t, s.C.A, s.A)
+	})
+
+	t.Run("not truly circular - 2", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(&C{}),
+			objectBean(&D{}),
+			provideBean(NewE, gs_arg.Index(1, gs_arg.Tag("?"))),
+		}
+		err := r.RefreshProperties(conf.New())
+		assert.Nil(t, err)
+		err = r.Refresh(extractBeans(beans))
+		assert.Nil(t, err)
+		var s struct {
+			C *C `autowire:""`
+			D *D `autowire:""`
+			E *E `autowire:""`
+		}
+		err = r.Wire(&s)
+		assert.Nil(t, err)
+		assert.Equal(t, s.C.D, s.D)
+		assert.Equal(t, s.D.E, s.E)
+		assert.Equal(t, s.E.c, s.C)
+	})
+
+	t.Run("found circular", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			provideBean(NewE, gs_arg.Tag("?")),
+			objectBean(&F{}),
+			provideBean(NewG),
+		}
+		err := r.RefreshProperties(conf.New())
+		assert.Nil(t, err)
+		err = r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "found circular autowire")
 	})
 }

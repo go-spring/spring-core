@@ -23,18 +23,18 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
-// treeNode represents a node in the hierarchical key structure.
-// It contains the type of the path and a map of child nodes.
+// treeNode represents a node in the hierarchical key path tree.
+// Each node tracks the type of its path segment and its child nodes.
 type treeNode struct {
 	Type PathType
 	Data map[string]*treeNode
 }
 
-// Storage is a key-value store that enforces hierarchical key structure validation.
-// It uses a tree to manage key paths and a map to store the actual key-value pairs.
+// Storage stores hierarchical key-value pairs and tracks their structure using a tree.
+// It supports nested paths and detects structural conflicts when paths differ in type.
 type Storage struct {
-	root *treeNode
-	data map[string]string
+	root *treeNode         // Root of the hierarchical key path tree
+	data map[string]string // Flat key-value storage for exact key matches
 }
 
 // NewStorage creates and initializes a new Storage instance.
@@ -44,14 +44,15 @@ func NewStorage() *Storage {
 	}
 }
 
-// RawData returns the underlying key-value map.
+// RawData returns the underlying flat key-value map.
 // Note: This exposes internal state; use with caution.
 func (s *Storage) RawData() map[string]string {
 	return s.data
 }
 
-// SubKeys returns immediate child keys under the specified hierarchical key.
-// It returns an error if the key format is invalid or if conflicts occur in the tree.
+// SubKeys returns the immediate subkeys under the given key path.
+// It walks the tree structure and returns child elements if the path exists.
+// Returns an error if there's a type conflict along the path.
 func (s *Storage) SubKeys(key string) (_ []string, err error) {
 	var path []Path
 	if key != "" {
@@ -82,8 +83,8 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) {
 	return util.OrderedMapKeys(n.Data), nil
 }
 
-// Has checks if a key exists in the storage.
-// Returns false if the key format is invalid or the path doesn't exist.
+// Has returns true if the given key exists in the storage,
+// either as a direct value or as a valid path in the hierarchical tree structure.
 func (s *Storage) Has(key string) bool {
 	if key == "" || s.root == nil {
 		return false
@@ -112,8 +113,9 @@ func (s *Storage) Has(key string) bool {
 	return true
 }
 
-// Set stores a key-value pair after validating the key's hierarchical structure.
-// Returns an error for empty keys/values or path conflicts.
+// Set inserts a key-value pair into the storage.
+// It also constructs or extends the corresponding hierarchical path in the tree.
+// Returns an error if there is a type conflict or if the key is empty.
 func (s *Storage) Set(key, val string) error {
 	if key == "" {
 		return errors.New("key is empty")

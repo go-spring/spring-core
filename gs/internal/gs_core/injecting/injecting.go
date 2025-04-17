@@ -107,9 +107,9 @@ type lazyField struct {
 
 // Stack tracks the injection path of beans and their destroyers.
 type Stack struct {
+	beans        []*gs_bean.BeanDefinition
 	destroyers   *list.List
 	destroyerMap map[gs.BeanID]*destroyer
-	beans        []*gs_bean.BeanDefinition
 	lazyFields   []lazyField
 }
 
@@ -121,16 +121,17 @@ func NewStack() *Stack {
 	}
 }
 
-// pushBack adds a bean to the injection path.
-func (s *Stack) pushBack(b *gs_bean.BeanDefinition) {
+// pushBean adds a bean to the injection path.
+func (s *Stack) pushBean(b *gs_bean.BeanDefinition) {
 	syslog.Debugf("push %s %s", b, b.Status())
 	s.beans = append(s.beans, b)
 }
 
-// popBack removes the last bean from the injection path.
-func (s *Stack) popBack() {
+// popBean removes the last bean from the injection path.
+func (s *Stack) popBean() {
 	n := len(s.beans)
 	b := s.beans[n-1]
+	s.beans[n-1] = nil
 	s.beans = s.beans[:n-1]
 	syslog.Debugf("pop %s %s", b, b.Status())
 }
@@ -297,10 +298,10 @@ type Injecting struct {
 	forceAutowireIsNullable bool
 }
 
-func New() *Injecting {
+func New(p conf.Properties) *Injecting {
 	return &Injecting{
 		state:       RefreshDefault,
-		p:           gs_dync.New(nil),
+		p:           gs_dync.New(p),
 		beansByName: make(map[string][]BeanRuntime),
 		beansByType: make(map[reflect.Type][]BeanRuntime),
 	}
@@ -678,19 +679,20 @@ func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 		stack.saveDestroyer(b)
 	}
 
-	stack.pushBack(b)
+	stack.pushBean(b)
 
 	// Detect circular dependency.
 	if b.Status() == gs_bean.StatusCreating && b.Callable() != nil {
-		prev := stack.beans[len(stack.beans)-2]
-		if prev.Status() == gs_bean.StatusCreating {
-			return errors.New("found circular autowire")
+		for _, bean := range stack.beans {
+			if bean == b {
+				return errors.New("found circular autowire")
+			}
 		}
 	}
 
 	// If the bean is already being created, return early.
 	if b.Status() >= gs_bean.StatusCreating {
-		stack.popBack()
+		stack.popBean()
 		return nil
 	}
 
@@ -740,7 +742,7 @@ func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	// Mark the bean as wired and pop it from the stack.
 	b.SetStatus(gs_bean.StatusWired)
-	stack.popBack()
+	stack.popBean()
 	return nil
 }
 

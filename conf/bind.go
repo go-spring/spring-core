@@ -32,8 +32,8 @@ var (
 	ErrInvalidSyntax = errors.New("invalid syntax")
 )
 
-// ParsedTag a value tag includes at most three parts: required key, optional
-// default value, and optional splitter, the syntax is ${key:=value}>>splitter.
+// ParsedTag represents a parsed configuration tag, including key,
+// default value, and optional custom splitter for list parsing.
 type ParsedTag struct {
 	Key      string // short property key
 	Def      string // default value
@@ -57,7 +57,8 @@ func (tag ParsedTag) String() string {
 	return sb.String()
 }
 
-// ParseTag parses a value tag, returns its key, and default value, and splitter.
+// ParseTag parses a tag string in the format `${key:=default}>>splitter`
+// into a ParsedTag struct. Returns an error if the format is invalid.
 func ParseTag(tag string) (ret ParsedTag, err error) {
 	i := strings.LastIndex(tag, ">>")
 	if i == 0 {
@@ -86,6 +87,7 @@ func ParseTag(tag string) (ret ParsedTag, err error) {
 	return
 }
 
+// BindParam holds binding metadata for a single configuration value.
 type BindParam struct {
 	Key      string            // full key
 	Path     string            // full path
@@ -93,6 +95,8 @@ type BindParam struct {
 	Validate reflect.StructTag // full field tag
 }
 
+// BindTag parses and binds the configuration tag to the BindParam.
+// It handles default values and nested key expansion.
 func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 	param.Validate = validate
 	parsedTag, err := ParseTag(tag)
@@ -118,11 +122,13 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 	return nil
 }
 
+// Filter defines an interface for filtering configuration fields during binding.
 type Filter interface {
 	Do(i interface{}, param BindParam) (bool, error)
 }
 
-// BindValue binds properties to a value.
+// BindValue binds a value from properties `p` to the reflect.Value `v` of type `t`
+// using metadata in `param`. It supports primitives, structs, maps, and slices.
 func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
 	if !util.IsPropBindingTarget(t) {
@@ -246,6 +252,8 @@ func bindSlice(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 	return nil
 }
 
+// getSlice retrieves and splits a string into slice elements,
+// creating a new Properties instance if necessary.
 func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error) {
 
 	// properties that defined as list.
@@ -400,7 +408,6 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
 			if err := bindStruct(p, fv, ft.Type, subParam, filter); err != nil {
 				return err // no wrap
 			}
-			continue
 		}
 	}
 	return nil

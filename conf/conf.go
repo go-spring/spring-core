@@ -74,8 +74,7 @@ func RegisterSplitter(name string, fn Splitter) {
 	splitters[name] = fn
 }
 
-// Converter converts string value into user-defined value. It should be function
-// type, and its prototype is func(string)(type,error).
+// Converter converts a string to a target type T.
 type Converter[T any] func(string) (T, error)
 
 // RegisterConverter registers its converter for non-primitive type such as
@@ -165,6 +164,7 @@ func (p *MutableProperties) merge(m map[string]string) error {
 	return nil
 }
 
+// Data returns key-value pairs of the properties.
 func (p *MutableProperties) Data() map[string]string {
 	m := make(map[string]string)
 	for k, v := range p.RawData() {
@@ -173,7 +173,7 @@ func (p *MutableProperties) Data() map[string]string {
 	return m
 }
 
-// Keys returns all sorted keys.
+// Keys returns keys of the properties.
 func (p *MutableProperties) Keys() []string {
 	return util.OrderedMapKeys(p.RawData())
 }

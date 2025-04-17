@@ -31,7 +31,7 @@ type Container struct {
 func New() *Container {
 	return &Container{
 		Resolving: resolving.New(),
-		Injecting: injecting.New(),
+		Injecting: injecting.New(nil),
 	}
 }
 
