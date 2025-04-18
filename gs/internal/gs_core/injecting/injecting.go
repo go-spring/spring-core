@@ -108,9 +108,9 @@ type lazyField struct {
 // Stack tracks the injection path of beans and their destroyers.
 type Stack struct {
 	beans        []*gs_bean.BeanDefinition
+	lazyFields   []lazyField
 	destroyers   *list.List
 	destroyerMap map[gs.BeanID]*destroyer
-	lazyFields   []lazyField
 }
 
 // NewStack creates a new Stack instance.
@@ -138,6 +138,9 @@ func (s *Stack) popBean() {
 
 // Path returns the injection path as a string.
 func (s *Stack) Path() (path string) {
+	if len(s.beans) == 0 {
+		return ""
+	}
 	for _, b := range s.beans {
 		path += fmt.Sprintf("=> %s ↩\n", b)
 	}
@@ -351,7 +354,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 			}
 		}
 	} else if len(stack.lazyFields) > 0 {
-		return errors.New("found circular references in beans")
+		return errors.New("found circular autowire")
 	}
 
 	c.destroyers, err = stack.getSortedDestroyers()

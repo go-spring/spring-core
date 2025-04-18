@@ -270,6 +270,26 @@ func NewG(e *E) *G {
 	return &G{e: e}
 }
 
+type H struct {
+	i *I `autowire:""`
+}
+
+func NewH(i *I) *H {
+	return &H{i: i}
+}
+
+type I struct {
+	J *J `autowire:""`
+}
+
+type J struct {
+	H *H `autowire:",lazy"`
+}
+
+func NewJ() *J {
+	return &J{}
+}
+
 func TestCircularBean(t *testing.T) {
 
 	t.Run("not truly circular - 1", func(t *testing.T) {
@@ -279,9 +299,7 @@ func TestCircularBean(t *testing.T) {
 			objectBean(&B{}),
 			objectBean(&C{}),
 		}
-		err := r.RefreshProperties(conf.New())
-		assert.Nil(t, err)
-		err = r.Refresh(extractBeans(beans))
+		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
 		var s struct {
 			A *A `autowire:""`
@@ -302,9 +320,7 @@ func TestCircularBean(t *testing.T) {
 			objectBean(&D{}),
 			provideBean(NewE, gs_arg.Index(1, gs_arg.Tag("?"))),
 		}
-		err := r.RefreshProperties(conf.New())
-		assert.Nil(t, err)
-		err = r.Refresh(extractBeans(beans))
+		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
 		var s struct {
 			C *C `autowire:""`
@@ -318,16 +334,125 @@ func TestCircularBean(t *testing.T) {
 		assert.Equal(t, s.E.c, s.C)
 	})
 
-	t.Run("found circular", func(t *testing.T) {
+	t.Run("found circular - 1", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			provideBean(NewE, gs_arg.Tag("?")),
 			objectBean(&F{}),
 			provideBean(NewG),
 		}
-		err := r.RefreshProperties(conf.New())
-		assert.Nil(t, err)
-		err = r.Refresh(extractBeans(beans))
+		err := r.Refresh(extractBeans(beans))
 		assert.Error(t, err, "found circular autowire")
+	})
+
+	t.Run("found circular - 2", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			provideBean(NewH),
+			objectBean(&I{}),
+			provideBean(NewJ),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "found circular autowire")
+	})
+
+	t.Run("found circular - 3", func(t *testing.T) {
+		r := New(conf.Map(map[string]interface{}{
+			"spring": map[string]interface{}{
+				"allow-circular-references": true,
+			},
+		}))
+		beans := []*gs.BeanDefinition{
+			provideBean(NewH),
+			objectBean(&I{}),
+			provideBean(NewJ),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Nil(t, err)
+		var s struct {
+			H *H `autowire:""`
+			I *I `autowire:""`
+			J *J `autowire:""`
+		}
+		err = r.Wire(&s)
+		assert.Nil(t, err)
+		assert.Equal(t, s.H.i, s.I)
+		assert.Equal(t, s.I.J, s.J)
+		assert.Equal(t, s.J.H, s.H)
+	})
+}
+
+type DestroyA struct {
+	called bool
+}
+
+type DestroyB struct {
+	called bool
+}
+
+func (d *DestroyB) Destroy() {
+	d.called = true
+}
+
+type DestroyC struct {
+	called   bool
+	DestroyD *DestroyD `autowire:""`
+}
+
+type DestroyD struct {
+	DestroyE *DestroyE `autowire:""`
+}
+
+type DestroyE struct {
+	called bool
+}
+
+func (d *DestroyE) Destroy() {
+	d.called = true
+}
+
+func TestDestroy(t *testing.T) {
+
+	t.Run("normal", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(&DestroyA{}).Destroy(func(d *DestroyA) {
+				d.called = true
+			}),
+			objectBean(&DestroyB{}).DestroyMethod("Destroy"),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Nil(t, err)
+		var s struct {
+			DestroyA *DestroyA `autowire:""`
+			DestroyB *DestroyB `autowire:""`
+		}
+		err = r.Wire(&s)
+		assert.Nil(t, err)
+		r.Close()
+		assert.True(t, s.DestroyA.called)
+		assert.True(t, s.DestroyB.called)
+	})
+
+	t.Run("dependency", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(&DestroyC{}).Destroy(func(d *DestroyC) {
+				d.called = true
+			}),
+			objectBean(&DestroyD{}),
+			objectBean(&DestroyE{}).DestroyMethod("Destroy"),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Nil(t, err)
+		var s struct {
+			DestroyC *DestroyC `autowire:""`
+			DestroyE *DestroyE `autowire:""`
+		}
+		err = r.Wire(&s)
+		assert.Nil(t, err)
+		r.Close()
+		assert.True(t, s.DestroyC.called)
+		assert.True(t, s.DestroyE.called)
 	})
 }
