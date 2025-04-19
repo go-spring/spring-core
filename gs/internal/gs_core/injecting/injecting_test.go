@@ -19,6 +19,7 @@ package injecting
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/util/assert"
 )
@@ -55,17 +57,41 @@ func (l *ZeroLogger) Print(msg string) {}
 
 func (l *ZeroLogger) CtxPrint(ctx context.Context, msg string) {}
 
+type BizLogger struct{}
+
+func (l *BizLogger) Print(msg string) {}
+
 type Filter interface {
 	Do(ctx context.Context)
 }
 
+type FilterImpl struct{}
+
+func (f *FilterImpl) Do(ctx context.Context) {}
+
+type ReqFilter struct{}
+
+func (f *ReqFilter) Do(ctx context.Context, req *http.Request) {}
+
 type Controller struct {
-	Loggers []Logger `inject:"biz,sys"`
+	Loggers []Logger `inject:"biz,*,sys"`
 	Service *Service `autowire:""`
 	Filters []Filter `inject:"?"`
 }
 
+type InnerService struct {
+	Filter Filter `autowire:"my_filter,lazy"`
+}
+
+type ServiceConfig struct {
+	Int int    `value:"${config.int}"`
+	Str string `value:"${config.str}"`
+}
+
 type Service struct {
+	InnerService
+	ServiceConfig `value:"${service}"`
+
 	Loggers    map[string]CtxLogger `inject:"*,sys?"`
 	Repository *Repository          `inject:""`
 	Status     int
@@ -99,6 +125,45 @@ func (r *Repository) GetAddr() string {
 	return r.Addr.Value()
 }
 
+type Server struct {
+	addr string
+	arg  ServerArg
+}
+
+type ServerArg struct {
+	connTimeout  int
+	readTimeout  int
+	writeTimeout int
+}
+
+type ServerOption func(arg *ServerArg)
+
+func SetConnTimeout(connTimeout int) ServerOption {
+	return func(arg *ServerArg) {
+		arg.connTimeout = connTimeout
+	}
+}
+
+func SetReadTimeout(readTimeout int) ServerOption {
+	return func(arg *ServerArg) {
+		arg.readTimeout = readTimeout
+	}
+}
+
+func SetWriteTimeout(writeTimeout int) ServerOption {
+	return func(arg *ServerArg) {
+		arg.writeTimeout = writeTimeout
+	}
+}
+
+func NewServer(addr string, opts ...ServerOption) *Server {
+	var arg ServerArg
+	for _, opt := range opts {
+		opt(&arg)
+	}
+	return &Server{addr: addr, arg: arg}
+}
+
 func objectBean(i interface{}) *gs.BeanDefinition {
 	return gs_bean.NewBean(reflect.ValueOf(i))
 }
@@ -115,31 +180,97 @@ func extractBeans(beans []*gs.BeanDefinition) []*gs_bean.BeanDefinition {
 	return ret
 }
 
+type LazyA struct {
+	LazyB *LazyB `autowire:"b,lazy"`
+}
+
+type LazyB struct {
+	Dummy int `value:"${dummy:=9}"`
+}
+
 func TestInjecting(t *testing.T) {
+
+	t.Run("lazy error - 1", func(t *testing.T) {
+		r := New(conf.Map(map[string]interface{}{
+			"spring": map[string]interface{}{
+				"allow-circular-references": true,
+			},
+		}))
+		beans := []*gs.BeanDefinition{
+			objectBean(&LazyA{}),
+			objectBean(&LazyB{}),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "can't find bean")
+	})
+
+	t.Run("lazy error - 2", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(&LazyA{}),
+			objectBean(&LazyB{}),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "found circular autowire")
+	})
 
 	t.Run("success", func(t *testing.T) {
 		r := New(conf.Map(map[string]interface{}{
 			"spring": map[string]interface{}{
-				"allow-circular-references": true,
+				"allow-circular-references":  true,
+				"force-autowire-is-nullable": true,
 			},
 			"logger": map[string]interface{}{
 				"biz": map[string]interface{}{
 					"file": "biz.log",
 				},
 			},
+			"server": map[string]interface{}{
+				"enable": map[string]interface{}{
+					"write-timeout": true,
+				},
+			},
+			"service": map[string]interface{}{
+				"config": map[string]interface{}{
+					"int": 100,
+					"str": "hello",
+				},
+			},
 		}))
 
+		myFilter := &FilterImpl{}
+
 		beans := []*gs.BeanDefinition{
+			objectBean(myFilter).Name("my_filter"),
+			objectBean(&ReqFilter{}).Name("my_filter"),
 			objectBean(&Repository{}).InitMethod("Init").Destroy(func(r *Repository) {
 				r.stop <- struct{}{}
 			}),
-			objectBean(&Controller{}),
+			objectBean(&Controller{}).DependsOn(
+				gs.BeanSelectorFor[*Service](),
+			),
 			objectBean(&Service{}).DestroyMethod("Destroy").Init(func(s *Service) {
 				s.Status = 1
 			}),
+			objectBean(&SimpleLogger{}).Name("rpc"),
 			objectBean(&SimpleLogger{}).Name("sys").Export(gs.As[Logger]()),
-			provideBean(NewZeroLogger, gs_arg.Tag("${logger.biz.file}")).Name("biz").
-				Export(gs.As[Logger](), gs.As[CtxLogger]()),
+			provideBean(NewZeroLogger, gs_arg.Tag("${logger.biz.file}")).
+				Export(gs.As[Logger](), gs.As[CtxLogger]()).
+				Name("biz"),
+			objectBean(&BizLogger{}).Name("biz"),
+			provideBean(
+				NewServer,
+				gs_arg.Value("127.0.0.1:9090"),
+				gs_arg.Bind(SetReadTimeout, gs_arg.Value(50)).Condition(
+					gs_cond.OnProperty("server.enable.read-timeout"),
+				),
+				gs_arg.Bind(SetWriteTimeout, gs_arg.Value(100)).Condition(
+					gs_cond.OnProperty("server.enable.write-timeout").HavingValue("true"),
+				),
+				gs_arg.Bind(SetConnTimeout, gs_arg.Value(100)).Condition(
+					gs_cond.OnBean[Logger]("biz"),
+				),
+			),
 		}
 
 		err := r.Refresh(extractBeans(beans))
@@ -153,11 +284,46 @@ func TestInjecting(t *testing.T) {
 		assert.Equal(t, len(c.Loggers), 2)
 
 		s := &struct {
+			Server  *Server  `inject:""`
 			Service *Service `autowire:""`
 		}{}
 		err = r.Wire(s)
 		assert.Nil(t, err)
 		assert.Equal(t, s.Service.Status, 1)
+		assert.Equal(t, s.Service.Filter, myFilter)
+		assert.Equal(t, s.Service.Int, 100)
+		assert.Equal(t, s.Service.Str, "hello")
+		assert.Equal(t, s.Server.addr, "127.0.0.1:9090")
+		assert.Equal(t, s.Server.arg.connTimeout, 100)
+		assert.Equal(t, s.Server.arg.readTimeout, 0)
+		assert.Equal(t, s.Server.arg.writeTimeout, 100)
+
+		err = r.RefreshProperties(conf.Map(map[string]interface{}{
+			"spring": map[string]interface{}{
+				"allow-circular-references":  true,
+				"force-autowire-is-nullable": true,
+			},
+			"logger": map[string]interface{}{
+				"biz": map[string]interface{}{
+					"file": "biz.log",
+				},
+			},
+			"server": map[string]interface{}{
+				"enable": map[string]interface{}{
+					"write-timeout": true,
+				},
+			},
+			"service": map[string]interface{}{
+				"config": map[string]interface{}{
+					"int": 100,
+					"str": "hello",
+				},
+			},
+			"addr": "0.0.0.0:5050",
+		}))
+		assert.Nil(t, err)
+
+		assert.Equal(t, s.Service.Repository.Addr.Value(), "0.0.0.0:5050")
 
 		r.Close()
 
@@ -382,42 +548,57 @@ func TestCircularBean(t *testing.T) {
 	})
 }
 
+type Counter struct {
+	count int
+}
+
+func (c *Counter) Incr() int {
+	c.count++
+	return c.count
+}
+
 type DestroyA struct {
-	called bool
+	Counter *Counter `autowire:""`
+	value   int
 }
 
 type DestroyB struct {
-	called bool
+	Counter *Counter `autowire:""`
+	value   int
 }
 
 func (d *DestroyB) Destroy() {
-	d.called = true
+	d.value = d.Counter.Incr()
 }
 
 type DestroyC struct {
-	called   bool
+	Counter  *Counter  `autowire:""`
 	DestroyD *DestroyD `autowire:""`
+	value    int
 }
 
 type DestroyD struct {
+	Counter  *Counter  `autowire:""`
 	DestroyE *DestroyE `autowire:""`
 }
 
 type DestroyE struct {
-	called bool
+	Counter *Counter `autowire:""`
+	value   int
 }
 
 func (d *DestroyE) Destroy() {
-	d.called = true
+	d.value = d.Counter.Incr()
 }
 
 func TestDestroy(t *testing.T) {
 
-	t.Run("normal", func(t *testing.T) {
+	t.Run("independent", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
+			objectBean(&Counter{}),
 			objectBean(&DestroyA{}).Destroy(func(d *DestroyA) {
-				d.called = true
+				d.value = d.Counter.Incr()
 			}),
 			objectBean(&DestroyB{}).DestroyMethod("Destroy"),
 		}
@@ -430,15 +611,16 @@ func TestDestroy(t *testing.T) {
 		err = r.Wire(&s)
 		assert.Nil(t, err)
 		r.Close()
-		assert.True(t, s.DestroyA.called)
-		assert.True(t, s.DestroyB.called)
+		assert.True(t, s.DestroyA.value == 1 || s.DestroyA.value == 2)
+		assert.True(t, s.DestroyB.value == 1 || s.DestroyB.value == 2)
 	})
 
 	t.Run("dependency", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
+			objectBean(&Counter{}),
 			objectBean(&DestroyC{}).Destroy(func(d *DestroyC) {
-				d.called = true
+				d.value = d.Counter.Incr()
 			}),
 			objectBean(&DestroyD{}),
 			objectBean(&DestroyE{}).DestroyMethod("Destroy"),
@@ -452,7 +634,7 @@ func TestDestroy(t *testing.T) {
 		err = r.Wire(&s)
 		assert.Nil(t, err)
 		r.Close()
-		assert.True(t, s.DestroyC.called)
-		assert.True(t, s.DestroyE.called)
+		assert.Equal(t, s.DestroyC.value, 2)
+		assert.Equal(t, s.DestroyE.value, 1)
 	})
 }
