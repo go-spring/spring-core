@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -261,14 +262,7 @@ func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool {
 		return false
 	}
 	if t != nil && t != b.Type() {
-		var found bool
-		for _, et := range b.Exports() {
-			if et == t {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(b.Exports(), t) {
 			return false
 		}
 	}

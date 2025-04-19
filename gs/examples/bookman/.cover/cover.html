@@ -57,7 +57,7 @@
 				
 				<option value="file0">/Users/didi/spring-core/gs/examples/bookman/main.go (87.0%)</option>
 				
-				<option value="file1">github.com/go-spring/spring-core/conf/bind.go (47.1%)</option>
+				<option value="file1">github.com/go-spring/spring-core/conf/bind.go (47.3%)</option>
 				
 				<option value="file2">github.com/go-spring/spring-core/conf/conf.go (82.8%)</option>
 				
@@ -117,7 +117,7 @@
 				
 				<option value="file30">github.com/go-spring/spring-core/gs/internal/gs_cond/expr.go (0.0%)</option>
 				
-				<option value="file31">github.com/go-spring/spring-core/gs/internal/gs_conf/arg.go (42.1%)</option>
+				<option value="file31">github.com/go-spring/spring-core/gs/internal/gs_conf/cmd.go (42.1%)</option>
 				
 				<option value="file32">github.com/go-spring/spring-core/gs/internal/gs_conf/conf.go (68.0%)</option>
 				
@@ -125,9 +125,9 @@
 				
 				<option value="file34">github.com/go-spring/spring-core/gs/internal/gs_core/core.go (66.7%)</option>
 				
-				<option value="file35">github.com/go-spring/spring-core/gs/internal/gs_core/injecting/injecting.go (55.4%)</option>
+				<option value="file35">github.com/go-spring/spring-core/gs/internal/gs_core/injecting/injecting.go (56.2%)</option>
 				
-				<option value="file36">github.com/go-spring/spring-core/gs/internal/gs_core/resolving/resolving.go (44.8%)</option>
+				<option value="file36">github.com/go-spring/spring-core/gs/internal/gs_core/resolving/resolving.go (44.0%)</option>
 				
 				<option value="file37">github.com/go-spring/spring-core/gs/internal/gs_dync/dync.go (79.2%)</option>
 				
@@ -301,8 +301,8 @@ var (
         ErrInvalidSyntax = errors.New("invalid syntax")
 )
 
-// ParsedTag a value tag includes at most three parts: required key, optional
-// default value, and optional splitter, the syntax is ${key:=value}&gt;&gt;splitter.
+// ParsedTag represents a parsed configuration tag, including key,
+// default value, and optional custom splitter for list parsing.
 type ParsedTag struct {
         Key      string // short property key
         Def      string // default value
@@ -326,7 +326,8 @@ func (tag ParsedTag) String() string <span class="cov0" title="0">{
         <span class="cov0" title="0">return sb.String()</span>
 }
 
-// ParseTag parses a value tag, returns its key, and default value, and splitter.
+// ParseTag parses a tag string in the format `${key:=default}&gt;&gt;splitter`
+// into a ParsedTag struct. Returns an error if the format is invalid.
 func ParseTag(tag string) (ret ParsedTag, err error) <span class="cov5" title="41">{
         i := strings.LastIndex(tag, "&gt;&gt;")
         if i == 0 </span><span class="cov0" title="0">{
@@ -355,6 +356,7 @@ func ParseTag(tag string) (ret ParsedTag, err error) <span class="cov5" title="4
         <span class="cov5" title="41">return</span>
 }
 
+// BindParam holds binding metadata for a single configuration value.
 type BindParam struct {
         Key      string            // full key
         Path     string            // full path
@@ -362,6 +364,8 @@ type BindParam struct {
         Validate reflect.StructTag // full field tag
 }
 
+// BindTag parses and binds the configuration tag to the BindParam.
+// It handles default values and nested key expansion.
 func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error <span class="cov5" title="41">{
         param.Validate = validate
         parsedTag, err := ParseTag(tag)
@@ -387,11 +391,13 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error <s
         return nil</span>
 }
 
+// Filter defines an interface for filtering configuration fields during binding.
 type Filter interface {
         Do(i interface{}, param BindParam) (bool, error)
 }
 
-// BindValue binds properties to a value.
+// BindValue binds a value from properties `p` to the reflect.Value `v` of type `t`
+// using metadata in `param`. It supports primitives, structs, maps, and slices.
 func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) <span class="cov4" title="22">{
 
         if !util.IsPropBindingTarget(t) </span><span class="cov0" title="0">{
@@ -515,6 +521,8 @@ func bindSlice(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
         <span class="cov0" title="0">return nil</span>
 }
 
+// getSlice retrieves and splits a string into slice elements,
+// creating a new Properties instance if necessary.
 func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error) <span class="cov0" title="0">{
 
         // properties that defined as list.
@@ -669,7 +677,6 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
                         <span class="cov0" title="0">if err := bindStruct(p, fv, ft.Type, subParam, filter); err != nil </span><span class="cov0" title="0">{
                                 return err // no wrap
                         }</span>
-                        <span class="cov0" title="0">continue</span>
                 }
         }
         <span class="cov2" title="3">return nil</span>
@@ -822,8 +829,7 @@ func RegisterSplitter(name string, fn Splitter) <span class="cov0" title="0">{
         splitters[name] = fn
 }</span>
 
-// Converter converts string value into user-defined value. It should be function
-// type, and its prototype is func(string)(type,error).
+// Converter converts a string to a target type T.
 type Converter[T any] func(string) (T, error)
 
 // RegisterConverter registers its converter for non-primitive type such as
@@ -913,6 +919,7 @@ func (p *MutableProperties) merge(m map[string]string) error <span class="cov6" 
         <span class="cov6" title="44">return nil</span>
 }
 
+// Data returns key-value pairs of the properties.
 func (p *MutableProperties) Data() map[string]string <span class="cov0" title="0">{
         m := make(map[string]string)
         for k, v := range p.RawData() </span><span class="cov0" title="0">{
@@ -921,23 +928,23 @@ func (p *MutableProperties) Data() map[string]string <span class="cov0" title="0
         <span class="cov0" title="0">return m</span>
 }
 
-// Keys returns all sorted keys.
+// Keys returns keys of the properties.
 func (p *MutableProperties) Keys() []string <span class="cov4" title="8">{
         return util.OrderedMapKeys(p.RawData())
 }</span>
 
 // Get returns key's value, using Def to return a default value.
-func (p *MutableProperties) Get(key string, def ...string) string <span class="cov10" title="442">{
+func (p *MutableProperties) Get(key string, def ...string) string <span class="cov10" title="426">{
         val, ok := p.RawData()[key]
         if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="22">{
                 return def[0]
         }</span>
-        <span class="cov9" title="420">return val</span>
+        <span class="cov9" title="404">return val</span>
 }
 
 // Resolve resolves string value that contains references to other
 // properties, the references are defined by ${key:=def}.
-func (p *MutableProperties) Resolve(s string) (string, error) <span class="cov7" title="114">{
+func (p *MutableProperties) Resolve(s string) (string, error) <span class="cov8" title="114">{
         return resolveString(p, s)
 }</span>
 
@@ -1173,12 +1180,12 @@ import (
 
 // Read parses []byte in the yaml format into map.
 func Read(b []byte) (map[string]interface{}, error) <span class="cov0" title="0">{
-        m := make(map[string]interface{})
-        err := yaml.Unmarshal(b, &amp;m)
+        ret := make(map[string]interface{})
+        err := yaml.Unmarshal(b, &amp;ret)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov0" title="0">return m, nil</span>
+        <span class="cov0" title="0">return ret, nil</span>
 }
 </pre>
 		
@@ -1207,63 +1214,68 @@ import (
         "strings"
 )
 
+// PathType represents the type of a path segment.
 type PathType int
 
 const (
-        PathTypeKey   PathType = iota // PathTypeKey is map key like a/b in a[0][1].b
-        PathTypeIndex                 // PathTypeIndex is array index like 0/1 in a[0][1].b
+        PathTypeKey   PathType = iota // PathTypeKey indicates a named key in a map.
+        PathTypeIndex                 // PathTypeIndex indicates a numeric index in a list.
 )
 
+// Path represents a segment of a hierarchical path.
+// Each segment is either a key (e.g., "user") or an index (e.g., "0").
 type Path struct {
-        Type PathType
-        Elem string
+        Type PathType // Type determines whether the segment is a key or index.
+        Elem string   // Elem holds the actual key or index value as a string.
 }
 
-// JoinPath joins all path elements into a single path.
+// JoinPath constructs a string representation from a slice of Path segments.
+// Keys are joined with '.', and indices are represented as '[i]'.
 func JoinPath(path []Path) string <span class="cov0" title="0">{
-        var s strings.Builder
+        var sb strings.Builder
         for i, p := range path </span><span class="cov0" title="0">{
                 switch p.Type </span>{
                 case PathTypeKey:<span class="cov0" title="0">
                         if i &gt; 0 </span><span class="cov0" title="0">{
-                                s.WriteString(".")
+                                sb.WriteString(".")
                         }</span>
-                        <span class="cov0" title="0">s.WriteString(p.Elem)</span>
+                        <span class="cov0" title="0">sb.WriteString(p.Elem)</span>
                 case PathTypeIndex:<span class="cov0" title="0">
-                        s.WriteString("[")
-                        s.WriteString(p.Elem)
-                        s.WriteString("]")</span>
+                        sb.WriteString("[")
+                        sb.WriteString(p.Elem)
+                        sb.WriteString("]")</span>
                 }
         }
-        <span class="cov0" title="0">return s.String()</span>
+        <span class="cov0" title="0">return sb.String()</span>
 }
 
-// SplitPath splits key into individual path elements.
-func SplitPath(key string) (_ []Path, err error) <span class="cov7" title="635">{
+// SplitPath parses a string path into a slice of Path segments.
+// It supports keys separated by '.' and indices enclosed in brackets (e.g., "users[0].name").
+func SplitPath(key string) (_ []Path, err error) <span class="cov7" title="611">{
         if key == "" </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="635">var (
+        <span class="cov7" title="611">var (
                 path        []Path
                 lastPos     int
                 lastChar    int32
                 openBracket bool
         )
-        for i, c := range key </span><span class="cov10" title="7771">{
+        for i, c := range key </span><span class="cov10" title="7519">{
                 switch c </span>{
                 case ' ':<span class="cov0" title="0">
                         return nil, fmt.Errorf("invalid key '%s'", key)</span>
-                case '.':<span class="cov7" title="613">
+                case '.':<span class="cov7" title="589">
                         if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov7" title="613">if lastChar != ']' </span><span class="cov7" title="613">{
+                        <span class="cov7" title="589">if lastChar != ']' </span><span class="cov7" title="589">{
                                 path, err = appendKey(path, key[lastPos:i])
                                 if err != nil </span><span class="cov0" title="0">{
                                         return nil, fmt.Errorf("invalid key '%s'", key)
                                 }</span>
                         }
-                        <span class="cov7" title="613">lastPos = i + 1
+                        <span class="cov7" title="589">lastPos = i + 1
                         lastChar = c</span>
                 case '[':<span class="cov0" title="0">
                         if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
@@ -1289,36 +1301,36 @@ func SplitPath(key string) (_ []Path, err error) <span class="cov7" title="635">
                         <span class="cov0" title="0">openBracket = false
                         lastPos = i + 1
                         lastChar = c</span>
-                default:<span class="cov9" title="7158">
+                default:<span class="cov9" title="6930">
                         if lastChar == ']' </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov9" title="7158">lastChar = c</span>
+                        <span class="cov9" title="6930">lastChar = c</span>
                 }
         }
-        <span class="cov7" title="635">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
+        <span class="cov7" title="611">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="635">if lastChar != ']' </span><span class="cov7" title="635">{
+        <span class="cov7" title="611">if lastChar != ']' </span><span class="cov7" title="611">{
                 path, err = appendKey(path, key[lastPos:])
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("invalid key '%s'", key)
                 }</span>
         }
-        <span class="cov7" title="635">return path, nil</span>
+        <span class="cov7" title="611">return path, nil</span>
 }
 
-// appendKey appends a key to the path.
-func appendKey(path []Path, s string) ([]Path, error) <span class="cov8" title="1248">{
+// appendKey appends a key segment to the path.
+func appendKey(path []Path, s string) ([]Path, error) <span class="cov8" title="1200">{
         _, err := strconv.ParseUint(s, 10, 64)
         if err == nil </span><span class="cov0" title="0">{
                 return nil, errors.New("invalid key")
         }</span>
-        <span class="cov8" title="1248">path = append(path, Path{PathTypeKey, s})
+        <span class="cov8" title="1200">path = append(path, Path{PathTypeKey, s})
         return path, nil</span>
 }
 
-// appendIndex appends an index to the path.
+// appendIndex appends an index segment to the path.
 func appendIndex(path []Path, s string) ([]Path, error) <span class="cov0" title="0">{
         _, err := strconv.ParseUint(s, 10, 64)
         if err != nil </span><span class="cov0" title="0">{
@@ -1354,18 +1366,18 @@ import (
         "github.com/go-spring/spring-core/util"
 )
 
-// treeNode represents a node in the hierarchical key structure.
-// It contains the type of the path and a map of child nodes.
+// treeNode represents a node in the hierarchical key path tree.
+// Each node tracks the type of its path segment and its child nodes.
 type treeNode struct {
         Type PathType
         Data map[string]*treeNode
 }
 
-// Storage is a key-value store that enforces hierarchical key structure validation.
-// It uses a tree to manage key paths and a map to store the actual key-value pairs.
+// Storage stores hierarchical key-value pairs and tracks their structure using a tree.
+// It supports nested paths and detects structural conflicts when paths differ in type.
 type Storage struct {
-        root *treeNode
-        data map[string]string
+        root *treeNode         // Root of the hierarchical key path tree
+        data map[string]string // Flat key-value storage for exact key matches
 }
 
 // NewStorage creates and initializes a new Storage instance.
@@ -1375,14 +1387,15 @@ func NewStorage() *Storage <span class="cov5" title="35">{
         }
 }</span>
 
-// RawData returns the underlying key-value map.
+// RawData returns the underlying flat key-value map.
 // Note: This exposes internal state; use with caution.
-func (s *Storage) RawData() map[string]string <span class="cov8" title="484">{
+func (s *Storage) RawData() map[string]string <span class="cov8" title="468">{
         return s.data
 }</span>
 
-// SubKeys returns immediate child keys under the specified hierarchical key.
-// It returns an error if the key format is invalid or if conflicts occur in the tree.
+// SubKeys returns the immediate subkeys under the given key path.
+// It walks the tree structure and returns child elements if the path exists.
+// Returns an error if there's a type conflict along the path.
 func (s *Storage) SubKeys(key string) (_ []string, err error) <span class="cov1" title="1">{
         var path []Path
         if key != "" </span><span class="cov1" title="1">{
@@ -1413,8 +1426,8 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) <span class="cov1"
         <span class="cov1" title="1">return util.OrderedMapKeys(n.Data), nil</span>
 }
 
-// Has checks if a key exists in the storage.
-// Returns false if the key format is invalid or the path doesn't exist.
+// Has returns true if the given key exists in the storage,
+// either as a direct value or as a valid path in the hierarchical tree structure.
 func (s *Storage) Has(key string) bool <span class="cov5" title="27">{
         if key == "" || s.root == nil </span><span class="cov0" title="0">{
                 return false
@@ -1430,61 +1443,62 @@ func (s *Storage) Has(key string) bool <span class="cov5" title="27">{
         }</span>
 
         <span class="cov5" title="26">n := s.root
-        for _, node := range path </span><span class="cov6" title="51">{
+        for _, node := range path </span><span class="cov5" title="48">{
                 if n == nil || node.Type != n.Type </span><span class="cov0" title="0">{
                         return false
                 }</span>
-                <span class="cov6" title="51">v, ok := n.Data[node.Elem]
+                <span class="cov5" title="48">v, ok := n.Data[node.Elem]
                 if !ok </span><span class="cov5" title="25">{
                         return false
                 }</span>
-                <span class="cov5" title="26">n = v</span>
+                <span class="cov5" title="23">n = v</span>
         }
         <span class="cov1" title="1">return true</span>
 }
 
-// Set stores a key-value pair after validating the key's hierarchical structure.
-// Returns an error for empty keys/values or path conflicts.
-func (s *Storage) Set(key, val string) error <span class="cov9" title="608">{
+// Set inserts a key-value pair into the storage.
+// It also constructs or extends the corresponding hierarchical path in the tree.
+// Returns an error if there is a type conflict or if the key is empty.
+func (s *Storage) Set(key, val string) error <span class="cov9" title="584">{
         if key == "" </span><span class="cov0" title="0">{
                 return errors.New("key is empty")
         }</span>
 
-        <span class="cov9" title="608">path, err := SplitPath(key)
+        <span class="cov9" title="584">path, err := SplitPath(key)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
         // Initialize tree root if empty
-        <span class="cov9" title="608">if s.root == nil </span><span class="cov5" title="35">{
+        <span class="cov9" title="584">if s.root == nil </span><span class="cov5" title="35">{
                 s.root = &amp;treeNode{
                         Type: path[0].Type,
                         Data: make(map[string]*treeNode),
                 }
         }</span>
 
-        <span class="cov9" title="608">n := s.root
-        for i, pathNode := range path </span><span class="cov10" title="1160">{
+        <span class="cov9" title="584">n := s.root
+        for i, pathNode := range path </span><span class="cov10" title="1112">{
                 if n == nil || pathNode.Type != n.Type </span><span class="cov0" title="0">{
                         return fmt.Errorf("property conflict at path %s", JoinPath(path[:i+1]))
                 }</span>
-                <span class="cov10" title="1160">v, ok := n.Data[pathNode.Elem]
-                if !ok </span><span class="cov9" title="973">{
-                        if i &lt; len(path)-1 </span><span class="cov8" title="370">{
+                <span class="cov10" title="1112">v, ok := n.Data[pathNode.Elem]
+                if !ok </span><span class="cov9" title="925">{
+                        if i &lt; len(path)-1 </span><span class="cov8" title="346">{
                                 v = &amp;treeNode{
                                         Type: path[i+1].Type,
                                         Data: make(map[string]*treeNode),
                                 }
                         }</span>
-                        <span class="cov9" title="973">n.Data[pathNode.Elem] = v</span>
+                        <span class="cov9" title="925">n.Data[pathNode.Elem] = v</span>
                 }
-                <span class="cov10" title="1160">n = v</span>
+                <span class="cov10" title="1112">n = v</span>
         }
-        <span class="cov9" title="608">if n != nil </span><span class="cov0" title="0">{
+        <span class="cov9" title="584">if n != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("property conflict at path %s", key)
         }</span>
 
-        <span class="cov9" title="608">s.data[key] = val
+        <span class="cov9" title="584">s.data[key] = val
         return nil</span>
 }
 </pre>
@@ -2663,6 +2677,12 @@ type Server interface {
 }
 
 /*********************************** bean ************************************/
+
+// BeanID represents the unique identifier for a bean.
+type BeanID struct {
+        Type reflect.Type
+        Name string
+}
 
 // BeanInitFunc defines the prototype for initialization functions.
 // Examples: `func(bean)` or `func(bean) error`.
@@ -4484,17 +4504,17 @@ type BeanRuntime struct {
 }
 
 // Name returns the name of the bean.
-func (d *BeanRuntime) Name() string <span class="cov8" title="78">{
+func (d *BeanRuntime) Name() string <span class="cov8" title="75">{
         return d.name
 }</span>
 
 // Type returns the type of the bean.
-func (d *BeanRuntime) Type() reflect.Type <span class="cov8" title="73">{
+func (d *BeanRuntime) Type() reflect.Type <span class="cov8" title="76">{
         return d.t
 }</span>
 
 // Value returns the value of the bean as [reflect.Value].
-func (d *BeanRuntime) Value() reflect.Value <span class="cov6" title="39">{
+func (d *BeanRuntime) Value() reflect.Value <span class="cov7" title="39">{
         return d.v
 }</span>
 
@@ -4555,7 +4575,7 @@ func (d *BeanDefinition) SetMock(obj interface{}) <span class="cov0" title="0">{
 }</span>
 
 // Callable returns the callable for the bean.
-func (d *BeanDefinition) Callable() *gs_arg.Callable <span class="cov5" title="19">{
+func (d *BeanDefinition) Callable() *gs_arg.Callable <span class="cov6" title="19">{
         return d.f
 }</span>
 
@@ -4565,7 +4585,7 @@ func (d *BeanDefinition) SetName(name string) <span class="cov3" title="4">{
 }</span>
 
 // Status returns the current status of the bean.
-func (d *BeanDefinition) Status() BeanStatus <span class="cov10" title="247">{
+func (d *BeanDefinition) Status() BeanStatus <span class="cov10" title="197">{
         return d.status
 }</span>
 
@@ -4611,25 +4631,25 @@ func (d *BeanDefinition) SetDestroyMethod(method string) <span class="cov0" titl
 }
 
 // SetExport sets the exported interfaces for the bean.
-func (d *BeanDefinition) SetExport(exports ...reflect.Type) <span class="cov3" title="6">{
-        for _, t := range exports </span><span class="cov3" title="6">{
+func (d *BeanDefinition) SetExport(exports ...reflect.Type) <span class="cov4" title="6">{
+        for _, t := range exports </span><span class="cov4" title="6">{
                 if t.Kind() != reflect.Interface </span><span class="cov0" title="0">{
                         panic("only interface type can be exported")</span>
                 }
-                <span class="cov3" title="6">if !d.Type().Implements(t) </span><span class="cov0" title="0">{
+                <span class="cov4" title="6">if !d.Type().Implements(t) </span><span class="cov0" title="0">{
                         panic(fmt.Sprintf("doesn't implement interface %s", t))</span>
                 }
-                <span class="cov3" title="6">exported := false
+                <span class="cov4" title="6">exported := false
                 for _, export := range d.exports </span><span class="cov0" title="0">{
                         if t == export </span><span class="cov0" title="0">{
                                 exported = true
                                 break</span>
                         }
                 }
-                <span class="cov3" title="6">if exported </span><span class="cov0" title="0">{
+                <span class="cov4" title="6">if exported </span><span class="cov0" title="0">{
                         continue</span>
                 }
-                <span class="cov3" title="6">d.exports = append(d.exports, t)</span>
+                <span class="cov4" title="6">d.exports = append(d.exports, t)</span>
         }
 }
 
@@ -4676,7 +4696,7 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span
         case reflect.Value:<span class="cov4" title="10">
                 fromValue = true
                 v = i</span>
-        default:<span class="cov3" title="6">
+        default:<span class="cov4" title="6">
                 v = reflect.ValueOf(i)</span>
         }
 
@@ -5691,7 +5711,7 @@ func NewEnvironment() *Environment <span class="cov1" title="2">{
 // lookupEnv searches for an environment variable by key in the environ slice.
 func lookupEnv(environ []string, key string) (value string, found bool) <span class="cov4" title="24">{
         key = strings.TrimSpace(key) + "="
-        for _, s := range environ </span><span class="cov8" title="936">{
+        for _, s := range environ </span><span class="cov8" title="888">{
                 if strings.HasPrefix(s, key) </span><span class="cov0" title="0">{
                         v := strings.TrimPrefix(s, key)
                         return strings.TrimSpace(v), true
@@ -5743,32 +5763,32 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error <span class="cov3"
                 return err
         }</span>
 
-        <span class="cov3" title="12">matches := func(rex []*regexp.Regexp, s string) bool </span><span class="cov8" title="936">{
-                for _, r := range rex </span><span class="cov7" title="468">{
-                        if r.MatchString(s) </span><span class="cov7" title="468">{
+        <span class="cov3" title="12">matches := func(rex []*regexp.Regexp, s string) bool </span><span class="cov8" title="888">{
+                for _, r := range rex </span><span class="cov7" title="444">{
+                        if r.MatchString(s) </span><span class="cov7" title="444">{
                                 return true
                         }</span>
                 }
-                <span class="cov7" title="468">return false</span>
+                <span class="cov7" title="444">return false</span>
         }
 
-        <span class="cov3" title="12">for _, env := range environ </span><span class="cov7" title="468">{
+        <span class="cov3" title="12">for _, env := range environ </span><span class="cov7" title="444">{
                 ss := strings.SplitN(env, "=", 2)
                 k, v := ss[0], ""
-                if len(ss) &gt; 1 </span><span class="cov7" title="468">{
+                if len(ss) &gt; 1 </span><span class="cov7" title="444">{
                         v = ss[1]
                 }</span>
 
-                <span class="cov7" title="468">var propKey string
+                <span class="cov7" title="444">var propKey string
                 if strings.HasPrefix(k, prefix) </span><span class="cov0" title="0">{
                         propKey = strings.TrimPrefix(k, prefix)
-                }</span> else<span class="cov7" title="468"> if matches(includeRex, k) &amp;&amp; !matches(excludeRex, k) </span><span class="cov7" title="468">{
+                }</span> else<span class="cov7" title="444"> if matches(includeRex, k) &amp;&amp; !matches(excludeRex, k) </span><span class="cov7" title="444">{
                         propKey = k
                 }</span> else<span class="cov0" title="0"> {
                         continue</span>
                 }
 
-                <span class="cov7" title="468">propKey = strings.ToLower(replaceKey(propKey))
+                <span class="cov7" title="444">propKey = strings.ToLower(replaceKey(propKey))
                 if err = p.Set(propKey, v); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
@@ -5777,19 +5797,19 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error <span class="cov3"
 }
 
 // replaceKey replace '_' with '.'
-func replaceKey(s string) string <span class="cov7" title="468">{
+func replaceKey(s string) string <span class="cov7" title="444">{
         b := make([]byte, len(s)+2)
         b[0] = '_'
         b[len(b)-1] = '_'
         copy(b[1:len(b)-1], s)
-        for i := 1; i &lt; len(b)-1; i++ </span><span class="cov10" title="4692">{
-                if b[i] == '_' </span><span class="cov7" title="360">{
-                        if b[i-1] != '_' &amp;&amp; b[i+1] != '_' </span><span class="cov7" title="312">{
+        for i := 1; i &lt; len(b)-1; i++ </span><span class="cov10" title="4440">{
+                if b[i] == '_' </span><span class="cov7" title="336">{
+                        if b[i-1] != '_' &amp;&amp; b[i+1] != '_' </span><span class="cov7" title="288">{
                                 b[i] = '.'
                         }</span>
                 }
         }
-        <span class="cov7" title="468">return string(b[1 : len(b)-1])</span>
+        <span class="cov7" title="444">return string(b[1 : len(b)-1])</span>
 }
 </pre>
 		
@@ -5826,7 +5846,7 @@ type Container struct {
 func New() *Container <span class="cov10" title="2">{
         return &amp;Container{
                 Resolving: resolving.New(),
-                Injecting: injecting.New(),
+                Injecting: injecting.New(nil),
         }
 }</span>
 
@@ -5870,6 +5890,7 @@ import (
         "errors"
         "fmt"
         "reflect"
+        "slices"
         "sort"
         "strings"
         "testing"
@@ -5910,38 +5931,20 @@ const (
 // destroyer stores beans with destroy functions and their call order.
 type destroyer struct {
         current *gs_bean.BeanDefinition   // The current bean being processed.
-        earlier []*gs_bean.BeanDefinition // Beans that must be destroyed before the current bean.
+        depends []*gs_bean.BeanDefinition // Beans that must be destroyed before the current bean.
 }
 
-// foundEarlier checks if a bean is already in the earlier list.
-func (d *destroyer) foundEarlier(b *gs_bean.BeanDefinition) bool <span class="cov6" title="9">{
-        for _, c := range d.earlier </span><span class="cov0" title="0">{
-                if c == b </span><span class="cov0" title="0">{
-                        return true
-                }</span>
-        }
-        <span class="cov6" title="9">return false</span>
-}
+// after adds a bean to the later list, ensuring it is destroyed after the current bean.
+func (d *destroyer) isDependOn(b *gs_bean.BeanDefinition) bool <span class="cov6" title="9">{
+        return slices.Contains(d.depends, b)
+}</span>
 
-// after adds a bean to the earlier list, ensuring it is destroyed before the current bean.
-func (d *destroyer) after(b *gs_bean.BeanDefinition) <span class="cov0" title="0">{
-        if d.foundEarlier(b) </span><span class="cov0" title="0">{
+// after adds a bean to the later list, ensuring it is destroyed after the current bean.
+func (d *destroyer) dependOn(b *gs_bean.BeanDefinition) <span class="cov0" title="0">{
+        if d.isDependOn(b) </span><span class="cov0" title="0">{
                 return
         }</span>
-        <span class="cov0" title="0">d.earlier = append(d.earlier, b)</span>
-}
-
-// getBeforeDestroyers retrieves destroyers that should be processed before a given one for sorting purposes.
-func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List <span class="cov3" title="3">{
-        d := i.(*destroyer)
-        result := list.New()
-        for e := destroyers.Front(); e != nil; e = e.Next() </span><span class="cov6" title="9">{
-                c := e.Value.(*destroyer)
-                if d.foundEarlier(c.current) </span><span class="cov0" title="0">{
-                        result.PushBack(c)
-                }</span>
-        }
-        <span class="cov3" title="3">return result</span>
+        <span class="cov0" title="0">d.depends = append(d.depends, b)</span>
 }
 
 /****************************** injecting stack ******************************/
@@ -5955,50 +5958,76 @@ type lazyField struct {
 
 // Stack tracks the injection path of beans and their destroyers.
 type Stack struct {
-        destroyers   *list.List
-        destroyerMap map[string]*destroyer
-        Beans        []*gs_bean.BeanDefinition
+        beans        []*gs_bean.BeanDefinition
         lazyFields   []lazyField
+        destroyers   *list.List
+        destroyerMap map[gs.BeanID]*destroyer
 }
 
 // NewStack creates a new Stack instance.
 func NewStack() *Stack <span class="cov2" title="2">{
         return &amp;Stack{
                 destroyers:   list.New(),
-                destroyerMap: make(map[string]*destroyer),
+                destroyerMap: make(map[gs.BeanID]*destroyer),
         }
 }</span>
 
-// pushBack adds a bean to the injection path.
-func (s *Stack) pushBack(b *gs_bean.BeanDefinition) <span class="cov9" title="30">{
+// pushBean adds a bean to the injection path.
+func (s *Stack) pushBean(b *gs_bean.BeanDefinition) <span class="cov9" title="30">{
         syslog.Debugf("push %s %s", b, b.Status())
-        s.Beans = append(s.Beans, b)
+        s.beans = append(s.beans, b)
 }</span>
 
-// popBack removes the last bean from the injection path.
-func (s *Stack) popBack() <span class="cov9" title="30">{
-        n := len(s.Beans)
-        b := s.Beans[n-1]
-        s.Beans = s.Beans[:n-1]
+// popBean removes the last bean from the injection path.
+func (s *Stack) popBean() <span class="cov9" title="30">{
+        n := len(s.beans)
+        b := s.beans[n-1]
+        s.beans[n-1] = nil
+        s.beans = s.beans[:n-1]
         syslog.Debugf("pop %s %s", b, b.Status())
 }</span>
 
 // Path returns the injection path as a string.
 func (s *Stack) Path() (path string) <span class="cov0" title="0">{
-        for _, b := range s.Beans </span><span class="cov0" title="0">{
+        if len(s.beans) == 0 </span><span class="cov0" title="0">{
+                return ""
+        }</span>
+        <span class="cov0" title="0">for _, b := range s.beans </span><span class="cov0" title="0">{
                 path += fmt.Sprintf("=&gt; %s ↩\n", b)
         }</span>
         <span class="cov0" title="0">return path[:len(path)-1]</span> // Remove the trailing newline.
 }
 
-// saveDestroyer tracks a bean with a destroy function, ensuring no duplicates.
-func (s *Stack) saveDestroyer(b *gs_bean.BeanDefinition) *destroyer <span class="cov5" title="6">{
-        d, ok := s.destroyerMap[b.Name()] // todo
+// pushDestroyer tracks a bean with a destroy function, ensuring no duplicates.
+func (s *Stack) pushDestroyer(b *gs_bean.BeanDefinition) <span class="cov5" title="6">{
+        beanID := gs.BeanID{Name: b.Name(), Type: b.Type()}
+        d, ok := s.destroyerMap[beanID]
         if !ok </span><span class="cov3" title="3">{
                 d = &amp;destroyer{current: b}
-                s.destroyerMap[b.Name()] = d
+                s.destroyerMap[beanID] = d
         }</span>
-        <span class="cov5" title="6">return d</span>
+        <span class="cov5" title="6">if i := s.destroyers.Back(); i != nil </span><span class="cov0" title="0">{
+                d.dependOn(i.Value.(*gs_bean.BeanDefinition))
+        }</span>
+        <span class="cov5" title="6">s.destroyers.PushBack(b)</span>
+}
+
+// popDestroyer removes the last bean from the destroyer stack.
+func (s *Stack) popDestroyer() <span class="cov5" title="6">{
+        s.destroyers.Remove(s.destroyers.Back())
+}</span>
+
+// getBeforeDestroyers retrieves destroyers that should be processed before a given one for sorting purposes.
+func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List <span class="cov3" title="3">{
+        d := i.(*destroyer)
+        result := list.New()
+        for e := destroyers.Front(); e != nil; e = e.Next() </span><span class="cov6" title="9">{
+                c := e.Value.(*destroyer)
+                if d.isDependOn(c.current) </span><span class="cov0" title="0">{
+                        result.PushBack(c)
+                }</span>
+        }
+        <span class="cov3" title="3">return result</span>
 }
 
 // getSortedDestroyers sorts beans with destroy functions by dependency order.
@@ -6035,21 +6064,22 @@ func (s *Stack) getSortedDestroyers() ([]func(), error) <span class="cov2" title
 
 // ArgContext holds a Container and a Stack to manage dependency injection.
 type ArgContext struct {
+        p     conf.Properties
         c     *Injecting
         stack *Stack
 }
 
 // NewArgContext creates a new ArgContext with a given Container and Stack.
-func NewArgContext(c *Injecting, stack *Stack) *ArgContext <span class="cov3" title="3">{
-        return &amp;ArgContext{c: c, stack: stack}
+func NewArgContext(p conf.Properties, c *Injecting, stack *Stack) *ArgContext <span class="cov3" title="3">{
+        return &amp;ArgContext{p: p, c: c, stack: stack}
 }</span>
 
 func (a *ArgContext) Has(key string) bool <span class="cov0" title="0">{
-        return a.c.p.Data().Has(key)
+        return a.p.Has(key)
 }</span>
 
 func (a *ArgContext) Prop(key string, def ...string) string <span class="cov0" title="0">{
-        return a.c.p.Data().Get(key, def...)
+        return a.p.Get(key, def...)
 }</span>
 
 func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) <span class="cov0" title="0">{
@@ -6071,7 +6101,7 @@ func (a *ArgContext) Check(c gs.Condition) (bool, error) <span class="cov0" titl
 
 // Bind binds a value to a specific tag in the container.
 func (a *ArgContext) Bind(v reflect.Value, tag string) error <span class="cov4" title="4">{
-        return a.c.p.Data().Bind(v, tag)
+        return a.p.Bind(v, tag)
 }</span>
 
 // Wire wires a value based on a specific tag in the container.
@@ -6081,14 +6111,14 @@ func (a *ArgContext) Wire(v reflect.Value, tag string) error <span class="cov3" 
 
 /************************************ wire ***********************************/
 
-// wireTag represents a parsed injection tag in the format TypeName:BeanName?.
-type wireTag struct {
+// WireTag represents a parsed injection tag in the format TypeName:BeanName?.
+type WireTag struct {
         beanName string // Bean name for injection.
         nullable bool   // Whether the injection can be nil.
 }
 
 // String converts a wireTag back to its string representation.
-func (tag wireTag) String() string <span class="cov0" title="0">{
+func (tag WireTag) String() string <span class="cov0" title="0">{
         b := bytes.NewBuffer(nil)
         b.WriteString(tag.beanName)
         if tag.nullable </span><span class="cov0" title="0">{
@@ -6098,7 +6128,7 @@ func (tag wireTag) String() string <span class="cov0" title="0">{
 }
 
 // toWireString converts a slice of wireTags to a comma-separated string.
-func toWireString(tags []wireTag) string <span class="cov0" title="0">{
+func toWireString(tags []WireTag) string <span class="cov0" title="0">{
         var buf bytes.Buffer
         for i, tag := range tags </span><span class="cov0" title="0">{
                 buf.WriteString(tag.String())
@@ -6110,26 +6140,19 @@ func toWireString(tags []wireTag) string <span class="cov0" title="0">{
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
-func parseWireTag(p conf.Properties, str string, needResolve bool) (tag wireTag, err error) <span class="cov7" title="12">{
-
+func parseWireTag(p conf.Properties, str string) (tag WireTag, err error) <span class="cov7" title="12">{
         if str == "" </span><span class="cov5" title="5">{
                 return
         }</span>
-
-        <span class="cov6" title="7">if needResolve </span><span class="cov6" title="7">{
-                if strings.HasPrefix(str, "${") </span><span class="cov4" title="4">{
-                        str, err = p.Resolve(str)
-                        if err != nil </span><span class="cov0" title="0">{
-                                return
-                        }</span>
-                }
+        <span class="cov6" title="7">if strings.HasPrefix(str, "${") </span><span class="cov4" title="4">{
+                if str, err = p.Resolve(str); err != nil </span><span class="cov0" title="0">{
+                        return
+                }</span>
         }
-
         <span class="cov6" title="7">if n := len(str) - 1; str[n] == '?' </span><span class="cov4" title="4">{
                 tag.nullable = true
                 str = str[:n]
         }</span>
-
         <span class="cov6" title="7">tag.beanName = str
         return</span>
 }
@@ -6148,12 +6171,10 @@ type Injecting struct {
         forceAutowireIsNullable bool
 }
 
-func New() *Injecting <span class="cov2" title="2">{
+func New(p conf.Properties) *Injecting <span class="cov2" title="2">{
         return &amp;Injecting{
-                state:       RefreshDefault,
-                p:           gs_dync.New(nil),
-                beansByName: make(map[string][]BeanRuntime),
-                beansByType: make(map[reflect.Type][]BeanRuntime),
+                state: RefreshDefault,
+                p:     gs_dync.New(p),
         }
 }</span>
 
@@ -6161,25 +6182,25 @@ func (c *Injecting) RefreshProperties(p conf.Properties) error <span class="cov5
         return c.p.Refresh(p)
 }</span>
 
-func (c *Injecting) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) <span class="cov2" title="2">{
-
-        c.allowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
-        c.forceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
+func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) <span class="cov2" title="2">{
+        p := c.p.Data()
+        c.allowCircularReferences = cast.ToBool(p.Get("spring.allow-circular-references"))
+        c.forceAutowireIsNullable = cast.ToBool(p.Get("spring.force-autowire-is-nullable"))
 
         // registers all beans
-        var beans []*gs_bean.BeanDefinition
-        for _, b := range inputBeans </span><span class="cov8" title="16">{
+        c.beansByName = make(map[string][]BeanRuntime)
+        c.beansByType = make(map[reflect.Type][]BeanRuntime)
+        for _, b := range beans </span><span class="cov8" title="16">{
                 c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
                 c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
                 for _, t := range b.Exports() </span><span class="cov5" title="6">{
                         c.beansByType[t] = append(c.beansByType[t], b)
                 }</span>
-                <span class="cov8" title="16">beans = append(beans, b)</span>
         }
 
         <span class="cov2" title="2">stack := NewStack()
         defer func() </span><span class="cov2" title="2">{
-                if err != nil || len(stack.Beans) &gt; 0 </span><span class="cov0" title="0">{
+                if err != nil || len(stack.beans) &gt; 0 </span><span class="cov0" title="0">{
                         err = fmt.Errorf("%s ↩\n%s", err, stack.Path())
                         syslog.Errorf("%s", err.Error())
                 }</span>
@@ -6203,7 +6224,7 @@ func (c *Injecting) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) <s
                         }</span>
                 }
         } else<span class="cov2" title="2"> if len(stack.lazyFields) &gt; 0 </span><span class="cov0" title="0">{
-                return errors.New("found circular references in beans")
+                return errors.New("found circular autowire")
         }</span>
 
         <span class="cov2" title="2">c.destroyers, err = stack.getSortedDestroyers()
@@ -6222,7 +6243,7 @@ func (c *Injecting) Refresh(inputBeans []*gs_bean.BeanDefinition) (err error) <s
 
         <span class="cov0" title="0">c.beansByName = make(map[string][]BeanRuntime)
         c.beansByType = make(map[reflect.Type][]BeanRuntime)
-        for _, b := range inputBeans </span><span class="cov0" title="0">{
+        for _, b := range beans </span><span class="cov0" title="0">{
                 c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
                 c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
                 for _, t := range b.Exports() </span><span class="cov0" title="0">{
@@ -6239,7 +6260,7 @@ func (c *Injecting) Wire(obj interface{}) error <span class="cov0" title="0">{
         }</span>
         <span class="cov0" title="0">stack := NewStack()
         defer func() </span><span class="cov0" title="0">{
-                if len(stack.Beans) &gt; 0 </span><span class="cov0" title="0">{
+                if len(stack.beans) &gt; 0 </span><span class="cov0" title="0">{
                         syslog.Infof("injecting path %s", stack.Path())
                 }</span>
         }()
@@ -6279,7 +6300,7 @@ func (c *Injecting) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) <span cl
 
 // getSingleBean retrieves the bean corresponding to the specified tag and assigns it to `v`.
 // `v` should be an uninitialized value.
-func (c *Injecting) getBean(t reflect.Type, tag wireTag, stack *Stack) (BeanRuntime, error) <span class="cov6" title="8">{
+func (c *Injecting) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRuntime, error) <span class="cov6" title="8">{
 
         // Check if the type of `v` is a valid bean receiver type.
         if !util.IsBeanInjectionTarget(t) </span><span class="cov0" title="0">{
@@ -6289,10 +6310,7 @@ func (c *Injecting) getBean(t reflect.Type, tag wireTag, stack *Stack) (BeanRunt
         <span class="cov6" title="8">var foundBeans []BeanRuntime
         // Iterate through all beans of the given type and match against the tag.
         for _, b := range c.beansByType[t] </span><span class="cov7" title="14">{
-                if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
-                        continue</span>
-                }
-                <span class="cov7" title="14">if tag.beanName == "" || tag.beanName == b.Name() </span><span class="cov6" title="8">{
+                if tag.beanName == "" || tag.beanName == b.Name() </span><span class="cov6" title="8">{
                         foundBeans = append(foundBeans, b)
                 }</span>
         }
@@ -6300,25 +6318,10 @@ func (c *Injecting) getBean(t reflect.Type, tag wireTag, stack *Stack) (BeanRunt
         // When a specific bean name is provided, find it by name.
         <span class="cov6" title="8">if t.Kind() == reflect.Interface &amp;&amp; tag.beanName != "" </span><span class="cov0" title="0">{
                 for _, b := range c.beansByName[tag.beanName] </span><span class="cov0" title="0">{
-                        if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
+                        if !b.Type().AssignableTo(t) </span><span class="cov0" title="0">{
                                 continue</span>
                         }
-                        <span class="cov0" title="0">if !b.Type().AssignableTo(t) </span><span class="cov0" title="0">{
-                                continue</span>
-                        }
-                        <span class="cov0" title="0">if tag.beanName != "" &amp;&amp; tag.beanName != b.Name() </span><span class="cov0" title="0">{
-                                continue</span>
-                        }
-
-                        // Deduplicate the results.
-                        <span class="cov0" title="0">found := false
-                        for _, r := range foundBeans </span><span class="cov0" title="0">{
-                                if r == b </span><span class="cov0" title="0">{
-                                        found = true
-                                        break</span>
-                                }
-                        }
-                        <span class="cov0" title="0">if !found </span><span class="cov0" title="0">{
+                        <span class="cov0" title="0">if !slices.Contains(foundBeans, b) </span><span class="cov0" title="0">{
                                 foundBeans = append(foundBeans, b)
                                 syslog.Warnf("you should call Export() on %s", b)
                         }</span>
@@ -6364,7 +6367,7 @@ func (c *Injecting) getBean(t reflect.Type, tag wireTag, stack *Stack) (BeanRunt
 
 // getMultiBeans collects beans into the given slice or map value `v`.
 // It supports dependency injection by resolving matching beans based on tags.
-func (c *Injecting) getBeans(t reflect.Type, tags []wireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) <span class="cov4" title="4">{
+func (c *Injecting) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) <span class="cov4" title="4">{
 
         if t.Kind() != reflect.Slice &amp;&amp; t.Kind() != reflect.Map </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("should be slice or map in collection mode")
@@ -6375,23 +6378,10 @@ func (c *Injecting) getBeans(t reflect.Type, tags []wireTag, nullable bool, stac
                 return nil, fmt.Errorf("%s is not a valid receiver type", t.String())
         }</span>
 
-        <span class="cov4" title="4">var beans []BeanRuntime
-        beans = c.beansByType[et]
-
-        // Filter out deleted beans
-        </span><span class="cov4" title="4">{
-                var arr []BeanRuntime
-                for _, b := range beans </span><span class="cov5" title="6">{
-                        if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
-                                continue</span>
-                        }
-                        <span class="cov5" title="6">arr = append(arr, b)</span>
-                }
-                <span class="cov4" title="4">beans = arr</span>
-        }
+        <span class="cov4" title="4">beans := c.beansByType[et]
 
         // Process bean tags to filter and order beans
-        <span class="cov4" title="4">if len(tags) &gt; 0 </span><span class="cov4" title="4">{
+        if len(tags) &gt; 0 </span><span class="cov4" title="4">{
                 var (
                         anyBeans  []int
                         afterAny  []int
@@ -6440,14 +6430,7 @@ func (c *Injecting) getBeans(t reflect.Type, tags []wireTag, nullable bool, stac
                 <span class="cov4" title="4">if foundAny </span><span class="cov4" title="4">{
                         temp := append(beforeAny, afterAny...)
                         for i := 0; i &lt; len(beans); i++ </span><span class="cov5" title="6">{
-                                found := false
-                                for _, j := range temp </span><span class="cov0" title="0">{
-                                        if i == j </span><span class="cov0" title="0">{
-                                                found = true
-                                                break</span>
-                                        }
-                                }
-                                <span class="cov5" title="6">if found </span><span class="cov0" title="0">{
+                                if slices.Contains(temp, i) </span><span class="cov0" title="0">{
                                         continue</span>
                                 }
                                 <span class="cov5" title="6">anyBeans = append(anyBeans, i)</span>
@@ -6470,8 +6453,11 @@ func (c *Injecting) getBeans(t reflect.Type, tags []wireTag, nullable bool, stac
         }
 
         // Handle empty beans
-        <span class="cov4" title="4">if len(beans) == 0 &amp;&amp; !nullable </span><span class="cov1" title="1">{
-                if len(tags) == 0 </span><span class="cov0" title="0">{
+        <span class="cov4" title="4">if len(beans) == 0 </span><span class="cov1" title="1">{
+                if nullable </span><span class="cov0" title="0">{
+                        return nil, nil
+                }</span>
+                <span class="cov1" title="1">if len(tags) == 0 </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("no beans collected for %q", toWireString(tags))
                 }</span>
                 <span class="cov1" title="1">for _, tag := range tags </span><span class="cov1" title="1">{
@@ -6506,13 +6492,8 @@ func (c *Injecting) getBeans(t reflect.Type, tags []wireTag, nullable bool, stac
 // it attempts to instantiate and inject those dependencies first.
 func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <span class="cov9" title="30">{
 
-        // Check if the bean is deleted.
-        if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
-                return fmt.Errorf("bean:%q has been deleted", b.String())
-        }</span>
-
         // If the container is refreshed and the bean is already wired, do nothing.
-        <span class="cov9" title="30">if c.state == Refreshed &amp;&amp; b.Status() == gs_bean.StatusWired </span><span class="cov0" title="0">{
+        if c.state == Refreshed &amp;&amp; b.Status() == gs_bean.StatusWired </span><span class="cov0" title="0">{
                 return nil
         }</span>
 
@@ -6521,33 +6502,30 @@ func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <spa
         // Ensure destroy functions are cleaned up in case of failure.
         defer func() </span><span class="cov9" title="30">{
                 if haveDestroy </span><span class="cov5" title="6">{
-                        stack.destroyers.Remove(stack.destroyers.Back())
+                        stack.popDestroyer()
                 }</span>
         }()
 
         // Record the destroy function for the bean, if it exists.
         <span class="cov9" title="30">if b.Destroy() != nil </span><span class="cov5" title="6">{
                 haveDestroy = true
-                d := stack.saveDestroyer(b)
-                if i := stack.destroyers.Back(); i != nil </span><span class="cov0" title="0">{
-                        d.after(i.Value.(*gs_bean.BeanDefinition))
-                }</span>
-                <span class="cov5" title="6">stack.destroyers.PushBack(b)</span>
-        }
+                stack.pushDestroyer(b)
+        }</span>
 
-        <span class="cov9" title="30">stack.pushBack(b)
+        <span class="cov9" title="30">stack.pushBean(b)
 
         // Detect circular dependency.
         if b.Status() == gs_bean.StatusCreating &amp;&amp; b.Callable() != nil </span><span class="cov0" title="0">{
-                prev := stack.Beans[len(stack.Beans)-2]
-                if prev.Status() == gs_bean.StatusCreating </span><span class="cov0" title="0">{
-                        return errors.New("found circular autowire")
-                }</span>
+                for _, bean := range stack.beans </span><span class="cov0" title="0">{
+                        if bean == b </span><span class="cov0" title="0">{
+                                return errors.New("found circular autowire")
+                        }</span>
+                }
         }
 
         // If the bean is already being created, return early.
         <span class="cov9" title="30">if b.Status() &gt;= gs_bean.StatusCreating </span><span class="cov7" title="14">{
-                stack.popBack()
+                stack.popBean()
                 return nil
         }</span>
 
@@ -6597,7 +6575,7 @@ func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error <spa
 
         // Mark the bean as wired and pop it from the stack.
         <span class="cov8" title="16">b.SetStatus(gs_bean.StatusWired)
-        stack.popBack()
+        stack.popBean()
         return nil</span>
 }
 
@@ -6611,7 +6589,7 @@ func (c *Injecting) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, er
         }</span>
 
         // Call the bean's constructor and handle errors.
-        <span class="cov3" title="3">out, err := b.Callable().Call(NewArgContext(c, stack))
+        <span class="cov3" title="3">out, err := b.Callable().Call(NewArgContext(c.p.Data(), c, stack))
         if err != nil </span><span class="cov0" title="0">{
                 if c.forceAutowireIsNullable </span><span class="cov0" title="0">{
                         return reflect.Value{}, nil
@@ -6649,7 +6627,7 @@ func (c *Injecting) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, er
 
         <span class="cov3" title="3">v := b.Value()
         // If the result is an interface, extract the original value.
-        if b.Type().Kind() == reflect.Interface </span><span class="cov0" title="0">{
+        if v.Kind() == reflect.Interface </span><span class="cov0" title="0">{
                 v = v.Elem()
         }</span>
         <span class="cov3" title="3">return v, nil</span>
@@ -6755,10 +6733,10 @@ func (c *Injecting) autowire(v reflect.Value, str string, stack *Stack) error <s
         switch v.Kind() </span>{
         case reflect.Map, reflect.Slice, reflect.Array:<span class="cov4" title="4">
                 </span><span class="cov4" title="4">{
-                        var tags []wireTag
+                        var tags []WireTag
                         if str != "" &amp;&amp; str != "?" </span><span class="cov4" title="4">{
                                 for _, s := range strings.Split(str, ",") </span><span class="cov4" title="4">{
-                                        g, err := parseWireTag(c.p.Data(), s, true)
+                                        g, err := parseWireTag(c.p.Data(), s)
                                         if err != nil </span><span class="cov0" title="0">{
                                                 return err
                                         }</span>
@@ -6798,7 +6776,7 @@ func (c *Injecting) autowire(v reflect.Value, str string, stack *Stack) error <s
                         <span class="cov4" title="4">return nil</span>
                 }
         default:<span class="cov6" title="8">
-                tag, err := parseWireTag(c.p.Data(), str, true)
+                tag, err := parseWireTag(c.p.Data(), str)
                 if err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
@@ -6844,6 +6822,7 @@ import (
         "fmt"
         "reflect"
         "regexp"
+        "slices"
 
         "github.com/go-spring/spring-core/conf"
         "github.com/go-spring/spring-core/gs/internal/gs"
@@ -7084,14 +7063,7 @@ func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool <sp
                 return false
         }</span>
         <span class="cov8" title="13">if t != nil &amp;&amp; t != b.Type() </span><span class="cov8" title="12">{
-                var found bool
-                for _, et := range b.Exports() </span><span class="cov5" title="4">{
-                        if et == t </span><span class="cov0" title="0">{
-                                found = true
-                                break</span>
-                        }
-                }
-                <span class="cov8" title="12">if !found </span><span class="cov8" title="12">{
+                if !slices.Contains(b.Exports(), t) </span><span class="cov8" title="12">{
                         return false
                 }</span>
         }
@@ -7152,17 +7124,13 @@ func (c *Resolving) resolveBeans(p conf.Properties) error <span class="cov3" tit
 
 // checkDuplicateBeans ensures no duplicate type/name combinations exist.
 func (c *Resolving) checkDuplicateBeans() error <span class="cov3" title="2">{
-        type BeanID struct {
-                s string
-                t reflect.Type
-        }
-        beansByID := make(map[BeanID]*gs_bean.BeanDefinition)
+        beansByID := make(map[gs.BeanID]*gs_bean.BeanDefinition)
         for _, b := range c.beans </span><span class="cov9" title="16">{
                 if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
                         continue</span>
                 }
                 <span class="cov9" title="16">for _, t := range append(b.Exports(), b.Type()) </span><span class="cov10" title="22">{
-                        beanID := BeanID{b.Name(), t}
+                        beanID := gs.BeanID{Name: b.Name(), Type: t}
                         if d, ok := beansByID[beanID]; ok </span><span class="cov0" title="0">{
                                 return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
                         }</span>
@@ -7352,7 +7320,7 @@ func New(p conf.Properties) *Properties <span class="cov2" title="2">{
 }</span>
 
 // Data returns the current properties.
-func (p *Properties) Data() conf.Properties <span class="cov6" title="20">{
+func (p *Properties) Data() conf.Properties <span class="cov5" title="17">{
         p.lock.RLock()
         defer p.lock.RUnlock()
         return p.prop
@@ -7379,15 +7347,15 @@ func (p *Properties) Refresh(prop conf.Properties) (err error) <span class="cov4
         p.prop = prop
 
         oldKeys := make(map[string]struct{})
-        for _, k := range old.Keys() </span><span class="cov10" title="196">{
+        for _, k := range old.Keys() </span><span class="cov10" title="188">{
                 oldKeys[k] = struct{}{}
         }</span>
 
         <span class="cov3" title="4">changes := make(map[string]struct{})
-        for _, k := range prop.Keys() </span><span class="cov10" title="196">{
-                if _, ok := oldKeys[k]; ok </span><span class="cov10" title="196">{
+        for _, k := range prop.Keys() </span><span class="cov10" title="188">{
+                if _, ok := oldKeys[k]; ok </span><span class="cov10" title="188">{
                         delete(oldKeys, k)
-                        if old.Get(k) == prop.Get(k) </span><span class="cov9" title="192">{
+                        if old.Get(k) == prop.Get(k) </span><span class="cov9" title="184">{
                                 continue</span>
                         }
                 }
@@ -8149,7 +8117,7 @@ import (
 // MapKeys returns the keys of the map m.
 func MapKeys[M ~map[K]V, K comparable, V any](m M) []K <span class="cov4" title="9">{
         r := make([]K, 0, len(m))
-        for k := range m </span><span class="cov10" title="395">{
+        for k := range m </span><span class="cov10" title="379">{
                 r = append(r, k)
         }</span>
         <span class="cov4" title="9">return r</span>
