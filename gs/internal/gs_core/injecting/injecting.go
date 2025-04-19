@@ -196,22 +196,21 @@ func (s *Stack) getSortedDestroyers() ([]func(), error) {
 
 // ArgContext holds a Container and a Stack to manage dependency injection.
 type ArgContext struct {
-	p     conf.Properties
-	c     *Injecting
+	c     *Injector
 	stack *Stack
 }
 
 // NewArgContext creates a new ArgContext with a given Container and Stack.
-func NewArgContext(p conf.Properties, c *Injecting, stack *Stack) *ArgContext {
-	return &ArgContext{p: p, c: c, stack: stack}
+func NewArgContext(c *Injector, stack *Stack) *ArgContext {
+	return &ArgContext{c: c, stack: stack}
 }
 
 func (a *ArgContext) Has(key string) bool {
-	return a.p.Has(key)
+	return a.c.p.Data().Has(key)
 }
 
 func (a *ArgContext) Prop(key string, def ...string) string {
-	return a.p.Get(key, def...)
+	return a.c.p.Data().Get(key, def...)
 }
 
 func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
@@ -233,7 +232,7 @@ func (a *ArgContext) Check(c gs.Condition) (bool, error) {
 
 // Bind binds a value to a specific tag in the container.
 func (a *ArgContext) Bind(v reflect.Value, tag string) error {
-	return a.p.Bind(v, tag)
+	return a.c.p.Data().Bind(v, tag)
 }
 
 // Wire wires a value based on a specific tag in the container.
@@ -290,8 +289,6 @@ func parseWireTag(p conf.Properties, str string) (tag WireTag, err error) {
 }
 
 type Injecting struct {
-	state refreshState
-
 	beansByName map[string][]BeanRuntime // 用于查找未导出接口
 	beansByType map[reflect.Type][]BeanRuntime
 
@@ -305,8 +302,7 @@ type Injecting struct {
 
 func New(p conf.Properties) *Injecting {
 	return &Injecting{
-		state: RefreshDefault,
-		p:     gs_dync.New(p),
+		p: gs_dync.New(p),
 	}
 }
 
@@ -315,9 +311,8 @@ func (c *Injecting) RefreshProperties(p conf.Properties) error {
 }
 
 func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
-	p := c.p.Data()
-	c.allowCircularReferences = cast.ToBool(p.Get("spring.allow-circular-references"))
-	c.forceAutowireIsNullable = cast.ToBool(p.Get("spring.force-autowire-is-nullable"))
+	c.allowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
+	c.forceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
 	// registers all beans
 	c.beansByName = make(map[string][]BeanRuntime)
@@ -338,20 +333,28 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 		}
 	}()
 
+	r := &Injector{
+		state:                   RefreshDefault,
+		p:                       c.p,
+		beansByName:             c.beansByName,
+		beansByType:             c.beansByType,
+		forceAutowireIsNullable: c.forceAutowireIsNullable,
+	}
+
 	// injects all beans
-	c.state = Refreshing
+	r.state = Refreshing
 	for _, b := range beans {
-		if err = c.wireBean(b, stack); err != nil {
+		if err = r.wireBean(b, stack); err != nil {
 			return err
 		}
 	}
-	c.state = Refreshed
+	r.state = Refreshed
 
 	if c.allowCircularReferences {
 		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
-			if err = c.autowire(f.v, tag, stack); err != nil {
+			if err = r.autowire(f.v, tag, stack); err != nil {
 				return fmt.Errorf("%q wired error: %s", f.path, err.Error())
 			}
 		}
@@ -396,20 +399,35 @@ func (c *Injecting) Wire(obj interface{}) error {
 			syslog.Infof("injecting path %s", stack.Path())
 		}
 	}()
+	r := &Injector{
+		state:                   Refreshed,
+		p:                       gs_dync.New(c.p.Data()),
+		beansByName:             c.beansByName,
+		beansByType:             c.beansByType,
+		forceAutowireIsNullable: c.forceAutowireIsNullable,
+	}
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
-	return c.wireBeanValue(v, t, false, stack)
+	return r.wireBeanValue(v, t, stack)
 }
 
 // Close closes the container and cleans up resources.
 func (c *Injecting) Close() {
-	for _, f := range c.destroyers {
+	for _, f := range slices.Backward(c.destroyers) {
 		f()
 	}
 }
 
+type Injector struct {
+	state                   refreshState
+	p                       *gs_dync.Properties
+	beansByName             map[string][]BeanRuntime
+	beansByType             map[reflect.Type][]BeanRuntime
+	forceAutowireIsNullable bool
+}
+
 // findBeans finds beans based on a given selector.
-func (c *Injecting) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
+func (c *Injector) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 	t, name := s.TypeAndName()
 	var beans []BeanRuntime
 	if t != nil {
@@ -432,7 +450,7 @@ func (c *Injecting) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 
 // getSingleBean retrieves the bean corresponding to the specified tag and assigns it to `v`.
 // `v` should be an uninitialized value.
-func (c *Injecting) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRuntime, error) {
+func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRuntime, error) {
 
 	// Check if the type of `v` is a valid bean receiver type.
 	if !util.IsBeanInjectionTarget(t) {
@@ -480,26 +498,17 @@ func (c *Injecting) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunt
 
 	// Retrieve the single matching bean.
 	b := foundBeans[0]
-
-	// Ensure the found bean has completed dependency injection.
-	switch c.state {
-	case Refreshing:
+	if c.state == Refreshing {
 		if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
 			return nil, err
 		}
-	case Refreshed:
-		if b.Status() != gs_bean.StatusWired {
-			return nil, fmt.Errorf("unexpected bean status %d", b.Status())
-		}
-	default:
-		return nil, fmt.Errorf("state is invalid for injecting")
 	}
 	return b, nil
 }
 
 // getMultiBeans collects beans into the given slice or map value `v`.
 // It supports dependency injection by resolving matching beans based on tags.
-func (c *Injecting) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) {
+func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) {
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Map {
 		return nil, fmt.Errorf("should be slice or map in collection mode")
@@ -601,18 +610,11 @@ func (c *Injecting) getBeans(t reflect.Type, tags []WireTag, nullable bool, stac
 	}
 
 	// Wire the beans based on the current state of the container
-	for _, b := range beans {
-		switch c.state {
-		case Refreshing:
+	if c.state == Refreshing {
+		for _, b := range beans {
 			if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
 				return nil, err
 			}
-		case Refreshed:
-			if b.Status() != gs_bean.StatusWired {
-				return nil, fmt.Errorf("unexpected bean status %d", b.Status())
-			}
-		default:
-			return nil, fmt.Errorf("state is error for injecting")
 		}
 	}
 	return beans, nil
@@ -622,7 +624,7 @@ func (c *Injecting) getBeans(t reflect.Type, tags []WireTag, nullable bool, stac
 // It also tracks its injection path. If the bean has an initialization function, it
 // is executed after the injection is completed. If the bean depends on other beans,
 // it attempts to instantiate and inject those dependencies first.
-func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
+func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	// If the container is refreshed and the bean is already wired, do nothing.
 	if c.state == Refreshed && b.Status() == gs_bean.StatusWired {
@@ -690,7 +692,7 @@ func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	if v.IsValid() && !b.Mocked() {
 
 		// Wire the value of the bean.
-		err = c.wireBeanValue(v, v.Type(), true, stack)
+		err = c.wireBeanValue(v, v.Type(), stack)
 		if err != nil {
 			return err
 		}
@@ -713,7 +715,7 @@ func (c *Injecting) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 // getBeanValue retrieves the value of a bean. If it is a constructor bean,
 // it executes the constructor and returns the result.
-func (c *Injecting) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error) {
+func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error) {
 
 	// If the bean has no callable function, return its value directly.
 	if b.Callable() == nil {
@@ -721,7 +723,7 @@ func (c *Injecting) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, er
 	}
 
 	// Call the bean's constructor and handle errors.
-	out, err := b.Callable().Call(NewArgContext(c.p.Data(), c, stack))
+	out, err := b.Callable().Call(NewArgContext(c, stack))
 	if err != nil {
 		if c.forceAutowireIsNullable {
 			return reflect.Value{}, nil
@@ -766,7 +768,7 @@ func (c *Injecting) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, er
 }
 
 // wireBeanValue binds properties and injects dependencies into the value v. v should already be initialized.
-func (c *Injecting) wireBeanValue(v reflect.Value, t reflect.Type, watchRefresh bool, stack *Stack) error {
+func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) error {
 
 	// Dereference pointer types and adjust the target type.
 	if v.Kind() == reflect.Ptr {
@@ -786,11 +788,11 @@ func (c *Injecting) wireBeanValue(v reflect.Value, t reflect.Type, watchRefresh 
 	}
 
 	param := conf.BindParam{Path: typeName}
-	return c.wireStruct(v, t, watchRefresh, param, stack)
+	return c.wireStruct(v, t, param, stack)
 }
 
 // wireStruct performs dependency injection for a struct.
-func (c *Injecting) wireStruct(v reflect.Value, t reflect.Type, watchRefresh bool, opt conf.BindParam, stack *Stack) error {
+func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *Stack) error {
 	// Loop through each field of the struct.
 	for i := 0; i < t.NumField(); i++ {
 		ft := t.Field(i)
@@ -836,13 +838,13 @@ func (c *Injecting) wireStruct(v reflect.Value, t reflect.Type, watchRefresh boo
 			}
 			if ft.Anonymous {
 				// Recursively wire anonymous structs.
-				err := c.wireStruct(fv, ft.Type, watchRefresh, subParam, stack)
+				err := c.wireStruct(fv, ft.Type, subParam, stack)
 				if err != nil {
 					return err
 				}
 			} else {
 				// Refresh field value if needed.
-				err := c.p.RefreshField(fv.Addr(), subParam, watchRefresh)
+				err := c.p.RefreshField(fv.Addr(), subParam)
 				if err != nil {
 					return err
 				}
@@ -852,7 +854,7 @@ func (c *Injecting) wireStruct(v reflect.Value, t reflect.Type, watchRefresh boo
 
 		// Recursively wire anonymous struct fields.
 		if ft.Anonymous && ft.Type.Kind() == reflect.Struct {
-			if err := c.wireStruct(fv, ft.Type, watchRefresh, subParam, stack); err != nil {
+			if err := c.wireStruct(fv, ft.Type, subParam, stack); err != nil {
 				return err
 			}
 		}
@@ -861,7 +863,7 @@ func (c *Injecting) wireStruct(v reflect.Value, t reflect.Type, watchRefresh boo
 }
 
 // autowire performs dependency injection by tag.
-func (c *Injecting) autowire(v reflect.Value, str string, stack *Stack) error {
+func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		{

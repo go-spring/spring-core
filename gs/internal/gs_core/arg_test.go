@@ -19,7 +19,6 @@ package gs_core_test
 import (
 	"testing"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/injecting"
@@ -30,7 +29,7 @@ func TestBind(t *testing.T) {
 
 	t.Run("zero argument", func(t *testing.T) {
 		stack := injecting.NewStack()
-		ctx := injecting.NewArgContext(conf.New(), &injecting.Injecting{}, stack)
+		ctx := injecting.NewArgContext(&injecting.Injector{}, stack)
 		fn := func() {}
 		p, err := gs_arg.NewCallable(fn, []gs.Arg{})
 		if err != nil {
@@ -44,7 +43,7 @@ func TestBind(t *testing.T) {
 
 	t.Run("one value argument", func(t *testing.T) {
 		stack := injecting.NewStack()
-		ctx := injecting.NewArgContext(conf.New(), &injecting.Injecting{}, stack)
+		ctx := injecting.NewArgContext(&injecting.Injector{}, stack)
 		expectInt := 0
 		fn := func(i int) {
 			expectInt = i

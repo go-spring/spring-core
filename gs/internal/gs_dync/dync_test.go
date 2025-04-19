@@ -96,7 +96,7 @@ func TestDync(t *testing.T) {
 
 		assert.Panic(t, func() {
 			mock := &MockPanicRefreshable{}
-			_ = p.RefreshField(reflect.ValueOf(mock), conf.BindParam{Key: "error"}, true)
+			_ = p.RefreshField(reflect.ValueOf(mock), conf.BindParam{Key: "error"})
 		}, "mock panic")
 
 		assert.Panic(t, func() {
@@ -121,7 +121,7 @@ func TestDync(t *testing.T) {
 		assert.Equal(t, p.Data(), prop)
 
 		var v int
-		err = p.RefreshField(reflect.ValueOf(&v), conf.BindParam{Key: "config.s1.value"}, true)
+		err = p.RefreshField(reflect.ValueOf(&v), conf.BindParam{Key: "config.s1.value"})
 		assert.Nil(t, err)
 		assert.Equal(t, v, 99)
 		assert.Equal(t, p.ObjectsCount(), 0)
@@ -135,13 +135,7 @@ func TestDync(t *testing.T) {
 			} `value:"${s2}"`
 		}
 
-		err = p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"}, false)
-		assert.Nil(t, err)
-		assert.Equal(t, p.ObjectsCount(), 0)
-		assert.Equal(t, cfg.S1.Value.Value(), 99)
-		assert.Equal(t, cfg.S2.Value.Value(), 123)
-
-		err = p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"}, true)
+		err = p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"})
 		assert.Nil(t, err)
 		assert.Equal(t, p.ObjectsCount(), 2)
 		assert.Equal(t, cfg.S1.Value.Value(), 99)
@@ -175,16 +169,5 @@ func TestDync(t *testing.T) {
 		err = p.Refresh(prop)
 		assert.Error(t, err, "strconv.ParseInt: parsing \"xyz\": invalid syntax")
 		assert.Error(t, err, "strconv.ParseInt: parsing \"abc\": invalid syntax")
-
-		s1 := &Value[string]{}
-		err = p.RefreshField(reflect.ValueOf(s1), conf.BindParam{Key: "config.s3.value"}, false)
-		assert.Nil(t, err)
-		assert.Equal(t, s1.Value(), "xyz")
-
-		s2 := &Value[int]{}
-		err = p.RefreshField(reflect.ValueOf(s2), conf.BindParam{Key: "config.s3.value"}, false)
-		assert.Error(t, err, "strconv.ParseInt: parsing \\\"xyz\\\": invalid syntax")
-		assert.Equal(t, p.ObjectsCount(), 2)
 	})
-
 }

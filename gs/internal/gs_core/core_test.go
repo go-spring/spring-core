@@ -2241,15 +2241,15 @@ func TestDestroy(t *testing.T) {
 			destroyArray[destroyIndex] = 1
 			destroyIndex++
 		})
-	c.Object(new(Second2Destroy)).Destroy(
-		func(_ *Second2Destroy) {
-			fmt.Println("::Second2Destroy")
-			destroyArray[destroyIndex] = 2
-			destroyIndex++
-		})
 	c.Object(new(Second1Destroy)).Destroy(
 		func(_ *Second1Destroy) {
 			fmt.Println("::Second1Destroy")
+			destroyArray[destroyIndex] = 2
+			destroyIndex++
+		})
+	c.Object(new(Second2Destroy)).Destroy(
+		func(_ *Second2Destroy) {
+			fmt.Println("::Second2Destroy")
 			destroyArray[destroyIndex] = 2
 			destroyIndex++
 		})
@@ -2263,7 +2263,7 @@ func TestDestroy(t *testing.T) {
 	assert.Nil(t, err)
 	c.Close()
 
-	assert.Equal(t, destroyArray, []int{1, 2, 2, 4})
+	assert.Equal(t, destroyArray, []int{4, 2, 2, 1})
 }
 
 // type Obj struct {

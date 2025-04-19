@@ -254,7 +254,6 @@ func (p *Properties) refreshObjects(objects []*refreshObject) error {
 // filter is used to selectively refresh objects and fields.
 type filter struct {
 	*Properties
-	watch bool // Whether to register objects as refreshable.
 }
 
 // Do attempts to refresh a single object if it implements the [refreshable] interface.
@@ -263,20 +262,18 @@ func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	if f.watch {
-		f.objects = append(f.objects, &refreshObject{
-			target: v,
-			param:  param,
-		})
-	}
+	f.objects = append(f.objects, &refreshObject{
+		target: v,
+		param:  param,
+	})
 	return true, v.onRefresh(f.prop, param)
 }
 
 // RefreshField refreshes a field of a bean, optionally registering it as refreshable.
-func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam, watch bool) error {
+func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	f := &filter{Properties: p, watch: watch}
+	f := &filter{Properties: p}
 	if v.Kind() == reflect.Ptr {
 		ok, err := f.Do(v.Interface(), param)
 		if err != nil {
