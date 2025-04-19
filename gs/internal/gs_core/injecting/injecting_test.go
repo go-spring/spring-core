@@ -92,6 +92,7 @@ type Service struct {
 	InnerService
 	ServiceConfig `value:"${service}"`
 
+	Filters    []Filter             `autowire:"my_filter?,*?"`
 	Loggers    map[string]CtxLogger `inject:"*,sys?"`
 	Repository *Repository          `inject:""`
 	Status     int
@@ -329,45 +330,125 @@ func TestInjecting(t *testing.T) {
 
 		assert.Equal(t, s.Service.Status, 0)
 	})
+
+	t.Run("wire error - 1", func(t *testing.T) {
+		r := New(conf.New())
+		err := r.Refresh(extractBeans(nil))
+		assert.Nil(t, err)
+		var s struct {
+			Logger Logger `inject:""`
+		}
+		err = r.Wire(&s)
+		assert.Error(t, err, "can't find bean")
+	})
+
+	t.Run("wire error - 2", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(new(struct {
+				A int `autowire:""`
+			})),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "int is not a valid receiver type")
+	})
+
+	t.Run("wire error - 3", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(new(struct {
+				Logger Logger `autowire:""`
+			})),
+			objectBean(&SimpleLogger{}).Name("a").Export(gs.As[Logger]()),
+			objectBean(&SimpleLogger{}).Name("b").Export(gs.As[Logger]()),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "found 2 beans")
+	})
+
+	t.Run("wire error - 4", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(new(struct {
+				A []int `autowire:""`
+			})),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "\\[]int is not a valid receiver type")
+	})
+
+	t.Run("wire error - 5", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(new(struct {
+				Loggers []Logger `autowire:"*,*"`
+			})),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "more than one \\* in collection")
+	})
+
+	t.Run("wire error - 6", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(new(struct {
+				Loggers []Logger `autowire:"biz,*"`
+			})),
+			objectBean(&ZeroLogger{}).Name("biz").Export(gs.As[Logger]()),
+			objectBean(&SimpleLogger{}).Name("biz").Export(gs.As[Logger]()),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "found 2 beans")
+	})
+
+	t.Run("wire error - 7", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(new(struct {
+				Loggers []Logger `autowire:""`
+			})),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "no beans collected")
+	})
+
+	t.Run("wire error - 8", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(new(struct {
+				Loggers []Logger `autowire:"sys"`
+			})),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "can't find bean")
+	})
 }
 
 func TestWireTag(t *testing.T) {
 
 	t.Run("empty str", func(t *testing.T) {
-		tag, err := parseWireTag(conf.New(), "")
+		tag, err := parseWireTag("")
 		assert.Nil(t, err)
 		assert.Equal(t, tag, WireTag{})
 		assert.Equal(t, tag.String(), "")
 	})
 
 	t.Run("only name", func(t *testing.T) {
-		tag, err := parseWireTag(conf.New(), "a")
+		tag, err := parseWireTag("a")
 		assert.Nil(t, err)
 		assert.Equal(t, tag, WireTag{beanName: "a"})
 		assert.Equal(t, tag.String(), "a")
 	})
 
 	t.Run("only nullable", func(t *testing.T) {
-		tag, err := parseWireTag(conf.New(), "?")
+		tag, err := parseWireTag("?")
 		assert.Nil(t, err)
 		assert.Equal(t, tag, WireTag{nullable: true})
 		assert.Equal(t, tag.String(), "?")
 	})
 
 	t.Run("name and nullable", func(t *testing.T) {
-		tag, err := parseWireTag(conf.New(), "a?")
-		assert.Nil(t, err)
-		assert.Equal(t, tag, WireTag{beanName: "a", nullable: true})
-		assert.Equal(t, tag.String(), "a?")
-	})
-
-	t.Run("resolve error", func(t *testing.T) {
-		_, err := parseWireTag(conf.New(), "${?")
-		assert.Error(t, err, "resolve string .* error: invalid syntax")
-	})
-
-	t.Run("resolve success", func(t *testing.T) {
-		tag, err := parseWireTag(conf.New(), "${k:=a}?")
+		tag, err := parseWireTag("a?")
 		assert.Nil(t, err)
 		assert.Equal(t, tag, WireTag{beanName: "a", nullable: true})
 		assert.Equal(t, tag.String(), "a?")

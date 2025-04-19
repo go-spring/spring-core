@@ -136,10 +136,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 		return errors.New("found circular autowire")
 	}
 
-	c.destroyers, err = stack.getSortedDestroyers()
-	if err != nil {
-		return err
-	}
+	c.destroyers = stack.getSortedDestroyers()
 
 	if !testing.Testing() {
 		if c.p.ObjectsCount() == 0 {
@@ -167,12 +164,6 @@ func (c *Injecting) Wire(obj interface{}) error {
 	if !testing.Testing() {
 		return errors.New("not allowed to call Wire method in non-test mode")
 	}
-	stack := NewStack()
-	defer func() {
-		if len(stack.beans) > 0 {
-			syslog.Infof("injecting path %s", stack.Path())
-		}
-	}()
 	r := &Injector{
 		state:                   Refreshed,
 		p:                       gs_dync.New(c.p.Data()),
@@ -182,7 +173,7 @@ func (c *Injecting) Wire(obj interface{}) error {
 	}
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
-	return r.wireBeanValue(v, t, stack)
+	return r.wireBeanValue(v, t, NewStack())
 }
 
 // Close closes the container and cleans up resources.
@@ -248,20 +239,15 @@ func toWireString(tags []WireTag) string {
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
-func parseWireTag(p conf.Properties, str string) (tag WireTag, err error) {
-	if str == "" {
-		return
-	}
-	if strings.HasPrefix(str, "${") {
-		if str, err = p.Resolve(str); err != nil {
-			return
+func parseWireTag(str string) (tag WireTag, err error) {
+	if str != "" {
+		if n := len(str) - 1; str[n] == '?' {
+			tag.beanName = str[:n]
+			tag.nullable = true
+		} else {
+			tag.beanName = str
 		}
 	}
-	if n := len(str) - 1; str[n] == '?' {
-		tag.nullable = true
-		str = str[:n]
-	}
-	tag.beanName = str
 	return
 }
 
@@ -326,10 +312,6 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 // getMultiBeans collects beans into the given slice or map value `v`.
 // It supports dependency injection by resolving matching beans based on tags.
 func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) {
-
-	if t.Kind() != reflect.Slice && t.Kind() != reflect.Map {
-		return nil, fmt.Errorf("should be slice or map in collection mode")
-	}
 
 	et := t.Elem()
 	if !util.IsBeanInjectionTarget(et) {
@@ -439,13 +421,19 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 
 // autowire performs dependency injection by tag.
 func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
+	if strings.Contains(str, "${") {
+		var err error
+		if str, err = c.p.Data().Resolve(str); err != nil {
+			return err
+		}
+	}
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		{
 			var tags []WireTag
 			if str != "" && str != "?" {
 				for _, s := range strings.Split(str, ",") {
-					g, err := parseWireTag(c.p.Data(), s)
+					g, err := parseWireTag(s)
 					if err != nil {
 						return err
 					}
@@ -485,7 +473,7 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 			return nil
 		}
 	default:
-		tag, err := parseWireTag(c.p.Data(), str)
+		tag, err := parseWireTag(str)
 		if err != nil {
 			return err
 		}
@@ -845,7 +833,7 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
 }
 
 // getSortedDestroyers sorts beans with destroy functions by dependency order.
-func (s *Stack) getSortedDestroyers() ([]func(), error) {
+func (s *Stack) getSortedDestroyers() []func() {
 
 	destroy := func(v reflect.Value, fn interface{}) func() {
 		return func() {
@@ -869,7 +857,7 @@ func (s *Stack) getSortedDestroyers() ([]func(), error) {
 		d := e.Value.(*destroyer).current
 		ret = append(ret, destroy(d.Value(), d.Destroy()))
 	}
-	return ret, nil
+	return ret
 }
 
 // ArgContext holds a Container and a Stack to manage dependency injection.
