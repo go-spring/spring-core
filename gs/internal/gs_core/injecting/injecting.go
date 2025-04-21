@@ -397,15 +397,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 		if nullable {
 			return nil, nil
 		}
-		if len(tags) == 0 {
-			return nil, fmt.Errorf("no beans collected for %q", toWireString(tags))
-		}
-		for _, tag := range tags {
-			if !tag.nullable {
-				return nil, fmt.Errorf("no beans collected for %q", toWireString(tags))
-			}
-		}
-		return nil, nil
+		return nil, fmt.Errorf("no beans collected for %q", toWireString(tags))
 	}
 
 	// Wire the beans based on the current state of the container
@@ -421,26 +413,30 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 
 // autowire performs dependency injection by tag.
 func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
-	if strings.Contains(str, "${") {
-		var err error
-		if str, err = c.p.Data().Resolve(str); err != nil {
-			return err
-		}
+	str, err := c.p.Data().Resolve(str)
+	if err != nil {
+		return err
 	}
 	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		{
+			var nullable bool
 			var tags []WireTag
-			if str != "" && str != "?" {
-				for _, s := range strings.Split(str, ",") {
-					g, err := parseWireTag(s)
-					if err != nil {
-						return err
+			if str != "" {
+				nullable = true
+				if str != "?" {
+					for _, s := range strings.Split(str, ",") {
+						g, err := parseWireTag(s)
+						if err != nil {
+							return err
+						}
+						tags = append(tags, g)
+						if !g.nullable {
+							nullable = false
+						}
 					}
-					tags = append(tags, g)
 				}
 			}
-			nullable := str == "?"
 			if c.forceAutowireIsNullable {
 				for i := 0; i < len(tags); i++ {
 					tags[i].nullable = true

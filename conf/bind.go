@@ -432,34 +432,30 @@ func resolve(p Properties, param BindParam) (string, error) {
 // resolveString returns property references processed string.
 func resolveString(p Properties, s string) (string, error) {
 
+	// If there is no property reference, return the original string.
+	start := strings.Index(s, "${")
+	if start < 0 {
+		return s, nil
+	}
+
 	var (
 		length = len(s)
-		count  = 0
-		start  = -1
+		count  = 1
 		end    = -1
 	)
 
-	for i := 0; i < length; i++ {
+	for i := start + 2; i < length; i++ {
 		if s[i] == '$' {
-			if i < length-1 && s[i+1] == '{' {
-				if count == 0 {
-					start = i
-				}
+			if i+1 < length && s[i+1] == '{' {
 				count++
 			}
 		} else if s[i] == '}' {
-			if count > 0 {
-				count--
-				if count == 0 {
-					end = i
-					break
-				}
+			count--
+			if count == 0 {
+				end = i
+				break
 			}
 		}
-	}
-
-	if start < 0 {
-		return s, nil
 	}
 
 	if end < 0 {

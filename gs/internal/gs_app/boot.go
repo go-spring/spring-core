@@ -50,7 +50,7 @@ type BootImpl struct {
 	// flag indicates whether the bootstrapper has been used.
 	flag bool
 
-	Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`
+	Runners []gs.Runner `autowire:"${spring.boot.runners:=?}"`
 }
 
 // NewBoot creates a new Boot instance.

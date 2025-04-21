@@ -17,6 +17,8 @@
 package conf_test
 
 import (
+	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
@@ -56,11 +58,20 @@ func TestProperties_Load(t *testing.T) {
 
 func TestProperties_Resolve(t *testing.T) {
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("success - 1", func(t *testing.T) {
 		p := conf.Map(map[string]interface{}{
 			"a.b.c": []string{"3"},
 		})
 		s, err := p.Resolve("${a.b.c[0]}")
+		assert.Nil(t, err)
+		assert.Equal(t, s, "3")
+	})
+
+	t.Run("success - 2", func(t *testing.T) {
+		p := conf.Map(map[string]interface{}{
+			"a.b.c": []string{"3"},
+		})
+		s, err := p.Resolve("${x:=${a.b.c[0]}}")
 		assert.Nil(t, err)
 		assert.Equal(t, s, "3")
 	})
@@ -159,5 +170,28 @@ func TestProperties_CopyTo(t *testing.T) {
 
 		err := p.CopyTo(s)
 		assert.Error(t, err, "property conflict at path a.b.c\\[0]")
+	})
+}
+
+func BenchmarkResolve(b *testing.B) {
+	const src = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+	data := make([]byte, 2000)
+	for i := 0; i < len(data); i++ {
+		data[i] = src[rand.Intn(len(src))]
+	}
+	s := string(data)
+
+	b.Run("contains", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = strings.Contains(s, "${")
+		}
+	})
+
+	p := conf.New()
+	b.Run("resolve", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = p.Resolve(s)
+		}
 	})
 }
