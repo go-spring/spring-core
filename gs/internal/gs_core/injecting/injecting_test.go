@@ -44,7 +44,7 @@ type CtxLogger interface {
 
 type SimpleLogger struct{}
 
-func (l *SimpleLogger) Print(msg string) {}
+func (l SimpleLogger) Print(msg string) {}
 
 type ZeroLogger struct {
 	File string
@@ -259,9 +259,9 @@ func TestInjecting(t *testing.T) {
 			objectBean(&Service{}).DestroyMethod("Destroy").Init(func(s *Service) {
 				s.Status = 1
 			}),
-			objectBean(&OneService{}),
+			provideBean(func() OneService { return OneService{} }),
 			objectBean(&SimpleLogger{}).Name("rpc"),
-			objectBean(&SimpleLogger{}).Name("sys").Export(gs.As[Logger]()),
+			provideBean(func() Logger { return SimpleLogger{} }).Name("sys"),
 			provideBean(NewZeroLogger, gs_arg.Tag("${logger.biz.file}")).
 				Export(gs.As[Logger](), gs.As[CtxLogger]()).
 				Name("biz"),
@@ -336,17 +336,6 @@ func TestInjecting(t *testing.T) {
 		r.Close()
 
 		assert.Equal(t, s.Service.Status, 0)
-	})
-
-	t.Run("wire error - 1", func(t *testing.T) {
-		r := New(conf.New())
-		err := r.Refresh(extractBeans(nil))
-		assert.Nil(t, err)
-		var s struct {
-			Logger Logger `inject:""`
-		}
-		err = r.Wire(&s)
-		assert.Error(t, err, "can't find bean")
 	})
 
 	t.Run("wire error - 2", func(t *testing.T) {
@@ -543,6 +532,17 @@ func TestInjecting(t *testing.T) {
 		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
 		assert.Equal(t, s.Logger, (*ZeroLogger)(nil))
+	})
+
+	t.Run("wire error - 17", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			provideBean(func() (*ZeroLogger, error) {
+				return nil, nil
+			}),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Error(t, err, "name=.*  return nil")
 	})
 
 	t.Run("wire error - 22", func(t *testing.T) {
@@ -888,5 +888,46 @@ func TestDestroy(t *testing.T) {
 		r.Close()
 		assert.Equal(t, s.DestroyC.value, 2)
 		assert.Equal(t, s.DestroyE.value, 1)
+	})
+}
+
+type DyncValue struct {
+	Value gs_dync.Value[int] `value:"${:=3}"`
+}
+
+func TestForceClean(t *testing.T) {
+
+	t.Run("no dync value", func(t *testing.T) {
+		r := New(conf.Map(map[string]interface{}{
+			"spring": map[string]interface{}{
+				"force-clean": true,
+			},
+		}))
+		beans := []*gs.BeanDefinition{
+			objectBean(&SimpleLogger{}).Name("biz"),
+			objectBean(&SimpleLogger{}).Name("sys"),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Nil(t, err)
+		assert.Nil(t, r.p)
+		assert.Nil(t, r.beansByName)
+		assert.Nil(t, r.beansByType)
+	})
+
+	t.Run("has dync value", func(t *testing.T) {
+		r := New(conf.Map(map[string]interface{}{
+			"spring": map[string]interface{}{
+				"force-clean": true,
+			},
+		}))
+		beans := []*gs.BeanDefinition{
+			objectBean(&DyncValue{}).Name("biz"),
+			objectBean(&SimpleLogger{}).Name("sys"),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.Nil(t, err)
+		assert.NotNil(t, r.p)
+		assert.Nil(t, r.beansByName)
+		assert.Nil(t, r.beansByType)
 	})
 }

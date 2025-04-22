@@ -28,7 +28,7 @@ func init() {
 }
 
 type Service struct {
-	Dao *dao.Dao
+	Dao *dao.Dao `autowire:""`
 }
 
 func (s *Service) Hello(name string) string {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//go:generate mockgen -build_flags="-mod=mod" -package=gs -source=gs.go -destination=gs_mock.go
+//go:generate mockgen -build_flags="-mod=mod" -package=gs -source=gs.go -destination=gs_mock.go -exclude_interfaces=BeanSelector,Condition,CondBean,Arg,ReadySignal,BeanRegistration,BeanInitFunc,BeanDestroyFunc
 
 package gs
 

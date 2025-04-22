@@ -169,5 +169,16 @@ func TestDync(t *testing.T) {
 		err = p.Refresh(prop)
 		assert.Error(t, err, "strconv.ParseInt: parsing \"xyz\": invalid syntax")
 		assert.Error(t, err, "strconv.ParseInt: parsing \"abc\": invalid syntax")
+
+		s1 := &Value[string]{}
+		err = p.RefreshField(reflect.ValueOf(s1), conf.BindParam{Key: "config.s3.value"})
+		assert.Nil(t, err)
+		assert.Equal(t, s1.Value(), "xyz")
+		assert.Equal(t, p.ObjectsCount(), 3)
+
+		s2 := &Value[int]{}
+		err = p.RefreshField(reflect.ValueOf(s2), conf.BindParam{Key: "config.s3.value"})
+		assert.Error(t, err, "strconv.ParseInt: parsing \\\"xyz\\\": invalid syntax")
+		assert.Equal(t, p.ObjectsCount(), 4)
 	})
 }

@@ -17,6 +17,7 @@
 package gs_conf
 
 import (
+	"errors"
 	"os"
 	"testing"
 
@@ -136,6 +137,18 @@ func TestPropertySources(t *testing.T) {
 		}, "should be a directory")
 	})
 
+	t.Run("add dir error - 3", func(t *testing.T) {
+		t.Cleanup(clean)
+		defer func() { osStat = os.Stat }()
+		osStat = func(name string) (os.FileInfo, error) {
+			return nil, errors.New("permission denied")
+		}
+		ps := NewPropertySources(ConfigTypeLocal, "app")
+		assert.Panic(t, func() {
+			ps.AddDir("./testdata/conf/app.properties")
+		}, "permission denied")
+	})
+
 	t.Run("add file error - 1", func(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources(ConfigTypeLocal, "app")
@@ -149,6 +162,18 @@ func TestPropertySources(t *testing.T) {
 		assert.Panic(t, func() {
 			ps.AddFile("./testdata/conf")
 		}, "should be a file")
+	})
+
+	t.Run("add file error - 3", func(t *testing.T) {
+		t.Cleanup(clean)
+		defer func() { osStat = os.Stat }()
+		osStat = func(name string) (os.FileInfo, error) {
+			return nil, errors.New("permission denied")
+		}
+		ps := NewPropertySources(ConfigTypeLocal, "app")
+		assert.Panic(t, func() {
+			ps.AddFile("./testdata/conf")
+		}, "permission denied")
 	})
 
 	t.Run("reset", func(t *testing.T) {
@@ -242,11 +267,19 @@ func TestPropertySources(t *testing.T) {
 		assert.Error(t, err, `resolve string "\${a}" error << property a not exist`)
 	})
 
-	t.Run("loadFiles - Resolve error", func(t *testing.T) {
+	t.Run("loadFiles - resolve error", func(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		ps.AddFile("./testdata/conf/app-${a}.properties")
 		_, err := ps.loadFiles(conf.Map(nil))
 		assert.Error(t, err, "property a not exist")
+	})
+
+	t.Run("loadFiles - confLoad error", func(t *testing.T) {
+		t.Cleanup(clean)
+		ps := NewPropertySources(ConfigTypeLocal, "app")
+		ps.AddFile("./testdata/conf/error.json")
+		_, err := ps.loadFiles(conf.Map(nil))
+		assert.Error(t, err, "cannot unmarshal .*")
 	})
 }

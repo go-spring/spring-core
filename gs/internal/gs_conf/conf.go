@@ -25,6 +25,9 @@ import (
 	"github.com/go-spring/spring-core/util/sysconf"
 )
 
+// osStat only for test.
+var osStat = os.Stat
+
 // PropertyCopier defines the interface for copying properties.
 type PropertyCopier interface {
 	CopyTo(out *conf.MutableProperties) error
@@ -197,7 +200,7 @@ func (p *PropertySources) Reset() {
 // AddDir adds a or more than one extra directories.
 func (p *PropertySources) AddDir(dirs ...string) {
 	for _, d := range dirs {
-		info, err := os.Stat(d)
+		info, err := osStat(d)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				panic(err)
@@ -214,7 +217,7 @@ func (p *PropertySources) AddDir(dirs ...string) {
 // AddFile adds a or more than one extra files.
 func (p *PropertySources) AddFile(files ...string) {
 	for _, f := range files {
-		info, err := os.Stat(f)
+		info, err := osStat(f)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				panic(err)

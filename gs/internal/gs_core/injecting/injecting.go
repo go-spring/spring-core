@@ -60,15 +60,10 @@ const (
 
 // Injecting defines a bean injection container.
 type Injecting struct {
-	p *gs_dync.Properties
-
+	p           *gs_dync.Properties
 	beansByName map[string][]BeanRuntime // 用于查找未导出接口
 	beansByType map[reflect.Type][]BeanRuntime
-
-	destroyers []func()
-
-	allowCircularReferences bool
-	forceAutowireIsNullable bool
+	destroyers  []func()
 }
 
 // New creates a new Injecting instance.
@@ -85,8 +80,8 @@ func (c *Injecting) RefreshProperties(p conf.Properties) error {
 
 // Refresh refreshes the container with the given beans.
 func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
-	c.allowCircularReferences = cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
-	c.forceAutowireIsNullable = cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
+	allowCircularReferences := cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
+	forceAutowireIsNullable := cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
 	// registers all beans
 	c.beansByName = make(map[string][]BeanRuntime)
@@ -112,7 +107,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 		p:                       c.p,
 		beansByName:             c.beansByName,
 		beansByType:             c.beansByType,
-		forceAutowireIsNullable: c.forceAutowireIsNullable,
+		forceAutowireIsNullable: forceAutowireIsNullable,
 	}
 
 	// injects all beans
@@ -124,7 +119,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 	}
 	r.state = Refreshed
 
-	if c.allowCircularReferences {
+	if allowCircularReferences {
 		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
@@ -138,7 +133,8 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 
 	c.destroyers = stack.getSortedDestroyers()
 
-	if !testing.Testing() {
+	forceClean := cast.ToBool(c.p.Data().Get("spring.force-clean"))
+	if !testing.Testing() || forceClean {
 		if c.p.ObjectsCount() == 0 {
 			c.p = nil
 		}
@@ -166,7 +162,7 @@ func (c *Injecting) Wire(obj interface{}) error {
 		p:                       gs_dync.New(c.p.Data()),
 		beansByName:             c.beansByName,
 		beansByType:             c.beansByType,
-		forceAutowireIsNullable: c.forceAutowireIsNullable,
+		forceAutowireIsNullable: true,
 	}
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
@@ -576,6 +572,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 	out, err := b.Callable().Call(NewArgContext(c, stack))
 	if err != nil {
 		if c.forceAutowireIsNullable {
+			syslog.Warnf("autowire error: %v", err)
 			return reflect.Value{}, nil
 		}
 		return reflect.Value{}, err
@@ -584,6 +581,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 	if o := out[len(out)-1]; util.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
 			if c.forceAutowireIsNullable {
+				syslog.Warnf("autowire error: %v", err)
 				return reflect.Value{}, nil
 			}
 			return reflect.Value{}, i.(error)
