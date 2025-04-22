@@ -202,7 +202,7 @@ func TestBeanDefinition(t *testing.T) {
 		t.Run("no profile property", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			ctx := gs.NewMockCondContext(ctrl)
+			ctx := NewMockCondContext(ctrl)
 			ctx.EXPECT().Prop(gomock.Any()).Return("")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
@@ -214,7 +214,7 @@ func TestBeanDefinition(t *testing.T) {
 		t.Run("profile property not match", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			ctx := gs.NewMockCondContext(ctrl)
+			ctx := NewMockCondContext(ctrl)
 			ctx.EXPECT().Prop(gomock.Any()).Return("prod")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
@@ -226,7 +226,7 @@ func TestBeanDefinition(t *testing.T) {
 		t.Run("profile property is dev", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			ctx := gs.NewMockCondContext(ctrl)
+			ctx := NewMockCondContext(ctrl)
 			ctx.EXPECT().Prop(gomock.Any()).Return("dev")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
@@ -238,7 +238,7 @@ func TestBeanDefinition(t *testing.T) {
 		t.Run("profile property is test", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			ctx := gs.NewMockCondContext(ctrl)
+			ctx := NewMockCondContext(ctrl)
 			ctx.EXPECT().Prop(gomock.Any()).Return("test")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
@@ -250,7 +250,7 @@ func TestBeanDefinition(t *testing.T) {
 		t.Run("profile property is dev&test", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			ctx := gs.NewMockCondContext(ctrl)
+			ctx := NewMockCondContext(ctrl)
 			ctx.EXPECT().Prop(gomock.Any()).Return("dev,test")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)

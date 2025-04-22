@@ -87,7 +87,7 @@ func TestApp(t *testing.T) {
 		t.Cleanup(clean)
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		r := gs.NewMockRunner(ctrl)
+		r := NewMockRunner(ctrl)
 		r.EXPECT().Run().Return(errors.New("runner return error"))
 		app := NewApp()
 		app.C.Object(r).AsRunner()
@@ -119,7 +119,7 @@ func TestApp(t *testing.T) {
 		t.Cleanup(clean)
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		r := gs.NewMockJob(ctrl)
+		r := NewMockJob(ctrl)
 		r.EXPECT().Run(gomock.Any()).Return(errors.New("job return error"))
 		app := NewApp()
 		app.C.Object(r).AsJob()
@@ -133,7 +133,7 @@ func TestApp(t *testing.T) {
 		t.Cleanup(clean)
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		r := gs.NewMockJob(ctrl)
+		r := NewMockJob(ctrl)
 		r.EXPECT().Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
 			panic("job panic")
 		})
@@ -149,7 +149,7 @@ func TestApp(t *testing.T) {
 		t.Cleanup(clean)
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		r := gs.NewMockServer(ctrl)
+		r := NewMockServer(ctrl)
 		r.EXPECT().Shutdown(gomock.Any()).Return(nil)
 		r.EXPECT().ListenAndServe(gomock.Any()).Return(errors.New("server return error"))
 		app := NewApp()
@@ -164,7 +164,7 @@ func TestApp(t *testing.T) {
 		t.Cleanup(clean)
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		r := gs.NewMockServer(ctrl)
+		r := NewMockServer(ctrl)
 		r.EXPECT().Shutdown(gomock.Any()).Return(nil)
 		r.EXPECT().ListenAndServe(gomock.Any()).DoAndReturn(func(sig gs.ReadySignal) error {
 			panic("server panic")
@@ -183,17 +183,17 @@ func TestApp(t *testing.T) {
 		defer ctrl.Finish()
 		app := NewApp()
 		{
-			r1 := gs.NewMockRunner(ctrl)
+			r1 := NewMockRunner(ctrl)
 			r1.EXPECT().Run().Return(nil)
 			app.C.Object(r1).AsRunner().Name("r1")
 		}
 		{
-			r2 := gs.NewMockRunner(ctrl)
+			r2 := NewMockRunner(ctrl)
 			r2.EXPECT().Run().Return(nil)
 			app.C.Object(r2).AsRunner().Name("r2")
 		}
 		{
-			j1 := gs.NewMockJob(ctrl)
+			j1 := NewMockJob(ctrl)
 			j1.EXPECT().Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
 				<-ctx.Done()
 				return nil
@@ -202,7 +202,7 @@ func TestApp(t *testing.T) {
 		}
 		j2Wait := make(chan struct{})
 		{
-			j2 := gs.NewMockJob(ctrl)
+			j2 := NewMockJob(ctrl)
 			j2.EXPECT().Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
 				for {
 					time.Sleep(time.Millisecond)
@@ -215,7 +215,7 @@ func TestApp(t *testing.T) {
 			app.C.Object(j2).AsJob().Name("j2")
 		}
 		{
-			s1 := gs.NewMockServer(ctrl)
+			s1 := NewMockServer(ctrl)
 			s1.EXPECT().Shutdown(gomock.Any()).Return(nil)
 			s1.EXPECT().ListenAndServe(gomock.Any()).DoAndReturn(func(sig gs.ReadySignal) error {
 				<-sig.TriggerAndWait()
@@ -224,7 +224,7 @@ func TestApp(t *testing.T) {
 			app.C.Object(s1).AsServer().Name("s1")
 		}
 		{
-			s2 := gs.NewMockServer(ctrl)
+			s2 := NewMockServer(ctrl)
 			s2.EXPECT().Shutdown(gomock.Any()).Return(nil)
 			s2.EXPECT().ListenAndServe(gomock.Any()).DoAndReturn(func(sig gs.ReadySignal) error {
 				<-sig.TriggerAndWait()
@@ -255,7 +255,7 @@ func TestApp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		app := NewApp()
-		s := gs.NewMockServer(ctrl)
+		s := NewMockServer(ctrl)
 		s.EXPECT().Shutdown(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
 			return nil
 		})
@@ -280,7 +280,7 @@ func TestApp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		app := NewApp()
-		s := gs.NewMockServer(ctrl)
+		s := NewMockServer(ctrl)
 		s.EXPECT().Shutdown(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
 			return errors.New("server shutdown error")
 		})

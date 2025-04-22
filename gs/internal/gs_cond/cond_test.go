@@ -124,7 +124,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("property exist", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Has("test.prop").Return(true)
 		cond := OnProperty("test.prop")
 		ok, err := cond.Matches(ctx)
@@ -135,7 +135,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("property exist and match", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Has("test.prop").Return(true)
 		ctx.EXPECT().Prop("test.prop").Return("42")
 		cond := OnProperty("test.prop").HavingValue("42")
@@ -147,7 +147,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("property exist but not match", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Has("test.prop").Return(true)
 		ctx.EXPECT().Prop("test.prop").Return("42")
 		cond := OnProperty("test.prop").HavingValue("100")
@@ -158,7 +158,7 @@ func TestOnProperty(t *testing.T) {
 	t.Run("property not exist but MatchIfMissing", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Has("missing.prop").Return(false)
 		cond := OnProperty("missing.prop").MatchIfMissing()
 		ok, _ := cond.Matches(ctx)
@@ -170,7 +170,7 @@ func TestOnProperty(t *testing.T) {
 		t.Run("number expression", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			ctx := gs.NewMockCondContext(ctrl)
+			ctx := NewMockCondContext(ctrl)
 			ctx.EXPECT().Has("test.prop").Return(true)
 			ctx.EXPECT().Prop("test.prop").Return("42")
 			cond := OnProperty("test.prop").HavingValue("expr:int($) > 40")
@@ -181,7 +181,7 @@ func TestOnProperty(t *testing.T) {
 		t.Run("string expression", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			ctx := gs.NewMockCondContext(ctrl)
+			ctx := NewMockCondContext(ctrl)
 			ctx.EXPECT().Has("test.prop").Return(true)
 			ctx.EXPECT().Prop("test.prop").Return("42")
 			cond := OnProperty("test.prop").HavingValue(`expr:$ == "42"`)
@@ -192,7 +192,7 @@ func TestOnProperty(t *testing.T) {
 		t.Run("invalid expression", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			ctx := gs.NewMockCondContext(ctrl)
+			ctx := NewMockCondContext(ctrl)
 			ctx.EXPECT().Has("test.prop").Return(true)
 			ctx.EXPECT().Prop("test.prop").Return("42")
 			cond := OnProperty("test.prop").HavingValue("expr:invalid syntax")
@@ -207,7 +207,7 @@ func TestOnMissingProperty(t *testing.T) {
 	t.Run("property exist", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Has(gomock.Any()).Return(true)
 		cond := OnMissingProperty("existing")
 		ok, _ := cond.Matches(ctx)
@@ -217,7 +217,7 @@ func TestOnMissingProperty(t *testing.T) {
 	t.Run("property not exist", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Has(gomock.Any()).Return(false)
 		cond := OnMissingProperty("missing")
 		ok, _ := cond.Matches(ctx)
@@ -230,7 +230,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("found bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return([]gs.CondBean{nil}, nil)
 		cond := OnBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -241,7 +241,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("not found bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, nil)
 		cond := OnBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -252,7 +252,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, errors.New("test error"))
 		cond := OnBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -266,7 +266,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("not found bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, nil)
 		cond := OnMissingBean[any]("bean1")
 		ok, err := cond.Matches(ctx)
@@ -277,7 +277,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("found bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return([]gs.CondBean{nil}, nil)
 		cond := OnMissingBean[any]("bean1")
 		ok, err := cond.Matches(ctx)
@@ -288,7 +288,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, errors.New("test error"))
 		cond := OnMissingBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -302,7 +302,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("found only one bean", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return([]gs.CondBean{nil}, nil)
 		cond := OnSingleBean[any]("b")
 		ok, _ := cond.Matches(ctx)
@@ -312,7 +312,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("found two beans", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return([]gs.CondBean{nil, nil}, nil)
 		cond := OnSingleBean[any]("b")
 		ok, _ := cond.Matches(ctx)
@@ -322,7 +322,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, errors.New("test error"))
 		cond := OnSingleBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -334,7 +334,7 @@ func TestOnSingleBean(t *testing.T) {
 func TestOnExpression(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	ctx := gs.NewMockCondContext(ctrl)
+	ctx := NewMockCondContext(ctrl)
 	cond := OnExpression("1+1==2")
 	_, err := cond.Matches(ctx)
 	assert.True(t, errors.Is(err, util.UnimplementedMethod))
@@ -359,7 +359,7 @@ func TestNot(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, errors.New("test error"))
 		cond := OnSingleBean[any]("b")
 		ok, err := Not(cond).Matches(ctx)
@@ -397,7 +397,7 @@ func TestAnd(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, errors.New("test error"))
 		cond := OnSingleBean[any]("b")
 		ok, err := And(cond, trueCond).Matches(ctx)
@@ -435,7 +435,7 @@ func TestOr(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, errors.New("test error"))
 		cond := OnSingleBean[any]("b")
 		ok, err := Or(cond, trueCond).Matches(ctx)
@@ -475,7 +475,7 @@ func TestNone(t *testing.T) {
 	t.Run("return error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		ctx := gs.NewMockCondContext(ctrl)
+		ctx := NewMockCondContext(ctrl)
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, errors.New("test error"))
 		cond := OnSingleBean[any]("b")
 		ok, err := None(cond, trueCond).Matches(ctx)

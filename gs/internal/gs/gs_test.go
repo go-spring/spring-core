@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/util/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestAs(t *testing.T) {
@@ -49,4 +50,80 @@ func TestBeanSelector(t *testing.T) {
 		assert.Equal(t, typ, reflect.TypeFor[io.Writer]())
 		assert.Equal(t, fmt.Sprint(s), "{Type:io.Writer,Name:writer}")
 	})
+}
+
+func TestNewRegisteredBean(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	r := NewMockBeanRegistration(ctrl)
+	r.EXPECT().Type()
+	r.EXPECT().Name()
+	r.EXPECT().Value()
+	r.EXPECT().SetName(gomock.Any())
+	r.EXPECT().SetInit(gomock.Any())
+	r.EXPECT().SetDestroy(gomock.Any())
+	r.EXPECT().SetInitMethod(gomock.Any())
+	r.EXPECT().SetDestroyMethod(gomock.Any())
+	r.EXPECT().SetCondition(gomock.Any())
+	r.EXPECT().SetDependsOn(gomock.Any())
+	r.EXPECT().SetExport(gomock.Any()).Times(4)
+	r.EXPECT().SetConfiguration(gomock.Any())
+	r.EXPECT().SetCaller(gomock.Any())
+	r.EXPECT().OnProfiles(gomock.Any())
+	b := NewRegisteredBean(r).
+		Name("a").
+		Init(func() {}).
+		InitMethod("init").
+		Destroy(func() {}).
+		DestroyMethod("destroy").
+		Condition(nil).
+		DependsOn(nil).
+		AsRunner().
+		AsJob().
+		AsServer().
+		Export(nil).
+		Configuration().
+		Caller(0).
+		OnProfiles("dev")
+	b.TypeAndName()
+	_, _ = b.GetArgValue(nil, nil)
+	b.BeanRegistration()
+}
+
+func TestNewBeanDefinition(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	r := NewMockBeanRegistration(ctrl)
+	r.EXPECT().Type()
+	r.EXPECT().Name()
+	r.EXPECT().Value()
+	r.EXPECT().SetName(gomock.Any())
+	r.EXPECT().SetInit(gomock.Any())
+	r.EXPECT().SetDestroy(gomock.Any())
+	r.EXPECT().SetInitMethod(gomock.Any())
+	r.EXPECT().SetDestroyMethod(gomock.Any())
+	r.EXPECT().SetCondition(gomock.Any())
+	r.EXPECT().SetDependsOn(gomock.Any())
+	r.EXPECT().SetExport(gomock.Any()).Times(4)
+	r.EXPECT().SetConfiguration(gomock.Any())
+	r.EXPECT().SetCaller(gomock.Any())
+	r.EXPECT().OnProfiles(gomock.Any())
+	b := NewBeanDefinition(r).
+		Name("a").
+		Init(func() {}).
+		InitMethod("init").
+		Destroy(func() {}).
+		DestroyMethod("destroy").
+		Condition(nil).
+		DependsOn(nil).
+		AsRunner().
+		AsJob().
+		AsServer().
+		Export(nil).
+		Configuration().
+		Caller(0).
+		OnProfiles("dev")
+	b.TypeAndName()
+	_, _ = b.GetArgValue(nil, nil)
+	b.BeanRegistration()
 }
