@@ -43,6 +43,9 @@ func TestStorage(t *testing.T) {
 		assert.False(t, s.Has("a"))
 		assert.False(t, s.Has("a.b"))
 		assert.False(t, s.Has("a[0]"))
+
+		err = s.Set("", "abc")
+		assert.Error(t, err, "key is empty")
 	})
 
 	t.Run("map-0", func(t *testing.T) {
@@ -55,8 +58,6 @@ func TestStorage(t *testing.T) {
 			"a": "b",
 		})
 
-		//err = s.Set("a", "")
-		//assert.Error(t, err, "key or value is empty")
 		err = s.Set("a.y", "x")
 		assert.Error(t, err, "property conflict at path a.y")
 		err = s.Set("a[0]", "x")

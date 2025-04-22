@@ -161,9 +161,6 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 
 // Wire injects dependencies into the given object.
 func (c *Injecting) Wire(obj interface{}) error {
-	if !testing.Testing() {
-		return errors.New("not allowed to call Wire method in non-test mode")
-	}
 	r := &Injector{
 		state:                   Refreshed,
 		p:                       gs_dync.New(c.p.Data()),
@@ -192,7 +189,7 @@ type Injector struct {
 }
 
 // findBeans finds beans based on a given selector.
-func (c *Injector) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
+func (c *Injector) findBeans(s gs.BeanSelector) []BeanRuntime {
 	t, name := s.TypeAndName()
 	var beans []BeanRuntime
 	if t != nil {
@@ -207,7 +204,7 @@ func (c *Injector) findBeans(s gs.BeanSelector) ([]BeanRuntime, error) {
 		}
 		beans = ret
 	}
-	return beans, nil
+	return beans
 }
 
 // WireTag represents a parsed injection tag in the format TypeName:BeanName?.
@@ -239,7 +236,7 @@ func toWireString(tags []WireTag) string {
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
-func parseWireTag(str string) (tag WireTag, err error) {
+func parseWireTag(str string) (tag WireTag) {
 	if str != "" {
 		if n := len(str) - 1; str[n] == '?' {
 			tag.beanName = str[:n]
@@ -426,10 +423,7 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 				nullable = true
 				if str != "?" {
 					for _, s := range strings.Split(str, ",") {
-						g, err := parseWireTag(s)
-						if err != nil {
-							return err
-						}
+						g := parseWireTag(s)
 						tags = append(tags, g)
 						if !g.nullable {
 							nullable = false
@@ -469,18 +463,11 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 			return nil
 		}
 	default:
-		tag, err := parseWireTag(str)
-		if err != nil {
-			return err
-		}
+		g := parseWireTag(str)
 		if c.forceAutowireIsNullable {
-			tag.nullable = true
+			g.nullable = true
 		}
-		// Ensure the provided value `v` is valid.
-		if !v.IsValid() {
-			return fmt.Errorf("receiver must be a reference type, bean:%q", str)
-		}
-		b, err := c.getBean(v.Type(), tag, stack)
+		b, err := c.getBean(v.Type(), g, stack)
 		if err != nil {
 			return err
 		}
@@ -534,12 +521,9 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	// Inject dependencies for the current bean.
 	for _, s := range b.DependsOn() {
-		beans, err := c.findBeans(s) // todo 唯一
-		if err != nil {
-			return err
-		}
+		beans := c.findBeans(s)
 		for _, d := range beans {
-			err = c.wireBean(d.(*gs_bean.BeanDefinition), stack)
+			err := c.wireBean(d.(*gs_bean.BeanDefinition), stack)
 			if err != nil {
 				return err
 			}
@@ -667,9 +651,6 @@ func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPara
 		// If the field is unexported, try to patch it.
 		if !fv.CanInterface() {
 			fv = util.PatchValue(fv)
-			if !fv.CanInterface() {
-				continue
-			}
 		}
 
 		fieldPath := opt.Path + "." + ft.Name
@@ -876,10 +857,7 @@ func (a *ArgContext) Prop(key string, def ...string) string {
 }
 
 func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
-	beans, err := a.c.findBeans(s)
-	if err != nil {
-		return nil, err
-	}
+	beans := a.c.findBeans(s)
 	var ret []gs.CondBean
 	for _, bean := range beans {
 		ret = append(ret, bean)
