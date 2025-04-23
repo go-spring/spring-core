@@ -24,23 +24,6 @@ import (
 	"github.com/go-spring/spring-core/util/assert"
 )
 
-func TestReplaceKey(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"MY_ENV_VAR", "MY.ENV.VAR"},
-		{"_MY_ENV_", "_MY.ENV_"},
-		{"__PREFIX__KEY__", "__PREFIX__KEY__"},
-		{"NO_UNDERSCORES", "NO.UNDERSCORES"},
-		{"_LEADING_AND_TRAILING_", "_LEADING.AND.TRAILING_"},
-	}
-	for _, tt := range tests {
-		got := replaceKey(tt.input)
-		assert.Equal(t, got, tt.want)
-	}
-}
-
 func TestEnvironment(t *testing.T) {
 	os.Clearenv()
 
@@ -53,22 +36,6 @@ func TestEnvironment(t *testing.T) {
 
 	t.Run("normal", func(t *testing.T) {
 		_ = os.Setenv("GS_DB_HOST", "db1")
-		_ = os.Setenv("API_KEY", "key123")
-		defer func() {
-			_ = os.Unsetenv("GS_DB_HOST")
-			_ = os.Unsetenv("API_KEY")
-		}()
-		props := conf.New()
-		err := NewEnvironment().CopyTo(props)
-		assert.Nil(t, err)
-		assert.Equal(t, props.Get("db.host"), "db1")
-		assert.Equal(t, props.Get("API_KEY"), "key123")
-	})
-
-	t.Run("custom prefix", func(t *testing.T) {
-		_ = os.Setenv(EnvironmentPrefix, "APP_")
-		_ = os.Setenv("GS_CACHE_SIZE", "100")
-		_ = os.Setenv("APP_DB_HOST", "db1")
 		_ = os.Setenv("API_KEY", "key123")
 		defer func() {
 			_ = os.Unsetenv("GS_DB_HOST")

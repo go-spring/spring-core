@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	EnvironmentPrefix  = "GS_ENVS_PREFIX"
 	IncludeEnvPatterns = "INCLUDE_ENV_PATTERNS"
 	ExcludeEnvPatterns = "EXCLUDE_ENV_PATTERNS"
 )
@@ -56,11 +55,6 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 	environ := os.Environ()
 	if len(environ) == 0 {
 		return nil
-	}
-
-	prefix := "GS_"
-	if s := strings.TrimSpace(os.Getenv(EnvironmentPrefix)); s != "" {
-		prefix = s
 	}
 
 	toRex := func(patterns []string) ([]*regexp.Regexp, error) {
@@ -102,6 +96,7 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		return false
 	}
 
+	const prefix = "GS_"
 	for _, env := range environ {
 		ss := strings.SplitN(env, "=", 2)
 		k, v := ss[0], ""
@@ -112,7 +107,8 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		var propKey string
 		if strings.HasPrefix(k, prefix) {
 			propKey = strings.TrimPrefix(k, prefix)
-			propKey = strings.ToLower(replaceKey(propKey))
+			propKey = strings.ReplaceAll(propKey, "_", ".")
+			propKey = strings.ToLower(propKey)
 		} else if matches(includeRex, k) && !matches(excludeRex, k) {
 			propKey = k
 		} else {
@@ -124,20 +120,4 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		}
 	}
 	return nil
-}
-
-// replaceKey replace '_' with '.'
-func replaceKey(s string) string {
-	b := make([]byte, len(s)+2)
-	b[0] = '_'
-	b[len(b)-1] = '_'
-	copy(b[1:len(b)-1], s)
-	for i := 1; i < len(b)-1; i++ {
-		if b[i] == '_' {
-			if b[i-1] != '_' && b[i+1] != '_' {
-				b[i] = '.'
-			}
-		}
-	}
-	return string(b[1 : len(b)-1])
 }

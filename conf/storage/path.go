@@ -79,10 +79,7 @@ func SplitPath(key string) (_ []Path, err error) {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			if lastChar != ']' {
-				path, err = appendKey(path, key[lastPos:i])
-				if err != nil {
-					return nil, fmt.Errorf("invalid key '%s'", key)
-				}
+				path = appendKey(path, key[lastPos:i])
 			}
 			lastPos = i + 1
 			lastChar = c
@@ -91,10 +88,7 @@ func SplitPath(key string) (_ []Path, err error) {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
 			if i > 0 && lastChar != ']' {
-				path, err = appendKey(path, key[lastPos:i])
-				if err != nil {
-					return nil, fmt.Errorf("invalid key '%s'", key)
-				}
+				path = appendKey(path, key[lastPos:i])
 			}
 			openBracket = true
 			lastPos = i + 1
@@ -121,18 +115,14 @@ func SplitPath(key string) (_ []Path, err error) {
 		return nil, fmt.Errorf("invalid key '%s'", key)
 	}
 	if lastChar != ']' {
-		path, err = appendKey(path, key[lastPos:])
-		if err != nil {
-			return nil, fmt.Errorf("invalid key '%s'", key)
-		}
+		path = appendKey(path, key[lastPos:])
 	}
 	return path, nil
 }
 
 // appendKey appends a key segment to the path.
-func appendKey(path []Path, s string) ([]Path, error) {
-	path = append(path, Path{PathTypeKey, s})
-	return path, nil
+func appendKey(path []Path, s string) []Path {
+	return append(path, Path{PathTypeKey, s})
 }
 
 // appendIndex appends an index segment to the path.

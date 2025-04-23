@@ -31,7 +31,6 @@ const (
 	EnableServersProp           = "spring.app.enable-servers"
 	EnableSimpleHttpServerProp  = "spring.enable.simple-http-server"
 	EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
-	EnableDefaultServeMuxProp   = "spring.enable.default-serve-mux"
 )
 
 func setProperty(key string, val string) {
@@ -73,9 +72,4 @@ func EnableSimpleHttpServer(enable bool) {
 // EnableSimplePProfServer enables or disables the simple pprof server.
 func EnableSimplePProfServer(enable bool) {
 	setProperty(EnableSimplePProfServerProp, strconv.FormatBool(enable))
-}
-
-// EnableDefaultServeMux enables or disables the default serve mux.
-func EnableDefaultServeMux(enable bool) {
-	setProperty(EnableDefaultServeMuxProp, strconv.FormatBool(enable))
 }
