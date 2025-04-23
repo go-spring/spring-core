@@ -18,6 +18,7 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/go-spring/spring-core/util/assert"
@@ -133,7 +134,10 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "0[0]",
-			Err: errors.New("invalid key '0[0]'"),
+			Path: []Path{
+				{PathTypeKey, "0"},
+				{PathTypeIndex, "0"},
+			},
 		},
 		{
 			Key: "a.[0]",
@@ -141,7 +145,11 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a.0.b",
-			Err: errors.New("invalid key 'a.0.b'"),
+			Path: []Path{
+				{PathTypeKey, "a"},
+				{PathTypeKey, "0"},
+				{PathTypeKey, "b"},
+			},
 		},
 		{
 			Key: "a[0].b",
@@ -185,7 +193,12 @@ func TestSplitPath(t *testing.T) {
 		},
 		{
 			Key: "a[0].b.0",
-			Err: errors.New("invalid key 'a[0].b.0'"),
+			Path: []Path{
+				{PathTypeKey, "a"},
+				{PathTypeIndex, "0"},
+				{PathTypeKey, "b"},
+				{PathTypeKey, "0"},
+			},
 		},
 	}
 	for _, c := range testcases {
@@ -194,7 +207,7 @@ func TestSplitPath(t *testing.T) {
 			assert.Equal(t, err, c.Err)
 			continue
 		}
-		assert.Equal(t, p, c.Path)
+		assert.Equal(t, p, c.Path, fmt.Sprintf("key=%s", c.Key))
 		assert.Equal(t, JoinPath(p), c.Key)
 	}
 }

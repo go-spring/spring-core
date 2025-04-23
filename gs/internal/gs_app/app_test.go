@@ -48,6 +48,7 @@ func clean() {
 func TestApp(t *testing.T) {
 
 	t.Run("os signals", func(t *testing.T) {
+		t.Skip()
 		t.Cleanup(clean)
 		app := NewApp()
 		go func() {

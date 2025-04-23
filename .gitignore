@@ -9,3 +9,5 @@ gs/examples/bookman/log/*.log
 gs/examples/bookman/.cover/covcounters.*
 gs/examples/bookman/.cover/covmeta.*
 gs/examples/bookman/.cover/cover.txt
+
+coverage.txt

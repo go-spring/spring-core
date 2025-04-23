@@ -112,13 +112,13 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		var propKey string
 		if strings.HasPrefix(k, prefix) {
 			propKey = strings.TrimPrefix(k, prefix)
+			propKey = strings.ToLower(replaceKey(propKey))
 		} else if matches(includeRex, k) && !matches(excludeRex, k) {
 			propKey = k
 		} else {
 			continue
 		}
 
-		propKey = strings.ToLower(replaceKey(propKey))
 		if err = p.Set(propKey, v); err != nil {
 			return err
 		}
