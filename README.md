@@ -1,6 +1,11 @@
-# spring-core
-
-[![codecov](https://codecov.io/gh/go-spring/spring-core/branch/main/graph/badge.svg)](https://codecov.io/gh/go-spring/spring-core)
+<div>
+ <img src="https://raw.githubusercontent.com/go-spring/go-spring/master/logo@h.png" width="140" height="*" alt="logo"/>
+ <br/>
+ <img src="https://img.shields.io/github/license/go-spring/spring-core" alt="license"/>
+ <img src="https://img.shields.io/github/go-mod/go-version/go-spring/spring-core" alt="go-version"/>
+ <img src="https://img.shields.io/github/v/release/go-spring/spring-core?include_prereleases" alt="release"/>
+ <img src="https://codecov.io/gh/go-spring/spring-core/branch/main/graph/badge.svg" alt="test-coverage"/>
+</div>
 
 # 介绍
 
