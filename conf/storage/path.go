@@ -131,10 +131,6 @@ func SplitPath(key string) (_ []Path, err error) {
 
 // appendKey appends a key segment to the path.
 func appendKey(path []Path, s string) ([]Path, error) {
-	_, err := strconv.ParseUint(s, 10, 64)
-	if err == nil {
-		return nil, errors.New("invalid key")
-	}
 	path = append(path, Path{PathTypeKey, s})
 	return path, nil
 }
