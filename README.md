@@ -1,5 +1,7 @@
 # spring-core
 
+[![codecov](https://codecov.io/gh/go-spring/spring-core/branch/main/graph/badge.svg)](https://codecov.io/gh/go-spring/spring-core)
+
 # 介绍
 
 Go-Spring 是为 Go 开发者打造的轻量级微服务框架，灵感来源于 Java 的 Spring 和 Spring Boot。
