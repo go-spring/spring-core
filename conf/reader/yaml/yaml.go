@@ -22,10 +22,10 @@ import (
 
 // Read parses []byte in the yaml format into map.
 func Read(b []byte) (map[string]interface{}, error) {
-	m := make(map[string]interface{})
-	err := yaml.Unmarshal(b, &m)
+	ret := make(map[string]interface{})
+	err := yaml.Unmarshal(b, &ret)
 	if err != nil {
 		return nil, err
 	}
-	return m, nil
+	return ret, nil
 }

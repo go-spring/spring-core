@@ -32,8 +32,8 @@ var (
 	ErrInvalidSyntax = errors.New("invalid syntax")
 )
 
-// ParsedTag a value tag includes at most three parts: required key, optional
-// default value, and optional splitter, the syntax is ${key:=value}>>splitter.
+// ParsedTag represents a parsed configuration tag, including key,
+// default value, and optional custom splitter for list parsing.
 type ParsedTag struct {
 	Key      string // short property key
 	Def      string // default value
@@ -57,7 +57,8 @@ func (tag ParsedTag) String() string {
 	return sb.String()
 }
 
-// ParseTag parses a value tag, returns its key, and default value, and splitter.
+// ParseTag parses a tag string in the format `${key:=default}>>splitter`
+// into a ParsedTag struct. Returns an error if the format is invalid.
 func ParseTag(tag string) (ret ParsedTag, err error) {
 	i := strings.LastIndex(tag, ">>")
 	if i == 0 {
@@ -86,6 +87,7 @@ func ParseTag(tag string) (ret ParsedTag, err error) {
 	return
 }
 
+// BindParam holds binding metadata for a single configuration value.
 type BindParam struct {
 	Key      string            // full key
 	Path     string            // full path
@@ -93,6 +95,8 @@ type BindParam struct {
 	Validate reflect.StructTag // full field tag
 }
 
+// BindTag parses and binds the configuration tag to the BindParam.
+// It handles default values and nested key expansion.
 func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 	param.Validate = validate
 	parsedTag, err := ParseTag(tag)
@@ -104,7 +108,7 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 			param.Tag = parsedTag
 			return nil
 		}
-		return fmt.Errorf("xxxx") // todo
+		return fmt.Errorf("parse tag '%s' error: %w", tag, ErrInvalidSyntax)
 	}
 	if parsedTag.Key == "ROOT" {
 		parsedTag.Key = ""
@@ -118,11 +122,13 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 	return nil
 }
 
+// Filter defines an interface for filtering configuration fields during binding.
 type Filter interface {
 	Do(i interface{}, param BindParam) (bool, error)
 }
 
-// BindValue binds properties to a value.
+// BindValue binds a value from properties `p` to the reflect.Value `v` of type `t`
+// using metadata in `param`. It supports primitives, structs, maps, and slices.
 func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
 	if !util.IsPropBindingTarget(t) {
@@ -206,14 +212,10 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 			return nil
 		}
 		return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
-	case reflect.String:
+	default:
 		v.SetString(val)
 		return nil
-	default: // for linter
 	}
-
-	err = errors.New("unsupported bind type")
-	return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 }
 
 // bindSlice binds properties to a slice value.
@@ -233,23 +235,25 @@ func bindSlice(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 	}
 
 	for i := 0; ; i++ {
-		e := reflect.New(et).Elem()
+		ev := reflect.New(et).Elem()
 		subParam := BindParam{
 			Key:  fmt.Sprintf("%s[%d]", param.Key, i),
 			Path: fmt.Sprintf("%s[%d]", param.Path, i),
 		}
-		err = BindValue(p, e, et, subParam, filter)
+		err = BindValue(p, ev, et, subParam, filter)
 		if errors.Is(err, ErrNotExist) {
 			break
 		}
 		if err != nil {
 			return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
-		slice = reflect.Append(slice, e)
+		slice = reflect.Append(slice, ev)
 	}
 	return nil
 }
 
+// getSlice retrieves and splits a string into slice elements,
+// creating a new Properties instance if necessary.
 func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error) {
 
 	// properties that defined as list.
@@ -294,15 +298,13 @@ func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error
 			return nil, fmt.Errorf("split error: %w, value: %q", err, strVal)
 		}
 	} else {
-		return nil, fmt.Errorf("unknown splitter %q", s)
+		return nil, fmt.Errorf("unknown splitter '%s'", s)
 	}
 
 	r := New()
 	for i, s := range arrVal {
 		k := fmt.Sprintf("%s[%d]", param.Key, i)
-		if err = r.storage.Set(k, s); err != nil {
-			return nil, err
-		}
+		_ = r.Set(k, s) // always no error
 	}
 	return r, nil
 }
@@ -324,6 +326,13 @@ func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, fil
 		if param.Tag.HasDef {
 			return nil
 		}
+	}
+
+	if !p.Has(param.Key) {
+		if param.Tag.HasDef {
+			return nil
+		}
+		return fmt.Errorf("property %q %w", param.Key, ErrNotExist)
 	}
 
 	keys, err := p.SubKeys(param.Key)
@@ -397,7 +406,6 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
 			if err := bindStruct(p, fv, ft.Type, subParam, filter); err != nil {
 				return err // no wrap
 			}
-			continue
 		}
 	}
 	return nil
@@ -411,48 +419,44 @@ func resolve(p Properties, param BindParam) (string, error) {
 		return resolveString(p, val)
 	}
 	if p.Has(param.Key) {
-		return "", fmt.Errorf("property key=%s isn't simple value", param.Key)
+		return "", fmt.Errorf("property %s isn't simple value", param.Key)
 	}
 	if param.Tag.HasDef {
 		return resolveString(p, param.Tag.Def)
 	}
-	return "", fmt.Errorf("property key=%s %w", param.Key, ErrNotExist)
+	return "", fmt.Errorf("property %s %w", param.Key, ErrNotExist)
 }
 
 // resolveString returns property references processed string.
 func resolveString(p Properties, s string) (string, error) {
 
-	var (
-		length = len(s)
-		count  = 0
-		start  = -1
-		end    = -1
-	)
-
-	for i := 0; i < length; i++ {
-		if s[i] == '$' {
-			if i < length-1 && s[i+1] == '{' {
-				if count == 0 {
-					start = i
-				}
-				count++
-			}
-		} else if s[i] == '}' {
-			if count > 0 {
-				count--
-				if count == 0 {
-					end = i
-					break
-				}
-			}
-		}
-	}
-
+	// If there is no property reference, return the original string.
+	start := strings.Index(s, "${")
 	if start < 0 {
 		return s, nil
 	}
 
-	if end < 0 || count > 0 {
+	var (
+		length = len(s)
+		count  = 1
+		end    = -1
+	)
+
+	for i := start + 2; i < length; i++ {
+		if s[i] == '$' {
+			if i+1 < length && s[i+1] == '{' {
+				count++
+			}
+		} else if s[i] == '}' {
+			count--
+			if count == 0 {
+				end = i
+				break
+			}
+		}
+	}
+
+	if end < 0 {
 		err := ErrInvalidSyntax
 		return "", fmt.Errorf("resolve string %q error: %w", s, err)
 	}

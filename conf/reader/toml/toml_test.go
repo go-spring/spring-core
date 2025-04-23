@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-package toml_test
+package toml
 
 import (
 	"testing"
 
-	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestRead(t *testing.T) {
 
+	t.Run("error", func(t *testing.T) {
+		_, err := Read([]byte(`{`))
+		assert.Error(t, err, "parsing error: keys cannot contain { character")
+	})
+
 	t.Run("basic type", func(t *testing.T) {
-		r, err := toml.Read([]byte(`
+		r, err := Read([]byte(`
+			empty=""
 			bool=false
 			int=3
 			float=3.0
@@ -35,10 +40,9 @@ func TestRead(t *testing.T) {
 			date="2018-02-17"
 			time="2018-02-17T15:02:31+08:00"
 		`))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
+			"empty":   "",
 			"bool":    false,
 			"int":     int64(3),
 			"float":   3.0,
@@ -50,16 +54,14 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("map", func(t *testing.T) {
-		r, err := toml.Read([]byte(`
+		r, err := Read([]byte(`
 			[map]
 			bool=false
 			int=3
 			float=3.0
 			string="hello"
 		`))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"map": map[string]interface{}{
 				"bool":   false,
@@ -71,7 +73,7 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("array struct", func(t *testing.T) {
-		r, err := toml.Read([]byte(`
+		r, err := Read([]byte(`
 			[[array]]
 			bool=false
 			int=3
@@ -84,9 +86,7 @@ func TestRead(t *testing.T) {
 			float=0.2
 			string="hello"
 		`))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"array": []interface{}{
 				map[string]interface{}{
@@ -106,7 +106,7 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("map struct", func(t *testing.T) {
-		r, err := toml.Read([]byte(`
+		r, err := Read([]byte(`
 			[map.k1]
 			bool=false
 			int=3
@@ -119,9 +119,7 @@ func TestRead(t *testing.T) {
 			float=0.2
 			string="hello"
 		`))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"map": map[string]interface{}{
 				"k1": map[string]interface{}{

@@ -26,9 +26,9 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
-	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 )
 
@@ -49,11 +49,6 @@ type Arg = gs.Arg
 // TagArg returns a TagArg with the specified tag.
 func TagArg(tag string) Arg {
 	return gs_arg.Tag(tag)
-}
-
-// NilArg returns a ValueArg with a nil value.
-func NilArg() Arg {
-	return gs_arg.Nil()
 }
 
 // ValueArg returns a ValueArg with the specified value.
@@ -94,34 +89,19 @@ func OnMissingProperty(name string) Condition {
 	return gs_cond.OnMissingProperty(name)
 }
 
-// OnBean creates a Condition based on a BeanSelector.
+// OnBean creates a Condition for when a specific bean exists.
 func OnBean[T any](name ...string) Condition {
-	return gs_cond.OnBeanSelector(BeanSelectorFor[T](name...))
-}
-
-// OnBeanSelector creates a Condition based on a BeanSelector.
-func OnBeanSelector(s BeanSelector) Condition {
-	return gs_cond.OnBeanSelector(s)
+	return gs_cond.OnBean[T](name...)
 }
 
 // OnMissingBean creates a Condition for when a specific bean is missing.
 func OnMissingBean[T any](name ...string) Condition {
-	return gs_cond.OnMissingBeanSelector(BeanSelectorFor[T](name...))
-}
-
-// OnMissingBeanSelector creates a Condition for when a specific bean is missing.
-func OnMissingBeanSelector(s BeanSelector) Condition {
-	return gs_cond.OnMissingBeanSelector(s)
+	return gs_cond.OnMissingBean[T](name...)
 }
 
 // OnSingleBean creates a Condition for when only one instance of a bean exists.
 func OnSingleBean[T any](name ...string) Condition {
-	return gs_cond.OnSingleBeanSelector(BeanSelectorFor[T](name...))
-}
-
-// OnSingleBeanSelector creates a Condition for when only one instance of a bean exists.
-func OnSingleBeanSelector(s BeanSelector) Condition {
-	return gs_cond.OnSingleBeanSelector(s)
+	return gs_cond.OnSingleBean[T](name...)
 }
 
 // RegisterExpressFunc registers a custom expression function.
@@ -157,7 +137,6 @@ func None(conditions ...Condition) Condition {
 /************************************ ioc ************************************/
 
 type (
-	Refreshable = gs.Refreshable
 	Dync[T any] = gs_dync.Value[T]
 )
 
@@ -173,7 +152,9 @@ type (
 )
 
 // NewBean creates a new BeanDefinition.
-var NewBean = gs_core.NewBean
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+	return gs_bean.NewBean(objOrCtor, ctorArgs...).Caller(1)
+}
 
 // BeanSelectorFor returns a BeanSelector for the given type.
 func BeanSelectorFor[T any](name ...string) BeanSelector {
@@ -200,7 +181,7 @@ func (f funcRunner) Run() error {
 
 // FuncRunner creates a Runner from a function.
 func FuncRunner(fn func() error) *RegisteredBean {
-	return Object(funcRunner(fn)).AsRunner()
+	return Object(funcRunner(fn)).AsRunner().Caller(1)
 }
 
 // funcJob is a function type that implements the Job interface.
@@ -212,7 +193,7 @@ func (f funcJob) Run(ctx context.Context) error {
 
 // FuncJob creates a Job from a function.
 func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
-	return Object(funcJob(fn)).AsJob()
+	return Object(funcJob(fn)).AsJob().Caller(1)
 }
 
 // Run runs the app and waits for an interrupt signal to exit.
@@ -242,14 +223,14 @@ func Config() *gs_conf.AppConfig {
 
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
-	b := NewBean(reflect.ValueOf(i))
-	return gs_app.GS.C.Register(b)
+	b := gs_bean.NewBean(reflect.ValueOf(i))
+	return gs_app.GS.C.Register(b).Caller(1)
 }
 
 // Provide registers a bean definition for a given constructor.
 func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
-	b := NewBean(ctor, args...)
-	return gs_app.GS.C.Register(b)
+	b := gs_bean.NewBean(ctor, args...)
+	return gs_app.GS.C.Register(b).Caller(1)
 }
 
 // Register registers a bean definition.

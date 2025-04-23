@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+//go:generate mockgen -build_flags="-mod=mod" -package=gs -source=gs.go -destination=gs_test_test.go -exclude_interfaces=BeanSelector,Condition,CondBean,Arg,ReadySignal,BeanInitFunc,BeanDestroyFunc
+
 package gs
 
 import (
@@ -21,8 +23,6 @@ import (
 	"reflect"
 	"strings"
 	"unsafe"
-
-	"github.com/go-spring/spring-core/conf"
 )
 
 // anyType is the [reflect.Type] of the [any] type.
@@ -38,14 +38,6 @@ func As[T any]() reflect.Type {
 	}
 	return t
 }
-
-// BeanInitFunc defines the prototype for initialization functions.
-// Examples: `func(bean)` or `func(bean) error`.
-type BeanInitFunc = interface{}
-
-// BeanDestroyFunc defines the prototype for destruction functions.
-// Examples: `func(bean)` or `func(bean) error`.
-type BeanDestroyFunc = interface{}
 
 // BeanSelector is an interface for selecting beans.
 type BeanSelector interface {
@@ -91,7 +83,7 @@ func (s BeanSelectorImpl) String() string {
 	return sb.String()
 }
 
-/********************************** condition ********************************/
+/************************************ cond ***********************************/
 
 // Condition is an interface used for defining conditional logic
 // when registering beans in the IoC container.
@@ -137,14 +129,6 @@ type ArgContext interface {
 	Wire(v reflect.Value, tag string) error
 }
 
-/*********************************** dync ************************************/
-
-// Refreshable represents an object that can be dynamically refreshed.
-type Refreshable interface {
-	// OnRefresh is called to refresh the properties when they change.
-	OnRefresh(prop conf.Properties, param conf.BindParam) error
-}
-
 /*********************************** app ************************************/
 
 // Runner defines an interface for components that should run after
@@ -175,8 +159,22 @@ type Server interface {
 
 /*********************************** bean ************************************/
 
-// ConfigurationParam holds parameters for bean setup configuration.
-type ConfigurationParam struct {
+// BeanID represents the unique identifier for a bean.
+type BeanID struct {
+	Type reflect.Type
+	Name string
+}
+
+// BeanInitFunc defines the prototype for initialization functions.
+// Examples: `func(bean)` or `func(bean) error`.
+type BeanInitFunc = interface{}
+
+// BeanDestroyFunc defines the prototype for destruction functions.
+// Examples: `func(bean)` or `func(bean) error`.
+type BeanDestroyFunc = interface{}
+
+// Configuration holds parameters for bean setup configuration.
+type Configuration struct {
 	Includes []string // Methods to include
 	Excludes []string // Methods to exclude
 }
@@ -191,11 +189,10 @@ type BeanRegistration interface {
 	SetDestroy(fn BeanDestroyFunc)
 	SetInitMethod(method string)
 	SetDestroyMethod(method string)
-	SetCondition(conditions ...Condition)
+	SetCondition(c ...Condition)
 	SetDependsOn(selectors ...BeanSelector)
 	SetExport(exports ...reflect.Type)
-	SetConfiguration(param ...ConfigurationParam)
-	SetRefreshable(tag string)
+	SetConfiguration(c ...Configuration)
 	SetCaller(skip int)
 	OnProfiles(profiles string)
 }
@@ -251,8 +248,8 @@ func (d *beanBuilder[T]) DestroyMethod(method string) *T {
 }
 
 // Condition sets the conditions for the bean.
-func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
-	d.b.SetCondition(conditions...)
+func (d *beanBuilder[T]) Condition(c ...Condition) *T {
+	d.b.SetCondition(c...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 
@@ -287,14 +284,8 @@ func (d *beanBuilder[T]) Export(exports ...reflect.Type) *T {
 }
 
 // Configuration applies the configuration parameters to the bean.
-func (d *beanBuilder[T]) Configuration(param ...ConfigurationParam) *T {
-	d.b.SetConfiguration(param...)
-	return *(**T)(unsafe.Pointer(&d))
-}
-
-// Refreshable marks the bean as refreshable with the provided tag.
-func (d *beanBuilder[T]) Refreshable(tag string) *T {
-	d.b.SetRefreshable(tag)
+func (d *beanBuilder[T]) Configuration(c ...Configuration) *T {
+	d.b.SetConfiguration(c...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

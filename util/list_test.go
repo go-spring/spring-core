@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Go-Spring Authors.
+ * Copyright 2025 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package pkg
+package util_test
 
 import (
-	"fmt"
+	"testing"
+
+	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/assert"
 )
 
-// SamePkg go 允许不同的路径下存在相同的包，而且允许存在相同的包。
-type SamePkg struct{}
-
-func (p *SamePkg) Package() {
-	fmt.Println("github.com/go-spring/spring-core/gs/internal/gs_core/testdata/pkg/foo/pkg.SamePkg")
+func TestListOf(t *testing.T) {
+	assert.Nil(t, util.AllOfList[string](nil))
+	l := util.ListOf[string]()
+	assert.Nil(t, util.AllOfList[string](l))
+	l = util.ListOf("a", "b", "c")
+	assert.Equal(t, []string{"a", "b", "c"}, util.AllOfList[string](l))
 }

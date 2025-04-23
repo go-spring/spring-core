@@ -40,6 +40,12 @@ func PatchValue(v reflect.Value) reflect.Value {
 	return v
 }
 
+// FuncName returns the function name for a given function.
+func FuncName(fn interface{}) string {
+	_, _, fnName := FileLine(fn)
+	return fnName
+}
+
 // FileLine returns the file, line number, and function name for a given function.
 // It uses reflection and runtime information to extract these details.
 // 'fn' is expected to be a function or method value.

@@ -17,57 +17,65 @@
 package gs
 
 import (
+	"strconv"
+
 	"github.com/go-spring/spring-core/util/sysconf"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 const (
 	AllowCircularReferencesProp = "spring.allow-circular-references"
 	ForceAutowireIsNullableProp = "spring.force-autowire-is-nullable"
 	ActiveProfilesProp          = "spring.profiles.active"
-	EnableAppJobsProp           = "spring.enable.app-jobs"
-	EnableAppServersProp        = "spring.enable.app-servers"
+	EnableJobsProp              = "spring.app.enable-jobs"
+	EnableServersProp           = "spring.app.enable-servers"
 	EnableSimpleHttpServerProp  = "spring.enable.simple-http-server"
 	EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
+	EnableDefaultServeMuxProp   = "spring.enable.default-serve-mux"
 )
+
+func setProperty(key string, val string) {
+	if err := sysconf.Set(key, val); err != nil {
+		syslog.Errorf("failed to set %s: %v", key, err)
+	}
+}
 
 // AllowCircularReferences enables or disables circular references between beans.
 func AllowCircularReferences(enable bool) {
-	err := sysconf.Set(AllowCircularReferencesProp, enable)
-	_ = err // Ignore error
+	setProperty(AllowCircularReferencesProp, strconv.FormatBool(enable))
 }
 
 // ForceAutowireIsNullable forces autowire to be nullable.
 func ForceAutowireIsNullable(enable bool) {
-	err := sysconf.Set(ForceAutowireIsNullableProp, enable)
-	_ = err // Ignore error
+	setProperty(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
 }
 
 // SetActiveProfiles sets the active profiles for the app.
 func SetActiveProfiles(profiles string) {
-	err := sysconf.Set(ActiveProfilesProp, profiles)
-	_ = err // Ignore error
+	setProperty(ActiveProfilesProp, profiles)
 }
 
-// EnableAppJobs enables or disables the app jobs.
-func EnableAppJobs(enable bool) {
-	err := sysconf.Set(EnableAppJobsProp, enable)
-	_ = err // Ignore error
+// EnableJobs enables or disables the app jobs.
+func EnableJobs(enable bool) {
+	setProperty(EnableJobsProp, strconv.FormatBool(enable))
 }
 
-// EnableAppServers enables or disables the app servers.
-func EnableAppServers(enable bool) {
-	err := sysconf.Set(EnableAppServersProp, enable)
-	_ = err // Ignore error
+// EnableServers enables or disables the app servers.
+func EnableServers(enable bool) {
+	setProperty(EnableServersProp, strconv.FormatBool(enable))
 }
 
 // EnableSimpleHttpServer enables or disables the simple HTTP server.
 func EnableSimpleHttpServer(enable bool) {
-	err := sysconf.Set(EnableSimpleHttpServerProp, enable)
-	_ = err // Ignore error
+	setProperty(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
 }
 
 // EnableSimplePProfServer enables or disables the simple pprof server.
 func EnableSimplePProfServer(enable bool) {
-	err := sysconf.Set(EnableSimplePProfServerProp, enable)
-	_ = err // Ignore error
+	setProperty(EnableSimplePProfServerProp, strconv.FormatBool(enable))
+}
+
+// EnableDefaultServeMux enables or disables the default serve mux.
+func EnableDefaultServeMux(enable bool) {
+	setProperty(EnableDefaultServeMuxProp, strconv.FormatBool(enable))
 }

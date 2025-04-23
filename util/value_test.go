@@ -36,6 +36,15 @@ func TestPatchValue(t *testing.T) {
 	v.SetInt(4)
 }
 
+func TestFuncName(t *testing.T) {
+	assert.Equal(t, util.FuncName(func() {}), "util_test.TestFuncName.func1")
+	assert.Equal(t, util.FuncName(func(i int) {}), "util_test.TestFuncName.func2")
+	assert.Equal(t, util.FuncName(fnNoArgs), "util_test.fnNoArgs")
+	assert.Equal(t, util.FuncName(fnWithArgs), "util_test.fnWithArgs")
+	assert.Equal(t, util.FuncName((*receiver).ptrFnNoArgs), "util_test.(*receiver).ptrFnNoArgs")
+	assert.Equal(t, util.FuncName((*receiver).ptrFnWithArgs), "util_test.(*receiver).ptrFnWithArgs")
+}
+
 func fnNoArgs() {}
 
 func fnWithArgs(i int) {}
@@ -56,25 +65,25 @@ func TestFileLine(t *testing.T) {
 		{
 			fnNoArgs,
 			"spring-core/util/value_test.go",
-			39,
+			48,
 			"util_test.fnNoArgs",
 		},
 		{
 			fnWithArgs,
 			"spring-core/util/value_test.go",
-			41,
+			50,
 			"util_test.fnWithArgs",
 		},
 		{
 			(*receiver).ptrFnNoArgs,
 			"spring-core/util/value_test.go",
-			45,
+			54,
 			"util_test.(*receiver).ptrFnNoArgs",
 		},
 		{
 			(*receiver).ptrFnWithArgs,
 			"spring-core/util/value_test.go",
-			47,
+			56,
 			"util_test.(*receiver).ptrFnWithArgs",
 		},
 	}

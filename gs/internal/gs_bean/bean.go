@@ -64,27 +64,23 @@ func (status BeanStatus) String() string {
 	}
 }
 
-// refreshableType is the [reflect.Type] of the [gs.Refreshable] interface.
-var refreshableType = reflect.TypeFor[gs.Refreshable]()
-
 // BeanMetadata holds the metadata information of a bean.
 type BeanMetadata struct {
-	f          *gs_arg.Callable
-	init       gs.BeanInitFunc
-	destroy    gs.BeanDestroyFunc
-	dependsOn  []gs.BeanSelector
-	exports    []reflect.Type
-	conditions []gs.Condition
-	status     BeanStatus
+	f             *gs_arg.Callable
+	init          gs.BeanInitFunc
+	destroy       gs.BeanDestroyFunc
+	dependsOn     []gs.BeanSelector
+	exports       []reflect.Type
+	conditions    []gs.Condition
+	status        BeanStatus
+	mocked        bool
+	fileLine      string
+	configuration *gs.Configuration
+}
 
-	file string
-	line int
-
-	configurationBean  bool
-	configurationParam gs.ConfigurationParam
-
-	refreshable bool
-	refreshTag  string
+// Mocked returns true if the bean is mocked.
+func (d *BeanMetadata) Mocked() bool {
+	return d.mocked
 }
 
 // validLifeCycleFunc checks whether the provided function is a valid lifecycle function.
@@ -133,59 +129,41 @@ func (d *BeanMetadata) Conditions() []gs.Condition {
 }
 
 // SetCondition adds a condition to the list of conditions for the bean.
-func (d *BeanMetadata) SetCondition(conditions ...gs.Condition) {
-	d.conditions = append(d.conditions, conditions...)
+func (d *BeanMetadata) SetCondition(c ...gs.Condition) {
+	d.conditions = append(d.conditions, c...)
 }
 
-// ConfigurationBean returns whether the bean is a configuration bean.
-func (d *BeanMetadata) ConfigurationBean() bool {
-	return d.configurationBean
-}
-
-// ConfigurationParam returns the configuration parameters for the bean.
-func (d *BeanMetadata) ConfigurationParam() gs.ConfigurationParam {
-	return d.configurationParam
+// Configuration returns the configuration parameters for the bean.
+func (d *BeanMetadata) Configuration() *gs.Configuration {
+	return d.configuration
 }
 
 // SetConfiguration sets the configuration flag and parameters for the bean.
-func (d *BeanDefinition) SetConfiguration(param ...gs.ConfigurationParam) {
-	d.configurationBean = true
-	if len(param) == 0 {
-		return
+func (d *BeanDefinition) SetConfiguration(c ...gs.Configuration) {
+	var cfg gs.Configuration
+	if len(c) > 0 {
+		cfg = c[0]
 	}
-	x := param[0]
-	if len(x.Includes) > 0 {
-		d.configurationParam.Includes = x.Includes
+	d.configuration = &gs.Configuration{
+		Includes: cfg.Includes,
+		Excludes: cfg.Excludes,
 	}
-	if len(x.Excludes) > 0 {
-		d.configurationParam.Excludes = x.Excludes
-	}
-}
-
-// Refreshable returns whether the bean is refreshable.
-func (d *BeanMetadata) Refreshable() bool {
-	return d.refreshable
-}
-
-// RefreshTag returns the refresh tag of the bean.
-func (d *BeanMetadata) RefreshTag() string {
-	return d.refreshTag
 }
 
 // SetCaller sets the caller for the bean.
 func (d *BeanMetadata) SetCaller(skip int) {
 	_, file, line, _ := runtime.Caller(skip)
-	d.file, d.line = file, line
+	d.SetFileLine(file, line)
 }
 
 // FileLine returns the file and line number for the bean.
-func (d *BeanMetadata) FileLine() (string, int) {
-	return d.file, d.line
+func (d *BeanMetadata) FileLine() string {
+	return d.fileLine
 }
 
 // SetFileLine sets the file and line number for the bean.
 func (d *BeanMetadata) SetFileLine(file string, line int) {
-	d.file, d.line = file, line
+	d.fileLine = fmt.Sprintf("%s:%d", file, line)
 }
 
 // BeanRuntime holds runtime information about the bean.
@@ -236,8 +214,8 @@ type BeanDefinition struct {
 	*BeanRuntime
 }
 
-// NewBean creates a new bean definition.
-func NewBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition {
+// makeBean creates a new bean definition.
+func makeBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition {
 	return &BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			f:      f,
@@ -256,6 +234,7 @@ func (d *BeanDefinition) SetMock(obj interface{}) {
 	*d = BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			exports: d.exports,
+			mocked:  true,
 		},
 		BeanRuntime: &BeanRuntime{
 			t:    reflect.TypeOf(obj),
@@ -328,7 +307,7 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
 			panic("only interface type can be exported")
 		}
 		if !d.Type().Implements(t) {
-			panic(fmt.Sprintf("%s doesn't implement interface %s", d, t))
+			panic(fmt.Sprintf("doesn't implement interface %s", t))
 		}
 		exported := false
 		for _, export := range d.exports {
@@ -344,18 +323,9 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
 	}
 }
 
-// SetRefreshable sets the refreshable flag and tag for the bean.
-func (d *BeanDefinition) SetRefreshable(tag string) {
-	if !d.Type().Implements(refreshableType) {
-		panic("must implement gs.Refreshable interface")
-	}
-	d.refreshable = true
-	d.refreshTag = tag
-}
-
 // OnProfiles sets the conditions for the bean based on the active profiles.
 func (d *BeanDefinition) OnProfiles(profiles string) {
-	c := gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+	d.SetCondition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
 		val := strings.TrimSpace(ctx.Prop("spring.profiles.active"))
 		if val == "" {
 			return false, nil
@@ -369,8 +339,7 @@ func (d *BeanDefinition) OnProfiles(profiles string) {
 			}
 		}
 		return false, nil
-	})
-	d.conditions = append(d.conditions, c)
+	}))
 }
 
 // TypeAndName returns the type and name of the bean.
@@ -380,5 +349,119 @@ func (d *BeanDefinition) TypeAndName() (reflect.Type, string) {
 
 // String returns a string representation of the bean.
 func (d *BeanDefinition) String() string {
-	return fmt.Sprintf("name:%q %s:%d", d.name, d.file, d.line)
+	return fmt.Sprintf("name=%s %s", d.name, d.fileLine)
+}
+
+// NewBean creates a new bean definition. When registering a normal function,
+// use reflect.ValueOf(fn) to avoid conflicts with constructors.
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+
+	var f *gs_arg.Callable
+	var v reflect.Value
+	var fromValue bool
+	var name string
+	var cond gs.Condition
+
+	switch i := objOrCtor.(type) {
+	case reflect.Value:
+		fromValue = true
+		v = i
+	default:
+		v = reflect.ValueOf(i)
+	}
+
+	t := v.Type()
+	if !util.IsBeanType(t) {
+		panic("bean must be ref type")
+	}
+
+	// Ensure the value is valid and not nil
+	if !v.IsValid() || v.IsNil() {
+		panic("bean can't be nil")
+	}
+
+	// If objOrCtor is a function (not from reflect.Value),
+	// process it as a constructor
+	if !fromValue && t.Kind() == reflect.Func {
+
+		if !util.IsConstructor(t) {
+			t1 := "func(...)bean"
+			t2 := "func(...)(bean, error)"
+			panic(fmt.Sprintf("constructor should be %s or %s", t1, t2))
+		}
+
+		// Bind the constructor arguments
+		var err error
+		f, err = gs_arg.NewCallable(objOrCtor, ctorArgs)
+		if err != nil {
+			panic(err)
+		}
+
+		var in0 reflect.Type
+		if t.NumIn() > 0 {
+			in0 = t.In(0)
+		}
+
+		// Obtain the return type of the constructor
+		out0 := t.Out(0)
+		v = reflect.New(out0)
+		if util.IsBeanType(out0) {
+			v = v.Elem()
+		}
+
+		t = v.Type()
+		if !util.IsBeanType(t) {
+			panic("bean must be ref type")
+		}
+
+		// Extract function name for naming the bean
+		fnPtr := reflect.ValueOf(objOrCtor).Pointer()
+		fnInfo := runtime.FuncForPC(fnPtr)
+		funcName := fnInfo.Name()
+		name = funcName[strings.LastIndex(funcName, "/")+1:]
+		name = name[strings.Index(name, ".")+1:]
+		if name[0] == '(' {
+			name = name[strings.Index(name, ".")+1:]
+		}
+
+		// Check if the function is a method and set a condition if needed
+		method := strings.LastIndexByte(fnInfo.Name(), ')') > 0
+		if method {
+			var s gs.BeanSelector = gs.BeanSelectorImpl{Type: in0}
+			if len(ctorArgs) > 0 {
+				switch a := ctorArgs[0].(type) {
+				case *gs.RegisteredBean:
+					s = a
+				case *gs.BeanDefinition:
+					s = a
+				case gs_arg.IndexArg:
+					if a.Idx == 0 {
+						switch x := a.Arg.(type) {
+						case *gs.RegisteredBean:
+							s = x
+						case *gs.BeanDefinition:
+							s = x
+						default:
+							panic("the arg of IndexArg[0] should be *RegisteredBean or *BeanDefinition")
+						}
+					}
+				default:
+					panic("ctorArgs[0] should be *RegisteredBean or *BeanDefinition or IndexArg[0]")
+				}
+			}
+			cond = gs_cond.OnBeanSelector(s)
+		}
+	}
+
+	// Extract the final type name for bean naming
+	if name == "" {
+		s := strings.Split(t.String(), ".")
+		name = strings.TrimPrefix(s[len(s)-1], "*")
+	}
+
+	d := makeBean(t, v, f, name)
+	if cond != nil {
+		d.SetCondition(cond)
+	}
+	return gs.NewBeanDefinition(d)
 }

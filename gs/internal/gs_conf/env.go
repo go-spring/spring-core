@@ -128,35 +128,16 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 
 // replaceKey replace '_' with '.'
 func replaceKey(s string) string {
-	var b strings.Builder
-
-	right := len(s) - 1
-	for {
-		if s[right] != '_' {
-			break
+	b := make([]byte, len(s)+2)
+	b[0] = '_'
+	b[len(b)-1] = '_'
+	copy(b[1:len(b)-1], s)
+	for i := 1; i < len(b)-1; i++ {
+		if b[i] == '_' {
+			if b[i-1] != '_' && b[i+1] != '_' {
+				b[i] = '.'
+			}
 		}
-		right--
 	}
-
-	left := 0
-	for {
-		if s[left] != '_' {
-			break
-		}
-		b.WriteByte('_')
-		left++
-	}
-
-	for i := left; i <= right; i++ {
-		if s[i] == '_' {
-			b.WriteByte('.')
-			continue
-		}
-		b.WriteByte(s[i])
-	}
-
-	for i := right + 1; i < len(s); i++ {
-		b.WriteByte('_')
-	}
-	return b.String()
+	return string(b[1 : len(b)-1])
 }

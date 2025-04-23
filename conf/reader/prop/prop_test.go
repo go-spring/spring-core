@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package prop_test
+package prop
 
 import (
 	"testing"
 
-	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestRead(t *testing.T) {
 
 	t.Run("basic type", func(t *testing.T) {
-		r, err := prop.Read([]byte(`
+		r, err := Read([]byte(`
+			empty=
 			bool=false
 			int=3
 			float=3.0
@@ -34,10 +34,9 @@ func TestRead(t *testing.T) {
 			date=2018-02-17
 			time=2018-02-17T15:02:31+08:00
 		`))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
+			"empty":  "",
 			"bool":   "false",
 			"int":    "3",
 			"float":  "3.0",
@@ -48,15 +47,13 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("map", func(t *testing.T) {
-		r, err := prop.Read([]byte(`
+		r, err := Read([]byte(`
 			map.bool=false
 			map.int=3
 			map.float=3.0
 			map.string=hello
 		`))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"map.bool":   "false",
 			"map.int":    "3",
@@ -66,7 +63,7 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("array struct", func(t *testing.T) {
-		r, err := prop.Read([]byte(`
+		r, err := Read([]byte(`
 			array[0].bool=false
 			array[0].int=3
 			array[0].float=3.0
@@ -76,9 +73,7 @@ func TestRead(t *testing.T) {
 			array[1].float=0.2
 			array[1].string=hello
 		`))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"array[0].bool":   "false",
 			"array[0].int":    "3",
@@ -93,7 +88,7 @@ func TestRead(t *testing.T) {
 
 	t.Run("map struct", func(t *testing.T) {
 
-		r, err := prop.Read([]byte(`
+		r, err := Read([]byte(`
 			map.k1.bool=false
 			map.k1.int=3
 			map.k1.float=3.0
@@ -103,9 +98,7 @@ func TestRead(t *testing.T) {
 			map.k2.float=0.2
 			map.k2.string=hello
 		`))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"map.k1.bool":   "false",
 			"map.k1.int":    "3",

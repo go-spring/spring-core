@@ -25,6 +25,32 @@ import (
 	"github.com/go-spring/spring-core/util/sysconf"
 )
 
+// osStat only for test.
+var osStat = os.Stat
+
+// PropertyCopier defines the interface for copying properties.
+type PropertyCopier interface {
+	CopyTo(out *conf.MutableProperties) error
+}
+
+// NamedPropertyCopier defines the interface for copying properties with a name.
+type NamedPropertyCopier struct {
+	PropertyCopier
+	Name string
+}
+
+// NewNamedPropertyCopier creates a new instance of NamedPropertyCopier.
+func NewNamedPropertyCopier(name string, p PropertyCopier) *NamedPropertyCopier {
+	return &NamedPropertyCopier{PropertyCopier: p, Name: name}
+}
+
+func (c *NamedPropertyCopier) CopyTo(out *conf.MutableProperties) error {
+	if c.PropertyCopier != nil {
+		return c.PropertyCopier.CopyTo(out)
+	}
+	return nil
+}
+
 /******************************** AppConfig **********************************/
 
 // AppConfig represents a layered application configuration.
@@ -46,23 +72,25 @@ func NewAppConfig() *AppConfig {
 	}
 }
 
-func merge(out *conf.MutableProperties, sources ...interface {
-	CopyTo(out *conf.MutableProperties) error
-}) error {
+func merge(sources ...PropertyCopier) (conf.Properties, error) {
+	out := conf.New()
 	for _, s := range sources {
 		if s != nil {
 			if err := s.CopyTo(out); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return out, nil
 }
 
 // Refresh merges all layers of configurations into a read-only properties.
 func (c *AppConfig) Refresh() (conf.Properties, error) {
-	p := sysconf.Clone()
-	err := merge(p, c.Environment, c.CommandArgs)
+	p, err := merge(
+		NewNamedPropertyCopier("sys", sysconf.Clone()),
+		NewNamedPropertyCopier("env", c.Environment),
+		NewNamedPropertyCopier("cmd", c.CommandArgs),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -77,25 +105,19 @@ func (c *AppConfig) Refresh() (conf.Properties, error) {
 		return nil, err
 	}
 
-	var sources []interface {
-		CopyTo(out *conf.MutableProperties) error
-	}
+	var sources []PropertyCopier
+	sources = append(sources, NewNamedPropertyCopier("sys", sysconf.Clone()))
 	for _, file := range localFiles {
 		sources = append(sources, file)
 	}
 	for _, file := range remoteFiles {
 		sources = append(sources, file)
 	}
-	sources = append(sources, c.RemoteProp)
-	sources = append(sources, c.Environment)
-	sources = append(sources, c.CommandArgs)
+	sources = append(sources, NewNamedPropertyCopier("remote", c.RemoteProp))
+	sources = append(sources, NewNamedPropertyCopier("env", c.Environment))
+	sources = append(sources, NewNamedPropertyCopier("cmd", c.CommandArgs))
 
-	p = sysconf.Clone()
-	err = merge(p, sources...)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return merge(sources...)
 }
 
 /******************************** BootConfig *********************************/
@@ -118,9 +140,11 @@ func NewBootConfig() *BootConfig {
 
 // Refresh merges all layers of configurations into a read-only properties.
 func (c *BootConfig) Refresh() (conf.Properties, error) {
-
-	p := sysconf.Clone()
-	err := merge(p, c.Environment, c.CommandArgs)
+	p, err := merge(
+		NewNamedPropertyCopier("sys", sysconf.Clone()),
+		NewNamedPropertyCopier("env", c.Environment),
+		NewNamedPropertyCopier("cmd", c.CommandArgs),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -130,21 +154,15 @@ func (c *BootConfig) Refresh() (conf.Properties, error) {
 		return nil, err
 	}
 
-	var sources []interface {
-		CopyTo(out *conf.MutableProperties) error
-	}
+	var sources []PropertyCopier
+	sources = append(sources, NewNamedPropertyCopier("sys", sysconf.Clone()))
 	for _, file := range localFiles {
 		sources = append(sources, file)
 	}
-	sources = append(sources, c.Environment)
-	sources = append(sources, c.CommandArgs)
+	sources = append(sources, NewNamedPropertyCopier("env", c.Environment))
+	sources = append(sources, NewNamedPropertyCopier("cmd", c.CommandArgs))
 
-	p = sysconf.Clone()
-	err = merge(p, sources...)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return merge(sources...)
 }
 
 /****************************** PropertySources ******************************/
@@ -176,14 +194,18 @@ func NewPropertySources(configType ConfigType, configName string) *PropertySourc
 // Reset resets all the extra files.
 func (p *PropertySources) Reset() {
 	p.extraFiles = nil
+	p.extraDirs = nil
 }
 
 // AddDir adds a or more than one extra directories.
 func (p *PropertySources) AddDir(dirs ...string) {
 	for _, d := range dirs {
-		info, err := os.Stat(d)
+		info, err := osStat(d)
 		if err != nil {
-			panic(err)
+			if !os.IsNotExist(err) {
+				panic(err)
+			}
+			continue
 		}
 		if !info.IsDir() {
 			panic("should be a directory")
@@ -195,9 +217,12 @@ func (p *PropertySources) AddDir(dirs ...string) {
 // AddFile adds a or more than one extra files.
 func (p *PropertySources) AddFile(files ...string) {
 	for _, f := range files {
-		info, err := os.Stat(f)
+		info, err := osStat(f)
 		if err != nil {
-			panic(err)
+			if !os.IsNotExist(err) {
+				panic(err)
+			}
+			continue
 		}
 		if info.IsDir() {
 			panic("should be a file")
@@ -208,11 +233,12 @@ func (p *PropertySources) AddFile(files ...string) {
 
 // getDefaultDir returns the default configuration directory based on the configuration type.
 func (p *PropertySources) getDefaultDir(resolver conf.Properties) (configDir string, err error) {
-	if p.configType == ConfigTypeLocal {
-		return resolver.Resolve("${spring.app.config.dir:=./conf}")
-	} else if p.configType == ConfigTypeRemote {
-		return resolver.Resolve("${spring.cloud.config.dir:=./conf/remote}")
-	} else {
+	switch p.configType {
+	case ConfigTypeLocal:
+		return resolver.Resolve("${spring.app.config-local.dir:=./conf}")
+	case ConfigTypeRemote:
+		return resolver.Resolve("${spring.app.config-remote.dir:=./conf/remote}")
+	default:
 		return "", fmt.Errorf("unknown config type: %s", p.configType)
 	}
 }
@@ -231,6 +257,7 @@ func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []st
 	if err != nil {
 		return nil, err
 	}
+
 	if activeProfiles = strings.TrimSpace(activeProfiles); activeProfiles != "" {
 		ss := strings.Split(activeProfiles, ",")
 		for _, s := range ss {
@@ -248,30 +275,26 @@ func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []st
 }
 
 // loadFiles loads all configuration files and returns them as a list of Properties.
-func (p *PropertySources) loadFiles(resolver conf.Properties) ([]conf.Properties, error) {
-	var files []string
-	{
-		defaultDir, err := p.getDefaultDir(resolver)
-		if err != nil {
-			return nil, err
-		}
-		tempFiles, err := p.getFiles(defaultDir, resolver)
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, tempFiles...)
-	}
+func (p *PropertySources) loadFiles(resolver conf.Properties) ([]PropertyCopier, error) {
 
-	for _, dir := range p.extraDirs {
-		tempFiles, err := p.getFiles(dir, resolver)
+	defaultDir, err := p.getDefaultDir(resolver)
+	if err != nil {
+		return nil, err
+	}
+	dirs := append([]string{defaultDir}, p.extraDirs...)
+
+	var files []string
+	for _, dir := range dirs {
+		var temp []string
+		temp, err = p.getFiles(dir, resolver)
 		if err != nil {
 			return nil, err
 		}
-		files = append(files, tempFiles...)
+		files = append(files, temp...)
 	}
 	files = append(files, p.extraFiles...)
 
-	var ret []conf.Properties
+	var ret []PropertyCopier
 	for _, s := range files {
 		filename, err := resolver.Resolve(s)
 		if err != nil {
@@ -284,7 +307,7 @@ func (p *PropertySources) loadFiles(resolver conf.Properties) ([]conf.Properties
 			}
 			return nil, err
 		}
-		ret = append(ret, c)
+		ret = append(ret, NewNamedPropertyCopier(filename, c))
 	}
 	return ret, nil
 }

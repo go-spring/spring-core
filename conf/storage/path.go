@@ -17,44 +17,50 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 )
 
+// PathType represents the type of a path segment.
 type PathType int
 
 const (
-	PathTypeKey   PathType = iota // PathTypeKey is map key like a/b in a[0][1].b
-	PathTypeIndex                 // PathTypeIndex is array index like 0/1 in a[0][1].b
+	PathTypeKey   PathType = iota // PathTypeKey indicates a named key in a map.
+	PathTypeIndex                 // PathTypeIndex indicates a numeric index in a list.
 )
 
+// Path represents a segment of a hierarchical path.
+// Each segment is either a key (e.g., "user") or an index (e.g., "0").
 type Path struct {
-	Type PathType
-	Elem string
+	Type PathType // Type determines whether the segment is a key or index.
+	Elem string   // Elem holds the actual key or index value as a string.
 }
 
-// JoinPath joins all path elements into a single path.
+// JoinPath constructs a string representation from a slice of Path segments.
+// Keys are joined with '.', and indices are represented as '[i]'.
 func JoinPath(path []Path) string {
-	var s strings.Builder
+	var sb strings.Builder
 	for i, p := range path {
 		switch p.Type {
 		case PathTypeKey:
 			if i > 0 {
-				s.WriteString(".")
+				sb.WriteString(".")
 			}
-			s.WriteString(p.Elem)
+			sb.WriteString(p.Elem)
 		case PathTypeIndex:
-			s.WriteString("[")
-			s.WriteString(p.Elem)
-			s.WriteString("]")
+			sb.WriteString("[")
+			sb.WriteString(p.Elem)
+			sb.WriteString("]")
 		}
 	}
-	return s.String()
+	return sb.String()
 }
 
-// SplitPath splits key into individual path elements.
-func SplitPath(key string) ([]Path, error) {
+// SplitPath parses a string path into a slice of Path segments.
+// It supports keys separated by '.' and indices enclosed in brackets (e.g., "users[0].name").
+func SplitPath(key string) (_ []Path, err error) {
 	if key == "" {
 		return nil, fmt.Errorf("invalid key '%s'", key)
 	}
@@ -69,51 +75,45 @@ func SplitPath(key string) ([]Path, error) {
 		case ' ':
 			return nil, fmt.Errorf("invalid key '%s'", key)
 		case '.':
-			if openBracket {
+			if openBracket || lastChar == '.' {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
-			if lastChar == ']' {
-				lastPos = i + 1
-				lastChar = c
-				continue
+			if lastChar != ']' {
+				path, err = appendKey(path, key[lastPos:i])
+				if err != nil {
+					return nil, fmt.Errorf("invalid key '%s'", key)
+				}
 			}
-			if lastPos == i {
-				return nil, fmt.Errorf("invalid key '%s'", key)
-			}
-			path = append(path, Path{PathTypeKey, key[lastPos:i]})
 			lastPos = i + 1
 			lastChar = c
 		case '[':
-			if openBracket {
+			if openBracket || lastChar == '.' {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
-			if i == 0 || lastChar == ']' {
-				lastPos = i + 1
-				openBracket = true
-				lastChar = c
-				continue
+			if i > 0 && lastChar != ']' {
+				path, err = appendKey(path, key[lastPos:i])
+				if err != nil {
+					return nil, fmt.Errorf("invalid key '%s'", key)
+				}
 			}
-			if lastChar == '.' || lastPos == i {
-				return nil, fmt.Errorf("invalid key '%s'", key)
-			}
-			path = append(path, Path{PathTypeKey, key[lastPos:i]})
-			lastPos = i + 1
 			openBracket = true
+			lastPos = i + 1
 			lastChar = c
 		case ']':
-			if !openBracket || lastPos == i {
+			if !openBracket {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
-			s := key[lastPos:i]
-			_, err := strconv.ParseUint(s, 10, 64)
+			path, err = appendIndex(path, key[lastPos:i])
 			if err != nil {
 				return nil, fmt.Errorf("invalid key '%s'", key)
 			}
-			path = append(path, Path{PathTypeIndex, s})
-			lastPos = i + 1
 			openBracket = false
+			lastPos = i + 1
 			lastChar = c
 		default:
+			if lastChar == ']' {
+				return nil, fmt.Errorf("invalid key '%s'", key)
+			}
 			lastChar = c
 		}
 	}
@@ -121,7 +121,30 @@ func SplitPath(key string) ([]Path, error) {
 		return nil, fmt.Errorf("invalid key '%s'", key)
 	}
 	if lastChar != ']' {
-		path = append(path, Path{PathTypeKey, key[lastPos:]})
+		path, err = appendKey(path, key[lastPos:])
+		if err != nil {
+			return nil, fmt.Errorf("invalid key '%s'", key)
+		}
 	}
+	return path, nil
+}
+
+// appendKey appends a key segment to the path.
+func appendKey(path []Path, s string) ([]Path, error) {
+	_, err := strconv.ParseUint(s, 10, 64)
+	if err == nil {
+		return nil, errors.New("invalid key")
+	}
+	path = append(path, Path{PathTypeKey, s})
+	return path, nil
+}
+
+// appendIndex appends an index segment to the path.
+func appendIndex(path []Path, s string) ([]Path, error) {
+	_, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return nil, errors.New("invalid key")
+	}
+	path = append(path, Path{PathTypeIndex, s})
 	return path, nil
 }

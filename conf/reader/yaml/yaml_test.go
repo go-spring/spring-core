@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package yaml_test
+package yaml
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/go-spring/spring-core/conf/reader/yaml"
 	"github.com/go-spring/spring-core/util/assert"
 )
 
 func TestRead(t *testing.T) {
 
+	t.Run("error", func(t *testing.T) {
+		_, err := Read([]byte(`{`))
+		assert.Error(t, err, "did not find expected node content")
+	})
+
 	t.Run("basic type", func(t *testing.T) {
 		str := `
+			empty: ""
 			bool: false
 			int: 3
 			float: 3.0
@@ -37,11 +42,10 @@ func TestRead(t *testing.T) {
 			time: 2018-02-17T15:02:31+08:00
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
-		r, err := yaml.Read([]byte(str))
-		if err != nil {
-			t.Fatal(err)
-		}
+		r, err := Read([]byte(str))
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
+			"empty":   "",
 			"bool":    false,
 			"int":     3,
 			"float":   3.0,
@@ -61,10 +65,8 @@ func TestRead(t *testing.T) {
 				string: hello
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
-		r, err := yaml.Read([]byte(str))
-		if err != nil {
-			t.Fatal(err)
-		}
+		r, err := Read([]byte(str))
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"map": map[interface{}]interface{}{
 				"bool":   false,
@@ -90,10 +92,8 @@ func TestRead(t *testing.T) {
 					string: hello
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
-		r, err := yaml.Read([]byte(str))
-		if err != nil {
-			t.Fatal(err)
-		}
+		r, err := Read([]byte(str))
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"array": []interface{}{
 				map[interface{}]interface{}{
@@ -127,10 +127,8 @@ func TestRead(t *testing.T) {
 					string: hello
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
-		r, err := yaml.Read([]byte(str))
-		if err != nil {
-			t.Fatal(err)
-		}
+		r, err := Read([]byte(str))
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"map": map[interface{}]interface{}{
 				"k1": map[interface{}]interface{}{
@@ -155,10 +153,8 @@ func TestRead(t *testing.T) {
 			map: {}
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
-		r, err := yaml.Read([]byte(str))
-		if err != nil {
-			t.Fatal(err)
-		}
+		r, err := Read([]byte(str))
+		assert.Nil(t, err)
 		assert.Equal(t, r, map[string]interface{}{
 			"array": []interface{}{},
 			"map":   map[interface{}]interface{}{},

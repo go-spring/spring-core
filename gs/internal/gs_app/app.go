@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
@@ -48,12 +49,14 @@ type App struct {
 	cancel  context.CancelFunc
 	wg      sync.WaitGroup
 
-	Runners []gs.Runner `autowire:"${spring.app.runners:=*?}"`
-	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=*?}"`
-	Servers []gs.Server `autowire:"${spring.app.servers:=*?}"`
+	Runners []gs.Runner `autowire:"${spring.app.runners:=?}"`
+	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=?}"`
+	Servers []gs.Server `autowire:"${spring.app.servers:=?}"`
 
-	EnableJobs    bool `value:"${spring.enable.app-jobs:=true}"`
-	EnableServers bool `value:"${spring.enable.app-servers:=true}"`
+	EnableJobs    bool `value:"${spring.app.enable-jobs:=true}"`
+	EnableServers bool `value:"${spring.app.enable-servers:=true}"`
+
+	ShutDownTimeout time.Duration `value:"${spring.app.shutdown-timeout:=15s}"`
 }
 
 // NewApp creates and initializes a new application instance.
@@ -96,21 +99,18 @@ func (app *App) Run() error {
 // loading, IoC container refreshing, dependency injection, and runs
 // runners, jobs and servers.
 func (app *App) Start() error {
-	// loads the layered app properties
-	p, err := app.P.Refresh()
-	if err != nil {
-		return err
-	}
+	var p conf.Properties
 
-	// refreshes the container properties
-	err = app.C.RefreshProperties(p)
-	if err != nil {
-		return err
+	// loads the layered app properties
+	{
+		var err error
+		if p, err = app.P.Refresh(); err != nil {
+			return err
+		}
 	}
 
 	// refreshes the container
-	err = app.C.Refresh()
-	if err != nil {
+	if err := app.C.Refresh(p); err != nil {
 		return err
 	}
 
@@ -175,7 +175,7 @@ func (app *App) Start() error {
 // Stop gracefully shuts down the application, ensuring all servers and
 // resources are properly closed.
 func (app *App) Stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	ctx, cancel := context.WithTimeout(context.Background(), app.ShutDownTimeout)
 	defer cancel()
 
 	waitChan := make(chan struct{})

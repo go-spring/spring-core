@@ -74,8 +74,7 @@ func RegisterSplitter(name string, fn Splitter) {
 	splitters[name] = fn
 }
 
-// Converter converts string value into user-defined value. It should be function
-// type, and its prototype is func(string)(type,error).
+// Converter converts a string to a target type T.
 type Converter[T any] func(string) (T, error)
 
 // RegisterConverter registers its converter for non-primitive type such as
@@ -91,10 +90,10 @@ type Properties interface {
 	Data() map[string]string
 	// Keys returns keys of the properties.
 	Keys() []string
-	// Has returns whether the key exists.
-	Has(key string) bool
 	// SubKeys returns the sorted sub keys of the key.
 	SubKeys(key string) ([]string, error)
+	// Has returns whether the key exists.
+	Has(key string) bool
 	// Get returns key's value.
 	Get(key string, def ...string) string
 	// Resolve resolves string that contains references.
@@ -120,112 +119,72 @@ var _ Properties = (*MutableProperties)(nil)
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
 type MutableProperties struct {
-	storage *storage.Storage
+	*storage.Storage
 }
 
 // New creates empty *MutableProperties.
 func New() *MutableProperties {
 	return &MutableProperties{
-		storage: storage.NewStorage(),
+		Storage: storage.NewStorage(),
 	}
-}
-
-// Map creates *MutableProperties from map.
-func Map(m map[string]interface{}) (*MutableProperties, error) {
-	p := New()
-	if err := p.Merge(m); err != nil {
-		return nil, err
-	}
-	return p, nil
 }
 
 // Load creates *MutableProperties from file.
 func Load(file string) (*MutableProperties, error) {
-	p := New()
-	if err := p.Load(file); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
-
-// Load loads properties from file.
-func (p *MutableProperties) Load(file string) error {
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return p.Bytes(b, filepath.Ext(file))
-}
-
-// Bytes loads properties from []byte, ext is the file name extension.
-func (p *MutableProperties) Bytes(b []byte, ext string) error {
+	ext := filepath.Ext(file)
 	r, ok := readers[ext]
 	if !ok {
-		return fmt.Errorf("unsupported file type %q", ext)
+		return nil, fmt.Errorf("unsupported file type %s", ext)
 	}
 	m, err := r(b)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return p.Merge(m)
+	return Map(m), nil
 }
 
-// Merge flattens the map and sets all keys and values.
-func (p *MutableProperties) Merge(m map[string]interface{}) error {
-	s := util.FlattenMap(m)
-	return p.merge(s)
+// Map creates *MutableProperties from map.
+func Map(m map[string]interface{}) *MutableProperties {
+	p := New()
+	_ = p.merge(util.FlattenMap(m))
+	return p
 }
 
+// merge flattens the map and sets all keys and values.
 func (p *MutableProperties) merge(m map[string]string) error {
 	for key, val := range m {
-		if err := p.storage.Set(key, val); err != nil {
+		if err := p.Set(key, val); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+// Data returns key-value pairs of the properties.
 func (p *MutableProperties) Data() map[string]string {
-	return p.storage.Data()
+	m := make(map[string]string)
+	for k, v := range p.RawData() {
+		m[k] = v
+	}
+	return m
 }
 
-// Keys returns all sorted keys.
+// Keys returns keys of the properties.
 func (p *MutableProperties) Keys() []string {
-	return p.storage.Keys()
-}
-
-// Has returns whether key exists.
-func (p *MutableProperties) Has(key string) bool {
-	return p.storage.Has(key)
-}
-
-// SubKeys returns the sorted sub keys of the key.
-func (p *MutableProperties) SubKeys(key string) ([]string, error) {
-	return p.storage.SubKeys(key)
+	return util.OrderedMapKeys(p.RawData())
 }
 
 // Get returns key's value, using Def to return a default value.
 func (p *MutableProperties) Get(key string, def ...string) string {
-	val, ok := p.storage.Get(key)
+	val, ok := p.RawData()[key]
 	if !ok && len(def) > 0 {
 		return def[0]
 	}
 	return val
-}
-
-// Set sets key's value to be a primitive type as int or string,
-// or a slice or map nested with primitive type elements. One thing
-// you should know is Set actions as overlap but not replace, that
-// means when you set a slice or a map, an existing path will remain
-// when it doesn't exist in the slice or map even they share a same
-// prefix path.
-func (p *MutableProperties) Set(key string, val interface{}) error {
-	if key == "" {
-		return errors.New("key is empty")
-	}
-	m := make(map[string]string)
-	util.FlattenValue(key, val, m)
-	return p.merge(m)
 }
 
 // Resolve resolves string value that contains references to other
@@ -278,5 +237,5 @@ func (p *MutableProperties) Bind(i interface{}, tag ...string) error {
 
 // CopyTo copies properties into another by override.
 func (p *MutableProperties) CopyTo(out *MutableProperties) error {
-	return out.merge(p.storage.RawData())
+	return out.merge(p.RawData())
 }

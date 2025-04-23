@@ -18,7 +18,6 @@ package gs_dync
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -26,11 +25,48 @@ import (
 	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/gs/internal/gs"
 )
+
+// refreshable represents an object that can be dynamically refreshed.
+type refreshable interface {
+	onRefresh(prop conf.Properties, param conf.BindParam) error
+}
+
+// Listener holds a channel to receive notifications.
+type Listener struct {
+	C chan struct{}
+}
+
+// listeners maintains a collection of listeners that can be notified on value updates.
+type listeners struct {
+	m sync.Mutex
+	a []*Listener
+}
+
+// NewListener creates and registers a new listener.
+func (r *listeners) NewListener() *Listener {
+	r.m.Lock()
+	defer r.m.Unlock()
+	l := &Listener{C: make(chan struct{})}
+	r.a = append(r.a, l)
+	return l
+}
+
+// notifyAll sends a notification signal to all registered listeners.
+func (r *listeners) notifyAll() {
+	r.m.Lock()
+	defer r.m.Unlock()
+	for _, l := range r.a {
+		select {
+		case l.C <- struct{}{}:
+		default:
+		}
+	}
+}
 
 // Value represents a thread-safe object that can dynamically refresh its value.
 type Value[T any] struct {
+	listeners
 	v atomic.Value
 }
 
@@ -45,15 +81,16 @@ func (r *Value[T]) Value() T {
 	return v
 }
 
-// OnRefresh refreshes the value of the object by binding new properties.
-func (r *Value[T]) OnRefresh(prop conf.Properties, param conf.BindParam) error {
-	var o T
-	v := reflect.ValueOf(&o).Elem()
-	err := conf.BindValue(prop, v, v.Type(), param, nil)
+// onRefresh updates the stored value with new properties and notifies listeners.
+func (r *Value[T]) onRefresh(prop conf.Properties, param conf.BindParam) error {
+	t := reflect.TypeFor[T]()
+	v := reflect.New(t).Elem()
+	err := conf.BindValue(prop, v, t, param, nil)
 	if err != nil {
 		return err
 	}
-	r.v.Store(o)
+	r.v.Store(v.Interface())
+	r.notifyAll()
 	return nil
 }
 
@@ -64,7 +101,7 @@ func (r *Value[T]) MarshalJSON() ([]byte, error) {
 
 // refreshObject represents an object bound to dynamic properties that can be refreshed.
 type refreshObject struct {
-	target gs.Refreshable // The refreshable object.
+	target refreshable    // The refreshable object.
 	param  conf.BindParam // Parameters used for refreshing.
 }
 
@@ -76,9 +113,9 @@ type Properties struct {
 }
 
 // New creates and returns a new Properties instance.
-func New() *Properties {
+func New(p conf.Properties) *Properties {
 	return &Properties{
-		prop: conf.New(),
+		prop: p,
 	}
 }
 
@@ -109,21 +146,23 @@ func (p *Properties) Refresh(prop conf.Properties) (err error) {
 	old := p.prop
 	p.prop = prop
 
-	oldKeys := old.Keys()
-	newKeys := prop.Keys()
+	oldKeys := make(map[string]struct{})
+	for _, k := range old.Keys() {
+		oldKeys[k] = struct{}{}
+	}
 
 	changes := make(map[string]struct{})
-	{
-		for _, k := range newKeys {
-			if !old.Has(k) || old.Get(k) != prop.Get(k) {
-				changes[k] = struct{}{}
+	for _, k := range prop.Keys() {
+		if _, ok := oldKeys[k]; ok {
+			delete(oldKeys, k)
+			if old.Get(k) == prop.Get(k) {
+				continue
 			}
 		}
-		for _, k := range oldKeys {
-			if _, ok := changes[k]; !ok {
-				changes[k] = struct{}{}
-			}
-		}
+		changes[k] = struct{}{}
+	}
+	for k := range oldKeys {
+		changes[k] = struct{}{}
 	}
 
 	keys := make([]string, 0, len(changes))
@@ -193,7 +232,7 @@ func (e *Errors) Error() string {
 	for i, err := range e.arr {
 		sb.WriteString(err.Error())
 		if i < len(e.arr)-1 {
-			sb.WriteString("\n")
+			sb.WriteString("; ")
 		}
 	}
 	return sb.String()
@@ -203,7 +242,7 @@ func (e *Errors) Error() string {
 func (p *Properties) refreshObjects(objects []*refreshObject) error {
 	ret := &Errors{}
 	for _, obj := range objects {
-		err := p.safeRefreshObject(obj)
+		err := obj.target.onRefresh(p.prop, obj.param)
 		ret.Append(err)
 	}
 	if ret.Len() == 0 {
@@ -212,55 +251,29 @@ func (p *Properties) refreshObjects(objects []*refreshObject) error {
 	return ret
 }
 
-// safeRefreshObject refreshes an object and recovers from panics.
-func (p *Properties) safeRefreshObject(obj *refreshObject) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
-	return obj.target.OnRefresh(p.prop, obj.param)
-}
-
-// RefreshBean refreshes a single refreshable object.
-// Optionally registers the object as refreshable if watch is true.
-func (p *Properties) RefreshBean(v gs.Refreshable, param conf.BindParam, watch bool) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	return p.doRefresh(v, param, watch)
-}
-
-// doRefresh performs the refresh operation and registers the object if watch is enabled.
-func (p *Properties) doRefresh(v gs.Refreshable, param conf.BindParam, watch bool) error {
-	if watch {
-		p.objects = append(p.objects, &refreshObject{
-			target: v,
-			param:  param,
-		})
-	}
-	return v.OnRefresh(p.prop, param)
-}
-
 // filter is used to selectively refresh objects and fields.
 type filter struct {
 	*Properties
-	watch bool // Whether to register objects as refreshable.
 }
 
-// Do attempts to refresh a single object if it implements the [gs.Refreshable] interface.
+// Do attempts to refresh a single object if it implements the [refreshable] interface.
 func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
-	v, ok := i.(gs.Refreshable)
+	v, ok := i.(refreshable)
 	if !ok {
 		return false, nil
 	}
-	return true, f.doRefresh(v, param, f.watch)
+	f.objects = append(f.objects, &refreshObject{
+		target: v,
+		param:  param,
+	})
+	return true, v.onRefresh(f.prop, param)
 }
 
 // RefreshField refreshes a field of a bean, optionally registering it as refreshable.
-func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam, watch bool) error {
+func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	f := &filter{Properties: p, watch: watch}
+	f := &filter{Properties: p}
 	if v.Kind() == reflect.Ptr {
 		ok, err := f.Do(v.Interface(), param)
 		if err != nil {

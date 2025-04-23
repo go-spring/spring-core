@@ -19,7 +19,9 @@ package gs_app
 import (
 	"reflect"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
@@ -48,7 +50,7 @@ type BootImpl struct {
 	// flag indicates whether the bootstrapper has been used.
 	flag bool
 
-	Runners []gs.Runner `autowire:"${spring.boot.runners:=*?}"`
+	Runners []gs.Runner `autowire:"${spring.boot.runners:=?}"`
 }
 
 // NewBoot creates a new Boot instance.
@@ -67,15 +69,15 @@ func (b *BootImpl) Config() *gs_conf.BootConfig {
 // Object registers an object bean.
 func (b *BootImpl) Object(i interface{}) *gs.RegisteredBean {
 	b.flag = true
-	bd := gs_core.NewBean(reflect.ValueOf(i))
-	return b.c.Register(bd)
+	bd := gs_bean.NewBean(reflect.ValueOf(i))
+	return b.c.Register(bd).Caller(1)
 }
 
 // Provide registers a bean using a constructor function.
 func (b *BootImpl) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
 	b.flag = true
-	bd := gs_core.NewBean(ctor, args...)
-	return b.c.Register(bd)
+	bd := gs_bean.NewBean(ctor, args...)
+	return b.c.Register(bd).Caller(1)
 }
 
 // Register registers a BeanDefinition instance.
@@ -87,8 +89,8 @@ func (b *BootImpl) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
 // FuncRunner creates a Runner from a function.
 func (b *BootImpl) FuncRunner(fn func() error) *gs.RegisteredBean {
 	b.flag = true
-	bd := gs_core.NewBean(reflect.ValueOf(funcRunner(fn)))
-	return b.c.Register(bd).AsRunner()
+	bd := gs_bean.NewBean(reflect.ValueOf(funcRunner(fn)))
+	return b.c.Register(bd).AsRunner().Caller(1)
 }
 
 // Run executes the application's boot process.
@@ -98,21 +100,18 @@ func (b *BootImpl) Run() error {
 	}
 	b.c.Object(b)
 
-	// Refresh the boot configuration.
-	p, err := b.p.Refresh()
-	if err != nil {
-		return err
-	}
+	var p conf.Properties
 
-	// Refresh properties in the container.
-	err = b.c.RefreshProperties(p)
-	if err != nil {
-		return err
+	// Refresh the boot configuration.
+	{
+		var err error
+		if p, err = b.p.Refresh(); err != nil {
+			return err
+		}
 	}
 
 	// Refresh the container.
-	err = b.c.Refresh()
-	if err != nil {
+	if err := b.c.Refresh(p); err != nil {
 		return err
 	}
 

@@ -17,61 +17,42 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/go-spring/spring-core/util"
 )
 
-type nodeType int
-
-const (
-	nodeTypeNil nodeType = iota
-	nodeTypeValue
-	nodeTypeMap
-	nodeTypeArray
-)
-
+// treeNode represents a node in the hierarchical key path tree.
+// Each node tracks the type of its path segment and its child nodes.
 type treeNode struct {
-	node nodeType
-	data interface{}
+	Type PathType
+	Data map[string]*treeNode
 }
 
-// Storage is a key-value store that verifies the format of the key.
+// Storage stores hierarchical key-value pairs and tracks their structure using a tree.
+// It supports nested paths and detects structural conflicts when paths differ in type.
 type Storage struct {
-	tree *treeNode
-	data map[string]string
+	root *treeNode         // Root of the hierarchical key path tree
+	data map[string]string // Flat key-value storage for exact key matches
 }
 
+// NewStorage creates and initializes a new Storage instance.
 func NewStorage() *Storage {
 	return &Storage{
-		tree: &treeNode{
-			node: nodeTypeNil,
-			data: make(map[string]*treeNode),
-		},
 		data: make(map[string]string),
 	}
 }
 
-// RawData returns the raw data of the storage.
+// RawData returns the underlying flat key-value map.
+// Note: This exposes internal state; use with caution.
 func (s *Storage) RawData() map[string]string {
 	return s.data
 }
 
-// Data returns the copied data of the storage.
-func (s *Storage) Data() map[string]string {
-	m := make(map[string]string)
-	for k, v := range s.data {
-		m[k] = v
-	}
-	return m
-}
-
-// Keys returns the sorted keys of the storage.
-func (s *Storage) Keys() []string {
-	return util.OrderedMapKeys(s.data)
-}
-
-// SubKeys returns the sorted sub keys of the key.
+// SubKeys returns the immediate subkeys under the given key path.
+// It walks the tree structure and returns child elements if the path exists.
+// Returns an error if there's a type conflict along the path.
 func (s *Storage) SubKeys(key string) (_ []string, err error) {
 	var path []Path
 	if key != "" {
@@ -79,162 +60,101 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) {
 			return nil, err
 		}
 	}
-	tree := s.tree
+
+	if s.root == nil {
+		return nil, nil
+	}
+
+	n := s.root
 	for i, pathNode := range path {
-		m := tree.data.(map[string]*treeNode)
-		v, ok := m[pathNode.Elem]
+		if n == nil || pathNode.Type != n.Type {
+			return nil, fmt.Errorf("property conflict at path %s", JoinPath(path[:i+1]))
+		}
+		v, ok := n.Data[pathNode.Elem]
 		if !ok {
 			return nil, nil
 		}
-		switch v.node {
-		case nodeTypeNil:
-			return nil, nil
-		case nodeTypeValue:
-			return nil, fmt.Errorf("property '%s' is value", JoinPath(path[:i+1]))
-		case nodeTypeArray, nodeTypeMap:
-			tree = v
-		default:
-			return nil, fmt.Errorf("invalid node type %d", v.node)
-		}
+		n = v
 	}
-	m := tree.data.(map[string]*treeNode)
-	keys := util.OrderedMapKeys(m)
-	return keys, nil
+
+	if n == nil {
+		return nil, fmt.Errorf("property conflict at path %s", key)
+	}
+	return util.OrderedMapKeys(n.Data), nil
 }
 
-// Has returns whether the key exists.
+// Has returns true if the given key exists in the storage,
+// either as a direct value or as a valid path in the hierarchical tree structure.
 func (s *Storage) Has(key string) bool {
-	if key == "" {
+	if key == "" || s.root == nil {
 		return false
 	}
+
 	if _, ok := s.data[key]; ok {
 		return true
 	}
+
 	path, err := SplitPath(key)
 	if err != nil {
 		return false
 	}
-	tree := s.tree
-	for i, node := range path {
-		m := tree.data.(map[string]*treeNode)
-		switch tree.node {
-		case nodeTypeArray:
-			if node.Type != PathTypeIndex {
-				return false
-			}
-		case nodeTypeMap:
-			if node.Type != PathTypeKey {
-				return false
-			}
-		default: // for linter
+
+	n := s.root
+	for _, node := range path {
+		if n == nil || node.Type != n.Type {
+			return false
 		}
-		v, ok := m[node.Elem]
+		v, ok := n.Data[node.Elem]
 		if !ok {
 			return false
 		}
-		if v.node == nodeTypeNil || v.node == nodeTypeValue {
-			return i == len(path)-1
-		}
-		tree = v
+		n = v
 	}
 	return true
 }
 
-// Get returns the value of the key, and false if the key does not exist.
-func (s *Storage) Get(key string) (string, bool) {
-	val, ok := s.data[key]
-	return val, ok
-}
-
-// Set stores the value of the key.
+// Set inserts a key-value pair into the storage.
+// It also constructs or extends the corresponding hierarchical path in the tree.
+// Returns an error if there is a type conflict or if the key is empty.
 func (s *Storage) Set(key, val string) error {
 	if key == "" {
-		return fmt.Errorf("key is empty")
+		return errors.New("key is empty")
 	}
-	tree, err := s.merge(key, val)
+
+	path, err := SplitPath(key)
 	if err != nil {
 		return err
 	}
-	switch tree.node {
-	case nodeTypeNil, nodeTypeValue:
-		s.data[key] = val
-	default:
-		return fmt.Errorf("invalid node type %d", tree.node)
-	}
-	return nil
-}
 
-func (s *Storage) merge(key, val string) (*treeNode, error) {
-	path, err := SplitPath(key)
-	if err != nil {
-		return nil, err
+	// Initialize tree root if empty
+	if s.root == nil {
+		s.root = &treeNode{
+			Type: path[0].Type,
+			Data: make(map[string]*treeNode),
+		}
 	}
-	tree := s.tree
+
+	n := s.root
 	for i, pathNode := range path {
-		if tree.node == nodeTypeMap {
-			if pathNode.Type != PathTypeKey {
-				return nil, fmt.Errorf("property '%s' is a map but '%s' wants other type", JoinPath(path[:i]), key)
-			}
+		if n == nil || pathNode.Type != n.Type {
+			return fmt.Errorf("property conflict at path %s", JoinPath(path[:i+1]))
 		}
-		m := tree.data.(map[string]*treeNode)
-		v, ok := m[pathNode.Elem]
-		if v != nil && v.node == nodeTypeNil {
-			delete(s.data, JoinPath(path[:i+1]))
-		}
-		if !ok || v.node == nodeTypeNil {
+		v, ok := n.Data[pathNode.Elem]
+		if !ok {
 			if i < len(path)-1 {
-				n := &treeNode{
-					data: make(map[string]*treeNode),
-				}
-				if path[i+1].Type == PathTypeIndex {
-					n.node = nodeTypeArray
-				} else {
-					n.node = nodeTypeMap
-				}
-				m[pathNode.Elem] = n
-				tree = n
-				continue
-			}
-			if val == "" {
-				tree = &treeNode{node: nodeTypeNil}
-			} else {
-				tree = &treeNode{node: nodeTypeValue}
-			}
-			m[pathNode.Elem] = tree
-			break // break for 100% test
-		}
-		switch v.node {
-		case nodeTypeMap:
-			if i < len(path)-1 {
-				tree = v
-				continue
-			}
-			if val == "" {
-				return v, nil
-			}
-			return nil, fmt.Errorf("property '%s' is a map but '%s' wants other type", JoinPath(path[:i+1]), key)
-		case nodeTypeArray:
-			if pathNode.Type != PathTypeIndex {
-				if i < len(path)-1 && path[i+1].Type != PathTypeIndex {
-					return nil, fmt.Errorf("property '%s' is an array but '%s' wants other type", JoinPath(path[:i+1]), key)
+				v = &treeNode{
+					Type: path[i+1].Type,
+					Data: make(map[string]*treeNode),
 				}
 			}
-			if i < len(path)-1 {
-				tree = v
-				continue
-			}
-			if val == "" {
-				return v, nil
-			}
-			return nil, fmt.Errorf("property '%s' is an array but '%s' wants other type", JoinPath(path[:i+1]), key)
-		case nodeTypeValue:
-			if i == len(path)-1 {
-				return v, nil
-			}
-			return nil, fmt.Errorf("property '%s' is a value but '%s' wants other type", JoinPath(path[:i+1]), key)
-		default:
-			return nil, fmt.Errorf("invalid node type %d", v.node)
+			n.Data[pathNode.Elem] = v
 		}
+		n = v
 	}
-	return tree, nil
+	if n != nil {
+		return fmt.Errorf("property conflict at path %s", key)
+	}
+
+	s.data[key] = val
+	return nil
 }

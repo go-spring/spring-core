@@ -25,8 +25,8 @@ import (
 )
 
 func init() {
-	gs.EnableAppJobs(false)
-	gs.EnableAppServers(false)
+	gs.EnableJobs(false)
+	gs.EnableServers(false)
 	gs.SetActiveProfiles("test")
 	gs.ForceAutowireIsNullable(true)
 }
