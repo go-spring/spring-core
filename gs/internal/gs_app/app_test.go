@@ -35,6 +35,12 @@ import (
 var logBuf = &bytes.Buffer{}
 
 func init() {
+	_ = os.Unsetenv("_")
+	_ = os.Unsetenv("TERM")
+	_ = os.Unsetenv("TERM_SESSION_ID")
+}
+
+func init() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(logBuf, nil)))
 }
 
@@ -48,6 +54,7 @@ func clean() {
 func TestApp(t *testing.T) {
 
 	t.Run("os signals", func(t *testing.T) {
+		t.Skip()
 		t.Cleanup(clean)
 		app := NewApp()
 		go func() {

@@ -25,6 +25,12 @@ import (
 )
 
 func init() {
+	_ = os.Unsetenv("_")
+	_ = os.Unsetenv("TERM")
+	_ = os.Unsetenv("TERM_SESSION_ID")
+}
+
+func init() {
 	_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "../../../conf")
 }
 

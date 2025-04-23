@@ -18,6 +18,7 @@ package gstest_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/gstest"
@@ -25,6 +26,12 @@ import (
 	"github.com/go-spring/spring-core/gs/gstest/testdata/biz"
 	"github.com/go-spring/spring-core/util/assert"
 )
+
+func init() {
+	_ = os.Unsetenv("_")
+	_ = os.Unsetenv("TERM")
+	_ = os.Unsetenv("TERM_SESSION_ID")
+}
 
 func init() {
 	gstest.MockFor[*app.App]().With(&app.App{Name: "test"})
