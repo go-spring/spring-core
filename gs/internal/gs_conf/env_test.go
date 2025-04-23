@@ -62,7 +62,7 @@ func TestEnvironment(t *testing.T) {
 		err := NewEnvironment().CopyTo(props)
 		assert.Nil(t, err)
 		assert.Equal(t, props.Get("db.host"), "db1")
-		assert.Equal(t, props.Get("api.key"), "key123")
+		assert.Equal(t, props.Get("API_KEY"), "key123")
 	})
 
 	t.Run("custom prefix", func(t *testing.T) {
@@ -78,7 +78,7 @@ func TestEnvironment(t *testing.T) {
 		err := NewEnvironment().CopyTo(props)
 		assert.Nil(t, err)
 		assert.Equal(t, props.Get("db.host"), "db1")
-		assert.Equal(t, props.Get("api.key"), "key123")
+		assert.Equal(t, props.Get("API_KEY"), "key123")
 	})
 
 	t.Run("custom patterns", func(t *testing.T) {
@@ -95,8 +95,8 @@ func TestEnvironment(t *testing.T) {
 		props := conf.New()
 		err := NewEnvironment().CopyTo(props)
 		assert.Nil(t, err)
-		assert.Equal(t, "yes", props.Get("test.public"))
-		assert.False(t, props.Has("test.internal"))
+		assert.Equal(t, props.Get("TEST_PUBLIC"), "yes")
+		assert.False(t, props.Has("TEST_INTERNAL"))
 	})
 
 	t.Run("invalid regex - include", func(t *testing.T) {

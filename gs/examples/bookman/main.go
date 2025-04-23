@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-spring/spring-core/gs"
@@ -51,11 +50,6 @@ func init() {
 }
 
 func main() {
-	// Unset certain environment variables before running the application
-	_ = os.Unsetenv("_")
-	_ = os.Unsetenv("TERM")
-	_ = os.Unsetenv("TERM_SESSION_ID")
-
 	// Start the application and log errors if startup fails
 	if err := gs.Run(); err != nil {
 		syslog.Errorf("app run failed: %s", err.Error())

@@ -17,7 +17,6 @@
 package book_service
 
 import (
-	"os"
 	"testing"
 
 	"github.com/go-spring/spring-core/gs"
@@ -25,12 +24,6 @@ import (
 	"github.com/go-spring/spring-core/gs/gstest"
 	"github.com/go-spring/spring-core/util/assert"
 )
-
-func init() {
-	_ = os.Unsetenv("_")
-	_ = os.Unsetenv("TERM")
-	_ = os.Unsetenv("TERM_SESSION_ID")
-}
 
 func init() {
 	// Mock the BookDao with initial test data
