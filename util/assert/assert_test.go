@@ -320,6 +320,26 @@ func TestImplements(t *testing.T) {
 	})
 }
 
+type Tree struct{}
+
+func (t *Tree) Has(key string) bool {
+	return key == "1"
+}
+
+func TestHas(t *testing.T) {
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"method 'Has' not found on type int"})
+		assert.That(g, 1).Has("1")
+	})
+	runCase(t, func(g *assert.MockT) {
+		g.EXPECT().Error([]interface{}{"got (*assert_test.Tree) &{} not has (string) 2"})
+		assert.That(g, &Tree{}).Has("2")
+	})
+	runCase(t, func(g *assert.MockT) {
+		assert.That(g, &Tree{}).Has("1")
+	})
+}
+
 func TestInSlice(t *testing.T) {
 	runCase(t, func(g *assert.MockT) {
 		g.EXPECT().Error([]interface{}{"unsupported expect value (string) 1"})

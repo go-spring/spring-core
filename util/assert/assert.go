@@ -245,6 +245,24 @@ func That(t T, v interface{}) *ThatAssertion {
 	}
 }
 
+// Has assertion failed when got is not has expect.
+func (a *ThatAssertion) Has(expect interface{}, msg ...string) {
+	a.t.Helper()
+
+	m := reflect.ValueOf(a.v).MethodByName("Has")
+	if !m.IsValid() {
+		str := fmt.Sprintf("method 'Has' not found on type %T", a.v)
+		fail(a.t, str, msg...)
+		return
+	}
+
+	ret := m.Call([]reflect.Value{reflect.ValueOf(expect)})
+	if !ret[0].Bool() {
+		str := fmt.Sprintf("got (%T) %v not has (%T) %v", a.v, a.v, expect, expect)
+		fail(a.t, str, msg...)
+	}
+}
+
 // InSlice assertion failed when got is not in expect array & slice.
 func (a *ThatAssertion) InSlice(expect interface{}, msg ...string) {
 	a.t.Helper()

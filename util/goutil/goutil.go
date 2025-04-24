@@ -26,7 +26,7 @@ import (
 )
 
 // OnPanic is a global callback function triggered when a panic occurs.
-var OnPanic = func(r interface{}) {
+var OnPanic = func(ctx context.Context, r interface{}) {
 	syslog.Errorf("panic: %v\n%s", r, debug.Stack())
 }
 
@@ -63,7 +63,7 @@ func Go(ctx context.Context, f func(ctx context.Context)) *Status {
 		defer func() {
 			if r := recover(); r != nil {
 				if OnPanic != nil {
-					OnPanic(r)
+					OnPanic(ctx, r)
 				}
 			}
 		}()
@@ -81,7 +81,7 @@ func GoFunc(f func()) *Status {
 		defer func() {
 			if r := recover(); r != nil {
 				if OnPanic != nil {
-					OnPanic(r)
+					OnPanic(context.Background(), r)
 				}
 			}
 		}()
@@ -127,7 +127,7 @@ func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error))
 		defer func() {
 			if r := recover(); r != nil {
 				if OnPanic != nil {
-					OnPanic(r)
+					OnPanic(ctx, r)
 				}
 				s.err = errors.New("panic occurred")
 			}
