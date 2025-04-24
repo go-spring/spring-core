@@ -66,8 +66,9 @@ func isNil(v reflect.Value) bool {
 		reflect.Slice,
 		reflect.UnsafePointer:
 		return v.IsNil()
+	default:
+		return !v.IsValid()
 	}
-	return !v.IsValid()
 }
 
 // Nil assertion failed when got is not nil.
@@ -230,69 +231,83 @@ func Implements(t T, got interface{}, expect interface{}, msg ...string) {
 	}
 }
 
+// ThatAssertion assertion for type any.
+type ThatAssertion struct {
+	t T
+	v interface{}
+}
+
+// That returns an assertion for type any.
+func That(t T, v interface{}) *ThatAssertion {
+	return &ThatAssertion{
+		t: t,
+		v: v,
+	}
+}
+
 // InSlice assertion failed when got is not in expect array & slice.
-func InSlice(t T, got interface{}, expect interface{}, msg ...string) {
-	t.Helper()
+func (a *ThatAssertion) InSlice(expect interface{}, msg ...string) {
+	a.t.Helper()
 
 	v := reflect.ValueOf(expect)
 	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
 		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
-		fail(t, str, msg...)
+		fail(a.t, str, msg...)
 		return
 	}
 
 	for i := 0; i < v.Len(); i++ {
-		if reflect.DeepEqual(got, v.Index(i).Interface()) {
+		if reflect.DeepEqual(a.v, v.Index(i).Interface()) {
 			return
 		}
 	}
 
-	str := fmt.Sprintf("got (%T) %v is not in (%T) %v", got, got, expect, expect)
-	fail(t, str, msg...)
+	str := fmt.Sprintf("got (%T) %v is not in (%T) %v", a.v, a.v, expect, expect)
+	fail(a.t, str, msg...)
 }
 
 // NotInSlice assertion failed when got is in expect array & slice.
-func NotInSlice(t T, got interface{}, expect interface{}, msg ...string) {
-	t.Helper()
+func (a *ThatAssertion) NotInSlice(expect interface{}, msg ...string) {
+	a.t.Helper()
 
 	v := reflect.ValueOf(expect)
 	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
 		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
-		fail(t, str, msg...)
+		fail(a.t, str, msg...)
 		return
 	}
 
-	e := reflect.TypeOf(got)
+	e := reflect.TypeOf(a.v)
 	if e != v.Type().Elem() {
 		str := fmt.Sprintf("got type (%s) doesn't match expect type (%s)", e, v.Type())
-		fail(t, str, msg...)
+		fail(a.t, str, msg...)
 		return
 	}
 
 	for i := 0; i < v.Len(); i++ {
-		if reflect.DeepEqual(got, v.Index(i).Interface()) {
-			str := fmt.Sprintf("got (%T) %v is in (%T) %v", got, got, expect, expect)
-			fail(t, str, msg...)
+		if reflect.DeepEqual(a.v, v.Index(i).Interface()) {
+			str := fmt.Sprintf("got (%T) %v is in (%T) %v", a.v, a.v, expect, expect)
+			fail(a.t, str, msg...)
 			return
 		}
 	}
 }
 
 // SubInSlice assertion failed when got is not sub in expect array & slice.
-func SubInSlice(t T, got interface{}, expect interface{}, msg ...string) {
-	t.Helper()
+func (a *ThatAssertion) SubInSlice(expect interface{}, msg ...string) {
+	a.t.Helper()
 
-	v1 := reflect.ValueOf(got)
+	v1 := reflect.ValueOf(a.v)
 	if v1.Kind() != reflect.Array && v1.Kind() != reflect.Slice {
-		str := fmt.Sprintf("unsupported got value (%T) %v", got, got)
-		fail(t, str, msg...)
+		str := fmt.Sprintf("unsupported got value (%T) %v", a.v, a.v)
+		fail(a.t, str, msg...)
 		return
 	}
 
 	v2 := reflect.ValueOf(expect)
 	if v2.Kind() != reflect.Array && v2.Kind() != reflect.Slice {
 		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
-		fail(t, str, msg...)
+		fail(a.t, str, msg...)
 		return
 	}
 
@@ -304,48 +319,48 @@ func SubInSlice(t T, got interface{}, expect interface{}, msg ...string) {
 		}
 	}
 
-	str := fmt.Sprintf("got (%T) %v is not sub in (%T) %v", got, got, expect, expect)
-	fail(t, str, msg...)
+	str := fmt.Sprintf("got (%T) %v is not sub in (%T) %v", a.v, a.v, expect, expect)
+	fail(a.t, str, msg...)
 }
 
 // InMapKeys assertion failed when got is not in keys of expect map.
-func InMapKeys(t T, got interface{}, expect interface{}, msg ...string) {
-	t.Helper()
+func (a *ThatAssertion) InMapKeys(expect interface{}, msg ...string) {
+	a.t.Helper()
 
 	switch v := reflect.ValueOf(expect); v.Kind() {
 	case reflect.Map:
 		for _, key := range v.MapKeys() {
-			if reflect.DeepEqual(got, key.Interface()) {
+			if reflect.DeepEqual(a.v, key.Interface()) {
 				return
 			}
 		}
 	default:
 		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
-		fail(t, str, msg...)
+		fail(a.t, str, msg...)
 		return
 	}
 
-	str := fmt.Sprintf("got (%T) %v is not in keys of (%T) %v", got, got, expect, expect)
-	fail(t, str, msg...)
+	str := fmt.Sprintf("got (%T) %v is not in keys of (%T) %v", a.v, a.v, expect, expect)
+	fail(a.t, str, msg...)
 }
 
 // InMapValues assertion failed when got is not in values of expect map.
-func InMapValues(t T, got interface{}, expect interface{}, msg ...string) {
-	t.Helper()
+func (a *ThatAssertion) InMapValues(expect interface{}, msg ...string) {
+	a.t.Helper()
 
 	switch v := reflect.ValueOf(expect); v.Kind() {
 	case reflect.Map:
 		for _, key := range v.MapKeys() {
-			if reflect.DeepEqual(got, v.MapIndex(key).Interface()) {
+			if reflect.DeepEqual(a.v, v.MapIndex(key).Interface()) {
 				return
 			}
 		}
 	default:
 		str := fmt.Sprintf("unsupported expect value (%T) %v", expect, expect)
-		fail(t, str, msg...)
+		fail(a.t, str, msg...)
 		return
 	}
 
-	str := fmt.Sprintf("got (%T) %v is not in values of (%T) %v", got, got, expect, expect)
-	fail(t, str, msg...)
+	str := fmt.Sprintf("got (%T) %v is not in values of (%T) %v", a.v, a.v, expect, expect)
+	fail(a.t, str, msg...)
 }
