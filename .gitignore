@@ -30,7 +30,7 @@ go.work.sum
 # IDE files
 .idea/
 
-/conf/remote/app-online.properties
+/conf/remote/
 
 gs/examples/bookman/conf/
 gs/examples/bookman/log/*.log

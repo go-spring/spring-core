@@ -55,7 +55,7 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">/Users/didi/spring-core/gs/examples/bookman/main.go (85.0%)</option>
+				<option value="file0">/Users/didi/spring-core/gs/examples/bookman/main.go (83.9%)</option>
 				
 				<option value="file1">github.com/go-spring/spring-core/conf/bind.go (46.2%)</option>
 				
@@ -199,6 +199,9 @@ import (
         "fmt"
         "io"
         "net/http"
+        "os"
+        "path/filepath"
+        "runtime"
         "time"
 
         "github.com/go-spring/spring-core/gs"
@@ -226,6 +229,23 @@ func init() <span class="cov1" title="1">{
 func init() <span class="cov1" title="1">{
         gs.FuncJob(runTest).Name("#job")
 }</span>
+
+func init() <span class="cov1" title="1">{
+        var execDir string
+        _, filename, _, ok := runtime.Caller(0)
+        if ok </span><span class="cov1" title="1">{
+                execDir = filepath.Dir(filename)
+        }</span>
+        <span class="cov1" title="1">err := os.Chdir(execDir)
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        <span class="cov1" title="1">workDir, err := os.Getwd()
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        <span class="cov1" title="1">fmt.Println(workDir)</span>
+}
 
 func main() <span class="cov1" title="1">{
         // Start the application and log errors if startup fails
@@ -7164,6 +7184,7 @@ func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error))
 package iterutil
 
 // Times executes the function 'fn' exactly 'count' times.
+// Be sure to maintain the callback style.
 func Times(count int, fn func(i int)) <span class="cov1" title="1">{
         for i := 0; i &lt; count; i++ </span><span class="cov10" title="5">{
                 fn(i)
@@ -7171,6 +7192,7 @@ func Times(count int, fn func(i int)) <span class="cov1" title="1">{
 }
 
 // Ranges iterates from 'start' to 'end' (exclusive) and applies 'fn' to each index.
+// Be sure to maintain the callback style.
 func Ranges(start, end int, fn func(i int)) <span class="cov0" title="0">{
         if start &lt; end </span><span class="cov0" title="0">{
                 stepRangesForward(start, end, 1, fn)
@@ -7180,6 +7202,7 @@ func Ranges(start, end int, fn func(i int)) <span class="cov0" title="0">{
 }
 
 // StepRanges iterates from 'start' to 'end' using a step size and applies 'fn' to each index.
+// Be sure to maintain the callback style.
 func StepRanges(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
         if step &gt; 0 &amp;&amp; start &lt; end </span><span class="cov0" title="0">{
                 stepRangesForward(start, end, step, fn)

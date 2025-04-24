@@ -46,7 +46,7 @@ func TestRead(t *testing.T) {
 		})
 	})
 
-	t.Run("map", func(t *testing.T) {
+	t.Run("simple map", func(t *testing.T) {
 		r, err := Read([]byte(`
 			map.bool=false
 			map.int=3
@@ -62,7 +62,7 @@ func TestRead(t *testing.T) {
 		})
 	})
 
-	t.Run("array struct", func(t *testing.T) {
+	t.Run("array with struct", func(t *testing.T) {
 		r, err := Read([]byte(`
 			array[0].bool=false
 			array[0].int=3
@@ -86,7 +86,7 @@ func TestRead(t *testing.T) {
 		})
 	})
 
-	t.Run("map struct", func(t *testing.T) {
+	t.Run("map with struct", func(t *testing.T) {
 
 		r, err := Read([]byte(`
 			map.k1.bool=false
