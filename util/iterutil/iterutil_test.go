@@ -25,34 +25,44 @@ import (
 
 func TestTimes(t *testing.T) {
 	var arr []int
-	iterutil.Times(5, func(i int) {
+	for i := range iterutil.Times(5) {
 		arr = append(arr, i)
-	})
+	}
 	assert.Equal(t, arr, []int{0, 1, 2, 3, 4})
 }
 
 func TestRanges(t *testing.T) {
 	var arr []int
-	iterutil.Ranges(1, 5, func(i int) {
+	for i := range iterutil.Ranges(1, 5) {
 		arr = append(arr, i)
-	})
+	}
 	assert.Equal(t, arr, []int{1, 2, 3, 4})
 	arr = nil
-	iterutil.Ranges(5, 1, func(i int) {
+	for i := range iterutil.Ranges(5, 1) {
 		arr = append(arr, i)
-	})
+	}
 	assert.Equal(t, arr, []int{5, 4, 3, 2})
+	arr = nil
+	for i := range iterutil.Ranges(1, 1) {
+		arr = append(arr, i)
+	}
+	assert.Equal(t, arr, ([]int)(nil))
 }
 
 func TestStepRanges(t *testing.T) {
 	var arr []int
-	iterutil.StepRanges(1, 5, 2, func(i int) {
+	for i := range iterutil.StepRanges(1, 5, 2) {
 		arr = append(arr, i)
-	})
+	}
 	assert.Equal(t, arr, []int{1, 3})
 	arr = nil
-	iterutil.StepRanges(5, 1, -2, func(i int) {
+	for i := range iterutil.StepRanges(5, 1, -2) {
 		arr = append(arr, i)
-	})
+	}
 	assert.Equal(t, arr, []int{5, 3})
+	arr = nil
+	for i := range iterutil.StepRanges(5, 5, -2) {
+		arr = append(arr, i)
+	}
+	assert.Equal(t, arr, ([]int)(nil))
 }

@@ -71,7 +71,7 @@
 				
 				<option value="file7">github.com/go-spring/spring-core/conf/reader/yaml/yaml.go (0.0%)</option>
 				
-				<option value="file8">github.com/go-spring/spring-core/conf/storage/path.go (32.8%)</option>
+				<option value="file8">github.com/go-spring/spring-core/conf/storage/path.go (31.4%)</option>
 				
 				<option value="file9">github.com/go-spring/spring-core/conf/storage/store.go (78.6%)</option>
 				
@@ -119,7 +119,7 @@
 				
 				<option value="file31">github.com/go-spring/spring-core/gs/internal/gs_conf/conf.go (68.0%)</option>
 				
-				<option value="file32">github.com/go-spring/spring-core/gs/internal/gs_conf/env.go (64.5%)</option>
+				<option value="file32">github.com/go-spring/spring-core/gs/internal/gs_conf/env.go (75.0%)</option>
 				
 				<option value="file33">github.com/go-spring/spring-core/gs/internal/gs_core/core.go (75.0%)</option>
 				
@@ -133,7 +133,7 @@
 				
 				<option value="file38">github.com/go-spring/spring-core/gs/pprof.go (100.0%)</option>
 				
-				<option value="file39">github.com/go-spring/spring-core/gs/prop.go (30.0%)</option>
+				<option value="file39">github.com/go-spring/spring-core/gs/prop.go (33.3%)</option>
 				
 				<option value="file40">github.com/go-spring/spring-core/util/errutil/errutil.go (0.0%)</option>
 				
@@ -141,7 +141,7 @@
 				
 				<option value="file42">github.com/go-spring/spring-core/util/goutil/goutil.go (27.5%)</option>
 				
-				<option value="file43">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.4%)</option>
+				<option value="file43">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.8%)</option>
 				
 				<option value="file44">github.com/go-spring/spring-core/util/list.go (0.0%)</option>
 				
@@ -238,7 +238,7 @@ func main() <span class="cov1" title="1">{
 func runTest(ctx context.Context) error <span class="cov1" title="1">{
         time.Sleep(time.Millisecond * 500)
 
-        iterutil.Times(5, func(_ int) </span><span class="cov10" title="5">{
+        for range iterutil.Times(5) </span><span class="cov10" title="5">{
                 url := "http://127.0.0.1:9090/books"
                 resp, err := http.Get(url)
                 if err != nil </span><span class="cov0" title="0">{
@@ -251,7 +251,7 @@ func runTest(ctx context.Context) error <span class="cov1" title="1">{
                 <span class="cov10" title="5">defer resp.Body.Close()
                 fmt.Print(string(b))
                 time.Sleep(time.Millisecond * 400)</span>
-        })
+        }
 
         // Shut down the application gracefully
         <span class="cov1" title="1">gs.ShutDown()
@@ -920,12 +920,12 @@ func (p *MutableProperties) Keys() []string <span class="cov4" title="8">{
 }</span>
 
 // Get returns key's value, using Def to return a default value.
-func (p *MutableProperties) Get(key string, def ...string) string <span class="cov10" title="468">{
+func (p *MutableProperties) Get(key string, def ...string) string <span class="cov10" title="452">{
         val, ok := p.RawData()[key]
         if !ok &amp;&amp; len(def) &gt; 0 </span><span class="cov5" title="22">{
                 return def[0]
         }</span>
-        <span class="cov9" title="446">return val</span>
+        <span class="cov9" title="430">return val</span>
 }
 
 // Resolve resolves string value that contains references to other
@@ -1237,17 +1237,17 @@ func JoinPath(path []Path) string <span class="cov0" title="0">{
 
 // SplitPath parses a string path into a slice of Path segments.
 // It supports keys separated by '.' and indices enclosed in brackets (e.g., "users[0].name").
-func SplitPath(key string) (_ []Path, err error) <span class="cov7" title="671">{
+func SplitPath(key string) (_ []Path, err error) <span class="cov7" title="647">{
         if key == "" </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="671">var (
+        <span class="cov7" title="647">var (
                 path        []Path
                 lastPos     int
                 lastChar    int32
                 openBracket bool
         )
-        for i, c := range key </span><span class="cov10" title="8011">{
+        for i, c := range key </span><span class="cov10" title="7759">{
                 switch c </span>{
                 case ' ':<span class="cov0" title="0">
                         return nil, fmt.Errorf("invalid key '%s'", key)</span>
@@ -1256,11 +1256,8 @@ func SplitPath(key string) (_ []Path, err error) <span class="cov7" title="671">
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
                         <span class="cov6" title="301">if lastChar != ']' </span><span class="cov6" title="301">{
-                                path, err = appendKey(path, key[lastPos:i])
-                                if err != nil </span><span class="cov0" title="0">{
-                                        return nil, fmt.Errorf("invalid key '%s'", key)
-                                }</span>
-                        }
+                                path = appendKey(path, key[lastPos:i])
+                        }</span>
                         <span class="cov6" title="301">lastPos = i + 1
                         lastChar = c</span>
                 case '[':<span class="cov0" title="0">
@@ -1268,11 +1265,8 @@ func SplitPath(key string) (_ []Path, err error) <span class="cov7" title="671">
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
                         <span class="cov0" title="0">if i &gt; 0 &amp;&amp; lastChar != ']' </span><span class="cov0" title="0">{
-                                path, err = appendKey(path, key[lastPos:i])
-                                if err != nil </span><span class="cov0" title="0">{
-                                        return nil, fmt.Errorf("invalid key '%s'", key)
-                                }</span>
-                        }
+                                path = appendKey(path, key[lastPos:i])
+                        }</span>
                         <span class="cov0" title="0">openBracket = true
                         lastPos = i + 1
                         lastChar = c</span>
@@ -1287,29 +1281,25 @@ func SplitPath(key string) (_ []Path, err error) <span class="cov7" title="671">
                         <span class="cov0" title="0">openBracket = false
                         lastPos = i + 1
                         lastChar = c</span>
-                default:<span class="cov9" title="7710">
+                default:<span class="cov9" title="7458">
                         if lastChar == ']' </span><span class="cov0" title="0">{
                                 return nil, fmt.Errorf("invalid key '%s'", key)
                         }</span>
-                        <span class="cov9" title="7710">lastChar = c</span>
+                        <span class="cov9" title="7458">lastChar = c</span>
                 }
         }
-        <span class="cov7" title="671">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
+        <span class="cov7" title="647">if openBracket || lastChar == '.' </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid key '%s'", key)
         }</span>
-        <span class="cov7" title="671">if lastChar != ']' </span><span class="cov7" title="671">{
-                path, err = appendKey(path, key[lastPos:])
-                if err != nil </span><span class="cov0" title="0">{
-                        return nil, fmt.Errorf("invalid key '%s'", key)
-                }</span>
-        }
-        <span class="cov7" title="671">return path, nil</span>
+        <span class="cov7" title="647">if lastChar != ']' </span><span class="cov7" title="647">{
+                path = appendKey(path, key[lastPos:])
+        }</span>
+        <span class="cov7" title="647">return path, nil</span>
 }
 
 // appendKey appends a key segment to the path.
-func appendKey(path []Path, s string) ([]Path, error) <span class="cov7" title="972">{
-        path = append(path, Path{PathTypeKey, s})
-        return path, nil
+func appendKey(path []Path, s string) []Path <span class="cov7" title="948">{
+        return append(path, Path{PathTypeKey, s})
 }</span>
 
 // appendIndex appends an index segment to the path.
@@ -1339,6 +1329,23 @@ func appendIndex(path []Path, s string) ([]Path, error) <span class="cov0" title
  * limitations under the License.
  */
 
+// Package storage provides structured configuration storage, and `ConfigPath` represents
+// the hierarchical path of a configuration item.
+//
+// Each configuration item must have a well-defined type. The key of a configuration item
+// (its `path`) can be split into components that form a tree structure, where each node
+// corresponds to a part of the configuration hierarchy.
+//
+// The `path` serves both as the unique identifier (key) of the configuration item and
+// as its location within the configuration tree. This design mirrors the structure of
+// typical configuration file formats such as JSON, YAML, and TOML.
+//
+// A `path` is composed of only two types of elements:
+//   - Key: Represents a map key in the configuration tree.
+//   - Index: Represents an array index in the configuration tree.
+//
+// This approach ensures consistency, type safety, and compatibility with structured
+// configuration formats.
 package storage
 
 import (
@@ -1371,7 +1378,7 @@ func NewStorage() *Storage <span class="cov5" title="35">{
 
 // RawData returns the underlying flat key-value map.
 // Note: This exposes internal state; use with caution.
-func (s *Storage) RawData() map[string]string <span class="cov9" title="510">{
+func (s *Storage) RawData() map[string]string <span class="cov9" title="494">{
         return s.data
 }</span>
 
@@ -1441,46 +1448,46 @@ func (s *Storage) Has(key string) bool <span class="cov5" title="27">{
 // Set inserts a key-value pair into the storage.
 // It also constructs or extends the corresponding hierarchical path in the tree.
 // Returns an error if there is a type conflict or if the key is empty.
-func (s *Storage) Set(key, val string) error <span class="cov9" title="644">{
+func (s *Storage) Set(key, val string) error <span class="cov9" title="620">{
         if key == "" </span><span class="cov0" title="0">{
                 return errors.New("key is empty")
         }</span>
 
-        <span class="cov9" title="644">path, err := SplitPath(key)
+        <span class="cov9" title="620">path, err := SplitPath(key)
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
         // Initialize tree root if empty
-        <span class="cov9" title="644">if s.root == nil </span><span class="cov5" title="35">{
+        <span class="cov9" title="620">if s.root == nil </span><span class="cov5" title="35">{
                 s.root = &amp;treeNode{
                         Type: path[0].Type,
                         Data: make(map[string]*treeNode),
                 }
         }</span>
 
-        <span class="cov9" title="644">n := s.root
-        for i, pathNode := range path </span><span class="cov10" title="884">{
+        <span class="cov9" title="620">n := s.root
+        for i, pathNode := range path </span><span class="cov10" title="860">{
                 if n == nil || pathNode.Type != n.Type </span><span class="cov0" title="0">{
                         return fmt.Errorf("property conflict at path %s", JoinPath(path[:i+1]))
                 }</span>
-                <span class="cov10" title="884">v, ok := n.Data[pathNode.Elem]
-                if !ok </span><span class="cov9" title="769">{
+                <span class="cov10" title="860">v, ok := n.Data[pathNode.Elem]
+                if !ok </span><span class="cov9" title="745">{
                         if i &lt; len(path)-1 </span><span class="cov7" title="130">{
                                 v = &amp;treeNode{
                                         Type: path[i+1].Type,
                                         Data: make(map[string]*treeNode),
                                 }
                         }</span>
-                        <span class="cov9" title="769">n.Data[pathNode.Elem] = v</span>
+                        <span class="cov9" title="745">n.Data[pathNode.Elem] = v</span>
                 }
-                <span class="cov10" title="884">n = v</span>
+                <span class="cov10" title="860">n = v</span>
         }
-        <span class="cov9" title="644">if n != nil </span><span class="cov0" title="0">{
+        <span class="cov9" title="620">if n != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("property conflict at path %s", key)
         }</span>
 
-        <span class="cov9" title="644">s.data[key] = val
+        <span class="cov9" title="620">s.data[key] = val
         return nil</span>
 }
 </pre>
@@ -4925,7 +4932,6 @@ import (
 )
 
 const (
-        EnvironmentPrefix  = "GS_ENVS_PREFIX"
         IncludeEnvPatterns = "INCLUDE_ENV_PATTERNS"
         ExcludeEnvPatterns = "EXCLUDE_ENV_PATTERNS"
 )
@@ -4941,7 +4947,7 @@ func NewEnvironment() *Environment <span class="cov1" title="2">{
 // lookupEnv searches for an environment variable by key in the environ slice.
 func lookupEnv(environ []string, key string) (value string, found bool) <span class="cov5" title="24">{
         key = strings.TrimSpace(key) + "="
-        for _, s := range environ </span><span class="cov10" title="1008">{
+        for _, s := range environ </span><span class="cov10" title="960">{
                 if strings.HasPrefix(s, key) </span><span class="cov0" title="0">{
                         v := strings.TrimPrefix(s, key)
                         return strings.TrimSpace(v), true
@@ -4956,11 +4962,6 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error <span class="cov4"
         environ := os.Environ()
         if len(environ) == 0 </span><span class="cov0" title="0">{
                 return nil
-        }</span>
-
-        <span class="cov4" title="12">prefix := "GS_"
-        if s := strings.TrimSpace(os.Getenv(EnvironmentPrefix)); s != "" </span><span class="cov0" title="0">{
-                prefix = s
         }</span>
 
         <span class="cov4" title="12">toRex := func(patterns []string) ([]*regexp.Regexp, error) </span><span class="cov5" title="24">{
@@ -4993,53 +4994,39 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error <span class="cov4"
                 return err
         }</span>
 
-        <span class="cov4" title="12">matches := func(rex []*regexp.Regexp, s string) bool </span><span class="cov10" title="1008">{
-                for _, r := range rex </span><span class="cov9" title="504">{
-                        if r.MatchString(s) </span><span class="cov9" title="504">{
+        <span class="cov4" title="12">matches := func(rex []*regexp.Regexp, s string) bool </span><span class="cov10" title="960">{
+                for _, r := range rex </span><span class="cov9" title="480">{
+                        if r.MatchString(s) </span><span class="cov9" title="480">{
                                 return true
                         }</span>
                 }
-                <span class="cov9" title="504">return false</span>
+                <span class="cov9" title="480">return false</span>
         }
 
-        <span class="cov4" title="12">for _, env := range environ </span><span class="cov9" title="504">{
+        <span class="cov4" title="12">const prefix = "GS_"
+        for _, env := range environ </span><span class="cov9" title="480">{
                 ss := strings.SplitN(env, "=", 2)
                 k, v := ss[0], ""
-                if len(ss) &gt; 1 </span><span class="cov9" title="504">{
+                if len(ss) &gt; 1 </span><span class="cov9" title="480">{
                         v = ss[1]
                 }</span>
 
-                <span class="cov9" title="504">var propKey string
+                <span class="cov9" title="480">var propKey string
                 if strings.HasPrefix(k, prefix) </span><span class="cov0" title="0">{
                         propKey = strings.TrimPrefix(k, prefix)
-                        propKey = strings.ToLower(replaceKey(propKey))
-                }</span> else<span class="cov9" title="504"> if matches(includeRex, k) &amp;&amp; !matches(excludeRex, k) </span><span class="cov9" title="504">{
+                        propKey = strings.ReplaceAll(propKey, "_", ".")
+                        propKey = strings.ToLower(propKey)
+                }</span> else<span class="cov9" title="480"> if matches(includeRex, k) &amp;&amp; !matches(excludeRex, k) </span><span class="cov9" title="480">{
                         propKey = k
                 }</span> else<span class="cov0" title="0"> {
                         continue</span>
                 }
 
-                <span class="cov9" title="504">if err = p.Set(propKey, v); err != nil </span><span class="cov0" title="0">{
+                <span class="cov9" title="480">if err = p.Set(propKey, v); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
         }
         <span class="cov4" title="12">return nil</span>
-}
-
-// replaceKey replace '_' with '.'
-func replaceKey(s string) string <span class="cov0" title="0">{
-        b := make([]byte, len(s)+2)
-        b[0] = '_'
-        b[len(b)-1] = '_'
-        copy(b[1:len(b)-1], s)
-        for i := 1; i &lt; len(b)-1; i++ </span><span class="cov0" title="0">{
-                if b[i] == '_' </span><span class="cov0" title="0">{
-                        if b[i-1] != '_' &amp;&amp; b[i+1] != '_' </span><span class="cov0" title="0">{
-                                b[i] = '.'
-                        }</span>
-                }
-        }
-        <span class="cov0" title="0">return string(b[1 : len(b)-1])</span>
 }
 </pre>
 		
@@ -6522,15 +6509,15 @@ func (p *Properties) Refresh(prop conf.Properties) (err error) <span class="cov3
         p.prop = prop
 
         oldKeys := make(map[string]struct{})
-        for _, k := range old.Keys() </span><span class="cov10" title="208">{
+        for _, k := range old.Keys() </span><span class="cov10" title="200">{
                 oldKeys[k] = struct{}{}
         }</span>
 
         <span class="cov3" title="4">changes := make(map[string]struct{})
-        for _, k := range prop.Keys() </span><span class="cov10" title="208">{
-                if _, ok := oldKeys[k]; ok </span><span class="cov10" title="208">{
+        for _, k := range prop.Keys() </span><span class="cov10" title="200">{
+                if _, ok := oldKeys[k]; ok </span><span class="cov10" title="200">{
                         delete(oldKeys, k)
-                        if old.Get(k) == prop.Get(k) </span><span class="cov9" title="204">{
+                        if old.Get(k) == prop.Get(k) </span><span class="cov9" title="196">{
                                 continue</span>
                         }
                 }
@@ -6867,7 +6854,6 @@ const (
         EnableServersProp           = "spring.app.enable-servers"
         EnableSimpleHttpServerProp  = "spring.enable.simple-http-server"
         EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
-        EnableDefaultServeMuxProp   = "spring.enable.default-serve-mux"
 )
 
 func setProperty(key string, val string) <span class="cov10" title="2">{
@@ -6909,11 +6895,6 @@ func EnableSimpleHttpServer(enable bool) <span class="cov0" title="0">{
 // EnableSimplePProfServer enables or disables the simple pprof server.
 func EnableSimplePProfServer(enable bool) <span class="cov1" title="1">{
         setProperty(EnableSimplePProfServerProp, strconv.FormatBool(enable))
-}</span>
-
-// EnableDefaultServeMux enables or disables the default serve mux.
-func EnableDefaultServeMux(enable bool) <span class="cov0" title="0">{
-        setProperty(EnableDefaultServeMuxProp, strconv.FormatBool(enable))
 }</span>
 </pre>
 		
@@ -7052,7 +7033,7 @@ import (
 )
 
 // OnPanic is a global callback function triggered when a panic occurs.
-var OnPanic = func(r interface{}) <span class="cov0" title="0">{
+var OnPanic = func(ctx context.Context, r interface{}) <span class="cov0" title="0">{
         syslog.Errorf("panic: %v\n%s", r, debug.Stack())
 }</span>
 
@@ -7089,7 +7070,7 @@ func Go(ctx context.Context, f func(ctx context.Context)) *Status <span class="c
                 defer func() </span><span class="cov0" title="0">{
                         if r := recover(); r != nil </span><span class="cov0" title="0">{
                                 if OnPanic != nil </span><span class="cov0" title="0">{
-                                        OnPanic(r)
+                                        OnPanic(ctx, r)
                                 }</span>
                         }
                 }()
@@ -7107,7 +7088,7 @@ func GoFunc(f func()) *Status <span class="cov10" title="8">{
                 defer func() </span><span class="cov9" title="7">{
                         if r := recover(); r != nil </span><span class="cov0" title="0">{
                                 if OnPanic != nil </span><span class="cov0" title="0">{
-                                        OnPanic(r)
+                                        OnPanic(context.Background(), r)
                                 }</span>
                         }
                 }()
@@ -7153,7 +7134,7 @@ func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error))
                 defer func() </span><span class="cov0" title="0">{
                         if r := recover(); r != nil </span><span class="cov0" title="0">{
                                 if OnPanic != nil </span><span class="cov0" title="0">{
-                                        OnPanic(r)
+                                        OnPanic(ctx, r)
                                 }</span>
                                 <span class="cov0" title="0">s.err = errors.New("panic occurred")</span>
                         }
@@ -7182,43 +7163,55 @@ func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error))
 
 package iterutil
 
+import (
+        "iter"
+)
+
 // Times executes the function 'fn' exactly 'count' times.
-func Times(count int, fn func(i int)) <span class="cov1" title="1">{
-        for i := 0; i &lt; count; i++ </span><span class="cov10" title="5">{
-                fn(i)
-        }</span>
+func Times(count int) iter.Seq[int] <span class="cov1" title="1">{
+        return func(yield func(int) bool) </span><span class="cov1" title="1">{
+                for i := 0; i &lt; count; i++ </span><span class="cov10" title="5">{
+                        yield(i)
+                }</span>
+        }
 }
 
 // Ranges iterates from 'start' to 'end' (exclusive) and applies 'fn' to each index.
-func Ranges(start, end int, fn func(i int)) <span class="cov0" title="0">{
+func Ranges(start, end int) iter.Seq[int] <span class="cov0" title="0">{
         if start &lt; end </span><span class="cov0" title="0">{
-                stepRangesForward(start, end, 1, fn)
-        }</span> else<span class="cov0" title="0"> {
-                stepRangesBackward(start, end, -1, fn)
+                return stepRangesForward(start, end, 1)
+        }</span> else<span class="cov0" title="0"> if start &gt; end </span><span class="cov0" title="0">{
+                return stepRangesBackward(start, end, -1)
         }</span>
+        <span class="cov0" title="0">return func(yield func(int) bool) </span>{<span class="cov0" title="0">}</span>
 }
 
 // StepRanges iterates from 'start' to 'end' using a step size and applies 'fn' to each index.
-func StepRanges(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
+func StepRanges(start, end, step int) iter.Seq[int] <span class="cov0" title="0">{
         if step &gt; 0 &amp;&amp; start &lt; end </span><span class="cov0" title="0">{
-                stepRangesForward(start, end, step, fn)
+                return stepRangesForward(start, end, step)
         }</span> else<span class="cov0" title="0"> if step &lt; 0 &amp;&amp; start &gt; end </span><span class="cov0" title="0">{
-                stepRangesBackward(start, end, step, fn)
+                return stepRangesBackward(start, end, step)
         }</span>
+        <span class="cov0" title="0">return func(yield func(int) bool) </span>{<span class="cov0" title="0">}</span>
 }
 
 // stepRangesForward helper function for forward step iteration.
-func stepRangesForward(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
-        for i := start; i &lt; end; i += step </span><span class="cov0" title="0">{
-                fn(i)
-        }</span>
+func stepRangesForward(start, end, step int) iter.Seq[int] <span class="cov0" title="0">{
+        return func(yield func(int) bool) </span><span class="cov0" title="0">{
+                for i := start; i &lt; end; i += step </span><span class="cov0" title="0">{
+                        yield(i)
+                }</span>
+        }
 }
 
 // stepRangesBackward helper function for backward step iteration.
-func stepRangesBackward(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
-        for i := start; i &gt; end; i += step </span><span class="cov0" title="0">{
-                fn(i)
-        }</span>
+func stepRangesBackward(start, end, step int) iter.Seq[int] <span class="cov0" title="0">{
+        return func(yield func(int) bool) </span><span class="cov0" title="0">{
+                for i := start; i &gt; end; i += step </span><span class="cov0" title="0">{
+                        yield(i)
+                }</span>
+        }
 }
 </pre>
 		
@@ -7295,7 +7288,7 @@ import (
 // MapKeys returns the keys of the map m.
 func MapKeys[M ~map[K]V, K comparable, V any](m M) []K <span class="cov4" title="9">{
         r := make([]K, 0, len(m))
-        for k := range m </span><span class="cov10" title="419">{
+        for k := range m </span><span class="cov10" title="403">{
                 r = append(r, k)
         }</span>
         <span class="cov4" title="9">return r</span>

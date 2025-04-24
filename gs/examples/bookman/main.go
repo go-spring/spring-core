@@ -60,7 +60,7 @@ func main() {
 func runTest(ctx context.Context) error {
 	time.Sleep(time.Millisecond * 500)
 
-	iterutil.Times(5, func(_ int) {
+	for range iterutil.Times(5) {
 		url := "http://127.0.0.1:9090/books"
 		resp, err := http.Get(url)
 		if err != nil {
@@ -73,7 +73,7 @@ func runTest(ctx context.Context) error {
 		defer resp.Body.Close()
 		fmt.Print(string(b))
 		time.Sleep(time.Millisecond * 400)
-	})
+	}
 
 	// Shut down the application gracefully
 	gs.ShutDown()
