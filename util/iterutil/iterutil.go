@@ -16,53 +16,44 @@
 
 package iterutil
 
-import (
-	"iter"
-)
-
 // Times executes the function 'fn' exactly 'count' times.
-func Times(count int) iter.Seq[int] {
-	return func(yield func(int) bool) {
-		for i := 0; i < count; i++ {
-			yield(i)
-		}
+// Be sure to maintain the callback style.
+func Times(count int, fn func(i int)) {
+	for i := 0; i < count; i++ {
+		fn(i)
 	}
 }
 
 // Ranges iterates from 'start' to 'end' (exclusive) and applies 'fn' to each index.
-func Ranges(start, end int) iter.Seq[int] {
+// Be sure to maintain the callback style.
+func Ranges(start, end int, fn func(i int)) {
 	if start < end {
-		return stepRangesForward(start, end, 1)
-	} else if start > end {
-		return stepRangesBackward(start, end, -1)
+		stepRangesForward(start, end, 1, fn)
+	} else {
+		stepRangesBackward(start, end, -1, fn)
 	}
-	return func(yield func(int) bool) {}
 }
 
 // StepRanges iterates from 'start' to 'end' using a step size and applies 'fn' to each index.
-func StepRanges(start, end, step int) iter.Seq[int] {
+// Be sure to maintain the callback style.
+func StepRanges(start, end, step int, fn func(i int)) {
 	if step > 0 && start < end {
-		return stepRangesForward(start, end, step)
+		stepRangesForward(start, end, step, fn)
 	} else if step < 0 && start > end {
-		return stepRangesBackward(start, end, step)
+		stepRangesBackward(start, end, step, fn)
 	}
-	return func(yield func(int) bool) {}
 }
 
 // stepRangesForward helper function for forward step iteration.
-func stepRangesForward(start, end, step int) iter.Seq[int] {
-	return func(yield func(int) bool) {
-		for i := start; i < end; i += step {
-			yield(i)
-		}
+func stepRangesForward(start, end, step int, fn func(i int)) {
+	for i := start; i < end; i += step {
+		fn(i)
 	}
 }
 
 // stepRangesBackward helper function for backward step iteration.
-func stepRangesBackward(start, end, step int) iter.Seq[int] {
-	return func(yield func(int) bool) {
-		for i := start; i > end; i += step {
-			yield(i)
-		}
+func stepRangesBackward(start, end, step int, fn func(i int)) {
+	for i := start; i > end; i += step {
+		fn(i)
 	}
 }

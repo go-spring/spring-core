@@ -141,7 +141,7 @@
 				
 				<option value="file42">github.com/go-spring/spring-core/util/goutil/goutil.go (27.5%)</option>
 				
-				<option value="file43">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.8%)</option>
+				<option value="file43">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.4%)</option>
 				
 				<option value="file44">github.com/go-spring/spring-core/util/list.go (0.0%)</option>
 				
@@ -238,7 +238,7 @@ func main() <span class="cov1" title="1">{
 func runTest(ctx context.Context) error <span class="cov1" title="1">{
         time.Sleep(time.Millisecond * 500)
 
-        for range iterutil.Times(5) </span><span class="cov10" title="5">{
+        iterutil.Times(5, func(_ int) </span><span class="cov10" title="5">{
                 url := "http://127.0.0.1:9090/books"
                 resp, err := http.Get(url)
                 if err != nil </span><span class="cov0" title="0">{
@@ -251,7 +251,7 @@ func runTest(ctx context.Context) error <span class="cov1" title="1">{
                 <span class="cov10" title="5">defer resp.Body.Close()
                 fmt.Print(string(b))
                 time.Sleep(time.Millisecond * 400)</span>
-        }
+        })
 
         // Shut down the application gracefully
         <span class="cov1" title="1">gs.ShutDown()
@@ -7163,55 +7163,43 @@ func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error))
 
 package iterutil
 
-import (
-        "iter"
-)
-
 // Times executes the function 'fn' exactly 'count' times.
-func Times(count int) iter.Seq[int] <span class="cov1" title="1">{
-        return func(yield func(int) bool) </span><span class="cov1" title="1">{
-                for i := 0; i &lt; count; i++ </span><span class="cov10" title="5">{
-                        yield(i)
-                }</span>
-        }
+func Times(count int, fn func(i int)) <span class="cov1" title="1">{
+        for i := 0; i &lt; count; i++ </span><span class="cov10" title="5">{
+                fn(i)
+        }</span>
 }
 
 // Ranges iterates from 'start' to 'end' (exclusive) and applies 'fn' to each index.
-func Ranges(start, end int) iter.Seq[int] <span class="cov0" title="0">{
+func Ranges(start, end int, fn func(i int)) <span class="cov0" title="0">{
         if start &lt; end </span><span class="cov0" title="0">{
-                return stepRangesForward(start, end, 1)
-        }</span> else<span class="cov0" title="0"> if start &gt; end </span><span class="cov0" title="0">{
-                return stepRangesBackward(start, end, -1)
+                stepRangesForward(start, end, 1, fn)
+        }</span> else<span class="cov0" title="0"> {
+                stepRangesBackward(start, end, -1, fn)
         }</span>
-        <span class="cov0" title="0">return func(yield func(int) bool) </span>{<span class="cov0" title="0">}</span>
 }
 
 // StepRanges iterates from 'start' to 'end' using a step size and applies 'fn' to each index.
-func StepRanges(start, end, step int) iter.Seq[int] <span class="cov0" title="0">{
+func StepRanges(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
         if step &gt; 0 &amp;&amp; start &lt; end </span><span class="cov0" title="0">{
-                return stepRangesForward(start, end, step)
+                stepRangesForward(start, end, step, fn)
         }</span> else<span class="cov0" title="0"> if step &lt; 0 &amp;&amp; start &gt; end </span><span class="cov0" title="0">{
-                return stepRangesBackward(start, end, step)
+                stepRangesBackward(start, end, step, fn)
         }</span>
-        <span class="cov0" title="0">return func(yield func(int) bool) </span>{<span class="cov0" title="0">}</span>
 }
 
 // stepRangesForward helper function for forward step iteration.
-func stepRangesForward(start, end, step int) iter.Seq[int] <span class="cov0" title="0">{
-        return func(yield func(int) bool) </span><span class="cov0" title="0">{
-                for i := start; i &lt; end; i += step </span><span class="cov0" title="0">{
-                        yield(i)
-                }</span>
-        }
+func stepRangesForward(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
+        for i := start; i &lt; end; i += step </span><span class="cov0" title="0">{
+                fn(i)
+        }</span>
 }
 
 // stepRangesBackward helper function for backward step iteration.
-func stepRangesBackward(start, end, step int) iter.Seq[int] <span class="cov0" title="0">{
-        return func(yield func(int) bool) </span><span class="cov0" title="0">{
-                for i := start; i &gt; end; i += step </span><span class="cov0" title="0">{
-                        yield(i)
-                }</span>
-        }
+func stepRangesBackward(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
+        for i := start; i &gt; end; i += step </span><span class="cov0" title="0">{
+                fn(i)
+        }</span>
 }
 </pre>
 		
