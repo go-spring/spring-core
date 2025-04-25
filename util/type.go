@@ -21,7 +21,7 @@ import (
 )
 
 // errorType is the [reflect.Type] of the error interface.
-var errorType = reflect.TypeOf((*error)(nil)).Elem()
+var errorType = reflect.TypeFor[error]()
 
 // IsFuncType returns true if the provided type t is a function type.
 func IsFuncType(t reflect.Type) bool {

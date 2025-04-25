@@ -26,5 +26,5 @@ var LineBreak = " << "
 // WrapError wraps an existing error, creating a new error with hierarchical relationships.
 func WrapError(err error, format string, args ...interface{}) error {
 	msg := fmt.Sprintf(format, args...)
-	return fmt.Errorf("%s%s%w", msg, LineBreak, err)
+	return fmt.Errorf("%s"+LineBreak+"%w", msg, err)
 }
