@@ -33,6 +33,7 @@ import (
 	"sync"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 var (
@@ -55,10 +56,12 @@ func Get(key string) string {
 }
 
 // Set sets the property of the key.
-func Set(key string, val string) error {
+func Set(key string, val string) {
 	lock.Lock()
 	defer lock.Unlock()
-	return prop.Set(key, val)
+	if err := prop.Set(key, val); err != nil {
+		syslog.Errorf("failed to set property key=%s, err=%v", key, err)
+	}
 }
 
 // Clear clears all properties.

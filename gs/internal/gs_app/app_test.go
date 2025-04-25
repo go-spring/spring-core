@@ -67,7 +67,7 @@ func TestApp(t *testing.T) {
 
 	t.Run("config refresh error", func(t *testing.T) {
 		t.Cleanup(clean)
-		_ = sysconf.Set("a", "123")
+		sysconf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		app := NewApp()
 		err := app.Run()
@@ -98,8 +98,8 @@ func TestApp(t *testing.T) {
 
 	t.Run("disable jobs & servers", func(t *testing.T) {
 		t.Cleanup(clean)
-		_ = sysconf.Set("spring.app.enable-jobs", "false")
-		_ = sysconf.Set("spring.app.enable-servers", "false")
+		sysconf.Set("spring.app.enable-jobs", "false")
+		sysconf.Set("spring.app.enable-servers", "false")
 		app := NewApp()
 		go func() {
 			time.Sleep(50 * time.Millisecond)
@@ -252,7 +252,7 @@ func TestApp(t *testing.T) {
 
 	t.Run("shutdown timeout", func(t *testing.T) {
 		t.Cleanup(clean)
-		_ = sysconf.Set("spring.app.shutdown-timeout", "10ms")
+		sysconf.Set("spring.app.shutdown-timeout", "10ms")
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		app := NewApp()

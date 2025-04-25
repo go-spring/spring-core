@@ -53,14 +53,14 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
-	_ = sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+	sysconf.Set("refresh-time", time.Now().Format(timeLayout))
 	_ = gs.RefreshProperties()
 	_, _ = w.Write([]byte("OK!"))
 }
 
 func main() {
-	_ = sysconf.Set("start-time", time.Now().Format(timeLayout))
-	_ = sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+	sysconf.Set("start-time", time.Now().Format(timeLayout))
+	sysconf.Set("refresh-time", time.Now().Format(timeLayout))
 
 	// Start the Go-Spring application. If it fails, log the error.
 	if err := gs.Run(); err != nil {

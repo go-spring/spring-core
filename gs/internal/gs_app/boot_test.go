@@ -32,7 +32,7 @@ func TestBoot(t *testing.T) {
 
 	t.Run("flag is false", func(t *testing.T) {
 		t.Cleanup(clean)
-		_ = sysconf.Set("a", "123")
+		sysconf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		err := boot.Run()
@@ -41,7 +41,7 @@ func TestBoot(t *testing.T) {
 
 	t.Run("config refresh error", func(t *testing.T) {
 		t.Cleanup(clean)
-		_ = sysconf.Set("a", "123")
+		sysconf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		boot.Object(bytes.NewBuffer(nil))
