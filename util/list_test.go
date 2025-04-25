@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/util"
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 )
 
 func TestListOf(t *testing.T) {

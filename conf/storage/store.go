@@ -14,23 +14,27 @@
  * limitations under the License.
  */
 
-// Package storage provides structured configuration storage, and `ConfigPath` represents
-// the hierarchical path of a configuration item.
-//
-// Each configuration item must have a well-defined type. The key of a configuration item
-// (its `path`) can be split into components that form a tree structure, where each node
-// corresponds to a part of the configuration hierarchy.
-//
-// The `path` serves both as the unique identifier (key) of the configuration item and
-// as its location within the configuration tree. This design mirrors the structure of
-// typical configuration file formats such as JSON, YAML, and TOML.
-//
-// A `path` is composed of only two types of elements:
-//   - Key: Represents a map key in the configuration tree.
-//   - Index: Represents an array index in the configuration tree.
-//
-// This approach ensures consistency, type safety, and compatibility with structured
-// configuration formats.
+/*
+Package storage provides hierarchical configuration storage and path parsing utilities.
+
+Features:
+- Storage manages key-value pairs with support for nested paths, subkey lookup, and conflict detection.
+- Path represents structured access paths with support for parsing (SplitPath) and construction (JoinPath).
+- Supports two path types:
+  - Key (e.g., "user.name") for map access
+  - Index (e.g., "[0]") for array access
+
+- Maintains a tree structure (treeNode) for consistent and type-safe hierarchy management.
+
+Use cases:
+- Accessing values in JSON/YAML/TOML-like configs
+- Managing nested config data (CRUD)
+- Validating structure and detecting conflicts
+
+Notes:
+- Path syntax follows common config patterns (e.g., "users[0].profile.age")
+- Type-safe path handling (keys vs. indices)
+*/
 package storage
 
 import (

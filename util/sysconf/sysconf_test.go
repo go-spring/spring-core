@@ -19,8 +19,8 @@ package sysconf_test
 import (
 	"testing"
 
-	"github.com/go-spring/spring-core/util/assert"
 	"github.com/go-spring/spring-core/util/sysconf"
+	"github.com/lvan100/go-assert"
 )
 
 func TestSysConf(t *testing.T) {

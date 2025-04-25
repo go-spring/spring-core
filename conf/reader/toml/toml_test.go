@@ -19,7 +19,7 @@ package toml
 import (
 	"testing"
 
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 )
 
 func TestRead(t *testing.T) {
@@ -53,7 +53,7 @@ func TestRead(t *testing.T) {
 		})
 	})
 
-	t.Run("map", func(t *testing.T) {
+	t.Run("simple map", func(t *testing.T) {
 		r, err := Read([]byte(`
 			[map]
 			bool=false
@@ -72,7 +72,7 @@ func TestRead(t *testing.T) {
 		})
 	})
 
-	t.Run("array struct", func(t *testing.T) {
+	t.Run("array with struct", func(t *testing.T) {
 		r, err := Read([]byte(`
 			[[array]]
 			bool=false
@@ -105,7 +105,7 @@ func TestRead(t *testing.T) {
 		})
 	})
 
-	t.Run("map struct", func(t *testing.T) {
+	t.Run("map with struct", func(t *testing.T) {
 		r, err := Read([]byte(`
 			[map.k1]
 			bool=false

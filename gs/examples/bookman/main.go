@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/go-spring/spring-core/gs"
@@ -47,6 +50,23 @@ func init() {
 
 func init() {
 	gs.FuncJob(runTest).Name("#job")
+}
+
+func init() {
+	var execDir string
+	_, filename, _, ok := runtime.Caller(0)
+	if ok {
+		execDir = filepath.Dir(filename)
+	}
+	err := os.Chdir(execDir)
+	if err != nil {
+		panic(err)
+	}
+	workDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(workDir)
 }
 
 func main() {

@@ -19,7 +19,7 @@ package storage
 import (
 	"testing"
 
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 )
 
 func TestStorage(t *testing.T) {
@@ -102,8 +102,6 @@ func TestStorage(t *testing.T) {
 		assert.False(t, s.Has("m[0]"))
 		assert.False(t, s.Has("m.x[0]"))
 
-		//err = s.Set("m", "")
-		//assert.Error(t, err, "key or value is empty")
 		err = s.Set("m", "a")
 		assert.Error(t, err, "property conflict at path m")
 		err = s.Set("m.x.z", "w")
@@ -155,8 +153,6 @@ func TestStorage(t *testing.T) {
 			"[0]": "p",
 		})
 
-		//err = s.Set("[0]", "")
-		//assert.Error(t, err, "key or value is empty")
 		err = s.Set("[0]x", "f")
 		assert.Error(t, err, "invalid key '\\[0]x'")
 		err = s.Set("[0].x", "f")
@@ -210,15 +206,13 @@ func TestStorage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, subKeys, []string{"0", "1"})
 
-		//err = s.Set("s", "")
-		//assert.Error(t, err, "key or value is empty")
 		err = s.Set("s", "w")
 		assert.Error(t, err, "property conflict at path s")
 		err = s.Set("s.x", "f")
 		assert.Error(t, err, "property conflict at path s.x")
 	})
 
-	t.Run("complex", func(t *testing.T) {
+	t.Run("map && array", func(t *testing.T) {
 		s := NewStorage()
 
 		err := s.Set("a.b[0].c", "123")

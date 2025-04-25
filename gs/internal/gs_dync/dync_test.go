@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 )
 
 type MockPanicRefreshable struct{}

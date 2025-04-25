@@ -17,6 +17,7 @@
 package iterutil
 
 // Times executes the function 'fn' exactly 'count' times.
+// Be sure to maintain the callback style.
 func Times(count int, fn func(i int)) {
 	for i := 0; i < count; i++ {
 		fn(i)
@@ -24,6 +25,7 @@ func Times(count int, fn func(i int)) {
 }
 
 // Ranges iterates from 'start' to 'end' (exclusive) and applies 'fn' to each index.
+// Be sure to maintain the callback style.
 func Ranges(start, end int, fn func(i int)) {
 	if start < end {
 		stepRangesForward(start, end, 1, fn)
@@ -33,6 +35,7 @@ func Ranges(start, end int, fn func(i int)) {
 }
 
 // StepRanges iterates from 'start' to 'end' using a step size and applies 'fn' to each index.
+// Be sure to maintain the callback style.
 func StepRanges(start, end, step int, fn func(i int)) {
 	if step > 0 && start < end {
 		stepRangesForward(start, end, step, fn)

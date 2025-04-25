@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-spring/spring-core/util/assert"
 	"github.com/go-spring/spring-core/util/goutil"
+	"github.com/lvan100/go-assert"
 )
 
 func TestGo(t *testing.T) {

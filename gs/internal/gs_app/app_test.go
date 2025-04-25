@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/util/assert"
 	"github.com/go-spring/spring-core/util/sysconf"
+	"github.com/lvan100/go-assert"
 	"go.uber.org/mock/gomock"
 )
 

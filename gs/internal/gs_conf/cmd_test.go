@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 )
 
 func TestCommandArgs(t *testing.T) {
