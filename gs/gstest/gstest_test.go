@@ -23,7 +23,7 @@ import (
 	"github.com/go-spring/spring-core/gs/gstest"
 	"github.com/go-spring/spring-core/gs/gstest/testdata/app"
 	"github.com/go-spring/spring-core/gs/gstest/testdata/biz"
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 )
 
 func init() {

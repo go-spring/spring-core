@@ -22,7 +22,7 @@ import (
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/examples/bookman/src/dao/book_dao"
 	"github.com/go-spring/spring-core/gs/gstest"
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 )
 
 func init() {

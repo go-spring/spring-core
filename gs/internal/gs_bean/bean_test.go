@@ -26,7 +26,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/util"
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 	"go.uber.org/mock/gomock"
 )
 

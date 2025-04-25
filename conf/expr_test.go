@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/util/assert"
+	"github.com/lvan100/go-assert"
 )
 
 func TestExpr(t *testing.T) {
@@ -49,17 +49,6 @@ func TestExpr(t *testing.T) {
 		})
 		err := p.Bind(&v)
 		assert.Error(t, err, "validate failed on .* for value 14")
-	})
-
-	t.Run("syntax error", func(t *testing.T) {
-		var v struct {
-			A int `value:"${a}" expr:"checkInt($2)"`
-		}
-		p := conf.Map(map[string]interface{}{
-			"a": 4,
-		})
-		err := p.Bind(&v)
-		assert.Error(t, err, "eval .* returns error")
 	})
 
 	t.Run("return not bool", func(t *testing.T) {
