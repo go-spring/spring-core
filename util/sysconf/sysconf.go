@@ -14,6 +14,19 @@
  * limitations under the License.
  */
 
+/*
+Package sysconf provides a unified configuration container for the Go programming language.
+
+In the Go programming language, unlike many other languages,
+the standard library lacks a unified and general-purpose configuration container.
+To address this gap, go-spring introduces a powerful configuration system that supports
+layered configuration management and flexible injection.
+
+So sysconf serves as the fallback configuration container within an application,
+acting as the lowest-level foundation of the configuration system.
+It can be used independently or as a lightweight alternative or supplement to other
+configuration sources such as environment variables, command-line arguments, or configuration files.
+*/
 package sysconf
 
 import (

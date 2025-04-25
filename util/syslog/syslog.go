@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/*
+Package syslog provides simplified logging utilities for tracking the execution flow
+of the go-spring framework. It is designed to offer a more convenient interface than
+the standard library's slog package, whose Info, Warn, and related methods can be
+cumbersome to use. Logs produced by this package are typically output to the console.
+*/
 package syslog
 
 import (
