@@ -20,7 +20,6 @@ import (
 	"strconv"
 
 	"github.com/go-spring/spring-core/util/sysconf"
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
 const (
@@ -33,43 +32,37 @@ const (
 	EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
 )
 
-func setProperty(key string, val string) {
-	if err := sysconf.Set(key, val); err != nil {
-		syslog.Errorf("failed to set %s: %v", key, err)
-	}
-}
-
 // AllowCircularReferences enables or disables circular references between beans.
 func AllowCircularReferences(enable bool) {
-	setProperty(AllowCircularReferencesProp, strconv.FormatBool(enable))
+	sysconf.Set(AllowCircularReferencesProp, strconv.FormatBool(enable))
 }
 
 // ForceAutowireIsNullable forces autowire to be nullable.
 func ForceAutowireIsNullable(enable bool) {
-	setProperty(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
+	sysconf.Set(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
 }
 
 // SetActiveProfiles sets the active profiles for the app.
 func SetActiveProfiles(profiles string) {
-	setProperty(ActiveProfilesProp, profiles)
+	sysconf.Set(ActiveProfilesProp, profiles)
 }
 
 // EnableJobs enables or disables the app jobs.
 func EnableJobs(enable bool) {
-	setProperty(EnableJobsProp, strconv.FormatBool(enable))
+	sysconf.Set(EnableJobsProp, strconv.FormatBool(enable))
 }
 
 // EnableServers enables or disables the app servers.
 func EnableServers(enable bool) {
-	setProperty(EnableServersProp, strconv.FormatBool(enable))
+	sysconf.Set(EnableServersProp, strconv.FormatBool(enable))
 }
 
 // EnableSimpleHttpServer enables or disables the simple HTTP server.
 func EnableSimpleHttpServer(enable bool) {
-	setProperty(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
+	sysconf.Set(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
 }
 
 // EnableSimplePProfServer enables or disables the simple pprof server.
 func EnableSimplePProfServer(enable bool) {
-	setProperty(EnableSimplePProfServerProp, strconv.FormatBool(enable))
+	sysconf.Set(EnableSimplePProfServerProp, strconv.FormatBool(enable))
 }

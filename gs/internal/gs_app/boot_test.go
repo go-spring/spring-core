@@ -32,7 +32,7 @@ func TestBoot(t *testing.T) {
 
 	t.Run("flag is false", func(t *testing.T) {
 		t.Cleanup(clean)
-		_ = sysconf.Set("a", "123")
+		sysconf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		err := boot.Run()
@@ -41,12 +41,12 @@ func TestBoot(t *testing.T) {
 
 	t.Run("config refresh error", func(t *testing.T) {
 		t.Cleanup(clean)
-		_ = sysconf.Set("a", "123")
+		sysconf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		boot.Object(bytes.NewBuffer(nil))
 		err := boot.Run()
-		assert.Error(t, err, "property conflict at path a.b")
+		assert.ThatError(t, err).Matches("property conflict at path a.b")
 	})
 
 	t.Run("container refresh error", func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestBoot(t *testing.T) {
 			return nil, errors.New("fail to create bean")
 		})
 		err := boot.Run()
-		assert.Error(t, err, "fail to create bean")
+		assert.ThatError(t, err).Matches("fail to create bean")
 	})
 
 	t.Run("runner return error", func(t *testing.T) {
@@ -66,7 +66,7 @@ func TestBoot(t *testing.T) {
 			return errors.New("runner return error")
 		})
 		err := boot.Run()
-		assert.Error(t, err, "runner return error")
+		assert.ThatError(t, err).Matches("runner return error")
 	})
 
 	t.Run("success", func(t *testing.T) {

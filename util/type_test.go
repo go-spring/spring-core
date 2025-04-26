@@ -63,35 +63,35 @@ func TestIsPropBindingTarget(t *testing.T) {
 		i interface{}
 		v bool
 	}{
-		{true, true},                 // Bool
-		{int(1), true},               // Int
-		{int8(1), true},              // Int8
-		{int16(1), true},             // Int16
-		{int32(1), true},             // Int32
-		{int64(1), true},             // Int64
-		{uint(1), true},              // Uint
-		{uint8(1), true},             // Uint8
-		{uint16(1), true},            // Uint16
-		{uint32(1), true},            // Uint32
-		{uint64(1), true},            // Uint64
-		{uintptr(0), false},          // Uintptr
-		{float32(1), true},           // Float32
-		{float64(1), true},           // Float64
-		{complex64(1), false},        // Complex64
-		{complex128(1), false},       // Complex128
-		{[1]int{0}, true},            // Array
-		{make(chan struct{}), false}, // Chan
-		{func() {}, false},           // Func
-		{reflect.TypeOf((*error)(nil)).Elem(), false}, // Interface
-		{make(map[int]int), true},                     // Map
-		{make(map[string]*int), false},                //
-		{new(int), false},                             // Ptr
-		{new(struct{}), false},                        //
-		{[]int{0}, true},                              // Slice
-		{[]*int{}, false},                             //
-		{"this is a string", true},                    // String
-		{struct{}{}, true},                            // Struct
-		{unsafe.Pointer(new(int)), false},             // UnsafePointer
+		{true, true},                      // Bool
+		{int(1), true},                    // Int
+		{int8(1), true},                   // Int8
+		{int16(1), true},                  // Int16
+		{int32(1), true},                  // Int32
+		{int64(1), true},                  // Int64
+		{uint(1), true},                   // Uint
+		{uint8(1), true},                  // Uint8
+		{uint16(1), true},                 // Uint16
+		{uint32(1), true},                 // Uint32
+		{uint64(1), true},                 // Uint64
+		{uintptr(0), false},               // Uintptr
+		{float32(1), true},                // Float32
+		{float64(1), true},                // Float64
+		{complex64(1), false},             // Complex64
+		{complex128(1), false},            // Complex128
+		{[1]int{0}, true},                 // Array
+		{make(chan struct{}), false},      // Chan
+		{func() {}, false},                // Func
+		{reflect.TypeFor[error](), false}, // Interface
+		{make(map[int]int), true},         // Map
+		{make(map[string]*int), false},    //
+		{new(int), false},                 // Ptr
+		{new(struct{}), false},            //
+		{[]int{0}, true},                  // Slice
+		{[]*int{}, false},                 //
+		{"this is a string", true},        // String
+		{struct{}{}, true},                // Struct
+		{unsafe.Pointer(new(int)), false}, // UnsafePointer
 	}
 	for _, d := range data {
 		var typ reflect.Type
@@ -112,35 +112,35 @@ func TestIsBeanType(t *testing.T) {
 		i interface{}
 		v bool
 	}{
-		{true, false},                                // Bool
-		{int(1), false},                              // Int
-		{int8(1), false},                             // Int8
-		{int16(1), false},                            // Int16
-		{int32(1), false},                            // Int32
-		{int64(1), false},                            // Int64
-		{uint(1), false},                             // Uint
-		{uint8(1), false},                            // Uint8
-		{uint16(1), false},                           // Uint16
-		{uint32(1), false},                           // Uint32
-		{uint64(1), false},                           // Uint64
-		{uintptr(0), false},                          // Uintptr
-		{float32(1), false},                          // Float32
-		{float64(1), false},                          // Float64
-		{complex64(1), false},                        // Complex64
-		{complex128(1), false},                       // Complex128
-		{[1]int{0}, false},                           // Array
-		{make(chan struct{}), true},                  // Chan
-		{func() {}, true},                            // Func
-		{reflect.TypeOf((*error)(nil)).Elem(), true}, // Interface
-		{make(map[int]int), false},                   // Map
-		{make(map[string]*int), false},               //
-		{new(int), false},                            //
-		{new(struct{}), true},                        //
-		{[]int{0}, false},                            // Slice
-		{[]*int{}, false},                            //
-		{"this is a string", false},                  // String
-		{struct{}{}, false},                          // Struct
-		{unsafe.Pointer(new(int)), false},            // UnsafePointer
+		{true, false},                     // Bool
+		{int(1), false},                   // Int
+		{int8(1), false},                  // Int8
+		{int16(1), false},                 // Int16
+		{int32(1), false},                 // Int32
+		{int64(1), false},                 // Int64
+		{uint(1), false},                  // Uint
+		{uint8(1), false},                 // Uint8
+		{uint16(1), false},                // Uint16
+		{uint32(1), false},                // Uint32
+		{uint64(1), false},                // Uint64
+		{uintptr(0), false},               // Uintptr
+		{float32(1), false},               // Float32
+		{float64(1), false},               // Float64
+		{complex64(1), false},             // Complex64
+		{complex128(1), false},            // Complex128
+		{[1]int{0}, false},                // Array
+		{make(chan struct{}), true},       // Chan
+		{func() {}, true},                 // Func
+		{reflect.TypeFor[error](), true},  // Interface
+		{make(map[int]int), false},        // Map
+		{make(map[string]*int), false},    //
+		{new(int), false},                 //
+		{new(struct{}), true},             //
+		{[]int{0}, false},                 // Slice
+		{[]*int{}, false},                 //
+		{"this is a string", false},       // String
+		{struct{}{}, false},               // Struct
+		{unsafe.Pointer(new(int)), false}, // UnsafePointer
 	}
 	for _, d := range data {
 		var typ reflect.Type

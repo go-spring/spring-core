@@ -31,7 +31,7 @@ func TestEnvironment(t *testing.T) {
 		props := conf.New()
 		err := NewEnvironment().CopyTo(props)
 		assert.Nil(t, err)
-		assert.Equal(t, 0, len(props.Keys()))
+		assert.That(t, 0).Equal(len(props.Keys()))
 	})
 
 	t.Run("normal", func(t *testing.T) {
@@ -44,8 +44,8 @@ func TestEnvironment(t *testing.T) {
 		props := conf.New()
 		err := NewEnvironment().CopyTo(props)
 		assert.Nil(t, err)
-		assert.Equal(t, props.Get("db.host"), "db1")
-		assert.Equal(t, props.Get("API_KEY"), "key123")
+		assert.That(t, props.Get("db.host")).Equal("db1")
+		assert.That(t, props.Get("API_KEY")).Equal("key123")
 	})
 
 	t.Run("custom patterns", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestEnvironment(t *testing.T) {
 		props := conf.New()
 		err := NewEnvironment().CopyTo(props)
 		assert.Nil(t, err)
-		assert.Equal(t, props.Get("TEST_PUBLIC"), "yes")
+		assert.That(t, props.Get("TEST_PUBLIC")).Equal("yes")
 		assert.False(t, props.Has("TEST_INTERNAL"))
 	})
 
@@ -73,7 +73,7 @@ func TestEnvironment(t *testing.T) {
 		}()
 		props := conf.New()
 		err := NewEnvironment().CopyTo(props)
-		assert.Error(t, err, "error parsing regexp")
+		assert.ThatError(t, err).Matches("error parsing regexp")
 	})
 
 	t.Run("invalid regex - exclude", func(t *testing.T) {
@@ -83,7 +83,7 @@ func TestEnvironment(t *testing.T) {
 		}()
 		props := conf.New()
 		err := NewEnvironment().CopyTo(props)
-		assert.Error(t, err, "error parsing regexp")
+		assert.ThatError(t, err).Matches("error parsing regexp")
 	})
 
 	t.Run("set return error", func(t *testing.T) {
@@ -95,6 +95,6 @@ func TestEnvironment(t *testing.T) {
 			"db": []string{"db2"},
 		})
 		err := NewEnvironment().CopyTo(props)
-		assert.Error(t, err, "property conflict at path db.host")
+		assert.ThatError(t, err).Matches("property conflict at path db.host")
 	})
 }

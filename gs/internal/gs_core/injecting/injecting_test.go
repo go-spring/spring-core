@@ -208,7 +208,7 @@ func TestInjecting(t *testing.T) {
 			objectBean(&LazyB{}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "can't find bean")
+		assert.ThatError(t, err).Matches("can't find bean")
 	})
 
 	t.Run("lazy error - 2", func(t *testing.T) {
@@ -218,7 +218,7 @@ func TestInjecting(t *testing.T) {
 			objectBean(&LazyB{}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "found circular autowire")
+		assert.ThatError(t, err).Matches("found circular autowire")
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -289,7 +289,7 @@ func TestInjecting(t *testing.T) {
 		c := &Controller{}
 		err = r.Wire(c)
 		assert.Nil(t, err)
-		assert.Equal(t, len(c.Loggers), 2)
+		assert.That(t, len(c.Loggers)).Equal(2)
 
 		s := &struct {
 			Server  *Server  `inject:""`
@@ -297,14 +297,14 @@ func TestInjecting(t *testing.T) {
 		}{}
 		err = r.Wire(s)
 		assert.Nil(t, err)
-		assert.Equal(t, s.Service.Status, 1)
-		assert.Equal(t, s.Service.Filter, myFilter)
-		assert.Equal(t, s.Service.Int, 100)
-		assert.Equal(t, s.Service.Str, "hello")
-		assert.Equal(t, s.Server.addr, "127.0.0.1:9090")
-		assert.Equal(t, s.Server.arg.connTimeout, 100)
-		assert.Equal(t, s.Server.arg.readTimeout, 0)
-		assert.Equal(t, s.Server.arg.writeTimeout, 100)
+		assert.That(t, s.Service.Status).Equal(1)
+		assert.That(t, s.Service.Filter).Equal(myFilter)
+		assert.That(t, s.Service.Int).Equal(100)
+		assert.That(t, s.Service.Str).Equal("hello")
+		assert.That(t, s.Server.addr).Equal("127.0.0.1:9090")
+		assert.That(t, s.Server.arg.connTimeout).Equal(100)
+		assert.That(t, s.Server.arg.readTimeout).Equal(0)
+		assert.That(t, s.Server.arg.writeTimeout).Equal(100)
 
 		err = r.RefreshProperties(conf.Map(map[string]interface{}{
 			"spring": map[string]interface{}{
@@ -331,11 +331,11 @@ func TestInjecting(t *testing.T) {
 		}))
 		assert.Nil(t, err)
 
-		assert.Equal(t, s.Service.Repository.Addr.Value(), "0.0.0.0:5050")
+		assert.That(t, s.Service.Repository.Addr.Value()).Equal("0.0.0.0:5050")
 
 		r.Close()
 
-		assert.Equal(t, s.Service.Status, 0)
+		assert.That(t, s.Service.Status).Equal(0)
 	})
 
 	t.Run("wire error - 2", func(t *testing.T) {
@@ -346,7 +346,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "int is not a valid receiver type")
+		assert.ThatError(t, err).Matches("int is not a valid receiver type")
 	})
 
 	t.Run("wire error - 3", func(t *testing.T) {
@@ -359,7 +359,7 @@ func TestInjecting(t *testing.T) {
 			objectBean(&SimpleLogger{}).Name("b").Export(gs.As[Logger]()),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "found 2 beans")
+		assert.ThatError(t, err).Matches("found 2 beans")
 	})
 
 	t.Run("wire error - 4", func(t *testing.T) {
@@ -370,7 +370,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "\\[]int is not a valid receiver type")
+		assert.ThatError(t, err).Matches("\\[]int is not a valid receiver type")
 	})
 
 	t.Run("wire error - 5", func(t *testing.T) {
@@ -381,7 +381,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "more than one \\* in collection")
+		assert.ThatError(t, err).Matches("more than one \\* in collection")
 	})
 
 	t.Run("wire error - 6", func(t *testing.T) {
@@ -394,7 +394,7 @@ func TestInjecting(t *testing.T) {
 			objectBean(&SimpleLogger{}).Name("biz").Export(gs.As[Logger]()),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "found 2 beans")
+		assert.ThatError(t, err).Matches("found 2 beans")
 	})
 
 	t.Run("wire error - 7", func(t *testing.T) {
@@ -405,7 +405,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "no beans collected")
+		assert.ThatError(t, err).Matches("no beans collected")
 	})
 
 	t.Run("wire error - 8", func(t *testing.T) {
@@ -416,7 +416,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "can't find bean")
+		assert.ThatError(t, err).Matches("can't find bean")
 	})
 
 	t.Run("wire error - 9", func(t *testing.T) {
@@ -430,7 +430,7 @@ func TestInjecting(t *testing.T) {
 			}).Export(gs.As[Logger]()).Name("sys"),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "init error")
+		assert.ThatError(t, err).Matches("init error")
 	})
 
 	t.Run("wire error - 10", func(t *testing.T) {
@@ -441,7 +441,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "resolve string .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("resolve string .* error: invalid syntax")
 	})
 
 	t.Run("wire error - 11", func(t *testing.T) {
@@ -452,7 +452,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "resolve string .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("resolve string .* error: invalid syntax")
 	})
 
 	t.Run("wire error - 12", func(t *testing.T) {
@@ -466,7 +466,7 @@ func TestInjecting(t *testing.T) {
 		}
 		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
-		assert.Equal(t, s.Loggers, [3]Logger{nil, nil, nil})
+		assert.That(t, s.Loggers).Equal([3]Logger{nil, nil, nil})
 	})
 
 	t.Run("wire error - 13", func(t *testing.T) {
@@ -478,7 +478,7 @@ func TestInjecting(t *testing.T) {
 			provideBean(NewZeroLogger),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "parse tag '' error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag '' error: invalid syntax")
 	})
 
 	t.Run("wire error - 14", func(t *testing.T) {
@@ -496,7 +496,7 @@ func TestInjecting(t *testing.T) {
 		}
 		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
-		assert.Equal(t, s.Logger, (*ZeroLogger)(nil))
+		assert.That(t, s.Logger).Equal((*ZeroLogger)(nil))
 	})
 
 	t.Run("wire error - 15", func(t *testing.T) {
@@ -511,7 +511,7 @@ func TestInjecting(t *testing.T) {
 			}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "init error")
+		assert.ThatError(t, err).Matches("init error")
 	})
 
 	t.Run("wire error - 16", func(t *testing.T) {
@@ -531,7 +531,7 @@ func TestInjecting(t *testing.T) {
 		}
 		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
-		assert.Equal(t, s.Logger, (*ZeroLogger)(nil))
+		assert.That(t, s.Logger).Equal((*ZeroLogger)(nil))
 	})
 
 	t.Run("wire error - 17", func(t *testing.T) {
@@ -542,7 +542,7 @@ func TestInjecting(t *testing.T) {
 			}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "name=.*  return nil")
+		assert.ThatError(t, err).Matches("name=.*  return nil")
 	})
 
 	t.Run("wire error - 22", func(t *testing.T) {
@@ -561,7 +561,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "parse tag .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
 	t.Run("wire error - 24", func(t *testing.T) {
@@ -572,7 +572,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "property config.int not exist")
+		assert.ThatError(t, err).Matches("property config.int not exist")
 	})
 
 	t.Run("wire error - 25", func(t *testing.T) {
@@ -583,7 +583,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "property svr.config.int not exist")
+		assert.ThatError(t, err).Matches("property svr.config.int not exist")
 	})
 
 	t.Run("wire error - 26", func(t *testing.T) {
@@ -603,33 +603,33 @@ func TestWireTag(t *testing.T) {
 
 	t.Run("empty str", func(t *testing.T) {
 		tag := parseWireTag("")
-		assert.Equal(t, tag, WireTag{})
-		assert.Equal(t, tag.String(), "")
+		assert.That(t, tag).Equal(WireTag{})
+		assert.That(t, tag.String()).Equal("")
 	})
 
 	t.Run("only name", func(t *testing.T) {
 		tag := parseWireTag("a")
-		assert.Equal(t, tag, WireTag{beanName: "a"})
-		assert.Equal(t, tag.String(), "a")
+		assert.That(t, tag).Equal(WireTag{beanName: "a"})
+		assert.That(t, tag.String()).Equal("a")
 	})
 
 	t.Run("only nullable", func(t *testing.T) {
 		tag := parseWireTag("?")
-		assert.Equal(t, tag, WireTag{nullable: true})
-		assert.Equal(t, tag.String(), "?")
+		assert.That(t, tag).Equal(WireTag{nullable: true})
+		assert.That(t, tag.String()).Equal("?")
 	})
 
 	t.Run("name and nullable", func(t *testing.T) {
 		tag := parseWireTag("a?")
-		assert.Equal(t, tag, WireTag{beanName: "a", nullable: true})
-		assert.Equal(t, tag.String(), "a?")
+		assert.That(t, tag).Equal(WireTag{beanName: "a", nullable: true})
+		assert.That(t, tag.String()).Equal("a?")
 	})
 
 	t.Run("tags - 1", func(t *testing.T) {
 		tags := []WireTag{
 			{"a", true},
 		}
-		assert.Equal(t, toWireString(tags), "a?")
+		assert.That(t, toWireString(tags)).Equal("a?")
 	})
 
 	t.Run("tags - 2", func(t *testing.T) {
@@ -637,7 +637,7 @@ func TestWireTag(t *testing.T) {
 			{"a", true},
 			{"b", false},
 		}
-		assert.Equal(t, toWireString(tags), "a?,b")
+		assert.That(t, toWireString(tags)).Equal("a?,b")
 	})
 
 	t.Run("tags - 3", func(t *testing.T) {
@@ -646,7 +646,7 @@ func TestWireTag(t *testing.T) {
 			{"b", false},
 			{"c", true},
 		}
-		assert.Equal(t, toWireString(tags), "a?,b,c?")
+		assert.That(t, toWireString(tags)).Equal("a?,b,c?")
 	})
 }
 
@@ -726,9 +726,9 @@ func TestCircularBean(t *testing.T) {
 		}
 		err = r.Wire(&s)
 		assert.Nil(t, err)
-		assert.Equal(t, s.A.B, s.B)
-		assert.Equal(t, s.B.C, s.C)
-		assert.Equal(t, s.C.A, s.A)
+		assert.That(t, s.A.B).Equal(s.B)
+		assert.That(t, s.B.C).Equal(s.C)
+		assert.That(t, s.C.A).Equal(s.A)
 	})
 
 	t.Run("not truly circular - 2", func(t *testing.T) {
@@ -747,9 +747,9 @@ func TestCircularBean(t *testing.T) {
 		}
 		err = r.Wire(&s)
 		assert.Nil(t, err)
-		assert.Equal(t, s.C.D, s.D)
-		assert.Equal(t, s.D.E, s.E)
-		assert.Equal(t, s.E.c, s.C)
+		assert.That(t, s.C.D).Equal(s.D)
+		assert.That(t, s.D.E).Equal(s.E)
+		assert.That(t, s.E.c).Equal(s.C)
 	})
 
 	t.Run("found circular - 1", func(t *testing.T) {
@@ -760,7 +760,7 @@ func TestCircularBean(t *testing.T) {
 			provideBean(NewG),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "found circular autowire")
+		assert.ThatError(t, err).Matches("found circular autowire")
 	})
 
 	t.Run("found circular - 2", func(t *testing.T) {
@@ -771,7 +771,7 @@ func TestCircularBean(t *testing.T) {
 			provideBean(NewJ),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err, "found circular autowire")
+		assert.ThatError(t, err).Matches("found circular autowire")
 	})
 
 	t.Run("found circular - 3", func(t *testing.T) {
@@ -794,9 +794,9 @@ func TestCircularBean(t *testing.T) {
 		}
 		err = r.Wire(&s)
 		assert.Nil(t, err)
-		assert.Equal(t, s.H.i, s.I)
-		assert.Equal(t, s.I.J, s.J)
-		assert.Equal(t, s.J.H, s.H)
+		assert.That(t, s.H.i).Equal(s.I)
+		assert.That(t, s.I.J).Equal(s.J)
+		assert.That(t, s.J.H).Equal(s.H)
 	})
 }
 
@@ -886,8 +886,8 @@ func TestDestroy(t *testing.T) {
 		err = r.Wire(&s)
 		assert.Nil(t, err)
 		r.Close()
-		assert.Equal(t, s.DestroyC.value, 2)
-		assert.Equal(t, s.DestroyE.value, 1)
+		assert.That(t, s.DestroyC.value).Equal(2)
+		assert.That(t, s.DestroyE.value).Equal(1)
 	})
 }
 

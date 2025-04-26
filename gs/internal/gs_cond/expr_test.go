@@ -25,7 +25,7 @@ import (
 
 func TestEvalExpr(t *testing.T) {
 	_, err := EvalExpr("$", "3")
-	assert.Error(t, err, "doesn't return bool value")
+	assert.ThatError(t, err).Matches("doesn't return bool value")
 
 	ok, err := EvalExpr("int($)==3", "3")
 	assert.Nil(t, err)

@@ -45,13 +45,13 @@ func TestContainer(t *testing.T) {
 			}),
 		)
 		err := c.Refresh(conf.New())
-		assert.Error(t, err, "condition error")
+		assert.ThatError(t, err).Matches("condition error")
 	})
 
 	t.Run("inject error", func(t *testing.T) {
 		c := New()
 		c.Provide(func(addr string) *http.Server { return nil })
 		err := c.Refresh(conf.New())
-		assert.Error(t, err, "parse tag .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 }

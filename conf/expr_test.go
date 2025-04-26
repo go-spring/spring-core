@@ -37,7 +37,7 @@ func TestExpr(t *testing.T) {
 		})
 		err := p.Bind(&v)
 		assert.Nil(t, err)
-		assert.Equal(t, 4, v.A)
+		assert.That(t, 4).Equal(v.A)
 	})
 
 	t.Run("return false", func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestExpr(t *testing.T) {
 			"a": 14,
 		})
 		err := p.Bind(&v)
-		assert.Error(t, err, "validate failed on .* for value 14")
+		assert.ThatError(t, err).Matches("validate failed on .* for value 14")
 	})
 
 	t.Run("return not bool", func(t *testing.T) {
@@ -59,6 +59,6 @@ func TestExpr(t *testing.T) {
 			"a": 4,
 		})
 		err := p.Bind(&v)
-		assert.Error(t, err, "eval .* doesn't return bool value")
+		assert.ThatError(t, err).Matches("eval .* doesn't return bool value")
 	})
 }

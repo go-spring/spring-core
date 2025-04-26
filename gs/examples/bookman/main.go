@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/util/iterutil"
 	"github.com/go-spring/spring-core/util/syslog"
+	"github.com/lvan100/go-loop"
 
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/app"
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/biz"
@@ -80,7 +80,7 @@ func main() {
 func runTest(ctx context.Context) error {
 	time.Sleep(time.Millisecond * 500)
 
-	iterutil.Times(5, func(_ int) {
+	loop.Times(5, func(_ int) {
 		url := "http://127.0.0.1:9090/books"
 		resp, err := http.Get(url)
 		if err != nil {

@@ -43,11 +43,11 @@ func TestMain(m *testing.M) {
 
 func TestGSTest(t *testing.T) {
 	a := gstest.Get[*app.App](t)
-	assert.Equal(t, a.Name, "test")
+	assert.That(t, a.Name).Equal("test")
 	s := gstest.Wire(t, new(struct {
 		App     *app.App     `autowire:""`
 		Service *biz.Service `autowire:""`
 	}))
-	assert.Equal(t, s.App.Name, "test")
-	assert.Equal(t, s.Service.Hello("xyz"), "hello xyz")
+	assert.That(t, s.App.Name).Equal("test")
+	assert.That(t, s.Service.Hello("xyz")).Equal("hello xyz")
 }

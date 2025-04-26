@@ -14,6 +14,16 @@
  * limitations under the License.
  */
 
+/*
+Package goutil provides a safe way to execute goroutines with built-in panic recovery.
+
+In practice, goroutines may panic due to issues like nil pointer dereference or out-of-bounds access.
+However, these panics can be recovered. This package offers a wrapper to safely run goroutines,
+ensuring that any panic is caught and passed to a user-defined `OnPanic` handler.
+
+The `OnPanic` function allows developers to log the panic, report metrics, or perform other
+custom recovery logic, making it easier to manage and observe unexpected failures in concurrent code.
+*/
 package goutil
 
 import (

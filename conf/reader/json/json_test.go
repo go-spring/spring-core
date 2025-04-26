@@ -26,7 +26,7 @@ func TestRead(t *testing.T) {
 
 	t.Run("error", func(t *testing.T) {
 		_, err := Read([]byte(`{`))
-		assert.Error(t, err, "unexpected end of JSON input")
+		assert.ThatError(t, err).Matches("unexpected end of JSON input")
 	})
 
 	t.Run("basic type", func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestRead(t *testing.T) {
 			"time": "2018-02-17T15:02:31+08:00"
 		}`))
 		assert.Nil(t, err)
-		assert.Equal(t, r, map[string]interface{}{
+		assert.That(t, r).Equal(map[string]interface{}{
 			"empty":  "",
 			"bool":   false,
 			"int":    float64(3),

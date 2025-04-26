@@ -30,7 +30,7 @@ func TestTripleSort(t *testing.T) {
 		sorting := list.New()
 		sorted, err := TripleSort(sorting, nil)
 		assert.Nil(t, err)
-		assert.Equal(t, sorted.Len(), 0)
+		assert.That(t, sorted.Len()).Equal(0)
 	})
 
 	t.Run("single element", func(t *testing.T) {
@@ -40,8 +40,8 @@ func TestTripleSort(t *testing.T) {
 		sorting := util.ListOf("A")
 		sorted, err := TripleSort(sorting, getBefore)
 		assert.Nil(t, err)
-		assert.Equal(t, sorted.Len(), 1)
-		assert.Equal(t, sorted.Front().Value, "A")
+		assert.That(t, sorted.Len()).Equal(1)
+		assert.That(t, sorted.Front().Value).Equal("A")
 	})
 
 	t.Run("independent elements", func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestTripleSort(t *testing.T) {
 		sorting := util.ListOf("A", "B", "C")
 		sorted, err := TripleSort(sorting, getBefore)
 		assert.Nil(t, err)
-		assert.Equal(t, util.AllOfList[string](sorted), []string{"A", "B", "C"})
+		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"A", "B", "C"})
 	})
 
 	t.Run("linear dependency", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestTripleSort(t *testing.T) {
 		sorting := util.ListOf("A", "B", "C")
 		sorted, err := TripleSort(sorting, getBefore)
 		assert.Nil(t, err)
-		assert.Equal(t, util.AllOfList[string](sorted), []string{"C", "B", "A"})
+		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
 	})
 
 	t.Run("multiple dependencies", func(t *testing.T) {
@@ -89,7 +89,7 @@ func TestTripleSort(t *testing.T) {
 		sorting := util.ListOf("A", "B", "C")
 		sorted, err := TripleSort(sorting, getBefore)
 		assert.Nil(t, err)
-		assert.Equal(t, util.AllOfList[string](sorted), []string{"C", "B", "A"})
+		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
 	})
 
 	t.Run("cycle", func(t *testing.T) {
@@ -108,6 +108,6 @@ func TestTripleSort(t *testing.T) {
 		}
 		sorting := util.ListOf("A", "B", "C")
 		_, err := TripleSort(sorting, getBefore)
-		assert.Error(t, err, "found sorting cycle")
+		assert.ThatError(t, err).Matches("found sorting cycle")
 	})
 }

@@ -14,12 +14,26 @@
  * limitations under the License.
  */
 
+/*
+Package sysconf provides a unified configuration container for the Go programming language.
+
+In the Go programming language, unlike many other languages,
+the standard library lacks a unified and general-purpose configuration container.
+To address this gap, go-spring introduces a powerful configuration system that supports
+layered configuration management and flexible injection.
+
+So sysconf serves as the fallback configuration container within an application,
+acting as the lowest-level foundation of the configuration system.
+It can be used independently or as a lightweight alternative or supplement to other
+configuration sources such as environment variables, command-line arguments, or configuration files.
+*/
 package sysconf
 
 import (
 	"sync"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 var (
@@ -42,10 +56,12 @@ func Get(key string) string {
 }
 
 // Set sets the property of the key.
-func Set(key string, val string) error {
+func Set(key string, val string) {
 	lock.Lock()
 	defer lock.Unlock()
-	return prop.Set(key, val)
+	if err := prop.Set(key, val); err != nil {
+		syslog.Errorf("failed to set property key=%s, err=%v", key, err)
+	}
 }
 
 // Clear clears all properties.

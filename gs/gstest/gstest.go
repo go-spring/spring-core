@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+// Package gstest is a unit testing framework designed for dependency injection in go-spring.
+// Unlike standard dependency injection, in unit testing mode, the framework gracefully ignores
+// non-critical dependency injection failures by logging warnings instead of halting execution.
+// This ensures seamless testing workflows when dealing with extensive dependencies,
+// as only the specific dependencies under test need to be validated, while others remain non-blocking.
 package gstest
 
 import (

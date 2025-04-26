@@ -42,7 +42,7 @@ func (m *MockErrorRefreshable) onRefresh(prop conf.Properties, param conf.BindPa
 
 func TestValue(t *testing.T) {
 	var v Value[int]
-	assert.Equal(t, v.Value(), 0)
+	assert.That(t, v.Value()).Equal(0)
 
 	refresh := func(prop conf.Properties) error {
 		return v.onRefresh(prop, conf.BindParam{Key: "key"})
@@ -52,14 +52,14 @@ func TestValue(t *testing.T) {
 		"key": "42",
 	}))
 	assert.Nil(t, err)
-	assert.Equal(t, v.Value(), 42)
+	assert.That(t, v.Value()).Equal(42)
 
 	err = refresh(conf.Map(map[string]interface{}{
 		"key": map[string]interface{}{
 			"value": "42",
 		},
 	}))
-	assert.Error(t, err, "bind path= type=int error << property key isn't simple value")
+	assert.ThatError(t, err).Matches("bind path= type=int error << property key isn't simple value")
 
 	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {
@@ -72,7 +72,7 @@ func TestValue(t *testing.T) {
 				return
 			}
 			<-l.C
-			assert.Equal(t, v.Value(), 59)
+			assert.That(t, v.Value()).Equal(59)
 		}()
 	}
 
@@ -86,7 +86,7 @@ func TestValue(t *testing.T) {
 
 	b, err := json.Marshal(map[string]interface{}{"key": &v})
 	assert.Nil(t, err)
-	assert.JsonEqual(t, string(b), `{"key":59}`)
+	assert.ThatString(t, string(b)).JsonEqual(`{"key":59}`)
 }
 
 func TestDync(t *testing.T) {
@@ -106,25 +106,25 @@ func TestDync(t *testing.T) {
 			_ = p.Refresh(prop)
 		}, "mock panic")
 
-		assert.Equal(t, p.ObjectsCount(), 1)
+		assert.That(t, p.ObjectsCount()).Equal(1)
 	})
 
 	t.Run("refresh field", func(t *testing.T) {
 		p := New(conf.New())
-		assert.Equal(t, p.ObjectsCount(), 0)
+		assert.That(t, p.ObjectsCount()).Equal(0)
 
 		prop := conf.Map(map[string]interface{}{
 			"config.s1.value": "99",
 		})
 		err := p.Refresh(prop)
 		assert.Nil(t, err)
-		assert.Equal(t, p.Data(), prop)
+		assert.That(t, p.Data()).Equal(prop)
 
 		var v int
 		err = p.RefreshField(reflect.ValueOf(&v), conf.BindParam{Key: "config.s1.value"})
 		assert.Nil(t, err)
-		assert.Equal(t, v, 99)
-		assert.Equal(t, p.ObjectsCount(), 0)
+		assert.That(t, v).Equal(99)
+		assert.That(t, p.ObjectsCount()).Equal(0)
 
 		var cfg struct {
 			S1 struct {
@@ -137,9 +137,9 @@ func TestDync(t *testing.T) {
 
 		err = p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"})
 		assert.Nil(t, err)
-		assert.Equal(t, p.ObjectsCount(), 2)
-		assert.Equal(t, cfg.S1.Value.Value(), 99)
-		assert.Equal(t, cfg.S2.Value.Value(), 123)
+		assert.That(t, p.ObjectsCount()).Equal(2)
+		assert.That(t, cfg.S1.Value.Value()).Equal(99)
+		assert.That(t, cfg.S2.Value.Value()).Equal(123)
 
 		prop = conf.Map(map[string]interface{}{
 			"config.s1.value": "99",
@@ -147,9 +147,9 @@ func TestDync(t *testing.T) {
 			"config.s4.value": "123",
 		})
 		err = p.Refresh(prop)
-		assert.Equal(t, p.ObjectsCount(), 2)
-		assert.Equal(t, cfg.S1.Value.Value(), 99)
-		assert.Equal(t, cfg.S2.Value.Value(), 456)
+		assert.That(t, p.ObjectsCount()).Equal(2)
+		assert.That(t, cfg.S1.Value.Value()).Equal(99)
+		assert.That(t, cfg.S2.Value.Value()).Equal(456)
 
 		prop = conf.Map(map[string]interface{}{
 			"config.s1.value": "99",
@@ -157,9 +157,9 @@ func TestDync(t *testing.T) {
 			"config.s3.value": "xyz",
 		})
 		err = p.Refresh(prop)
-		assert.Equal(t, p.ObjectsCount(), 2)
-		assert.Equal(t, cfg.S1.Value.Value(), 99)
-		assert.Equal(t, cfg.S2.Value.Value(), 456)
+		assert.That(t, p.ObjectsCount()).Equal(2)
+		assert.That(t, cfg.S1.Value.Value()).Equal(99)
+		assert.That(t, cfg.S2.Value.Value()).Equal(456)
 
 		prop = conf.Map(map[string]interface{}{
 			"config.s1.value": "xyz",
@@ -167,18 +167,18 @@ func TestDync(t *testing.T) {
 			"config.s3.value": "xyz",
 		})
 		err = p.Refresh(prop)
-		assert.Error(t, err, "strconv.ParseInt: parsing \"xyz\": invalid syntax")
-		assert.Error(t, err, "strconv.ParseInt: parsing \"abc\": invalid syntax")
+		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \"xyz\": invalid syntax")
+		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \"abc\": invalid syntax")
 
 		s1 := &Value[string]{}
 		err = p.RefreshField(reflect.ValueOf(s1), conf.BindParam{Key: "config.s3.value"})
 		assert.Nil(t, err)
-		assert.Equal(t, s1.Value(), "xyz")
-		assert.Equal(t, p.ObjectsCount(), 3)
+		assert.That(t, s1.Value()).Equal("xyz")
+		assert.That(t, p.ObjectsCount()).Equal(3)
 
 		s2 := &Value[int]{}
 		err = p.RefreshField(reflect.ValueOf(s2), conf.BindParam{Key: "config.s3.value"})
-		assert.Error(t, err, "strconv.ParseInt: parsing \\\"xyz\\\": invalid syntax")
-		assert.Equal(t, p.ObjectsCount(), 4)
+		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \\\"xyz\\\": invalid syntax")
+		assert.That(t, p.ObjectsCount()).Equal(4)
 	})
 }

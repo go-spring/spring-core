@@ -46,9 +46,10 @@ func FlattenValue(key string, val interface{}, result map[string]string) {
 			result[key] = ""
 			return
 		}
-		for _, k := range v.MapKeys() {
-			mapKey := cast.ToString(k.Interface())
-			mapValue := v.MapIndex(k).Interface()
+		iter := v.MapRange()
+		for iter.Next() {
+			mapKey := cast.ToString(iter.Key().Interface())
+			mapValue := iter.Value().Interface()
 			FlattenValue(key+"."+mapKey, mapValue, result)
 		}
 	case reflect.Array, reflect.Slice:
