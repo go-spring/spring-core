@@ -54,7 +54,7 @@ func TestBookService(t *testing.T) {
 	}))
 
 	// Verify server address configuration
-	assert.Equal(t, x.SvrAddr, "0.0.0.0:9090")
+	assert.That(t, x.SvrAddr).Equal("0.0.0.0:9090")
 
 	s, o := x.Service, x.BookDao
 	assert.NotNil(t, o)
@@ -62,8 +62,8 @@ func TestBookService(t *testing.T) {
 	// Test listing books
 	books, err := s.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 1)
-	assert.Equal(t, books[0].ISBN, "978-0132350884")
+	assert.That(t, len(books)).Equal(1)
+	assert.That(t, books[0].ISBN).Equal("978-0132350884")
 
 	// Test saving a new book
 	err = s.SaveBook(book_dao.Book{
@@ -77,15 +77,15 @@ func TestBookService(t *testing.T) {
 	// Verify book was added successfully
 	books, err = s.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 2)
-	assert.Equal(t, books[1].ISBN, "978-0262033848")
-	assert.Equal(t, books[1].Title, "Introduction to Algorithms")
+	assert.That(t, len(books)).Equal(2)
+	assert.That(t, books[1].ISBN).Equal("978-0262033848")
+	assert.That(t, books[1].Title).Equal("Introduction to Algorithms")
 
 	// Test retrieving a book by ISBN
 	book, err := s.GetBook("978-0132350884")
 	assert.Nil(t, err)
-	assert.Equal(t, book.ISBN, "978-0132350884")
-	assert.Equal(t, book.Title, "Clean Code")
+	assert.That(t, book.ISBN).Equal("978-0132350884")
+	assert.That(t, book.Title).Equal("Clean Code")
 
 	// Test deleting a book
 	err = s.DeleteBook("978-0132350884")
@@ -94,5 +94,5 @@ func TestBookService(t *testing.T) {
 	// Verify book deletion
 	books, err = s.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 1)
+	assert.That(t, len(books)).Equal(1)
 }

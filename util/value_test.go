@@ -37,12 +37,12 @@ func TestPatchValue(t *testing.T) {
 }
 
 func TestFuncName(t *testing.T) {
-	assert.Equal(t, util.FuncName(func() {}), "util_test.TestFuncName.func1")
-	assert.Equal(t, util.FuncName(func(i int) {}), "util_test.TestFuncName.func2")
-	assert.Equal(t, util.FuncName(fnNoArgs), "util_test.fnNoArgs")
-	assert.Equal(t, util.FuncName(fnWithArgs), "util_test.fnWithArgs")
-	assert.Equal(t, util.FuncName((*receiver).ptrFnNoArgs), "util_test.(*receiver).ptrFnNoArgs")
-	assert.Equal(t, util.FuncName((*receiver).ptrFnWithArgs), "util_test.(*receiver).ptrFnWithArgs")
+	assert.That(t, util.FuncName(func() {})).Equal("util_test.TestFuncName.func1")
+	assert.That(t, util.FuncName(func(i int) {})).Equal("util_test.TestFuncName.func2")
+	assert.That(t, util.FuncName(fnNoArgs)).Equal("util_test.fnNoArgs")
+	assert.That(t, util.FuncName(fnWithArgs)).Equal("util_test.fnWithArgs")
+	assert.That(t, util.FuncName((*receiver).ptrFnNoArgs)).Equal("util_test.(*receiver).ptrFnNoArgs")
+	assert.That(t, util.FuncName((*receiver).ptrFnWithArgs)).Equal("util_test.(*receiver).ptrFnWithArgs")
 }
 
 func fnNoArgs() {}
@@ -89,8 +89,8 @@ func TestFileLine(t *testing.T) {
 	}
 	for i, c := range testcases {
 		file, line, fnName := util.FileLine(c.fn)
-		assert.Equal(t, line, c.line, fmt.Sprint(i))
-		assert.Equal(t, fnName, c.fnName, fmt.Sprint(i))
-		assert.String(t, file).HasSuffix(c.file, fmt.Sprint(i))
+		assert.That(t, line).Equal(c.line, fmt.Sprint(i))
+		assert.That(t, fnName).Equal(c.fnName, fmt.Sprint(i))
+		assert.ThatString(t, file).HasSuffix(c.file, fmt.Sprint(i))
 	}
 }

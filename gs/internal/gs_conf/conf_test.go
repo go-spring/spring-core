@@ -39,14 +39,14 @@ func TestAppConfig(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "${a}")
 		_, err := NewAppConfig().Refresh()
-		assert.Error(t, err, `resolve string "\${a}" error << property a not exist`)
+		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property a not exist`)
 	})
 
 	t.Run("resolve error - 2", func(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-REMOTE_DIR", "${a}")
 		_, err := NewAppConfig().Refresh()
-		assert.Error(t, err, `resolve string "\${a}" error << property a not exist`)
+		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property a not exist`)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestAppConfig(t *testing.T) {
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-REMOTE_DIR", "./testdata/conf/remote")
 		p, err := NewAppConfig().Refresh()
 		assert.Nil(t, err)
-		assert.Equal(t, p.Data(), map[string]string{
+		assert.That(t, p.Data()).Equal(map[string]string{
 			"spring.app.config-local.dir":  "./testdata/conf",
 			"spring.app.config-remote.dir": "./testdata/conf/remote",
 			"spring.app.name":              "remote",
@@ -68,7 +68,7 @@ func TestAppConfig(t *testing.T) {
 		_ = os.Setenv("GS_A", "a")
 		_ = os.Setenv("GS_A_B", "a.b")
 		_, err := NewAppConfig().Refresh()
-		assert.Error(t, err, "property conflict at path a.b")
+		assert.ThatError(t, err).Matches("property conflict at path a.b")
 	})
 
 	t.Run("merge error - 2", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestAppConfig(t *testing.T) {
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
 		sysconf.Set("http.server[0].addr", "0.0.0.0:8080")
 		_, err := NewAppConfig().Refresh()
-		assert.Error(t, err, "property conflict at path http.server.addr")
+		assert.ThatError(t, err).Matches("property conflict at path http.server.addr")
 	})
 }
 
@@ -87,7 +87,7 @@ func TestBootConfig(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "${a}")
 		_, err := NewBootConfig().Refresh()
-		assert.Error(t, err, `resolve string "\${a}" error << property a not exist`)
+		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property a not exist`)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestBootConfig(t *testing.T) {
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
 		p, err := NewBootConfig().Refresh()
 		assert.Nil(t, err)
-		assert.Equal(t, p.Data(), map[string]string{
+		assert.That(t, p.Data()).Equal(map[string]string{
 			"spring.app.config-local.dir": "./testdata/conf",
 			"spring.app.name":             "test",
 			"http.server.addr":            "0.0.0.0:8080",
@@ -107,7 +107,7 @@ func TestBootConfig(t *testing.T) {
 		_ = os.Setenv("GS_A", "a")
 		_ = os.Setenv("GS_A_B", "a.b")
 		_, err := NewBootConfig().Refresh()
-		assert.Error(t, err, "property conflict at path a.b")
+		assert.ThatError(t, err).Matches("property conflict at path a.b")
 	})
 
 	t.Run("merge error - 2", func(t *testing.T) {
@@ -115,7 +115,7 @@ func TestBootConfig(t *testing.T) {
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
 		sysconf.Set("http.server[0].addr", "0.0.0.0:8080")
 		_, err := NewBootConfig().Refresh()
-		assert.Error(t, err, "property conflict at path http.server.addr")
+		assert.ThatError(t, err).Matches("property conflict at path http.server.addr")
 	})
 }
 
@@ -126,7 +126,7 @@ func TestPropertySources(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		ps.AddDir("non_existent_dir")
-		assert.Equal(t, 1, len(ps.extraDirs))
+		assert.That(t, 1).Equal(len(ps.extraDirs))
 	})
 
 	t.Run("add dir error - 2", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestPropertySources(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		ps.AddFile("non_existent_file")
-		assert.Equal(t, 1, len(ps.extraFiles))
+		assert.That(t, 1).Equal(len(ps.extraFiles))
 	})
 
 	t.Run("add file error - 2", func(t *testing.T) {
@@ -180,12 +180,12 @@ func TestPropertySources(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		ps.AddFile("./testdata/conf/app.properties")
-		assert.Equal(t, 1, len(ps.extraFiles))
+		assert.That(t, 1).Equal(len(ps.extraFiles))
 		ps.AddDir("./testdata/conf")
-		assert.Equal(t, 1, len(ps.extraDirs))
+		assert.That(t, 1).Equal(len(ps.extraDirs))
 		ps.Reset()
-		assert.Equal(t, 0, len(ps.extraFiles))
-		assert.Equal(t, 0, len(ps.extraDirs))
+		assert.That(t, 0).Equal(len(ps.extraFiles))
+		assert.That(t, 0).Equal(len(ps.extraDirs))
 	})
 
 	t.Run("getDefaultDir - 1", func(t *testing.T) {
@@ -193,7 +193,7 @@ func TestPropertySources(t *testing.T) {
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		dir, err := ps.getDefaultDir(conf.Map(nil))
 		assert.Nil(t, err)
-		assert.Equal(t, "./conf", dir)
+		assert.That(t, "./conf").Equal(dir)
 	})
 
 	t.Run("getDefaultDir - 2", func(t *testing.T) {
@@ -201,7 +201,7 @@ func TestPropertySources(t *testing.T) {
 		ps := NewPropertySources(ConfigTypeRemote, "app")
 		dir, err := ps.getDefaultDir(conf.Map(nil))
 		assert.Nil(t, err)
-		assert.Equal(t, "./conf/remote", dir)
+		assert.That(t, "./conf/remote").Equal(dir)
 	})
 
 	t.Run("getFiles - 1", func(t *testing.T) {
@@ -209,7 +209,7 @@ func TestPropertySources(t *testing.T) {
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		files, err := ps.getFiles("./conf", conf.Map(nil))
 		assert.Nil(t, err)
-		assert.Equal(t, files, []string{
+		assert.That(t, files).Equal([]string{
 			"./conf/app.properties",
 			"./conf/app.yaml",
 			"./conf/app.toml",
@@ -225,7 +225,7 @@ func TestPropertySources(t *testing.T) {
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		files, err := ps.getFiles("./conf", p)
 		assert.Nil(t, err)
-		assert.Equal(t, files, []string{
+		assert.That(t, files).Equal([]string{
 			"./conf/app.properties",
 			"./conf/app.yaml",
 			"./conf/app.toml",
@@ -247,14 +247,14 @@ func TestPropertySources(t *testing.T) {
 		ps.AddFile("./testdata/conf/app.properties")
 		files, err := ps.loadFiles(conf.Map(nil))
 		assert.Nil(t, err)
-		assert.Equal(t, 1, len(files))
+		assert.That(t, 1).Equal(len(files))
 	})
 
 	t.Run("loadFiles - getDefaultDir error", func(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources("invalid", "app")
 		_, err := ps.loadFiles(conf.Map(nil))
-		assert.Error(t, err, "unknown config type: invalid")
+		assert.ThatError(t, err).Matches("unknown config type: invalid")
 	})
 
 	t.Run("loadFiles - getFiles error", func(t *testing.T) {
@@ -264,7 +264,7 @@ func TestPropertySources(t *testing.T) {
 		})
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		_, err := ps.loadFiles(p)
-		assert.Error(t, err, `resolve string "\${a}" error << property a not exist`)
+		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property a not exist`)
 	})
 
 	t.Run("loadFiles - resolve error", func(t *testing.T) {
@@ -272,7 +272,7 @@ func TestPropertySources(t *testing.T) {
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		ps.AddFile("./testdata/conf/app-${a}.properties")
 		_, err := ps.loadFiles(conf.Map(nil))
-		assert.Error(t, err, "property a not exist")
+		assert.ThatError(t, err).Matches("property a not exist")
 	})
 
 	t.Run("loadFiles - confLoad error", func(t *testing.T) {
@@ -280,6 +280,6 @@ func TestPropertySources(t *testing.T) {
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		ps.AddFile("./testdata/conf/error.json")
 		_, err := ps.loadFiles(conf.Map(nil))
-		assert.Error(t, err, "cannot unmarshal .*")
+		assert.ThatError(t, err).Matches("cannot unmarshal .*")
 	})
 }

@@ -31,12 +31,12 @@ func TestWrapError(t *testing.T) {
 	err = errutil.WrapError(err, "open file error: file=%s", "test.php")
 	err = errutil.WrapError(err, "read file error")
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), `read file error << open file error: file=test.php << file does not exist`)
+	assert.That(t, err.Error()).Equal(`read file error << open file error: file=test.php << file does not exist`)
 
 	errutil.LineBreak = " / "
 	err = os.ErrNotExist
 	err = errutil.WrapError(err, "open file error: file=%s", "test.php")
 	err = errutil.WrapError(err, "read file error")
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), `read file error / open file error: file=test.php / file does not exist`)
+	assert.That(t, err.Error()).Equal(`read file error / open file error: file=test.php / file does not exist`)
 }

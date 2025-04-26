@@ -38,7 +38,7 @@ func TestBookDao(t *testing.T) {
 	x := gstest.Wire(t, &struct {
 		SvrAddr string `value:"${server.addr}"`
 	}{})
-	assert.Equal(t, x.SvrAddr, "0.0.0.0:9090")
+	assert.That(t, x.SvrAddr).Equal("0.0.0.0:9090")
 
 	// Retrieve BookDao instance
 	o := gstest.Get[*BookDao](t)
@@ -47,9 +47,9 @@ func TestBookDao(t *testing.T) {
 	// Test listing books
 	books, err := o.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 1)
-	assert.Equal(t, books[0].ISBN, "978-0134190440")
-	assert.Equal(t, books[0].Title, "The Go Programming Language")
+	assert.That(t, len(books)).Equal(1)
+	assert.That(t, books[0].ISBN).Equal("978-0134190440")
+	assert.That(t, books[0].Title).Equal("The Go Programming Language")
 
 	// Test saving a new book
 	err = o.SaveBook(Book{
@@ -58,20 +58,20 @@ func TestBookDao(t *testing.T) {
 		ISBN:      "978-0132350884",
 		Publisher: "Prentice Hall",
 	})
-	assert.Equal(t, err, nil)
+	assert.That(t, err).Equal(nil)
 
 	// Verify book was added
 	books, err = o.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 2)
-	assert.Equal(t, books[0].ISBN, "978-0132350884")
-	assert.Equal(t, books[0].Title, "Clean Code")
+	assert.That(t, len(books)).Equal(2)
+	assert.That(t, books[0].ISBN).Equal("978-0132350884")
+	assert.That(t, books[0].Title).Equal("Clean Code")
 
 	// Test retrieving a book by ISBN
 	book, err := o.GetBook("978-0132350884")
 	assert.Nil(t, err)
-	assert.Equal(t, book.Title, "Clean Code")
-	assert.Equal(t, book.Publisher, "Prentice Hall")
+	assert.That(t, book.Title).Equal("Clean Code")
+	assert.That(t, book.Publisher).Equal("Prentice Hall")
 
 	// Test deleting a book
 	err = o.DeleteBook("978-0132350884")
@@ -80,6 +80,6 @@ func TestBookDao(t *testing.T) {
 	// Verify book was deleted
 	books, err = o.ListBooks()
 	assert.Nil(t, err)
-	assert.Equal(t, len(books), 1)
-	assert.Equal(t, books[0].ISBN, "978-0134190440")
+	assert.That(t, len(books)).Equal(1)
+	assert.That(t, books[0].ISBN).Equal("978-0134190440")
 }

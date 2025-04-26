@@ -84,5 +84,5 @@ func TestFlatten(t *testing.T) {
 		"arr[6]":        "",
 		"arr[7]":        "",
 	}
-	assert.Equal(t, m, expect)
+	assert.That(t, m).Equal(expect)
 }

@@ -31,14 +31,14 @@ import (
 )
 
 func TestBeanStatus(t *testing.T) {
-	assert.Equal(t, BeanStatus(-2).String(), "unknown")
-	assert.Equal(t, StatusDeleted.String(), "deleted")
-	assert.Equal(t, StatusDefault.String(), "default")
-	assert.Equal(t, StatusResolving.String(), "resolving")
-	assert.Equal(t, StatusResolved.String(), "resolved")
-	assert.Equal(t, StatusCreating.String(), "creating")
-	assert.Equal(t, StatusCreated.String(), "created")
-	assert.Equal(t, StatusWired.String(), "wired")
+	assert.That(t, BeanStatus(-2).String()).Equal("unknown")
+	assert.That(t, StatusDeleted.String()).Equal("deleted")
+	assert.That(t, StatusDefault.String()).Equal("default")
+	assert.That(t, StatusResolving.String()).Equal("resolving")
+	assert.That(t, StatusResolved.String()).Equal("resolved")
+	assert.That(t, StatusCreating.String()).Equal("creating")
+	assert.That(t, StatusCreated.String()).Equal("created")
+	assert.That(t, StatusWired.String()).Equal("wired")
 }
 
 type TestBeanInterface interface {
@@ -67,29 +67,29 @@ func TestBeanDefinition(t *testing.T) {
 		v := reflect.ValueOf(a)
 
 		bean := makeBean(v.Type(), v, nil, "test")
-		assert.Equal(t, bean.Name(), "test")
-		assert.Equal(t, bean.Type(), reflect.TypeFor[*TestBean]())
-		assert.Equal(t, bean.Value().Interface(), a)
-		assert.Equal(t, bean.Interface(), a)
+		assert.That(t, bean.Name()).Equal("test")
+		assert.That(t, bean.Type()).Equal(reflect.TypeFor[*TestBean]())
+		assert.That(t, bean.Value().Interface()).Equal(a)
+		assert.That(t, bean.Interface()).Equal(a)
 		assert.Nil(t, bean.Callable())
 
 		bean.SetStatus(StatusCreated)
-		assert.Equal(t, StatusCreated, bean.Status())
+		assert.That(t, StatusCreated).Equal(bean.Status())
 
 		bean.SetCaller(1)
-		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:79")
+		assert.ThatString(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:79")
 
 		bean.SetName("test-1")
-		assert.Equal(t, bean.Name(), "test-1")
+		assert.That(t, bean.Name()).Equal("test-1")
 
 		beanType, beanName := bean.TypeAndName()
-		assert.Equal(t, beanType, reflect.TypeFor[*TestBean]())
-		assert.Equal(t, beanName, "test-1")
-		assert.Matches(t, bean.String(), `name=test-1 .*/gs/internal/gs_bean/bean_test.go:79`)
+		assert.That(t, beanType).Equal(reflect.TypeFor[*TestBean]())
+		assert.That(t, beanName).Equal("test-1")
+		assert.ThatString(t, bean.String()).Matches(`name=test-1 .*/gs/internal/gs_bean/bean_test.go:79`)
 
 		assert.Nil(t, bean.BeanRuntime.Callable())
-		assert.Equal(t, bean.BeanRuntime.Status(), StatusWired)
-		assert.Equal(t, bean.BeanRuntime.String(), "test-1")
+		assert.That(t, bean.BeanRuntime.Status()).Equal(StatusWired)
+		assert.That(t, bean.BeanRuntime.String()).Equal("test-1")
 	})
 
 	t.Run("depends on", func(t *testing.T) {
@@ -97,7 +97,7 @@ func TestBeanDefinition(t *testing.T) {
 		bean := makeBean(v.Type(), v, nil, "test")
 		selector := gs.BeanSelectorFor[*http.ServeMux]()
 		bean.SetDependsOn(selector)
-		assert.Equal(t, bean.DependsOn(), []gs.BeanSelector{selector})
+		assert.That(t, bean.DependsOn()).Equal([]gs.BeanSelector{selector})
 	})
 
 	t.Run("init function", func(t *testing.T) {
@@ -127,13 +127,13 @@ func TestBeanDefinition(t *testing.T) {
 			bean.SetInit(func(TestBeanInterface) (int, error) { return 0, nil })
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
 		bean.SetInit(InitTestBean)
-		assert.Equal(t, util.FuncName(bean.Init()), "gs_bean.InitTestBean")
+		assert.That(t, util.FuncName(bean.Init())).Equal("gs_bean.InitTestBean")
 		bean.SetInit(InitTestBeanV2)
-		assert.Equal(t, util.FuncName(bean.Init()), "gs_bean.InitTestBeanV2")
+		assert.That(t, util.FuncName(bean.Init())).Equal("gs_bean.InitTestBeanV2")
 		bean.SetInitMethod("Init")
-		assert.Equal(t, util.FuncName(bean.Init()), "gs_bean.(*TestBean).Init")
+		assert.That(t, util.FuncName(bean.Init())).Equal("gs_bean.(*TestBean).Init")
 		bean.SetInitMethod("InitV2")
-		assert.Equal(t, util.FuncName(bean.Init()), "gs_bean.(*TestBean).InitV2")
+		assert.That(t, util.FuncName(bean.Init())).Equal("gs_bean.(*TestBean).InitV2")
 		assert.Panic(t, func() {
 			bean.SetInitMethod("InitV3")
 		}, "method InitV3 not found on type \\*gs_bean.TestBean")
@@ -166,13 +166,13 @@ func TestBeanDefinition(t *testing.T) {
 			bean.SetDestroy(func(TestBeanInterface) (int, error) { return 0, nil })
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
 		bean.SetDestroy(DestroyTestBean)
-		assert.Equal(t, util.FuncName(bean.Destroy()), "gs_bean.DestroyTestBean")
+		assert.That(t, util.FuncName(bean.Destroy())).Equal("gs_bean.DestroyTestBean")
 		bean.SetDestroy(DestroyTestBeanV2)
-		assert.Equal(t, util.FuncName(bean.Destroy()), "gs_bean.DestroyTestBeanV2")
+		assert.That(t, util.FuncName(bean.Destroy())).Equal("gs_bean.DestroyTestBeanV2")
 		bean.SetDestroyMethod("Destroy")
-		assert.Equal(t, util.FuncName(bean.Destroy()), "gs_bean.(*TestBean).Destroy")
+		assert.That(t, util.FuncName(bean.Destroy())).Equal("gs_bean.(*TestBean).Destroy")
 		bean.SetDestroyMethod("DestroyV2")
-		assert.Equal(t, util.FuncName(bean.Destroy()), "gs_bean.(*TestBean).DestroyV2")
+		assert.That(t, util.FuncName(bean.Destroy())).Equal("gs_bean.(*TestBean).DestroyV2")
 		assert.Panic(t, func() {
 			bean.SetDestroyMethod("DestroyV3")
 		}, "method DestroyV3 not found on type \\*gs_bean.TestBean")
@@ -182,9 +182,9 @@ func TestBeanDefinition(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
 		bean.SetExport(gs.As[TestBeanInterface]())
-		assert.Equal(t, len(bean.Exports()), 1)
+		assert.That(t, len(bean.Exports())).Equal(1)
 		bean.SetExport(gs.As[TestBeanInterface]())
-		assert.Equal(t, len(bean.Exports()), 1)
+		assert.That(t, len(bean.Exports())).Equal(1)
 		assert.Panic(t, func() {
 			bean.SetExport(reflect.TypeFor[int]())
 		}, "only interface type can be exported")
@@ -197,7 +197,7 @@ func TestBeanDefinition(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
 		bean.OnProfiles("dev,test")
-		assert.Equal(t, len(bean.Conditions()), 1)
+		assert.That(t, len(bean.Conditions())).Equal(1)
 
 		t.Run("no profile property", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -274,7 +274,7 @@ func TestBeanDefinition(t *testing.T) {
 			Includes: []string{"New.*"},
 		})
 		assert.NotNil(t, bean.Configuration())
-		assert.Equal(t, bean.Configuration().Includes, []string{"New.*"})
+		assert.That(t, bean.Configuration().Includes).Equal([]string{"New.*"})
 	})
 
 	t.Run("mock success", func(t *testing.T) {
@@ -309,23 +309,23 @@ func TestNewBean(t *testing.T) {
 	t.Run("object", func(t *testing.T) {
 		bean := NewBean(&TestBean{})
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "TestBean")
-		assert.Equal(t, beanX.Type(), reflect.TypeFor[*TestBean]())
+		assert.That(t, beanX.Name()).Equal("TestBean")
+		assert.That(t, beanX.Type()).Equal(reflect.TypeFor[*TestBean]())
 	})
 
 	t.Run("object - reflect.Value", func(t *testing.T) {
 		bean := NewBean(reflect.ValueOf(&TestBean{}))
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "TestBean")
-		assert.Equal(t, beanX.Type(), reflect.TypeFor[*TestBean]())
+		assert.That(t, beanX.Name()).Equal("TestBean")
+		assert.That(t, beanX.Type()).Equal(reflect.TypeFor[*TestBean]())
 	})
 
 	t.Run("function - reflect.Value", func(t *testing.T) {
 		fn := func(int, int) string { return "" }
 		bean := NewBean(reflect.ValueOf(fn)).Name("TestFunc")
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "TestFunc")
-		assert.Equal(t, beanX.Type(), reflect.TypeOf(fn))
+		assert.That(t, beanX.Name()).Equal("TestFunc")
+		assert.That(t, beanX.Type()).Equal(reflect.TypeOf(fn))
 	})
 
 	t.Run("constructor error", func(t *testing.T) {
@@ -355,31 +355,31 @@ func TestNewBean(t *testing.T) {
 		fn := func(int, int) *TestBean { return nil }
 		bean := NewBean(fn).Name("NewTestBean")
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "NewTestBean")
-		assert.Equal(t, beanX.Type(), reflect.TypeFor[*TestBean]())
+		assert.That(t, beanX.Name()).Equal("NewTestBean")
+		assert.That(t, beanX.Type()).Equal(reflect.TypeFor[*TestBean]())
 	})
 
 	t.Run("method - 1", func(t *testing.T) {
 		bean := NewBean((*TestBean).Clone)
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "Clone")
-		assert.Equal(t, len(beanX.Conditions()), 1)
+		assert.That(t, beanX.Name()).Equal("Clone")
+		assert.That(t, len(beanX.Conditions())).Equal(1)
 	})
 
 	t.Run("method - 2", func(t *testing.T) {
 		parent := NewBean(&TestBean{})
 		bean := NewBean((*TestBean).Clone, parent)
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "Clone")
-		assert.Equal(t, len(beanX.Conditions()), 1)
+		assert.That(t, beanX.Name()).Equal("Clone")
+		assert.That(t, len(beanX.Conditions())).Equal(1)
 	})
 
 	t.Run("method - 3", func(t *testing.T) {
 		parent := NewBean(&TestBean{})
 		bean := NewBean((*TestBean).Clone, gs_arg.Index(0, parent))
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "Clone")
-		assert.Equal(t, len(beanX.Conditions()), 1)
+		assert.That(t, beanX.Name()).Equal("Clone")
+		assert.That(t, len(beanX.Conditions())).Equal(1)
 	})
 
 	t.Run("method - 4", func(t *testing.T) {
@@ -388,8 +388,8 @@ func TestNewBean(t *testing.T) {
 		)
 		bean := NewBean((*TestBean).Clone, parent)
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "Clone")
-		assert.Equal(t, len(beanX.Conditions()), 1)
+		assert.That(t, beanX.Name()).Equal("Clone")
+		assert.That(t, len(beanX.Conditions())).Equal(1)
 	})
 
 	t.Run("method - 5", func(t *testing.T) {
@@ -398,8 +398,8 @@ func TestNewBean(t *testing.T) {
 		)
 		bean := NewBean((*TestBean).Clone, gs_arg.Index(0, parent))
 		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.Equal(t, beanX.Name(), "Clone")
-		assert.Equal(t, len(beanX.Conditions()), 1)
+		assert.That(t, beanX.Name()).Equal("Clone")
+		assert.That(t, len(beanX.Conditions())).Equal(1)
 	})
 
 	t.Run("method error - 1", func(t *testing.T) {

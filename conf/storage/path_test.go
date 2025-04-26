@@ -204,10 +204,10 @@ func TestSplitPath(t *testing.T) {
 	for _, c := range testcases {
 		p, err := SplitPath(c.Key)
 		if err != nil {
-			assert.Equal(t, err, c.Err)
+			assert.That(t, err).Equal(c.Err)
 			continue
 		}
-		assert.Equal(t, p, c.Path, fmt.Sprintf("key=%s", c.Key))
-		assert.Equal(t, JoinPath(p), c.Key)
+		assert.That(t, p).Equal(c.Path, fmt.Sprintf("key=%s", c.Key))
+		assert.That(t, JoinPath(p)).Equal(c.Key)
 	}
 }

@@ -30,7 +30,7 @@ func TestProperties_Load(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		p, err := conf.Load("./testdata/config/app.properties")
 		assert.Nil(t, err)
-		assert.Equal(t, p.Data(), map[string]string{
+		assert.That(t, p.Data()).Equal(map[string]string{
 			"properties.list[0]":          "1",
 			"properties.list[1]":          "2",
 			"properties.obj.list[0].age":  "4",
@@ -42,17 +42,17 @@ func TestProperties_Load(t *testing.T) {
 
 	t.Run("file not exist", func(t *testing.T) {
 		_, err := conf.Load("./testdata/config/app.tcl")
-		assert.Error(t, err, "no such file or directory")
+		assert.ThatError(t, err).Matches("no such file or directory")
 	})
 
 	t.Run("unsupported ext", func(t *testing.T) {
 		_, err := conf.Load("./testdata/config/app.unknown")
-		assert.Error(t, err, "unsupported file type .unknown")
+		assert.ThatError(t, err).Matches("unsupported file type .unknown")
 	})
 
 	t.Run("syntax error", func(t *testing.T) {
 		_, err := conf.Load("./testdata/config/err.yaml")
-		assert.Error(t, err, "did not find expected node content")
+		assert.ThatError(t, err).Matches("did not find expected node content")
 	})
 }
 
@@ -64,7 +64,7 @@ func TestProperties_Resolve(t *testing.T) {
 		})
 		s, err := p.Resolve("${a.b.c[0]}")
 		assert.Nil(t, err)
-		assert.Equal(t, s, "3")
+		assert.That(t, s).Equal("3")
 	})
 
 	t.Run("success - 2", func(t *testing.T) {
@@ -73,20 +73,20 @@ func TestProperties_Resolve(t *testing.T) {
 		})
 		s, err := p.Resolve("${x:=${a.b.c[0]}}")
 		assert.Nil(t, err)
-		assert.Equal(t, s, "3")
+		assert.That(t, s).Equal("3")
 	})
 
 	t.Run("default", func(t *testing.T) {
 		p := conf.New()
 		s, err := p.Resolve("${a.b.c:=123}")
 		assert.Nil(t, err)
-		assert.Equal(t, s, "123")
+		assert.That(t, s).Equal("123")
 	})
 
 	t.Run("key not exist", func(t *testing.T) {
 		p := conf.New()
 		_, err := p.Resolve("${a.b.c}")
-		assert.Error(t, err, "property a.b.c not exist")
+		assert.ThatError(t, err).Matches("property a.b.c not exist")
 	})
 
 	t.Run("syntax error - 1", func(t *testing.T) {
@@ -94,7 +94,7 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c}")
-		assert.Error(t, err, "property a.b.c isn't simple value")
+		assert.ThatError(t, err).Matches("property a.b.c isn't simple value")
 	})
 
 	t.Run("syntax error - 2", func(t *testing.T) {
@@ -102,7 +102,7 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c")
-		assert.Error(t, err, "resolve string .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("resolve string .* error: invalid syntax")
 	})
 
 	t.Run("syntax error - 3", func(t *testing.T) {
@@ -110,7 +110,7 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c[0]}==${a.b.c}")
-		assert.Error(t, err, "property a.b.c isn't simple value")
+		assert.ThatError(t, err).Matches("property a.b.c isn't simple value")
 	})
 }
 
@@ -120,21 +120,21 @@ func TestProperties_CopyTo(t *testing.T) {
 		p := conf.Map(map[string]interface{}{
 			"a.b.c": []string{"3"},
 		})
-		assert.Equal(t, p.Keys(), []string{
+		assert.That(t, p.Keys()).Equal([]string{
 			"a.b.c[0]",
 		})
 
 		assert.True(t, p.Has("a.b.c"))
 		assert.True(t, p.Has("a.b.c[0]"))
-		assert.Equal(t, p.Get("a.b.c[0]"), "3")
-		assert.Equal(t, p.Data(), map[string]string{
+		assert.That(t, p.Get("a.b.c[0]")).Equal("3")
+		assert.That(t, p.Data()).Equal(map[string]string{
 			"a.b.c[0]": "3",
 		})
 
 		s := conf.Map(map[string]interface{}{
 			"a.b.c": []string{"4", "5"},
 		})
-		assert.Equal(t, s.Keys(), []string{
+		assert.That(t, s.Keys()).Equal([]string{
 			"a.b.c[0]",
 			"a.b.c[1]",
 		})
@@ -142,14 +142,14 @@ func TestProperties_CopyTo(t *testing.T) {
 		assert.True(t, s.Has("a.b.c"))
 		assert.True(t, s.Has("a.b.c[0]"))
 		assert.True(t, s.Has("a.b.c[1]"))
-		assert.Equal(t, s.Data(), map[string]string{
+		assert.That(t, s.Data()).Equal(map[string]string{
 			"a.b.c[0]": "4",
 			"a.b.c[1]": "5",
 		})
 
 		err := p.CopyTo(s)
 		assert.Nil(t, err)
-		assert.Equal(t, s.Data(), map[string]string{
+		assert.That(t, s.Data()).Equal(map[string]string{
 			"a.b.c[0]": "3",
 			"a.b.c[1]": "5",
 		})
@@ -159,17 +159,17 @@ func TestProperties_CopyTo(t *testing.T) {
 		p := conf.Map(map[string]interface{}{
 			"a.b.c": []string{"3"},
 		})
-		assert.Equal(t, p.Data(), map[string]string{
+		assert.That(t, p.Data()).Equal(map[string]string{
 			"a.b.c[0]": "3",
 		})
 
 		s := conf.Map(map[string]interface{}{
 			"a.b.c": "3",
 		})
-		assert.Equal(t, s.Get("a.b.c"), "3")
+		assert.That(t, s.Get("a.b.c")).Equal("3")
 
 		err := p.CopyTo(s)
-		assert.Error(t, err, "property conflict at path a.b.c\\[0]")
+		assert.ThatError(t, err).Matches("property conflict at path a.b.c\\[0]")
 	})
 }
 

@@ -72,8 +72,8 @@ func TestConverter(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		err := conf.New().Bind(&s)
 		assert.Nil(t, err)
-		assert.Equal(t, s.Time, time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC))
-		assert.Equal(t, s.Duration, 10*time.Second)
+		assert.That(t, s.Time).Equal(time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC))
+		assert.That(t, s.Duration).Equal(10 * time.Second)
 	})
 
 	t.Run("error", func(t *testing.T) {
@@ -81,7 +81,7 @@ func TestConverter(t *testing.T) {
 			"time": "2025-02-01M00:00:00",
 		})
 		err := p.Bind(&s)
-		assert.Error(t, err, "unable to parse date: 2025-02-01M00:00:00")
+		assert.ThatError(t, err).Matches("unable to parse date: 2025-02-01M00:00:00")
 	})
 }
 
@@ -91,19 +91,19 @@ func TestSplitter(t *testing.T) {
 		var points []image.Point
 		err := conf.New().Bind(&points, "${:=(1,2)(3,4)}>>PointSplitter")
 		assert.Nil(t, err)
-		assert.Equal(t, points, []image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
+		assert.That(t, points).Equal([]image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
 	})
 
 	t.Run("split error", func(t *testing.T) {
 		var points []image.Point
 		err := conf.New().Bind(&points, "${:=(1}>>PointSplitter")
-		assert.Error(t, err, "split error")
+		assert.ThatError(t, err).Matches("split error")
 	})
 
 	t.Run("unknown splitter", func(t *testing.T) {
 		var points []image.Point
 		err := conf.New().Bind(&points, "${:=(1}>>UnknownSplitter")
-		assert.Error(t, err, "unknown splitter 'UnknownSplitter'")
+		assert.ThatError(t, err).Matches("unknown splitter 'UnknownSplitter'")
 	})
 }
 
@@ -112,34 +112,34 @@ func TestParseTag(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a}")
 		assert.Nil(t, err)
-		assert.Equal(t, tag.String(), "${a}")
+		assert.That(t, tag.String()).Equal("${a}")
 	})
 
 	t.Run("default", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a:=123}")
 		assert.Nil(t, err)
-		assert.Equal(t, tag.String(), "${a:=123}")
+		assert.That(t, tag.String()).Equal("${a:=123}")
 	})
 
 	t.Run("splitter", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a:=1,2,3}>>splitter")
 		assert.Nil(t, err)
-		assert.Equal(t, tag.String(), "${a:=1,2,3}>>splitter")
+		assert.That(t, tag.String()).Equal("${a:=1,2,3}>>splitter")
 	})
 
 	t.Run("error - 1", func(t *testing.T) {
 		_, err := conf.ParseTag(">>splitter")
-		assert.Error(t, err, "parse tag .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
 	t.Run("error - 2", func(t *testing.T) {
 		_, err := conf.ParseTag("${a:=1,2,3")
-		assert.Error(t, err, "parse tag .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
 	t.Run("error - 3", func(t *testing.T) {
 		_, err := conf.ParseTag("{a:=1,2,3}")
-		assert.Error(t, err, "parse tag .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 }
 
@@ -149,14 +149,14 @@ func TestBindParam(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${ROOT}", "")
 		assert.Nil(t, err)
-		assert.Equal(t, param, conf.BindParam{})
+		assert.That(t, param).Equal(conf.BindParam{})
 	})
 
 	t.Run("normal", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${a:=1,2,3}>>splitter", "")
 		assert.Nil(t, err)
-		assert.Equal(t, param, conf.BindParam{
+		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "a",
 			Path: "",
 			Tag: conf.ParsedTag{
@@ -176,7 +176,7 @@ func TestBindParam(t *testing.T) {
 		}
 		err := param.BindTag("${a:=1,2,3}>>splitter", "")
 		assert.Nil(t, err)
-		assert.Equal(t, param, conf.BindParam{
+		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "s.a",
 			Path: "Struct",
 			Tag: conf.ParsedTag{
@@ -193,7 +193,7 @@ func TestBindParam(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${:=1,2,3}>>splitter", "")
 		assert.Nil(t, err)
-		assert.Equal(t, param, conf.BindParam{
+		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "",
 			Path: "",
 			Tag: conf.ParsedTag{
@@ -209,13 +209,13 @@ func TestBindParam(t *testing.T) {
 	t.Run("error - 1", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("a:=123", "")
-		assert.Error(t, err, "parse tag .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
 	t.Run("error - 2", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${}", "")
-		assert.Error(t, err, "parse tag .* error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 }
 
@@ -277,7 +277,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s UnnamedDefault
 		err := conf.New().Bind(&s)
 		assert.Nil(t, err)
-		assert.Equal(t, s, UnnamedDefault{
+		assert.That(t, s).Equal(UnnamedDefault{
 			Strs: []string{"1", "2", "3"},
 			Ints: []int{},
 			Map:  map[string]int{},
@@ -287,17 +287,17 @@ func TestProperties_Bind(t *testing.T) {
 	t.Run("BindTag error", func(t *testing.T) {
 		var i int
 		err := conf.New().Bind(&i, "$")
-		assert.Error(t, err, "parse tag '\\$' error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag '\\$' error: invalid syntax")
 	})
 
 	t.Run("target error - 1", func(t *testing.T) {
 		err := conf.New().Bind(5)
-		assert.Error(t, err, "should be a ptr")
+		assert.ThatError(t, err).Matches("should be a ptr")
 	})
 
 	t.Run("target error - 1", func(t *testing.T) {
 		err := conf.New().Bind(new(*int))
-		assert.Error(t, err, "target should be value type")
+		assert.ThatError(t, err).Matches("target should be value type")
 	})
 
 	t.Run("validate error", func(t *testing.T) {
@@ -307,14 +307,14 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Map(map[string]interface{}{
 			"v": "1",
 		}).Bind(&s)
-		assert.Error(t, err, "validate failed on .* for value 1")
+		assert.ThatError(t, err).Matches("validate failed on .* for value 1")
 	})
 
 	t.Run("array error", func(t *testing.T) {
 		err := conf.New().Bind(new(struct {
 			Arr [3]string `value:"${arr:=1,2,3}"`
 		}))
-		assert.Error(t, err, "use slice instead of array")
+		assert.ThatError(t, err).Matches("use slice instead of array")
 	})
 
 	t.Run("type error - 1", func(t *testing.T) {
@@ -324,7 +324,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Map(map[string]interface{}{
 			"v": "abc",
 		}).Bind(&s)
-		assert.Error(t, err, "strconv.ParseInt: parsing .*: invalid syntax")
+		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
 	})
 
 	t.Run("type error - 2", func(t *testing.T) {
@@ -334,7 +334,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Map(map[string]interface{}{
 			"v": "abc",
 		}).Bind(&s)
-		assert.Error(t, err, "strconv.ParseUint: parsing .*: invalid syntax")
+		assert.ThatError(t, err).Matches("strconv.ParseUint: parsing .*: invalid syntax")
 	})
 
 	t.Run("type error - 3", func(t *testing.T) {
@@ -344,7 +344,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Map(map[string]interface{}{
 			"v": "abc",
 		}).Bind(&s)
-		assert.Error(t, err, "strconv.ParseFloat: parsing .*: invalid syntax")
+		assert.ThatError(t, err).Matches("strconv.ParseFloat: parsing .*: invalid syntax")
 	})
 
 	t.Run("type error - 4", func(t *testing.T) {
@@ -354,7 +354,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Map(map[string]interface{}{
 			"v": "abc",
 		}).Bind(&s)
-		assert.Error(t, err, "strconv.ParseBool: parsing .*: invalid syntax")
+		assert.ThatError(t, err).Matches("strconv.ParseBool: parsing .*: invalid syntax")
 	})
 
 	t.Run("slice error - 1", func(t *testing.T) {
@@ -366,7 +366,7 @@ func TestProperties_Bind(t *testing.T) {
 				"1", "2", "a",
 			},
 		}).Bind(&s)
-		assert.Error(t, err, "strconv.ParseInt: parsing .*: invalid syntax")
+		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
 	})
 
 	t.Run("slice error - 2", func(t *testing.T) {
@@ -374,7 +374,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value []int `value:"${v}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.Error(t, err, "property \"v\" not exist")
+		assert.ThatError(t, err).Matches("property \"v\" not exist")
 	})
 
 	t.Run("slice error - 3", func(t *testing.T) {
@@ -382,7 +382,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value []image.Rectangle `value:"${v:={(1,2)(3,4)}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.Error(t, err, "can't find converter for image.Rectangle")
+		assert.ThatError(t, err).Matches("can't find converter for image.Rectangle")
 	})
 
 	t.Run("map error - 1", func(t *testing.T) {
@@ -390,7 +390,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value map[string]int `value:"${v:=a:b,1:2}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.Error(t, err, "map can't have a non-empty default value")
+		assert.ThatError(t, err).Matches("map can't have a non-empty default value")
 	})
 
 	t.Run("map error - 2", func(t *testing.T) {
@@ -402,7 +402,7 @@ func TestProperties_Bind(t *testing.T) {
 				"1", "2", "3",
 			},
 		}).Bind(&s)
-		assert.Error(t, err, "property v.0 not exist")
+		assert.ThatError(t, err).Matches("property v.0 not exist")
 	})
 
 	t.Run("map error - 3", func(t *testing.T) {
@@ -412,7 +412,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Map(map[string]interface{}{
 			"v": "a:b,1:2",
 		}).Bind(&s)
-		assert.Error(t, err, "property conflict at path v")
+		assert.ThatError(t, err).Matches("property conflict at path v")
 	})
 
 	t.Run("map error - 4", func(t *testing.T) {
@@ -420,7 +420,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value map[string]int `value:"${v}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.Error(t, err, "property \"v\" not exist")
+		assert.ThatError(t, err).Matches("property \"v\" not exist")
 	})
 
 	t.Run("struct error - 1", func(t *testing.T) {
@@ -430,7 +430,7 @@ func TestProperties_Bind(t *testing.T) {
 			} `value:"${v:={123}}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.Error(t, err, "struct can't have a non-empty default value")
+		assert.ThatError(t, err).Matches("struct can't have a non-empty default value")
 	})
 
 	t.Run("struct error - 2", func(t *testing.T) {
@@ -441,7 +441,7 @@ func TestProperties_Bind(t *testing.T) {
 			"v": "123",
 		}).Bind(&s)
 		assert.Nil(t, err)
-		assert.Equal(t, s.int, 0)
+		assert.That(t, s.int).Equal(0)
 	})
 
 	t.Run("struct error - 3", func(t *testing.T) {
@@ -449,7 +449,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value int `value:"v"`
 		}
 		err := conf.New().Bind(&s)
-		assert.Error(t, err, "parse tag 'v' error: invalid syntax")
+		assert.ThatError(t, err).Matches("parse tag 'v' error: invalid syntax")
 	})
 
 	t.Run("struct error - 4", func(t *testing.T) {
@@ -465,7 +465,7 @@ func TestProperties_Bind(t *testing.T) {
 		v := reflect.ValueOf(&i).Elem()
 		err := conf.New().Bind(v, "${:=3}")
 		assert.Nil(t, err)
-		assert.Equal(t, i, 3)
+		assert.That(t, i).Equal(3)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -556,11 +556,11 @@ func TestProperties_Bind(t *testing.T) {
 		var c DBConfig
 		err = p.Bind(&c)
 		assert.Nil(t, err)
-		assert.Equal(t, c, expect)
+		assert.That(t, c).Equal(expect)
 
 		err = p.Bind(&c, "${prefix}")
 		assert.Nil(t, err)
-		assert.Equal(t, c, expect)
+		assert.That(t, c).Equal(expect)
 	})
 
 	t.Run("filter false", func(t *testing.T) {
@@ -578,7 +578,7 @@ func TestProperties_Bind(t *testing.T) {
 				return false, nil
 			}))
 		assert.Nil(t, err)
-		assert.Equal(t, s.Value, 3)
+		assert.That(t, s.Value).Equal(3)
 	})
 
 	t.Run("filter true", func(t *testing.T) {
@@ -596,7 +596,7 @@ func TestProperties_Bind(t *testing.T) {
 				return true, nil
 			}))
 		assert.Nil(t, err)
-		assert.Equal(t, s.Value, 0)
+		assert.That(t, s.Value).Equal(0)
 	})
 
 	t.Run("filter error", func(t *testing.T) {
@@ -613,7 +613,7 @@ func TestProperties_Bind(t *testing.T) {
 			funcFilter(func(i interface{}, param conf.BindParam) (bool, error) {
 				return false, errors.New("filter error")
 			}))
-		assert.Error(t, err, "filter error")
-		assert.Equal(t, s.Value, 0)
+		assert.ThatError(t, err).Matches("filter error")
+		assert.That(t, s.Value).Equal(0)
 	})
 }

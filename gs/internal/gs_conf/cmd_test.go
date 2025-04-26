@@ -50,8 +50,8 @@ func TestCommandArgs(t *testing.T) {
 		p := conf.New()
 		err := NewCommandArgs().CopyTo(p)
 		assert.Nil(t, err)
-		assert.Equal(t, "go-spring", p.Get("name"))
-		assert.Equal(t, "true", p.Get("debug"))
+		assert.That(t, "go-spring").Equal(p.Get("name"))
+		assert.That(t, "true").Equal(p.Get("debug"))
 	})
 
 	t.Run("missing arg", func(t *testing.T) {
@@ -59,7 +59,7 @@ func TestCommandArgs(t *testing.T) {
 
 		props := conf.New()
 		err := NewCommandArgs().CopyTo(props)
-		assert.Error(t, err, "cmd option -D needs arg")
+		assert.ThatError(t, err).Matches("cmd option -D needs arg")
 	})
 
 	t.Run("set return error", func(t *testing.T) {
@@ -69,7 +69,7 @@ func TestCommandArgs(t *testing.T) {
 			"debug": []string{"true"},
 		})
 		err := NewCommandArgs().CopyTo(p)
-		assert.Error(t, err, "property conflict at path debug")
+		assert.ThatError(t, err).Matches("property conflict at path debug")
 	})
 
 	t.Run("custom prefix", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestCommandArgs(t *testing.T) {
 		props := conf.New()
 		err := NewCommandArgs().CopyTo(props)
 		assert.Nil(t, err)
-		assert.Equal(t, "8080", props.Get("port"))
+		assert.That(t, "8080").Equal(props.Get("port"))
 	})
 
 	t.Run("ignore other args", func(t *testing.T) {
@@ -91,7 +91,7 @@ func TestCommandArgs(t *testing.T) {
 		props := conf.New()
 		err := NewCommandArgs().CopyTo(props)
 		assert.Nil(t, err)
-		assert.Equal(t, "prod", props.Get("env"))
+		assert.That(t, "prod").Equal(props.Get("env"))
 		assert.False(t, props.Has("--log-level"))
 		assert.False(t, props.Has("-v"))
 	})

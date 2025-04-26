@@ -27,7 +27,7 @@ func TestRead(t *testing.T) {
 
 	t.Run("error", func(t *testing.T) {
 		_, err := Read([]byte(`{`))
-		assert.Error(t, err, "did not find expected node content")
+		assert.ThatError(t, err).Matches("did not find expected node content")
 	})
 
 	t.Run("basic type", func(t *testing.T) {
@@ -44,7 +44,7 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.Equal(t, r, map[string]interface{}{
+		assert.That(t, r).Equal(map[string]interface{}{
 			"empty":   "",
 			"bool":    false,
 			"int":     3,
@@ -67,7 +67,7 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.Equal(t, r, map[string]interface{}{
+		assert.That(t, r).Equal(map[string]interface{}{
 			"map": map[interface{}]interface{}{
 				"bool":   false,
 				"float":  3.0,
@@ -94,7 +94,7 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.Equal(t, r, map[string]interface{}{
+		assert.That(t, r).Equal(map[string]interface{}{
 			"array": []interface{}{
 				map[interface{}]interface{}{
 					"bool":   false,
@@ -129,7 +129,7 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.Equal(t, r, map[string]interface{}{
+		assert.That(t, r).Equal(map[string]interface{}{
 			"map": map[interface{}]interface{}{
 				"k1": map[interface{}]interface{}{
 					"bool":   false,
@@ -155,7 +155,7 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.Equal(t, r, map[string]interface{}{
+		assert.That(t, r).Equal(map[string]interface{}{
 			"array": []interface{}{},
 			"map":   map[interface{}]interface{}{},
 		})

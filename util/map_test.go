@@ -67,8 +67,8 @@ func BenchmarkOrderedMapKeys(b *testing.B) {
 }
 
 func TestOrderedMapKeys(t *testing.T) {
-	assert.Equal(t, util.OrderedMapKeys(map[string]int{}), []string{})
-	assert.Equal(t, util.OrderedMapKeys(map[string]int{"a": 1, "b": 2}), []string{"a", "b"})
-	assert.Equal(t, util.OrderedMapKeys(map[int]string{}), []int{})
-	assert.Equal(t, util.OrderedMapKeys(map[int]string{1: "a", 2: "b"}), []int{1, 2})
+	assert.That(t, util.OrderedMapKeys(map[string]int{})).Equal([]string{})
+	assert.That(t, util.OrderedMapKeys(map[string]int{"a": 1, "b": 2})).Equal([]string{"a", "b"})
+	assert.That(t, util.OrderedMapKeys(map[int]string{})).Equal([]int{})
+	assert.That(t, util.OrderedMapKeys(map[int]string{1: "a", 2: "b"})).Equal([]int{1, 2})
 }

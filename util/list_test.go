@@ -28,5 +28,5 @@ func TestListOf(t *testing.T) {
 	l := util.ListOf[string]()
 	assert.Nil(t, util.AllOfList[string](l))
 	l = util.ListOf("a", "b", "c")
-	assert.Equal(t, []string{"a", "b", "c"}, util.AllOfList[string](l))
+	assert.That(t, []string{"a", "b", "c"}).Equal(util.AllOfList[string](l))
 }

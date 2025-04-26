@@ -97,7 +97,7 @@ func TestResolving(t *testing.T) {
 			return nil, fmt.Errorf("group error")
 		})
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "group error")
+		assert.ThatError(t, err).Matches("group error")
 	})
 
 	t.Run("configuration error - 1", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestResolving(t *testing.T) {
 		r.Mock(&TestBean{Value: 9}, gs.BeanSelectorFor[*TestBean]())
 		r.Mock(&TestBean{Value: 9}, gs.BeanSelectorFor[*TestBean]())
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "found duplicate mock bean for 'TestBean'")
+		assert.ThatError(t, err).Matches("found duplicate mock bean for 'TestBean'")
 	})
 
 	t.Run("configuration error - 2", func(t *testing.T) {
@@ -117,7 +117,7 @@ func TestResolving(t *testing.T) {
 			},
 		)
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "error parsing regexp: missing argument to repetition operator: `*`")
+		assert.ThatError(t, err).Matches("error parsing regexp: missing argument to repetition operator: `*`")
 	})
 
 	t.Run("configuration error - 3", func(t *testing.T) {
@@ -128,7 +128,7 @@ func TestResolving(t *testing.T) {
 			},
 		)
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "error parsing regexp: missing argument to repetition operator: `*`")
+		assert.ThatError(t, err).Matches("error parsing regexp: missing argument to repetition operator: `*`")
 	})
 
 	t.Run("mock error - 1", func(t *testing.T) {
@@ -137,7 +137,7 @@ func TestResolving(t *testing.T) {
 			Export(gs.As[Logger](), gs.As[CtxLogger]())
 		r.Mock(&SimpleLogger{}, gs.BeanSelectorFor[Logger]())
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "found unimplemented interface")
+		assert.ThatError(t, err).Matches("found unimplemented interface")
 	})
 
 	t.Run("mock error - 2", func(t *testing.T) {
@@ -146,7 +146,7 @@ func TestResolving(t *testing.T) {
 		r.Object(&TestBean{Value: 2}).Name("TestBean-2")
 		r.Mock(&TestBean{}, gs.BeanSelectorFor[*TestBean]())
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "found duplicate mocked beans")
+		assert.ThatError(t, err).Matches("found duplicate mocked beans")
 	})
 
 	t.Run("resolve error - 1", func(t *testing.T) {
@@ -157,7 +157,7 @@ func TestResolving(t *testing.T) {
 			}),
 		)
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "condition matches error: .* << condition error")
+		assert.ThatError(t, err).Matches("condition matches error: .* << condition error")
 	})
 
 	t.Run("resolve error - 2", func(t *testing.T) {
@@ -171,7 +171,7 @@ func TestResolving(t *testing.T) {
 			}),
 		)
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "condition matches error: .* << condition error")
+		assert.ThatError(t, err).Matches("condition matches error: .* << condition error")
 	})
 
 	t.Run("duplicate bean - 1", func(t *testing.T) {
@@ -179,7 +179,7 @@ func TestResolving(t *testing.T) {
 		r.Object(&TestBean{Value: 1})
 		r.Object(&TestBean{Value: 2})
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "found duplicate beans")
+		assert.ThatError(t, err).Matches("found duplicate beans")
 	})
 
 	t.Run("duplicate bean - 1", func(t *testing.T) {
@@ -187,7 +187,7 @@ func TestResolving(t *testing.T) {
 		r.Object(&ZeroLogger{}).Name("a").Export(gs.As[Logger]())
 		r.Object(&SimpleLogger{}).Name("a").Export(gs.As[Logger]())
 		err := r.Refresh(conf.New())
-		assert.Error(t, err, "found duplicate beans")
+		assert.ThatError(t, err).Matches("found duplicate beans")
 	})
 
 	t.Run("repeat refresh", func(t *testing.T) {
@@ -195,7 +195,7 @@ func TestResolving(t *testing.T) {
 		err := r.Refresh(conf.New())
 		assert.Nil(t, err)
 		err = r.Refresh(conf.New())
-		assert.Error(t, err, "container is already refreshing or refreshed")
+		assert.ThatError(t, err).Matches("container is already refreshing or refreshed")
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -222,21 +222,21 @@ func TestResolving(t *testing.T) {
 		{
 			b := r.Object(&http.Server{}).
 				Condition(gs_cond.OnBean[*http.ServeMux]())
-			assert.Equal(t, b.BeanRegistration().Name(), "Server")
+			assert.That(t, b.BeanRegistration().Name()).Equal("Server")
 		}
 		{
 			b := r.Provide(http.NewServeMux).Name("ServeMux-1").
 				Condition(gs_cond.OnProperty("Enable.ServeMux-1").HavingValue("true"))
-			assert.Equal(t, b.BeanRegistration().Name(), "ServeMux-1")
+			assert.That(t, b.BeanRegistration().Name()).Equal("ServeMux-1")
 		}
 		{
 			b := r.Provide(http.NewServeMux).Name("ServeMux-2").
 				Condition(gs_cond.OnProperty("Enable.ServeMux-2").HavingValue("true"))
-			assert.Equal(t, b.BeanRegistration().Name(), "ServeMux-2")
+			assert.That(t, b.BeanRegistration().Name()).Equal("ServeMux-2")
 		}
 		{
 			b := r.Object(&TestBean{Value: 1}).Configuration().Name("TestBean")
-			assert.Equal(t, b.BeanRegistration().Name(), "TestBean")
+			assert.That(t, b.BeanRegistration().Name()).Equal("TestBean")
 			r.Mock(&TestBean{Value: 2}, b)
 		}
 		{
@@ -244,7 +244,7 @@ func TestResolving(t *testing.T) {
 				Configuration(gs.Configuration{
 					Excludes: []string{"NewChildV2"},
 				})
-			assert.Equal(t, b.BeanRegistration().Name(), "TestBean-2")
+			assert.That(t, b.BeanRegistration().Name()).Equal("TestBean-2")
 			r.Mock(&ChildBean{Value: 2}, gs.BeanSelectorFor[*ChildBean]())
 		}
 		{
@@ -262,6 +262,6 @@ func TestResolving(t *testing.T) {
 		})
 		err := r.Refresh(p)
 		assert.Nil(t, err)
-		assert.Equal(t, len(r.Beans()), 8)
+		assert.That(t, len(r.Beans())).Equal(8)
 	})
 }
