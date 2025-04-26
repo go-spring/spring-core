@@ -23,7 +23,6 @@ import (
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/util/sysconf"
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
 func init() {
@@ -36,6 +35,9 @@ func init() {
 		http.HandleFunc("/refresh", s.Refresh)
 		return http.DefaultServeMux
 	})
+
+	sysconf.Set("start-time", time.Now().Format(timeLayout))
+	sysconf.Set("refresh-time", time.Now().Format(timeLayout))
 }
 
 const timeLayout = "2006-01-02 15:04:05.999 -0700 MST"
@@ -59,13 +61,7 @@ func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	sysconf.Set("start-time", time.Now().Format(timeLayout))
-	sysconf.Set("refresh-time", time.Now().Format(timeLayout))
-
-	// Start the Go-Spring application. If it fails, log the error.
-	if err := gs.Run(); err != nil {
-		syslog.Errorf("app run failed: %s", err.Error())
-	}
+	gs.Run()
 }
 
 // ➜ curl http://127.0.0.1:9090/echo

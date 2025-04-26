@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/util/syslog"
 	"github.com/lvan100/go-loop"
 
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/app"
@@ -70,10 +69,7 @@ func init() {
 }
 
 func main() {
-	// Start the application and log errors if startup fails
-	if err := gs.Run(); err != nil {
-		syslog.Errorf("app run failed: %s", err.Error())
-	}
+	gs.Run()
 }
 
 // runTest performs a simple test.
