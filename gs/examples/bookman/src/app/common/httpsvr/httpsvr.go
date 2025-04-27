@@ -39,6 +39,7 @@ func init() {
 func NewServeMux(c *controller.Controller, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	proto.RegisterRouter(mux, c, Access(logger))
+	mux.Handle("GET /", http.FileServer(http.Dir("./public")))
 	return mux
 }
 
