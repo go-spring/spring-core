@@ -27,7 +27,11 @@ import (
 )
 
 func init() {
-	gs.Provide(NewServeMux, gs.IndexArg(1, gs.TagArg("access")))
+	// Registers a custom ServeMux to replace the default implementation.
+	gs.Provide(
+		NewServeMux,
+		gs.IndexArg(1, gs.TagArg("access")),
+	)
 }
 
 // NewServeMux Creates a new HTTP request multiplexer and registers
@@ -35,6 +39,7 @@ func init() {
 func NewServeMux(c *controller.Controller, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	proto.RegisterRouter(mux, c, Access(logger))
+	mux.Handle("GET /", http.FileServer(http.Dir("./public")))
 	return mux
 }
 

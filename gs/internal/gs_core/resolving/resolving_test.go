@@ -74,8 +74,8 @@ func (b *TestBean) NewChild() *ChildBean {
 	return &ChildBean{b.Value}
 }
 
-func (b *TestBean) NewChildV2() *ChildBean {
-	return &ChildBean{b.Value}
+func (b *TestBean) NewChildV2() (*ChildBean, error) {
+	return &ChildBean{b.Value}, nil
 }
 
 func (b *TestBean) Echo() {}
@@ -242,13 +242,17 @@ func TestResolving(t *testing.T) {
 		{
 			b := r.Object(&TestBean{Value: 1}).Name("TestBean-2").
 				Configuration(gs.Configuration{
-					Excludes: []string{"NewChildV2"},
+					Excludes: []string{"^NewChild$"},
 				})
 			assert.That(t, b.BeanRegistration().Name()).Equal("TestBean-2")
-			r.Mock(&ChildBean{Value: 2}, gs.BeanSelectorFor[*ChildBean]())
+			r.Mock(&ChildBean{Value: 2}, gs.BeanSelectorFor[*ChildBean]("TestBean-2_NewChildV2"))
 		}
 		{
 			r.Mock(&bytes.Buffer{}, gs.BeanSelectorFor[*bytes.Buffer]())
+		}
+		{
+			b := r.Object(&TestBean{Value: 3}).Name("TestBean-3")
+			r.Provide((*TestBean).NewChild, b)
 		}
 
 		p := conf.Map(map[string]interface{}{
@@ -262,6 +266,22 @@ func TestResolving(t *testing.T) {
 		})
 		err := r.Refresh(p)
 		assert.Nil(t, err)
-		assert.That(t, len(r.Beans())).Equal(8)
+
+		var names []string
+		for _, b := range r.Beans() {
+			names = append(names, b.Name())
+		}
+		assert.That(t, names).Equal([]string{
+			"c",
+			"Server",
+			"ServeMux-2",
+			"TestBean",
+			"TestBean-2",
+			"TestBean-3",
+			"NewChild",
+			"a",
+			"b",
+			"TestBean-2_NewChildV2",
+		})
 	})
 }

@@ -21,59 +21,23 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/util/syslog"
 	"github.com/lvan100/go-loop"
 
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/app"
 	_ "github.com/go-spring/spring-core/gs/examples/bookman/src/biz"
 )
 
-const banner = `
-  ____                 _     __  __               
- | __ )   ___    ___  | | __|  \/  |  __ _  _ __  
- |  _ \  / _ \  / _ \ | |/ /| |\/| | / _' || '_ \ 
- | |_) || (_) || (_) ||   < | |  | || (_| || | | |
- |____/  \___/  \___/ |_|\_\|_|  |_| \__,_||_| |_|
-`
-
 func init() {
-	gs.Banner(banner)
 	gs.SetActiveProfiles("online")
 	gs.EnableSimplePProfServer(true)
-}
-
-func init() {
 	gs.FuncJob(runTest).Name("#job")
 }
 
-func init() {
-	var execDir string
-	_, filename, _, ok := runtime.Caller(0)
-	if ok {
-		execDir = filepath.Dir(filename)
-	}
-	err := os.Chdir(execDir)
-	if err != nil {
-		panic(err)
-	}
-	workDir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(workDir)
-}
-
 func main() {
-	// Start the application and log errors if startup fails
-	if err := gs.Run(); err != nil {
-		syslog.Errorf("app run failed: %s", err.Error())
-	}
+	gs.Run()
 }
 
 // runTest performs a simple test.

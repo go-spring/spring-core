@@ -171,6 +171,24 @@ func NewServer(addr string, opts ...ServerOption) *Server {
 	return &Server{addr: addr, arg: arg}
 }
 
+type ChildBean struct {
+	Value int
+}
+
+func (b *ChildBean) Echo() {}
+
+type TestBean struct {
+	Value int
+}
+
+func (b *TestBean) NewChild() *ChildBean {
+	return &ChildBean{b.Value}
+}
+
+func (b *TestBean) NewChildV2() (*ChildBean, error) {
+	return &ChildBean{b.Value}, nil
+}
+
 func objectBean(i interface{}) *gs.BeanDefinition {
 	return gs_bean.NewBean(reflect.ValueOf(i))
 }
@@ -281,6 +299,12 @@ func TestInjecting(t *testing.T) {
 			),
 		}
 
+		{
+			p := objectBean(&TestBean{Value: 100})
+			c := provideBean((*TestBean).NewChild, p)
+			beans = append(beans, p, c)
+		}
+
 		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
 
@@ -332,6 +356,11 @@ func TestInjecting(t *testing.T) {
 		assert.Nil(t, err)
 
 		assert.That(t, s.Service.Repository.Addr.Value()).Equal("0.0.0.0:5050")
+
+		err = r.Wire(new(struct {
+			ChildBean *ChildBean `autowire:""`
+		}))
+		assert.Nil(t, err)
 
 		r.Close()
 

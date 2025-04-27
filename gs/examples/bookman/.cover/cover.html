@@ -55,7 +55,7 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">/Users/didi/spring-core/gs/examples/bookman/main.go (83.9%)</option>
+				<option value="file0">/Users/didi/spring-core/gs/examples/bookman/main.go (88.9%)</option>
 				
 				<option value="file1">github.com/go-spring/spring-core/conf/bind.go (46.2%)</option>
 				
@@ -95,9 +95,9 @@
 				
 				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk/book_sdk.go (100.0%)</option>
 				
-				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (64.4%)</option>
+				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (63.5%)</option>
 				
-				<option value="file21">github.com/go-spring/spring-core/gs/http.go (94.1%)</option>
+				<option value="file21">github.com/go-spring/spring-core/gs/http.go (94.4%)</option>
 				
 				<option value="file22">github.com/go-spring/spring-core/gs/internal/gs/gs.go (47.2%)</option>
 				
@@ -111,7 +111,7 @@
 				
 				<option value="file27">github.com/go-spring/spring-core/gs/internal/gs_bean/bean.go (54.4%)</option>
 				
-				<option value="file28">github.com/go-spring/spring-core/gs/internal/gs_cond/cond.go (17.5%)</option>
+				<option value="file28">github.com/go-spring/spring-core/gs/internal/gs_cond/cond.go (21.1%)</option>
 				
 				<option value="file29">github.com/go-spring/spring-core/gs/internal/gs_cond/expr.go (0.0%)</option>
 				
@@ -125,7 +125,7 @@
 				
 				<option value="file34">github.com/go-spring/spring-core/gs/internal/gs_core/injecting/injecting.go (52.2%)</option>
 				
-				<option value="file35">github.com/go-spring/spring-core/gs/internal/gs_core/resolving/resolving.go (44.0%)</option>
+				<option value="file35">github.com/go-spring/spring-core/gs/internal/gs_core/resolving/resolving.go (46.4%)</option>
 				
 				<option value="file36">github.com/go-spring/spring-core/gs/internal/gs_dync/dync.go (77.1%)</option>
 				
@@ -133,27 +133,25 @@
 				
 				<option value="file38">github.com/go-spring/spring-core/gs/pprof.go (100.0%)</option>
 				
-				<option value="file39">github.com/go-spring/spring-core/gs/prop.go (33.3%)</option>
+				<option value="file39">github.com/go-spring/spring-core/gs/prop.go (28.6%)</option>
 				
 				<option value="file40">github.com/go-spring/spring-core/util/errutil/errutil.go (0.0%)</option>
 				
-				<option value="file41">github.com/go-spring/spring-core/util/flat.go (28.0%)</option>
+				<option value="file41">github.com/go-spring/spring-core/util/flat.go (26.9%)</option>
 				
 				<option value="file42">github.com/go-spring/spring-core/util/goutil/goutil.go (27.5%)</option>
 				
-				<option value="file43">github.com/go-spring/spring-core/util/iterutil/iterutil.go (15.4%)</option>
+				<option value="file43">github.com/go-spring/spring-core/util/list.go (0.0%)</option>
 				
-				<option value="file44">github.com/go-spring/spring-core/util/list.go (0.0%)</option>
+				<option value="file44">github.com/go-spring/spring-core/util/map.go (100.0%)</option>
 				
-				<option value="file45">github.com/go-spring/spring-core/util/map.go (100.0%)</option>
+				<option value="file45">github.com/go-spring/spring-core/util/sysconf/sysconf.go (47.4%)</option>
 				
-				<option value="file46">github.com/go-spring/spring-core/util/sysconf/sysconf.go (50.0%)</option>
+				<option value="file46">github.com/go-spring/spring-core/util/syslog/syslog.go (86.7%)</option>
 				
-				<option value="file47">github.com/go-spring/spring-core/util/syslog/syslog.go (86.7%)</option>
+				<option value="file47">github.com/go-spring/spring-core/util/type.go (70.4%)</option>
 				
-				<option value="file48">github.com/go-spring/spring-core/util/type.go (70.4%)</option>
-				
-				<option value="file49">github.com/go-spring/spring-core/util/value.go (31.2%)</option>
+				<option value="file48">github.com/go-spring/spring-core/util/value.go (31.2%)</option>
 				
 				</select>
 			</div>
@@ -199,66 +197,30 @@ import (
         "fmt"
         "io"
         "net/http"
-        "os"
-        "path/filepath"
-        "runtime"
         "time"
 
         "github.com/go-spring/spring-core/gs"
-        "github.com/go-spring/spring-core/util/iterutil"
-        "github.com/go-spring/spring-core/util/syslog"
+        "github.com/lvan100/go-loop"
 
         _ "github.com/go-spring/spring-core/gs/examples/bookman/src/app"
         _ "github.com/go-spring/spring-core/gs/examples/bookman/src/biz"
 )
 
-const banner = `
-  ____                 _     __  __               
- | __ )   ___    ___  | | __|  \/  |  __ _  _ __  
- |  _ \  / _ \  / _ \ | |/ /| |\/| | / _' || '_ \ 
- | |_) || (_) || (_) ||   &lt; | |  | || (_| || | | |
- |____/  \___/  \___/ |_|\_\|_|  |_| \__,_||_| |_|
-`
-
 func init() <span class="cov1" title="1">{
-        gs.Banner(banner)
         gs.SetActiveProfiles("online")
         gs.EnableSimplePProfServer(true)
-}</span>
-
-func init() <span class="cov1" title="1">{
         gs.FuncJob(runTest).Name("#job")
 }</span>
 
-func init() <span class="cov1" title="1">{
-        var execDir string
-        _, filename, _, ok := runtime.Caller(0)
-        if ok </span><span class="cov1" title="1">{
-                execDir = filepath.Dir(filename)
-        }</span>
-        <span class="cov1" title="1">err := os.Chdir(execDir)
-        if err != nil </span><span class="cov0" title="0">{
-                panic(err)</span>
-        }
-        <span class="cov1" title="1">workDir, err := os.Getwd()
-        if err != nil </span><span class="cov0" title="0">{
-                panic(err)</span>
-        }
-        <span class="cov1" title="1">fmt.Println(workDir)</span>
-}
-
 func main() <span class="cov1" title="1">{
-        // Start the application and log errors if startup fails
-        if err := gs.Run(); err != nil </span><span class="cov0" title="0">{
-                syslog.Errorf("app run failed: %s", err.Error())
-        }</span>
-}
+        gs.Run()
+}</span>
 
 // runTest performs a simple test.
 func runTest(ctx context.Context) error <span class="cov1" title="1">{
         time.Sleep(time.Millisecond * 500)
 
-        iterutil.Times(5, func(_ int) </span><span class="cov10" title="5">{
+        loop.Times(5, func(_ int) </span><span class="cov10" title="5">{
                 url := "http://127.0.0.1:9090/books"
                 resp, err := http.Get(url)
                 if err != nil </span><span class="cov0" title="0">{
@@ -1349,23 +1311,27 @@ func appendIndex(path []Path, s string) ([]Path, error) <span class="cov0" title
  * limitations under the License.
  */
 
-// Package storage provides structured configuration storage, and `ConfigPath` represents
-// the hierarchical path of a configuration item.
-//
-// Each configuration item must have a well-defined type. The key of a configuration item
-// (its `path`) can be split into components that form a tree structure, where each node
-// corresponds to a part of the configuration hierarchy.
-//
-// The `path` serves both as the unique identifier (key) of the configuration item and
-// as its location within the configuration tree. This design mirrors the structure of
-// typical configuration file formats such as JSON, YAML, and TOML.
-//
-// A `path` is composed of only two types of elements:
-//   - Key: Represents a map key in the configuration tree.
-//   - Index: Represents an array index in the configuration tree.
-//
-// This approach ensures consistency, type safety, and compatibility with structured
-// configuration formats.
+/*
+Package storage provides hierarchical configuration storage and path parsing utilities.
+
+Features:
+- Storage manages key-value pairs with support for nested paths, subkey lookup, and conflict detection.
+- Path represents structured access paths with support for parsing (SplitPath) and construction (JoinPath).
+- Supports two path types:
+  - Key (e.g., "user.name") for map access
+  - Index (e.g., "[0]") for array access
+
+- Maintains a tree structure (treeNode) for consistent and type-safe hierarchy management.
+
+Use cases:
+- Accessing values in JSON/YAML/TOML-like configs
+- Managing nested config data (CRUD)
+- Validating structure and detecting conflicts
+
+Notes:
+- Path syntax follows common config patterns (e.g., "users[0].profile.age")
+- Type-safe path handling (keys vs. indices)
+*/
 package storage
 
 import (
@@ -1540,10 +1506,13 @@ import (
 )
 
 func init() <span class="cov1" title="1">{
+        // Register a function runner to initialize the remote configuration setup.
         gs.B.FuncRunner(initRemoteConfig).OnProfiles("online")
 }</span>
 
-// initRemoteConfig initializes the remote configuration setup
+// initRemoteConfig initializes the remote configuration setup.
+// It first attempts to retrieve remote config, then starts a background job
+// to periodically refresh the configuration.
 func initRemoteConfig() error <span class="cov1" title="1">{
         if err := getRemoteConfig(); err != nil </span><span class="cov0" title="0">{
                 return err
@@ -1552,7 +1521,36 @@ func initRemoteConfig() error <span class="cov1" title="1">{
         return nil</span>
 }
 
-// refreshRemoteConfig periodically refreshes the remote configuration
+// getRemoteConfig fetches and writes the remote configuration to a local file.
+// It creates necessary directories and generates a properties file containing.
+func getRemoteConfig() error <span class="cov10" title="5">{
+        err := os.MkdirAll("./conf/remote", os.ModePerm)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov10" title="5">const data = `
+                server.addr=0.0.0.0:9090
+                
+                log.access.name=access.log
+                log.access.dir=./log
+                
+                log.biz.name=biz.log
+                log.biz.dir=./log
+                
+                log.dao.name=dao.log
+                log.dao.dir=./log
+                
+                refresh_time=%v
+        `
+
+        const file = "conf/remote/app-online.properties"
+        str := fmt.Sprintf(data, time.Now().UnixMilli())
+        return os.WriteFile(file, []byte(str), os.ModePerm)</span>
+}
+
+// refreshRemoteConfig runs a continuous loop to periodically update configuration.
+// It refreshes every 500ms until context cancellation.
 func refreshRemoteConfig(ctx context.Context) error <span class="cov1" title="1">{
         for </span><span class="cov10" title="5">{
                 select </span>{
@@ -1571,32 +1569,6 @@ func refreshRemoteConfig(ctx context.Context) error <span class="cov1" title="1"
                         <span class="cov8" title="4">fmt.Println("refresh properties success")</span>
                 }
         }
-}
-
-// getRemoteConfig fetches and writes the remote configuration to a local file
-func getRemoteConfig() error <span class="cov10" title="5">{
-        err := os.MkdirAll("./conf/remote", os.ModePerm)
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-
-        <span class="cov10" title="5">const data = `
-server.addr=0.0.0.0:9090
-
-log.access.name=access.log
-log.access.dir=./log
-
-log.biz.name=biz.log
-log.biz.dir=./log
-
-log.dao.name=dao.log
-log.dao.dir=./log
-
-refresh_time=%v`
-
-        const file = "conf/remote/app-online.properties"
-        str := fmt.Sprintf(data, time.Now().UnixMilli())
-        return os.WriteFile(file, []byte(str), os.ModePerm)</span>
 }
 </pre>
 		
@@ -1687,7 +1659,11 @@ import (
 )
 
 func init() <span class="cov1" title="1">{
-        gs.Provide(NewServeMux, gs.IndexArg(1, gs.TagArg("access")))
+        // Registers a custom ServeMux to replace the default implementation.
+        gs.Provide(
+                NewServeMux,
+                gs.IndexArg(1, gs.TagArg("access")),
+        )
 }</span>
 
 // NewServeMux Creates a new HTTP request multiplexer and registers
@@ -2148,6 +2124,7 @@ import (
         "github.com/go-spring/spring-core/gs/internal/gs_cond"
         "github.com/go-spring/spring-core/gs/internal/gs_conf"
         "github.com/go-spring/spring-core/gs/internal/gs_dync"
+        "github.com/go-spring/spring-core/util/syslog"
 )
 
 const (
@@ -2165,7 +2142,7 @@ func As[T any]() reflect.Type <span class="cov0" title="0">{
 type Arg = gs.Arg
 
 // TagArg returns a TagArg with the specified tag.
-func TagArg(tag string) Arg <span class="cov6" title="5">{
+func TagArg(tag string) Arg <span class="cov5" title="5">{
         return gs_arg.Tag(tag)
 }</span>
 
@@ -2175,7 +2152,7 @@ func ValueArg(v interface{}) Arg <span class="cov0" title="0">{
 }</span>
 
 // IndexArg returns an IndexArg with the specified index and argument.
-func IndexArg(n int, arg Arg) Arg <span class="cov5" title="4">{
+func IndexArg(n int, arg Arg) Arg <span class="cov4" title="4">{
         return gs_arg.Index(n, arg)
 }</span>
 
@@ -2198,7 +2175,7 @@ func OnFunc(fn CondFunc) Condition <span class="cov0" title="0">{
 }</span>
 
 // OnProperty creates a Condition based on a property name and options.
-func OnProperty(name string) gs_cond.OnPropertyInterface <span class="cov5" title="4">{
+func OnProperty(name string) gs_cond.OnPropertyInterface <span class="cov4" title="4">{
         return gs_cond.OnProperty(name)
 }</span>
 
@@ -2305,27 +2282,33 @@ func FuncRunner(fn func() error) *RegisteredBean <span class="cov0" title="0">{
 // funcJob is a function type that implements the Job interface.
 type funcJob func(ctx context.Context) error
 
-func (f funcJob) Run(ctx context.Context) error <span class="cov3" title="2">{
+func (f funcJob) Run(ctx context.Context) error <span class="cov2" title="2">{
         return f(ctx)
 }</span>
 
 // FuncJob creates a Job from a function.
-func FuncJob(fn func(ctx context.Context) error) *RegisteredBean <span class="cov3" title="2">{
+func FuncJob(fn func(ctx context.Context) error) *RegisteredBean <span class="cov2" title="2">{
         return Object(funcJob(fn)).AsJob().Caller(1)
 }</span>
 
 // Run runs the app and waits for an interrupt signal to exit.
-func Run() error <span class="cov1" title="1">{
+func Run() <span class="cov1" title="1">{
         printBanner()
-        if err := B.(*gs_app.BootImpl).Run(); err != nil </span><span class="cov0" title="0">{
-                return err
+        var err error
+        defer func() </span><span class="cov1" title="1">{
+                if err != nil </span><span class="cov0" title="0">{
+                        syslog.Errorf("app run failed: %s", err.Error())
+                }</span>
+        }()
+        <span class="cov1" title="1">if err = B.(*gs_app.BootImpl).Run(); err != nil </span><span class="cov0" title="0">{
+                return
         }</span>
         <span class="cov1" title="1">B = nil
-        return gs_app.GS.Run()</span>
+        err = gs_app.GS.Run()</span>
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
-func Exiting() bool <span class="cov8" title="9">{
+func Exiting() bool <span class="cov7" title="9">{
         return gs_app.GS.Exiting()
 }</span>
 
@@ -2335,12 +2318,12 @@ func ShutDown() <span class="cov1" title="1">{
 }</span>
 
 // Config returns the app configuration.
-func Config() *gs_conf.AppConfig <span class="cov5" title="4">{
+func Config() *gs_conf.AppConfig <span class="cov4" title="4">{
         return gs_app.GS.P
 }</span>
 
 // Object registers a bean definition for a given object.
-func Object(i interface{}) *RegisteredBean <span class="cov7" title="7">{
+func Object(i interface{}) *RegisteredBean <span class="cov6" title="8">{
         b := gs_bean.NewBean(reflect.ValueOf(i))
         return gs_app.GS.C.Register(b).Caller(1)
 }</span>
@@ -2362,12 +2345,12 @@ func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) <span 
 }</span>
 
 // RefreshProperties refreshes the app configuration.
-func RefreshProperties() error <span class="cov5" title="4">{
+func RefreshProperties() error <span class="cov4" title="4">{
         p, err := Config().Refresh()
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov5" title="4">return gs_app.GS.C.RefreshProperties(p)</span>
+        <span class="cov4" title="4">return gs_app.GS.C.RefreshProperties(p)</span>
 }
 
 /********************************** banner ***********************************/
@@ -2381,7 +2364,7 @@ var appBanner = `
 `
 
 // Banner sets a custom app banner.
-func Banner(banner string) <span class="cov1" title="1">{
+func Banner(banner string) <span class="cov0" title="0">{
         appBanner = banner
 }</span>
 
@@ -2396,9 +2379,9 @@ func printBanner() <span class="cov1" title="1">{
         }</span>
 
         <span class="cov1" title="1">maxLength := 0
-        for _, s := range strings.Split(appBanner, "\n") </span><span class="cov7" title="7">{
+        for _, s := range strings.Split(appBanner, "\n") </span><span class="cov6" title="7">{
                 fmt.Printf("\x1b[36m%s\x1b[0m\n", s) // CYAN
-                if len(s) &gt; maxLength </span><span class="cov1" title="1">{
+                if len(s) &gt; maxLength </span><span class="cov2" title="2">{
                         maxLength = len(s)
                 }</span>
         }
@@ -2410,7 +2393,7 @@ func printBanner() <span class="cov1" title="1">{
         <span class="cov1" title="1">var padding []byte
         if n := (maxLength - len(Version)) / 2; n &gt; 0 </span><span class="cov1" title="1">{
                 padding = make([]byte, n)
-                for i := range padding </span><span class="cov10" title="15">{
+                for i := range padding </span><span class="cov10" title="25">{
                         padding[i] = ' '
                 }</span>
         }
@@ -2441,9 +2424,17 @@ import (
         "net"
         "net/http"
         "time"
+
+        "github.com/go-spring/spring-core/gs/internal/gs_cond"
 )
 
 func init() <span class="cov1" title="1">{
+        // Register the default ServeMux as a bean if no other ServeMux instance exists
+        Object(http.DefaultServeMux).Condition(
+                gs_cond.OnMissingBean[*http.ServeMux](),
+        )
+
+        // Provide a new SimpleHttpServer instance with configuration bindings.
         Provide(
                 NewSimpleHttpServer,
                 IndexArg(1, BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}"))),
@@ -2581,15 +2572,15 @@ type BeanSelectorImpl struct {
 
 // BeanSelectorFor returns a BeanSelectorImpl for the given type.
 // If a name is provided, it is set; otherwise, only the type is used.
-func BeanSelectorFor[T any](name ...string) BeanSelector <span class="cov1" title="1">{
-        if len(name) == 0 </span><span class="cov1" title="1">{
+func BeanSelectorFor[T any](name ...string) BeanSelector <span class="cov3" title="2">{
+        if len(name) == 0 </span><span class="cov3" title="2">{
                 return BeanSelectorImpl{Type: reflect.TypeFor[T]()}
         }</span>
         <span class="cov0" title="0">return BeanSelectorImpl{Type: reflect.TypeFor[T](), Name: name[0]}</span>
 }
 
 // TypeAndName returns the type and name of the bean.
-func (s BeanSelectorImpl) TypeAndName() (reflect.Type, string) <span class="cov1" title="1">{
+func (s BeanSelectorImpl) TypeAndName() (reflect.Type, string) <span class="cov3" title="2">{
         return s.Type, s.Name
 }</span>
 
@@ -2741,7 +2732,7 @@ func (d *beanBuilder[T]) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Va
 }</span>
 
 // BeanRegistration returns the underlying BeanRegistration instance.
-func (d *beanBuilder[T]) BeanRegistration() BeanRegistration <span class="cov9" title="16">{
+func (d *beanBuilder[T]) BeanRegistration() BeanRegistration <span class="cov9" title="17">{
         return d.b
 }</span>
 
@@ -2776,7 +2767,7 @@ func (d *beanBuilder[T]) DestroyMethod(method string) *T <span class="cov0" titl
 }</span>
 
 // Condition sets the conditions for the bean.
-func (d *beanBuilder[T]) Condition(c ...Condition) *T <span class="cov3" title="2">{
+func (d *beanBuilder[T]) Condition(c ...Condition) *T <span class="cov4" title="3">{
         d.b.SetCondition(c...)
         return *(**T)(unsafe.Pointer(&amp;d))
 }</span>
@@ -2818,7 +2809,7 @@ func (d *beanBuilder[T]) Configuration(c ...Configuration) *T <span class="cov0"
 }</span>
 
 // Caller sets the caller information for the bean.
-func (d *beanBuilder[T]) Caller(skip int) *T <span class="cov10" title="18">{
+func (d *beanBuilder[T]) Caller(skip int) *T <span class="cov10" title="19">{
         d.b.SetCaller(skip)
         return *(**T)(unsafe.Pointer(&amp;d))
 }</span>
@@ -2835,7 +2826,7 @@ type RegisteredBean struct {
 }
 
 // NewRegisteredBean creates a new RegisteredBean instance.
-func NewRegisteredBean(d BeanRegistration) *RegisteredBean <span class="cov8" title="13">{
+func NewRegisteredBean(d BeanRegistration) *RegisteredBean <span class="cov9" title="14">{
         return &amp;RegisteredBean{
                 beanBuilder: beanBuilder[RegisteredBean]{d},
         }
@@ -2847,7 +2838,7 @@ type BeanDefinition struct {
 }
 
 // NewBeanDefinition creates a new BeanDefinition instance.
-func NewBeanDefinition(d BeanRegistration) *BeanDefinition <span class="cov9" title="16">{
+func NewBeanDefinition(d BeanRegistration) *BeanDefinition <span class="cov9" title="17">{
         return &amp;BeanDefinition{
                 beanBuilder: beanBuilder[BeanDefinition]{d},
         }
@@ -3703,22 +3694,22 @@ func (d *BeanMetadata) SetDependsOn(selectors ...gs.BeanSelector) <span class="c
 }</span>
 
 // Exports returns the list of exported types for the bean.
-func (d *BeanMetadata) Exports() []reflect.Type <span class="cov7" title="44">{
+func (d *BeanMetadata) Exports() []reflect.Type <span class="cov7" title="57">{
         return d.exports
 }</span>
 
 // Conditions returns the list of conditions for the bean.
-func (d *BeanMetadata) Conditions() []gs.Condition <span class="cov5" title="16">{
+func (d *BeanMetadata) Conditions() []gs.Condition <span class="cov5" title="17">{
         return d.conditions
 }</span>
 
 // SetCondition adds a condition to the list of conditions for the bean.
-func (d *BeanMetadata) SetCondition(c ...gs.Condition) <span class="cov2" title="3">{
+func (d *BeanMetadata) SetCondition(c ...gs.Condition) <span class="cov3" title="4">{
         d.conditions = append(d.conditions, c...)
 }</span>
 
 // Configuration returns the configuration parameters for the bean.
-func (d *BeanMetadata) Configuration() *gs.Configuration <span class="cov5" title="16">{
+func (d *BeanMetadata) Configuration() *gs.Configuration <span class="cov5" title="17">{
         return d.configuration
 }</span>
 
@@ -3735,7 +3726,7 @@ func (d *BeanDefinition) SetConfiguration(c ...gs.Configuration) <span class="co
 }
 
 // SetCaller sets the caller for the bean.
-func (d *BeanMetadata) SetCaller(skip int) <span class="cov5" title="18">{
+func (d *BeanMetadata) SetCaller(skip int) <span class="cov5" title="19">{
         _, file, line, _ := runtime.Caller(skip)
         d.SetFileLine(file, line)
 }</span>
@@ -3746,7 +3737,7 @@ func (d *BeanMetadata) FileLine() string <span class="cov0" title="0">{
 }</span>
 
 // SetFileLine sets the file and line number for the bean.
-func (d *BeanMetadata) SetFileLine(file string, line int) <span class="cov5" title="18">{
+func (d *BeanMetadata) SetFileLine(file string, line int) <span class="cov5" title="19">{
         d.fileLine = fmt.Sprintf("%s:%d", file, line)
 }</span>
 
@@ -3763,7 +3754,7 @@ func (d *BeanRuntime) Name() string <span class="cov8" title="75">{
 }</span>
 
 // Type returns the type of the bean.
-func (d *BeanRuntime) Type() reflect.Type <span class="cov8" title="76">{
+func (d *BeanRuntime) Type() reflect.Type <span class="cov8" title="90">{
         return d.t
 }</span>
 
@@ -3799,7 +3790,7 @@ type BeanDefinition struct {
 }
 
 // makeBean creates a new bean definition.
-func makeBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition <span class="cov5" title="16">{
+func makeBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition <span class="cov5" title="17">{
         return &amp;BeanDefinition{
                 BeanMetadata: &amp;BeanMetadata{
                         f:      f,
@@ -3829,7 +3820,7 @@ func (d *BeanDefinition) SetMock(obj interface{}) <span class="cov0" title="0">{
 }</span>
 
 // Callable returns the callable for the bean.
-func (d *BeanDefinition) Callable() *gs_arg.Callable <span class="cov6" title="19">{
+func (d *BeanDefinition) Callable() *gs_arg.Callable <span class="cov5" title="19">{
         return d.f
 }</span>
 
@@ -3839,12 +3830,12 @@ func (d *BeanDefinition) SetName(name string) <span class="cov3" title="4">{
 }</span>
 
 // Status returns the current status of the bean.
-func (d *BeanDefinition) Status() BeanStatus <span class="cov10" title="197">{
+func (d *BeanDefinition) Status() BeanStatus <span class="cov10" title="233">{
         return d.status
 }</span>
 
 // SetStatus sets the current status of the bean.
-func (d *BeanDefinition) SetStatus(status BeanStatus) <span class="cov8" title="80">{
+func (d *BeanDefinition) SetStatus(status BeanStatus) <span class="cov8" title="82">{
         d.status = status
 }</span>
 
@@ -3885,25 +3876,25 @@ func (d *BeanDefinition) SetDestroyMethod(method string) <span class="cov0" titl
 }
 
 // SetExport sets the exported interfaces for the bean.
-func (d *BeanDefinition) SetExport(exports ...reflect.Type) <span class="cov4" title="6">{
-        for _, t := range exports </span><span class="cov4" title="6">{
+func (d *BeanDefinition) SetExport(exports ...reflect.Type) <span class="cov3" title="6">{
+        for _, t := range exports </span><span class="cov3" title="6">{
                 if t.Kind() != reflect.Interface </span><span class="cov0" title="0">{
                         panic("only interface type can be exported")</span>
                 }
-                <span class="cov4" title="6">if !d.Type().Implements(t) </span><span class="cov0" title="0">{
+                <span class="cov3" title="6">if !d.Type().Implements(t) </span><span class="cov0" title="0">{
                         panic(fmt.Sprintf("doesn't implement interface %s", t))</span>
                 }
-                <span class="cov4" title="6">exported := false
+                <span class="cov3" title="6">exported := false
                 for _, export := range d.exports </span><span class="cov0" title="0">{
                         if t == export </span><span class="cov0" title="0">{
                                 exported = true
                                 break</span>
                         }
                 }
-                <span class="cov4" title="6">if exported </span><span class="cov0" title="0">{
+                <span class="cov3" title="6">if exported </span><span class="cov0" title="0">{
                         continue</span>
                 }
-                <span class="cov4" title="6">d.exports = append(d.exports, t)</span>
+                <span class="cov3" title="6">d.exports = append(d.exports, t)</span>
         }
 }
 
@@ -3938,7 +3929,7 @@ func (d *BeanDefinition) String() string <span class="cov0" title="0">{
 
 // NewBean creates a new bean definition. When registering a normal function,
 // use reflect.ValueOf(fn) to avoid conflicts with constructors.
-func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span class="cov5" title="16">{
+func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span class="cov5" title="17">{
 
         var f *gs_arg.Callable
         var v reflect.Value
@@ -3947,26 +3938,26 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span
         var cond gs.Condition
 
         switch i := objOrCtor.(type) </span>{
-        case reflect.Value:<span class="cov4" title="10">
+        case reflect.Value:<span class="cov4" title="11">
                 fromValue = true
                 v = i</span>
-        default:<span class="cov4" title="6">
+        default:<span class="cov3" title="6">
                 v = reflect.ValueOf(i)</span>
         }
 
-        <span class="cov5" title="16">t := v.Type()
+        <span class="cov5" title="17">t := v.Type()
         if !util.IsBeanType(t) </span><span class="cov0" title="0">{
                 panic("bean must be ref type")</span>
         }
 
         // Ensure the value is valid and not nil
-        <span class="cov5" title="16">if !v.IsValid() || v.IsNil() </span><span class="cov0" title="0">{
+        <span class="cov5" title="17">if !v.IsValid() || v.IsNil() </span><span class="cov0" title="0">{
                 panic("bean can't be nil")</span>
         }
 
         // If objOrCtor is a function (not from reflect.Value),
         // process it as a constructor
-        <span class="cov5" title="16">if !fromValue &amp;&amp; t.Kind() == reflect.Func </span><span class="cov2" title="3">{
+        <span class="cov5" title="17">if !fromValue &amp;&amp; t.Kind() == reflect.Func </span><span class="cov2" title="3">{
 
                 if !util.IsConstructor(t) </span><span class="cov0" title="0">{
                         t1 := "func(...)bean"
@@ -4038,16 +4029,16 @@ func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition <span
         }
 
         // Extract the final type name for bean naming
-        <span class="cov5" title="16">if name == "" </span><span class="cov5" title="13">{
+        <span class="cov5" title="17">if name == "" </span><span class="cov5" title="14">{
                 s := strings.Split(t.String(), ".")
                 name = strings.TrimPrefix(s[len(s)-1], "*")
         }</span>
 
-        <span class="cov5" title="16">d := makeBean(t, v, f, name)
+        <span class="cov5" title="17">d := makeBean(t, v, f, name)
         if cond != nil </span><span class="cov0" title="0">{
                 d.SetCondition(cond)
         }</span>
-        <span class="cov5" title="16">return gs.NewBeanDefinition(d)</span>
+        <span class="cov5" title="17">return gs.NewBeanDefinition(d)</span>
 }
 </pre>
 		
@@ -4250,7 +4241,7 @@ type onMissingBean struct {
 
 // OnMissingBean creates a condition that evaluates to true if no beans match
 // the specified type and name.
-func OnMissingBean[T any](name ...string) gs.Condition <span class="cov0" title="0">{
+func OnMissingBean[T any](name ...string) gs.Condition <span class="cov1" title="1">{
         return &amp;onMissingBean{s: gs.BeanSelectorFor[T](name...)}
 }</span>
 
@@ -4261,12 +4252,12 @@ func OnMissingBeanSelector(s gs.BeanSelector) gs.Condition <span class="cov0" ti
 }</span>
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) <span class="cov0" title="0">{
+func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) <span class="cov1" title="1">{
         beans, err := ctx.Find(c.s)
         if err != nil </span><span class="cov0" title="0">{
                 return false, errutil.WrapError(err, "condition matches error: %s", c)
         }</span>
-        <span class="cov0" title="0">return len(beans) == 0, nil</span>
+        <span class="cov1" title="1">return len(beans) == 0, nil</span>
 }
 
 func (c *onMissingBean) String() string <span class="cov0" title="0">{
@@ -6041,20 +6032,20 @@ type Resolving struct {
 }
 
 // New creates an empty Resolving instance.
-func New() *Resolving <span class="cov3" title="2">{
+func New() *Resolving <span class="cov2" title="2">{
         return &amp;Resolving{}
 }</span>
 
 // Beans returns all active bean definitions, excluding deleted ones.
-func (c *Resolving) Beans() []*gs_bean.BeanDefinition <span class="cov3" title="2">{
+func (c *Resolving) Beans() []*gs_bean.BeanDefinition <span class="cov2" title="2">{
         var beans []*gs_bean.BeanDefinition
-        for _, b := range c.beans </span><span class="cov9" title="16">{
-                if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
+        for _, b := range c.beans </span><span class="cov8" title="17">{
+                if b.Status() == gs_bean.StatusDeleted </span><span class="cov1" title="1">{
                         continue</span>
                 }
-                <span class="cov9" title="16">beans = append(beans, b)</span>
+                <span class="cov8" title="16">beans = append(beans, b)</span>
         }
-        <span class="cov3" title="2">return beans</span>
+        <span class="cov2" title="2">return beans</span>
 }
 
 // Mock registers a mock object to override a bean matching the selector.
@@ -6064,7 +6055,7 @@ func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) <span class="c
 }</span>
 
 // Object registers a pre-constructed instance as a bean.
-func (c *Resolving) Object(i interface{}) *gs.RegisteredBean <span class="cov3" title="2">{
+func (c *Resolving) Object(i interface{}) *gs.RegisteredBean <span class="cov2" title="2">{
         b := gs_bean.NewBean(reflect.ValueOf(i))
         return c.Register(b).Caller(1)
 }</span>
@@ -6076,11 +6067,11 @@ func (c *Resolving) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
 }</span>
 
 // Register adds a bean definition to the container.
-func (c *Resolving) Register(b *gs.BeanDefinition) *gs.RegisteredBean <span class="cov8" title="13">{
+func (c *Resolving) Register(b *gs.BeanDefinition) *gs.RegisteredBean <span class="cov7" title="14">{
         if c.state &gt;= Refreshing </span><span class="cov0" title="0">{
                 panic("container is refreshing or already refreshed")</span>
         }
-        <span class="cov8" title="13">bd := b.BeanRegistration().(*gs_bean.BeanDefinition)
+        <span class="cov7" title="14">bd := b.BeanRegistration().(*gs_bean.BeanDefinition)
         c.beans = append(c.beans, bd)
         return gs.NewRegisteredBean(bd)</span>
 }
@@ -6097,55 +6088,55 @@ func (c *Resolving) GroupRegister(fn BeanGroupFunc) <span class="cov1" title="1"
 // - Applies mock beans to override specific targets.
 // - Resolves all beans based on their conditions.
 // - Validates that no duplicate beans exist.
-func (c *Resolving) Refresh(p conf.Properties) error <span class="cov3" title="2">{
+func (c *Resolving) Refresh(p conf.Properties) error <span class="cov2" title="2">{
         if c.state != RefreshDefault </span><span class="cov0" title="0">{
                 return errors.New("container is already refreshing or refreshed")
         }</span>
-        <span class="cov3" title="2">c.state = Refreshing
+        <span class="cov2" title="2">c.state = Refreshing
 
         if err := c.applyGroupFuncs(p); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov3" title="2">if err := c.scanConfigurations(); err != nil </span><span class="cov0" title="0">{
+        <span class="cov2" title="2">if err := c.scanConfigurations(); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov3" title="2">if err := c.applyMocks(); err != nil </span><span class="cov0" title="0">{
+        <span class="cov2" title="2">if err := c.applyMocks(); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov3" title="2">if err := c.resolveBeans(p); err != nil </span><span class="cov0" title="0">{
+        <span class="cov2" title="2">if err := c.resolveBeans(p); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov3" title="2">if err := c.checkDuplicateBeans(); err != nil </span><span class="cov0" title="0">{
+        <span class="cov2" title="2">if err := c.checkDuplicateBeans(); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov3" title="2">c.state = Refreshed
+        <span class="cov2" title="2">c.state = Refreshed
         return nil</span>
 }
 
 // applyGroupFuncs executes registered group functions to add dynamic beans.
-func (c *Resolving) applyGroupFuncs(p conf.Properties) error <span class="cov3" title="2">{
+func (c *Resolving) applyGroupFuncs(p conf.Properties) error <span class="cov2" title="2">{
         for _, fn := range c.funcs </span><span class="cov1" title="1">{
                 beans, err := fn(p)
                 if err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
-                <span class="cov1" title="1">for _, b := range beans </span><span class="cov4" title="3">{
+                <span class="cov1" title="1">for _, b := range beans </span><span class="cov3" title="3">{
                         d := b.BeanRegistration().(*gs_bean.BeanDefinition)
                         c.beans = append(c.beans, d)
                 }</span>
         }
-        <span class="cov3" title="2">return nil</span>
+        <span class="cov2" title="2">return nil</span>
 }
 
 // scanConfigurations processes configuration beans to register their methods as beans.
-func (c *Resolving) scanConfigurations() error <span class="cov3" title="2">{
-        for _, b := range c.beans </span><span class="cov9" title="16">{
-                if b.Configuration() == nil </span><span class="cov9" title="16">{
+func (c *Resolving) scanConfigurations() error <span class="cov2" title="2">{
+        for _, b := range c.beans </span><span class="cov8" title="17">{
+                if b.Configuration() == nil </span><span class="cov8" title="17">{
                         continue</span>
                 }
                 // Check if the configuration bean has a mock override
@@ -6173,7 +6164,7 @@ func (c *Resolving) scanConfigurations() error <span class="cov3" title="2">{
                 }</span>
                 <span class="cov0" title="0">c.beans = append(c.beans, beans...)</span>
         }
-        <span class="cov3" title="2">return nil</span>
+        <span class="cov2" title="2">return nil</span>
 }
 
 // scanConfiguration inspects the methods of a configuration bean, and for each
@@ -6240,26 +6231,26 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 }
 
 // isBeanMatched checks if a bean matches the target type and name selector.
-func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool <span class="cov8" title="13">{
+func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool <span class="cov9" title="27">{
         if s != "" &amp;&amp; s != b.Name() </span><span class="cov0" title="0">{
                 return false
         }</span>
-        <span class="cov8" title="13">if t != nil &amp;&amp; t != b.Type() </span><span class="cov8" title="12">{
-                if !slices.Contains(b.Exports(), t) </span><span class="cov8" title="12">{
+        <span class="cov9" title="27">if t != nil &amp;&amp; t != b.Type() </span><span class="cov9" title="25">{
+                if !slices.Contains(b.Exports(), t) </span><span class="cov9" title="25">{
                         return false
                 }</span>
         }
-        <span class="cov1" title="1">return true</span>
+        <span class="cov2" title="2">return true</span>
 }
 
 // applyMocks overrides target beans with registered mock objects.
-func (c *Resolving) applyMocks() error <span class="cov3" title="2">{
+func (c *Resolving) applyMocks() error <span class="cov2" title="2">{
         for _, mock := range c.mocks </span><span class="cov0" title="0">{
                 if err := c.applyMock(mock); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
         }
-        <span class="cov3" title="2">return nil</span>
+        <span class="cov2" title="2">return nil</span>
 }
 
 // applyMock applies a mock object to its target bean. It ensures that the mock
@@ -6294,32 +6285,32 @@ func (c *Resolving) applyMock(mock BeanMock) error <span class="cov0" title="0">
 }
 
 // resolveBeans evaluates conditions for all beans and marks inactive ones.
-func (c *Resolving) resolveBeans(p conf.Properties) error <span class="cov3" title="2">{
+func (c *Resolving) resolveBeans(p conf.Properties) error <span class="cov2" title="2">{
         ctx := &amp;CondContext{p: p, c: c}
-        for _, b := range c.beans </span><span class="cov9" title="16">{
+        for _, b := range c.beans </span><span class="cov8" title="17">{
                 if err := ctx.resolveBean(b); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
         }
-        <span class="cov3" title="2">return nil</span>
+        <span class="cov2" title="2">return nil</span>
 }
 
 // checkDuplicateBeans ensures no duplicate type/name combinations exist.
-func (c *Resolving) checkDuplicateBeans() error <span class="cov3" title="2">{
+func (c *Resolving) checkDuplicateBeans() error <span class="cov2" title="2">{
         beansByID := make(map[gs.BeanID]*gs_bean.BeanDefinition)
-        for _, b := range c.beans </span><span class="cov9" title="16">{
-                if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
+        for _, b := range c.beans </span><span class="cov8" title="17">{
+                if b.Status() == gs_bean.StatusDeleted </span><span class="cov1" title="1">{
                         continue</span>
                 }
-                <span class="cov9" title="16">for _, t := range append(b.Exports(), b.Type()) </span><span class="cov10" title="22">{
+                <span class="cov8" title="16">for _, t := range append(b.Exports(), b.Type()) </span><span class="cov9" title="22">{
                         beanID := gs.BeanID{Name: b.Name(), Type: t}
                         if d, ok := beansByID[beanID]; ok </span><span class="cov0" title="0">{
                                 return fmt.Errorf("found duplicate beans [%s] [%s]", b, d)
                         }</span>
-                        <span class="cov10" title="22">beansByID[beanID] = b</span>
+                        <span class="cov9" title="22">beansByID[beanID] = b</span>
                 }
         }
-        <span class="cov3" title="2">return nil</span>
+        <span class="cov2" title="2">return nil</span>
 }
 
 // CondContext provides condition evaluation context during resolution.
@@ -6330,53 +6321,53 @@ type CondContext struct {
 
 // resolveBean evaluates a bean's conditions, updating its status accordingly.
 // If any condition fails, the bean is marked as deleted.
-func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error <span class="cov9" title="17">{
-        if b.Status() &gt;= gs_bean.StatusResolving </span><span class="cov1" title="1">{
+func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error <span class="cov8" title="19">{
+        if b.Status() &gt;= gs_bean.StatusResolving </span><span class="cov2" title="2">{
                 return nil
         }</span>
-        <span class="cov9" title="16">b.SetStatus(gs_bean.StatusResolving)
-        for _, cond := range b.Conditions() </span><span class="cov6" title="6">{
+        <span class="cov8" title="17">b.SetStatus(gs_bean.StatusResolving)
+        for _, cond := range b.Conditions() </span><span class="cov6" title="7">{
                 if ok, err := cond.Matches(c); err != nil </span><span class="cov0" title="0">{
                         return err
-                }</span> else<span class="cov6" title="6"> if !ok </span><span class="cov0" title="0">{
+                }</span> else<span class="cov6" title="7"> if !ok </span><span class="cov1" title="1">{
                         b.SetStatus(gs_bean.StatusDeleted)
                         return nil
                 }</span>
         }
-        <span class="cov9" title="16">b.SetStatus(gs_bean.StatusResolved)
+        <span class="cov8" title="16">b.SetStatus(gs_bean.StatusResolved)
         return nil</span>
 }
 
 // Has checks if a configuration property exists.
-func (c *CondContext) Has(key string) bool <span class="cov5" title="4">{
+func (c *CondContext) Has(key string) bool <span class="cov4" title="4">{
         return c.p.Has(key)
 }</span>
 
 // Prop retrieves a configuration property with optional default value.
-func (c *CondContext) Prop(key string, def ...string) string <span class="cov3" title="2">{
+func (c *CondContext) Prop(key string, def ...string) string <span class="cov2" title="2">{
         return c.p.Get(key, def...)
 }</span>
 
 // Find returns beans matching the selector after resolving their conditions.
-func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) <span class="cov1" title="1">{
+func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) <span class="cov2" title="2">{
         var found []gs.CondBean
         t, name := s.TypeAndName()
-        for _, b := range c.c.beans </span><span class="cov8" title="14">{
-                if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted </span><span class="cov1" title="1">{
+        for _, b := range c.c.beans </span><span class="cov10" title="30">{
+                if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted </span><span class="cov3" title="3">{
                         continue</span>
                 }
-                <span class="cov8" title="13">if !isBeanMatched(t, name, b) </span><span class="cov8" title="12">{
+                <span class="cov9" title="27">if !isBeanMatched(t, name, b) </span><span class="cov9" title="25">{
                         continue</span>
                 }
-                <span class="cov1" title="1">if err := c.resolveBean(b); err != nil </span><span class="cov0" title="0">{
+                <span class="cov2" title="2">if err := c.resolveBean(b); err != nil </span><span class="cov0" title="0">{
                         return nil, err
                 }</span>
-                <span class="cov1" title="1">if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
+                <span class="cov2" title="2">if b.Status() == gs_bean.StatusDeleted </span><span class="cov0" title="0">{
                         continue</span>
                 }
-                <span class="cov1" title="1">found = append(found, b)</span>
+                <span class="cov2" title="2">found = append(found, b)</span>
         }
-        <span class="cov1" title="1">return found, nil</span>
+        <span class="cov2" title="2">return found, nil</span>
 }
 </pre>
 		
@@ -6863,7 +6854,6 @@ import (
         "strconv"
 
         "github.com/go-spring/spring-core/util/sysconf"
-        "github.com/go-spring/spring-core/util/syslog"
 )
 
 const (
@@ -6876,45 +6866,39 @@ const (
         EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
 )
 
-func setProperty(key string, val string) <span class="cov10" title="2">{
-        if err := sysconf.Set(key, val); err != nil </span><span class="cov0" title="0">{
-                syslog.Errorf("failed to set %s: %v", key, err)
-        }</span>
-}
-
 // AllowCircularReferences enables or disables circular references between beans.
 func AllowCircularReferences(enable bool) <span class="cov0" title="0">{
-        setProperty(AllowCircularReferencesProp, strconv.FormatBool(enable))
+        sysconf.Set(AllowCircularReferencesProp, strconv.FormatBool(enable))
 }</span>
 
 // ForceAutowireIsNullable forces autowire to be nullable.
 func ForceAutowireIsNullable(enable bool) <span class="cov0" title="0">{
-        setProperty(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
+        sysconf.Set(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
 }</span>
 
 // SetActiveProfiles sets the active profiles for the app.
-func SetActiveProfiles(profiles string) <span class="cov1" title="1">{
-        setProperty(ActiveProfilesProp, profiles)
+func SetActiveProfiles(profiles string) <span class="cov8" title="1">{
+        sysconf.Set(ActiveProfilesProp, profiles)
 }</span>
 
 // EnableJobs enables or disables the app jobs.
 func EnableJobs(enable bool) <span class="cov0" title="0">{
-        setProperty(EnableJobsProp, strconv.FormatBool(enable))
+        sysconf.Set(EnableJobsProp, strconv.FormatBool(enable))
 }</span>
 
 // EnableServers enables or disables the app servers.
 func EnableServers(enable bool) <span class="cov0" title="0">{
-        setProperty(EnableServersProp, strconv.FormatBool(enable))
+        sysconf.Set(EnableServersProp, strconv.FormatBool(enable))
 }</span>
 
 // EnableSimpleHttpServer enables or disables the simple HTTP server.
 func EnableSimpleHttpServer(enable bool) <span class="cov0" title="0">{
-        setProperty(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
+        sysconf.Set(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
 }</span>
 
 // EnableSimplePProfServer enables or disables the simple pprof server.
-func EnableSimplePProfServer(enable bool) <span class="cov1" title="1">{
-        setProperty(EnableSimplePProfServerProp, strconv.FormatBool(enable))
+func EnableSimplePProfServer(enable bool) <span class="cov8" title="1">{
+        sysconf.Set(EnableSimplePProfServerProp, strconv.FormatBool(enable))
 }</span>
 </pre>
 		
@@ -6946,7 +6930,7 @@ var LineBreak = " &lt;&lt; "
 // WrapError wraps an existing error, creating a new error with hierarchical relationships.
 func WrapError(err error, format string, args ...interface{}) error <span class="cov0" title="0">{
         msg := fmt.Sprintf(format, args...)
-        return fmt.Errorf("%s%s%w", msg, LineBreak, err)
+        return fmt.Errorf("%s"+LineBreak+"%w", msg, err)
 }</span>
 </pre>
 		
@@ -6998,9 +6982,10 @@ func FlattenValue(key string, val interface{}, result map[string]string) <span c
                         result[key] = ""
                         return
                 }</span>
-                <span class="cov0" title="0">for _, k := range v.MapKeys() </span><span class="cov0" title="0">{
-                        mapKey := cast.ToString(k.Interface())
-                        mapValue := v.MapIndex(k).Interface()
+                <span class="cov0" title="0">iter := v.MapRange()
+                for iter.Next() </span><span class="cov0" title="0">{
+                        mapKey := cast.ToString(iter.Key().Interface())
+                        mapValue := iter.Value().Interface()
                         FlattenValue(key+"."+mapKey, mapValue, result)
                 }</span>
         case reflect.Array, reflect.Slice:<span class="cov0" title="0">
@@ -7041,6 +7026,16 @@ func FlattenValue(key string, val interface{}, result map[string]string) <span c
  * limitations under the License.
  */
 
+/*
+Package goutil provides a safe way to execute goroutines with built-in panic recovery.
+
+In practice, goroutines may panic due to issues like nil pointer dereference or out-of-bounds access.
+However, these panics can be recovered. This package offers a wrapper to safely run goroutines,
+ensuring that any panic is caught and passed to a user-defined `OnPanic` handler.
+
+The `OnPanic` function allows developers to log the panic, report metrics, or perform other
+custom recovery logic, making it easier to manage and observe unexpected failures in concurrent code.
+*/
 package goutil
 
 import (
@@ -7181,67 +7176,6 @@ func GoValue[T any](ctx context.Context, f func(ctx context.Context) (T, error))
  * limitations under the License.
  */
 
-package iterutil
-
-// Times executes the function 'fn' exactly 'count' times.
-// Be sure to maintain the callback style.
-func Times(count int, fn func(i int)) <span class="cov1" title="1">{
-        for i := 0; i &lt; count; i++ </span><span class="cov10" title="5">{
-                fn(i)
-        }</span>
-}
-
-// Ranges iterates from 'start' to 'end' (exclusive) and applies 'fn' to each index.
-// Be sure to maintain the callback style.
-func Ranges(start, end int, fn func(i int)) <span class="cov0" title="0">{
-        if start &lt; end </span><span class="cov0" title="0">{
-                stepRangesForward(start, end, 1, fn)
-        }</span> else<span class="cov0" title="0"> {
-                stepRangesBackward(start, end, -1, fn)
-        }</span>
-}
-
-// StepRanges iterates from 'start' to 'end' using a step size and applies 'fn' to each index.
-// Be sure to maintain the callback style.
-func StepRanges(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
-        if step &gt; 0 &amp;&amp; start &lt; end </span><span class="cov0" title="0">{
-                stepRangesForward(start, end, step, fn)
-        }</span> else<span class="cov0" title="0"> if step &lt; 0 &amp;&amp; start &gt; end </span><span class="cov0" title="0">{
-                stepRangesBackward(start, end, step, fn)
-        }</span>
-}
-
-// stepRangesForward helper function for forward step iteration.
-func stepRangesForward(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
-        for i := start; i &lt; end; i += step </span><span class="cov0" title="0">{
-                fn(i)
-        }</span>
-}
-
-// stepRangesBackward helper function for backward step iteration.
-func stepRangesBackward(start, end, step int, fn func(i int)) <span class="cov0" title="0">{
-        for i := start; i &gt; end; i += step </span><span class="cov0" title="0">{
-                fn(i)
-        }</span>
-}
-</pre>
-		
-		<pre class="file" id="file44" style="display: none">/*
- * Copyright 2025 The Go-Spring Authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package util
 
 import (
@@ -7273,7 +7207,7 @@ func AllOfList[T any](l *list.List) []T <span class="cov0" title="0">{
 }
 </pre>
 		
-		<pre class="file" id="file45" style="display: none">/*
+		<pre class="file" id="file44" style="display: none">/*
  * Copyright 2025 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -7313,7 +7247,7 @@ func OrderedMapKeys[M ~map[K]V, K cmp.Ordered, V any](m M) []K <span class="cov4
 }</span>
 </pre>
 		
-		<pre class="file" id="file46" style="display: none">/*
+		<pre class="file" id="file45" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -7329,12 +7263,26 @@ func OrderedMapKeys[M ~map[K]V, K cmp.Ordered, V any](m M) []K <span class="cov4
  * limitations under the License.
  */
 
+/*
+Package sysconf provides a unified configuration container for the Go programming language.
+
+In the Go programming language, unlike many other languages,
+the standard library lacks a unified and general-purpose configuration container.
+To address this gap, go-spring introduces a powerful configuration system that supports
+layered configuration management and flexible injection.
+
+So sysconf serves as the fallback configuration container within an application,
+acting as the lowest-level foundation of the configuration system.
+It can be used independently or as a lightweight alternative or supplement to other
+configuration sources such as environment variables, command-line arguments, or configuration files.
+*/
 package sysconf
 
 import (
         "sync"
 
         "github.com/go-spring/spring-core/conf"
+        "github.com/go-spring/spring-core/util/syslog"
 )
 
 var (
@@ -7357,11 +7305,13 @@ func Get(key string) string <span class="cov0" title="0">{
 }</span>
 
 // Set sets the property of the key.
-func Set(key string, val string) error <span class="cov3" title="2">{
+func Set(key string, val string) <span class="cov3" title="2">{
         lock.Lock()
         defer lock.Unlock()
-        return prop.Set(key, val)
-}</span>
+        if err := prop.Set(key, val); err != nil </span><span class="cov0" title="0">{
+                syslog.Errorf("failed to set property key=%s, err=%v", key, err)
+        }</span>
+}
 
 // Clear clears all properties.
 func Clear() <span class="cov0" title="0">{
@@ -7381,7 +7331,7 @@ func Clone() *conf.MutableProperties <span class="cov10" title="12">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file47" style="display: none">/*
+		<pre class="file" id="file46" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -7397,6 +7347,12 @@ func Clone() *conf.MutableProperties <span class="cov10" title="12">{
  * limitations under the License.
  */
 
+/*
+Package syslog provides simplified logging utilities for tracking the execution flow
+of the go-spring framework. It is designed to offer a more convenient interface than
+the standard library's slog package, whose Info, Warn, and related methods can be
+cumbersome to use. Logs produced by this package are typically output to the console.
+*/
 package syslog
 
 import (
@@ -7452,7 +7408,7 @@ func logMsg(level slog.Level, format string, a ...any) <span class="cov10" title
 }
 </pre>
 		
-		<pre class="file" id="file48" style="display: none">/*
+		<pre class="file" id="file47" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -7475,7 +7431,7 @@ import (
 )
 
 // errorType is the [reflect.Type] of the error interface.
-var errorType = reflect.TypeOf((*error)(nil)).Elem()
+var errorType = reflect.TypeFor[error]()
 
 // IsFuncType returns true if the provided type t is a function type.
 func IsFuncType(t reflect.Type) bool <span class="cov5" title="6">{
@@ -7550,11 +7506,11 @@ func IsPropBindingTarget(t reflect.Type) bool <span class="cov9" title="29">{
 
 // IsBeanType returns true if the provided type t is considered a "bean" type.
 // A "bean" type includes a channel, function, interface, or a pointer to a struct.
-func IsBeanType(t reflect.Type) bool <span class="cov10" title="40">{
+func IsBeanType(t reflect.Type) bool <span class="cov10" title="41">{
         switch t.Kind() </span>{
         case reflect.Chan, reflect.Func, reflect.Interface:<span class="cov6" title="10">
                 return true</span>
-        case reflect.Ptr:<span class="cov9" title="30">
+        case reflect.Ptr:<span class="cov9" title="31">
                 return t.Elem().Kind() == reflect.Struct</span>
         default:<span class="cov0" title="0">
                 return false</span>
@@ -7574,7 +7530,7 @@ func IsBeanInjectionTarget(t reflect.Type) bool <span class="cov7" title="15">{
 }
 </pre>
 		
-		<pre class="file" id="file49" style="display: none">/*
+		<pre class="file" id="file48" style="display: none">/*
  * Copyright 2024 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

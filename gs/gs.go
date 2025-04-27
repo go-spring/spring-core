@@ -30,6 +30,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 const (
@@ -196,14 +197,35 @@ func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
 	return Object(funcJob(fn)).AsJob().Caller(1)
 }
 
+type AppStarter struct{}
+
+// Web enables or disables the built-in web server.
+func Web(enable bool) *AppStarter {
+	if !enable {
+		EnableSimpleHttpServer(false)
+	}
+	return &AppStarter{}
+}
+
 // Run runs the app and waits for an interrupt signal to exit.
-func Run() error {
+func (s *AppStarter) Run() {
 	printBanner()
-	if err := B.(*gs_app.BootImpl).Run(); err != nil {
-		return err
+	var err error
+	defer func() {
+		if err != nil {
+			syslog.Errorf("app run failed: %s", err.Error())
+		}
+	}()
+	if err = B.(*gs_app.BootImpl).Run(); err != nil {
+		return
 	}
 	B = nil
-	return gs_app.GS.Run()
+	err = gs_app.GS.Run()
+}
+
+// Run runs the app and waits for an interrupt signal to exit.
+func Run() {
+	new(AppStarter).Run()
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
