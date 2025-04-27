@@ -243,6 +243,13 @@ func Config() *gs_conf.AppConfig {
 	return gs_app.GS.P
 }
 
+// Component registers a bean definition for a given object.
+func Component[T any](i T) T {
+	b := gs_bean.NewBean(reflect.ValueOf(i))
+	gs_app.GS.C.Register(b).Caller(1)
+	return i
+}
+
 // Object registers a bean definition for a given object.
 func Object(i interface{}) *RegisteredBean {
 	b := gs_bean.NewBean(reflect.ValueOf(i))
