@@ -26,10 +26,13 @@ import (
 )
 
 func init() {
+	// Register a function runner to initialize the remote configuration setup.
 	gs.B.FuncRunner(initRemoteConfig).OnProfiles("online")
 }
 
-// initRemoteConfig initializes the remote configuration setup
+// initRemoteConfig initializes the remote configuration setup.
+// It first attempts to retrieve remote config, then starts a background job
+// to periodically refresh the configuration.
 func initRemoteConfig() error {
 	if err := getRemoteConfig(); err != nil {
 		return err
@@ -38,7 +41,36 @@ func initRemoteConfig() error {
 	return nil
 }
 
-// refreshRemoteConfig periodically refreshes the remote configuration
+// getRemoteConfig fetches and writes the remote configuration to a local file.
+// It creates necessary directories and generates a properties file containing.
+func getRemoteConfig() error {
+	err := os.MkdirAll("./conf/remote", os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	const data = `
+		server.addr=0.0.0.0:9090
+		
+		log.access.name=access.log
+		log.access.dir=./log
+		
+		log.biz.name=biz.log
+		log.biz.dir=./log
+		
+		log.dao.name=dao.log
+		log.dao.dir=./log
+		
+		refresh_time=%v
+	`
+
+	const file = "conf/remote/app-online.properties"
+	str := fmt.Sprintf(data, time.Now().UnixMilli())
+	return os.WriteFile(file, []byte(str), os.ModePerm)
+}
+
+// refreshRemoteConfig runs a continuous loop to periodically update configuration.
+// It refreshes every 500ms until context cancellation.
 func refreshRemoteConfig(ctx context.Context) error {
 	for {
 		select {
@@ -57,30 +89,4 @@ func refreshRemoteConfig(ctx context.Context) error {
 			fmt.Println("refresh properties success")
 		}
 	}
-}
-
-// getRemoteConfig fetches and writes the remote configuration to a local file
-func getRemoteConfig() error {
-	err := os.MkdirAll("./conf/remote", os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	const data = `
-server.addr=0.0.0.0:9090
-
-log.access.name=access.log
-log.access.dir=./log
-
-log.biz.name=biz.log
-log.biz.dir=./log
-
-log.dao.name=dao.log
-log.dao.dir=./log
-
-refresh_time=%v`
-
-	const file = "conf/remote/app-online.properties"
-	str := fmt.Sprintf(data, time.Now().UnixMilli())
-	return os.WriteFile(file, []byte(str), os.ModePerm)
 }

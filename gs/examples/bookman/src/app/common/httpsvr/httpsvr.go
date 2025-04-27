@@ -27,7 +27,11 @@ import (
 )
 
 func init() {
-	gs.Provide(NewServeMux, gs.IndexArg(1, gs.TagArg("access")))
+	// Registers a custom ServeMux to replace the default implementation.
+	gs.Provide(
+		NewServeMux,
+		gs.IndexArg(1, gs.TagArg("access")),
+	)
 }
 
 // NewServeMux Creates a new HTTP request multiplexer and registers

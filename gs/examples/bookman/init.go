@@ -17,17 +17,39 @@
 package main
 
 import (
-	"net/http"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/go-spring/spring-core/gs"
 )
 
-func main() {
-	http.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("hello world!"))
-	})
-	gs.Run()
+const banner = `
+  ____                 _     __  __               
+ | __ )   ___    ___  | | __|  \/  |  __ _  _ __  
+ |  _ \  / _ \  / _ \ | |/ /| |\/| | / _' || '_ \ 
+ | |_) || (_) || (_) ||   < | |  | || (_| || | | |
+ |____/  \___/  \___/ |_|\_\|_|  |_| \__,_||_| |_|
+`
+
+func init() {
+	gs.Banner(banner)
 }
 
-//~ curl http://127.0.0.1:9090/echo
-//hello world!
+func init() {
+	var execDir string
+	_, filename, _, ok := runtime.Caller(0)
+	if ok {
+		execDir = filepath.Dir(filename)
+	}
+	err := os.Chdir(execDir)
+	if err != nil {
+		panic(err)
+	}
+	workDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(workDir)
+}
