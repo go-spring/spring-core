@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -927,20 +928,36 @@ type DyncValue struct {
 func TestForceClean(t *testing.T) {
 
 	t.Run("no dync value", func(t *testing.T) {
+		release := make(map[string]struct{})
+
 		r := New(conf.Map(map[string]interface{}{
 			"spring": map[string]interface{}{
 				"force-clean": true,
 			},
 		}))
-		beans := []*gs.BeanDefinition{
-			objectBean(&SimpleLogger{}).Name("biz"),
-			objectBean(&SimpleLogger{}).Name("sys"),
-		}
+
+		b1 := objectBean(&SimpleLogger{}).Name("biz")
+		runtime.AddCleanup(&b1, func(s string) {
+			release[s] = struct{}{}
+		}, "biz")
+
+		b2 := objectBean(&SimpleLogger{}).Name("sys")
+		runtime.AddCleanup(&b2, func(s string) {
+			release[s] = struct{}{}
+		}, "sys")
+
+		beans := []*gs.BeanDefinition{b1, b2}
 		err := r.Refresh(extractBeans(beans))
 		assert.Nil(t, err)
 		assert.Nil(t, r.p)
 		assert.Nil(t, r.beansByName)
 		assert.Nil(t, r.beansByType)
+
+		runtime.GC()
+		assert.That(t, release).Equal(map[string]struct{}{
+			"biz": {},
+			"sys": {},
+		})
 	})
 
 	t.Run("has dync value", func(t *testing.T) {
