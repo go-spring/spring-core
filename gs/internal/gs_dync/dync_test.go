@@ -181,4 +181,35 @@ func TestDync(t *testing.T) {
 		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \\\"xyz\\\": invalid syntax")
 		assert.That(t, p.ObjectsCount()).Equal(4)
 	})
+
+	t.Run("refresh struct", func(t *testing.T) {
+		p := New(conf.Map(map[string]interface{}{
+			"config.s1.value": "99",
+		}))
+
+		v := &Value[struct {
+			S1 struct {
+				Value int `value:"${value}"`
+			} `value:"${s1}"`
+		}]{}
+
+		var param conf.BindParam
+		err := param.BindTag("${config}", "")
+		assert.Nil(t, err)
+
+		err = p.RefreshField(reflect.ValueOf(v), param)
+		assert.Nil(t, err)
+		assert.That(t, v.Value().S1.Value).Equal(99)
+
+		err = p.Refresh(conf.Map(map[string]interface{}{
+			"config.s1.value": "xyz",
+		}))
+		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \"xyz\": invalid syntax")
+
+		err = p.Refresh(conf.Map(map[string]interface{}{
+			"config.s1.value": "10",
+		}))
+		assert.Nil(t, err)
+		assert.That(t, v.Value().S1.Value).Equal(10)
+	})
 }
