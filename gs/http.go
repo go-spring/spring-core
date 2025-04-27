@@ -29,6 +29,7 @@ func init() {
 	// Register the default ServeMux as a bean if no other ServeMux instance exists
 	Object(http.DefaultServeMux).Condition(
 		gs_cond.OnMissingBean[*http.ServeMux](),
+		OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
 	)
 
 	// Provide a new SimpleHttpServer instance with configuration bindings.

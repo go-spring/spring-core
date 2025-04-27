@@ -197,8 +197,18 @@ func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
 	return Object(funcJob(fn)).AsJob().Caller(1)
 }
 
+type AppStarter struct{}
+
+// Web enables or disables the built-in web server.
+func Web(enable bool) *AppStarter {
+	if !enable {
+		EnableSimpleHttpServer(false)
+	}
+	return &AppStarter{}
+}
+
 // Run runs the app and waits for an interrupt signal to exit.
-func Run() {
+func (s *AppStarter) Run() {
 	printBanner()
 	var err error
 	defer func() {
@@ -211,6 +221,11 @@ func Run() {
 	}
 	B = nil
 	err = gs_app.GS.Run()
+}
+
+// Run runs the app and waits for an interrupt signal to exit.
+func Run() {
+	new(AppStarter).Run()
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
