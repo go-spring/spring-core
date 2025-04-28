@@ -278,8 +278,8 @@ func (arg *BindArg) SetFileLine(file string, line int) {
 }
 
 // Condition adds pre-execution conditions to the binding.
-func (arg *BindArg) Condition(c ...gs.Condition) *BindArg {
-	arg.conditions = append(arg.conditions, c...)
+func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg {
+	arg.conditions = append(arg.conditions, conditions...)
 	return arg
 }
 

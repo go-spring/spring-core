@@ -35,10 +35,15 @@ func (f funcRunner) Run() error {
 
 // Boot defines the interface for application bootstrapping.
 type Boot interface {
+	// Config returns the boot configuration.
 	Config() *gs_conf.BootConfig
+	// Object registers an object bean.
 	Object(i interface{}) *gs.RegisteredBean
+	// Provide registers a bean using a constructor function.
 	Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
+	// Register registers a BeanDefinition instance.
 	Register(bd *gs.BeanDefinition) *gs.RegisteredBean
+	// FuncRunner creates a Runner from a function.
 	FuncRunner(fn func() error) *gs.RegisteredBean
 }
 
