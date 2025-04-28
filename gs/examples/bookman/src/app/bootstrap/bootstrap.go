@@ -37,6 +37,8 @@ func initRemoteConfig() error {
 	if err := getRemoteConfig(); err != nil {
 		return err
 	}
+	// Register a function job to refresh the configuration.
+	// A bean can be registered into the app during the bootstrap phase.
 	gs.FuncJob(refreshRemoteConfig)
 	return nil
 }
@@ -74,7 +76,10 @@ func getRemoteConfig() error {
 func refreshRemoteConfig(ctx context.Context) error {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-ctx.Done(): // Gracefully exit when context is canceled.
+			// The context (ctx) is derived from the app instance.
+			// When the app exits, the context is canceled,
+			// allowing the loop to terminate gracefully.
 			fmt.Println("config updater exit")
 			return nil
 		case <-time.After(time.Millisecond * 500):
@@ -82,6 +87,7 @@ func refreshRemoteConfig(ctx context.Context) error {
 				fmt.Println("get remote config error:", err)
 				return err
 			}
+			// Refreshes the app configuration.
 			if err := gs.RefreshProperties(); err != nil {
 				fmt.Println("refresh properties error:", err)
 				return err

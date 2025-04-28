@@ -21,6 +21,7 @@ import (
 )
 
 func main() {
+	// Disable the built-in HTTP service.
 	gs.Web(false).Run()
 }
 

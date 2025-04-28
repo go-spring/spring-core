@@ -30,11 +30,11 @@ import (
 // onFunc is an implementation of [gs.Condition] that wraps a function.
 // It allows a condition to be evaluated based on the result of a function.
 type onFunc struct {
-	fn gs.CondFunc
+	fn func(ctx gs.CondContext) (bool, error)
 }
 
 // OnFunc creates a Conditional that evaluates using a custom function.
-func OnFunc(fn gs.CondFunc) gs.Condition {
+func OnFunc(fn func(ctx gs.CondContext) (bool, error)) gs.Condition {
 	return &onFunc{fn: fn}
 }
 

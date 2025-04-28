@@ -24,6 +24,10 @@ func init() {
 	gs.Object(&Controller{})
 }
 
+// Controller implements the controller interface defined in the idl package.
+// In practice, controller methods can be grouped into different controllers.
+// Each sub-controller can have its own dependencies and be tested independently,
+// making the codebase more modular and maintainable.
 type Controller struct {
 	BookController
 }

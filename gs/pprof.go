@@ -22,6 +22,7 @@ import (
 )
 
 func init() {
+	// Registers a SimplePProfServer object to the container.
 	Provide(
 		NewSimplePProfServer,
 		TagArg("${pprof.server.addr:=0.0.0.0:9981}"),

@@ -48,21 +48,25 @@ func As[T any]() reflect.Type {
 type Arg = gs.Arg
 
 // TagArg returns a TagArg with the specified tag.
+// Used for property binding or object injection when providing constructor parameters.
 func TagArg(tag string) Arg {
 	return gs_arg.Tag(tag)
 }
 
 // ValueArg returns a ValueArg with the specified value.
+// Used to provide specific values for constructor parameters.
 func ValueArg(v interface{}) Arg {
 	return gs_arg.Value(v)
 }
 
 // IndexArg returns an IndexArg with the specified index and argument.
+// When most constructor parameters can use default values, IndexArg helps reduce configuration effort.
 func IndexArg(n int, arg Arg) Arg {
 	return gs_arg.Index(n, arg)
 }
 
-// BindArg returns an BindArg for the specified function and arguments.
+// BindArg returns a BindArg for the specified function and arguments.
+// Used to provide argument binding for option-style constructor parameters.
 func BindArg(fn interface{}, args ...Arg) *gs_arg.BindArg {
 	return gs_arg.Bind(fn, args...)
 }
@@ -70,13 +74,12 @@ func BindArg(fn interface{}, args ...Arg) *gs_arg.BindArg {
 /************************************ cond ***********************************/
 
 type (
-	CondFunc    = gs.CondFunc
 	Condition   = gs.Condition
 	CondContext = gs.CondContext
 )
 
 // OnFunc creates a Condition based on the provided function.
-func OnFunc(fn CondFunc) Condition {
+func OnFunc(fn func(ctx CondContext) (bool, error)) Condition {
 	return gs_cond.OnFunc(fn)
 }
 
@@ -136,6 +139,11 @@ func None(conditions ...Condition) Condition {
 }
 
 /************************************ ioc ************************************/
+
+type (
+	BeanID   = gs.BeanID
+	BeanMock = gs.BeanMock
+)
 
 type (
 	Dync[T any] = gs_dync.Value[T]
@@ -201,21 +209,19 @@ type AppStarter struct{}
 
 // Web enables or disables the built-in web server.
 func Web(enable bool) *AppStarter {
-	if !enable {
-		EnableSimpleHttpServer(false)
-	}
+	EnableSimpleHttpServer(enable)
 	return &AppStarter{}
 }
 
 // Run runs the app and waits for an interrupt signal to exit.
 func (s *AppStarter) Run() {
-	printBanner()
 	var err error
 	defer func() {
 		if err != nil {
 			syslog.Errorf("app run failed: %s", err.Error())
 		}
 	}()
+	printBanner()
 	if err = B.(*gs_app.BootImpl).Run(); err != nil {
 		return
 	}
@@ -274,7 +280,7 @@ func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) {
 
 // RefreshProperties refreshes the app configuration.
 func RefreshProperties() error {
-	p, err := Config().Refresh()
+	p, err := gs_app.GS.P.Refresh()
 	if err != nil {
 		return err
 	}

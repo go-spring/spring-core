@@ -95,7 +95,7 @@
 				
 				<option value="file19">github.com/go-spring/spring-core/gs/examples/bookman/src/sdk/book_sdk/book_sdk.go (100.0%)</option>
 				
-				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (63.5%)</option>
+				<option value="file20">github.com/go-spring/spring-core/gs/gs.go (59.4%)</option>
 				
 				<option value="file21">github.com/go-spring/spring-core/gs/http.go (94.4%)</option>
 				
@@ -125,7 +125,7 @@
 				
 				<option value="file34">github.com/go-spring/spring-core/gs/internal/gs_core/injecting/injecting.go (52.2%)</option>
 				
-				<option value="file35">github.com/go-spring/spring-core/gs/internal/gs_core/resolving/resolving.go (46.4%)</option>
+				<option value="file35">github.com/go-spring/spring-core/gs/internal/gs_core/resolving/resolving.go (46.7%)</option>
 				
 				<option value="file36">github.com/go-spring/spring-core/gs/internal/gs_dync/dync.go (77.1%)</option>
 				
@@ -1517,6 +1517,8 @@ func initRemoteConfig() error <span class="cov1" title="1">{
         if err := getRemoteConfig(); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
+        // Register a function job to refresh the configuration.
+        // A bean can be registered into the app during the bootstrap phase.
         <span class="cov1" title="1">gs.FuncJob(refreshRemoteConfig)
         return nil</span>
 }
@@ -1554,7 +1556,10 @@ func getRemoteConfig() error <span class="cov10" title="5">{
 func refreshRemoteConfig(ctx context.Context) error <span class="cov1" title="1">{
         for </span><span class="cov10" title="5">{
                 select </span>{
-                case &lt;-ctx.Done():<span class="cov1" title="1">
+                case &lt;-ctx.Done():<span class="cov1" title="1"> // Gracefully exit when context is canceled.
+                        // The context (ctx) is derived from the app instance.
+                        // When the app exits, the context is canceled,
+                        // allowing the loop to terminate gracefully.
                         fmt.Println("config updater exit")
                         return nil</span>
                 case &lt;-time.After(time.Millisecond * 500):<span class="cov8" title="4">
@@ -1562,6 +1567,7 @@ func refreshRemoteConfig(ctx context.Context) error <span class="cov1" title="1"
                                 fmt.Println("get remote config error:", err)
                                 return err
                         }</span>
+                        // Refreshes the app configuration.
                         <span class="cov8" title="4">if err := gs.RefreshProperties(); err != nil </span><span class="cov0" title="0">{
                                 fmt.Println("refresh properties error:", err)
                                 return err
@@ -1600,29 +1606,43 @@ import (
 )
 
 func init() <span class="cov1" title="1">{
+        // Register a group of Bean definitions during application initialization.
+        // GroupRegister dynamically creates multiple Beans based on the configuration (conf.Properties),
+        // making it ideal for scenarios like setting up multiple loggers, clients, or resources from config.
         gs.GroupRegister(func(p conf.Properties) ([]*gs.BeanDefinition, error) </span><span class="cov1" title="1">{
+
                 var loggers map[string]struct {
-                        Name string `value:"${name}"`
-                        Dir  string `value:"${dir}"`
+                        Name string `value:"${name}"` // Log file name
+                        Dir  string `value:"${dir}"`  // Directory where the log file will be stored
                 }
+
+                // Bind configuration from the "${log}" node into the 'loggers' map.
                 err := p.Bind(&amp;loggers, "${log}")
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, err
                 }</span>
+
                 <span class="cov1" title="1">var ret []*gs.BeanDefinition
                 for k, l := range loggers </span><span class="cov10" title="3">{
                         var (
                                 f    *os.File
                                 flag = os.O_WRONLY | os.O_CREATE | os.O_APPEND
                         )
+
+                        // Open (or create) the log file
                         f, err = os.OpenFile(filepath.Join(l.Dir, l.Name), flag, os.ModePerm)
                         if err != nil </span><span class="cov0" title="0">{
                                 return nil, err
                         }</span>
+
+                        // Create a new slog.Logger instance with a text handler writing to the file
                         <span class="cov10" title="3">o := slog.New(slog.NewTextHandler(f, nil))
+
+                        // Wrap the logger into a Bean with a destroy hook to close the file
                         b := gs.NewBean(o).Name(k).Destroy(func(_ *slog.Logger) </span><span class="cov10" title="3">{
                                 _ = f.Close()
                         }</span>)
+
                         <span class="cov10" title="3">ret = append(ret, b)</span>
                 }
                 <span class="cov1" title="1">return ret, nil</span>
@@ -1666,11 +1686,14 @@ func init() <span class="cov1" title="1">{
         )
 }</span>
 
-// NewServeMux Creates a new HTTP request multiplexer and registers
+// NewServeMux creates a new HTTP request multiplexer and registers
 // routes with access logging middleware.
 func NewServeMux(c *controller.Controller, logger *slog.Logger) *http.ServeMux <span class="cov1" title="1">{
         mux := http.NewServeMux()
         proto.RegisterRouter(mux, c, Access(logger))
+
+        // Users can customize routes by adding handlers to the mux
+        mux.Handle("GET /", http.FileServer(http.Dir("./public")))
         return mux
 }</span>
 
@@ -1788,6 +1811,10 @@ func init() <span class="cov8" title="1">{
         gs.Object(&amp;Controller{})
 }</span>
 
+// Controller implements the controller interface defined in the idl package.
+// In practice, controller methods can be grouped into different controllers.
+// Each sub-controller can have its own dependencies and be tested independently,
+// making the codebase more modular and maintainable.
 type Controller struct {
         BookController
 }
@@ -1829,11 +1856,15 @@ type Job struct{}
 func (x *Job) Run(ctx context.Context) error <span class="cov1" title="1">{
         for </span><span class="cov10" title="9">{
                 select </span>{
-                case &lt;-ctx.Done():<span class="cov0" title="0"> // Gracefully exit when context is canceled
+                case &lt;-ctx.Done():<span class="cov0" title="0">
+                        // Gracefully exit when the context is canceled
                         fmt.Println("job exit")
                         return nil</span>
                 default:<span class="cov10" title="9">
-                        if gs.Exiting() </span><span class="cov0" title="0">{ // Check if the system is shutting down
+                        // Check if the app is shutting down.
+                        // In long-running background tasks, checking for shutdown signals
+                        // during idle periods or between stages helps ensure timely resource cleanup.
+                        if gs.Exiting() </span><span class="cov0" title="0">{
                                 return nil
                         }</span>
                         <span class="cov10" title="9">time.Sleep(time.Millisecond * 300)
@@ -2028,12 +2059,14 @@ func (dao *BookDao) DeleteBook(isbn string) error <span class="cov0" title="0">{
  * limitations under the License.
  */
 
+// Package proto defines the interfaces and route registrations generated from IDL files.
 package proto
 
 import (
         "net/http"
 )
 
+// Book represents the structure of a book entity.
 type Book struct {
         Title       string `json:"title"`
         Author      string `json:"author"`
@@ -2043,6 +2076,7 @@ type Book struct {
         RefreshTime string `json:"refreshTime"`
 }
 
+// Controller defines the service interface for book-related operations.
 type Controller interface {
         ListBooks(w http.ResponseWriter, r *http.Request)
         GetBook(w http.ResponseWriter, r *http.Request)
@@ -2050,6 +2084,9 @@ type Controller interface {
         DeleteBook(w http.ResponseWriter, r *http.Request)
 }
 
+// RegisterRouter registers the HTTP routes for the Controller interface.
+// It maps each method to its corresponding HTTP endpoint,
+// and applies the given middleware (wrap) to each handler.
 func RegisterRouter(mux *http.ServeMux, c Controller, wrap func(next http.Handler) http.Handler) <span class="cov8" title="1">{
         mux.Handle("GET /books", wrap(http.HandlerFunc(c.ListBooks)))
         mux.Handle("GET /books/{isbn}", wrap(http.HandlerFunc(c.GetBook)))
@@ -2142,21 +2179,25 @@ func As[T any]() reflect.Type <span class="cov0" title="0">{
 type Arg = gs.Arg
 
 // TagArg returns a TagArg with the specified tag.
+// Used for property binding or object injection when providing constructor parameters.
 func TagArg(tag string) Arg <span class="cov5" title="5">{
         return gs_arg.Tag(tag)
 }</span>
 
 // ValueArg returns a ValueArg with the specified value.
+// Used to provide specific values for constructor parameters.
 func ValueArg(v interface{}) Arg <span class="cov0" title="0">{
         return gs_arg.Value(v)
 }</span>
 
 // IndexArg returns an IndexArg with the specified index and argument.
+// When most constructor parameters can use default values, IndexArg helps reduce configuration effort.
 func IndexArg(n int, arg Arg) Arg <span class="cov4" title="4">{
         return gs_arg.Index(n, arg)
 }</span>
 
-// BindArg returns an BindArg for the specified function and arguments.
+// BindArg returns a BindArg for the specified function and arguments.
+// Used to provide argument binding for option-style constructor parameters.
 func BindArg(fn interface{}, args ...Arg) *gs_arg.BindArg <span class="cov4" title="3">{
         return gs_arg.Bind(fn, args...)
 }</span>
@@ -2164,18 +2205,17 @@ func BindArg(fn interface{}, args ...Arg) *gs_arg.BindArg <span class="cov4" tit
 /************************************ cond ***********************************/
 
 type (
-        CondFunc    = gs.CondFunc
         Condition   = gs.Condition
         CondContext = gs.CondContext
 )
 
 // OnFunc creates a Condition based on the provided function.
-func OnFunc(fn CondFunc) Condition <span class="cov0" title="0">{
+func OnFunc(fn func(ctx CondContext) (bool, error)) Condition <span class="cov0" title="0">{
         return gs_cond.OnFunc(fn)
 }</span>
 
 // OnProperty creates a Condition based on a property name and options.
-func OnProperty(name string) gs_cond.OnPropertyInterface <span class="cov4" title="4">{
+func OnProperty(name string) gs_cond.OnPropertyInterface <span class="cov5" title="5">{
         return gs_cond.OnProperty(name)
 }</span>
 
@@ -2190,7 +2230,7 @@ func OnBean[T any](name ...string) Condition <span class="cov1" title="1">{
 }</span>
 
 // OnMissingBean creates a Condition for when a specific bean is missing.
-func OnMissingBean[T any](name ...string) Condition <span class="cov0" title="0">{
+func OnMissingBean[T any](name ...string) Condition <span class="cov1" title="1">{
         return gs_cond.OnMissingBean[T](name...)
 }</span>
 
@@ -2230,6 +2270,11 @@ func None(conditions ...Condition) Condition <span class="cov0" title="0">{
 }</span>
 
 /************************************ ioc ************************************/
+
+type (
+        BeanID   = gs.BeanID
+        BeanMock = gs.BeanMock
+)
 
 type (
         Dync[T any] = gs_dync.Value[T]
@@ -2291,21 +2336,34 @@ func FuncJob(fn func(ctx context.Context) error) *RegisteredBean <span class="co
         return Object(funcJob(fn)).AsJob().Caller(1)
 }</span>
 
+type AppStarter struct{}
+
+// Web enables or disables the built-in web server.
+func Web(enable bool) *AppStarter <span class="cov0" title="0">{
+        EnableSimpleHttpServer(enable)
+        return &amp;AppStarter{}
+}</span>
+
 // Run runs the app and waits for an interrupt signal to exit.
-func Run() <span class="cov1" title="1">{
-        printBanner()
+func (s *AppStarter) Run() <span class="cov1" title="1">{
         var err error
         defer func() </span><span class="cov1" title="1">{
                 if err != nil </span><span class="cov0" title="0">{
                         syslog.Errorf("app run failed: %s", err.Error())
                 }</span>
         }()
-        <span class="cov1" title="1">if err = B.(*gs_app.BootImpl).Run(); err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">printBanner()
+        if err = B.(*gs_app.BootImpl).Run(); err != nil </span><span class="cov0" title="0">{
                 return
         }</span>
         <span class="cov1" title="1">B = nil
         err = gs_app.GS.Run()</span>
 }
+
+// Run runs the app and waits for an interrupt signal to exit.
+func Run() <span class="cov1" title="1">{
+        new(AppStarter).Run()
+}</span>
 
 // Exiting returns a boolean indicating whether the application is exiting.
 func Exiting() bool <span class="cov7" title="9">{
@@ -2318,8 +2376,15 @@ func ShutDown() <span class="cov1" title="1">{
 }</span>
 
 // Config returns the app configuration.
-func Config() *gs_conf.AppConfig <span class="cov4" title="4">{
+func Config() *gs_conf.AppConfig <span class="cov0" title="0">{
         return gs_app.GS.P
+}</span>
+
+// Component registers a bean definition for a given object.
+func Component[T any](i T) T <span class="cov0" title="0">{
+        b := gs_bean.NewBean(reflect.ValueOf(i))
+        gs_app.GS.C.Register(b).Caller(1)
+        return i
 }</span>
 
 // Object registers a bean definition for a given object.
@@ -2346,7 +2411,7 @@ func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) <span 
 
 // RefreshProperties refreshes the app configuration.
 func RefreshProperties() error <span class="cov4" title="4">{
-        p, err := Config().Refresh()
+        p, err := gs_app.GS.P.Refresh()
         if err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
@@ -2424,14 +2489,13 @@ import (
         "net"
         "net/http"
         "time"
-
-        "github.com/go-spring/spring-core/gs/internal/gs_cond"
 )
 
 func init() <span class="cov1" title="1">{
         // Register the default ServeMux as a bean if no other ServeMux instance exists
         Object(http.DefaultServeMux).Condition(
-                gs_cond.OnMissingBean[*http.ServeMux](),
+                OnMissingBean[*http.ServeMux](),
+                OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
         )
 
         // Provide a new SimpleHttpServer instance with configuration bindings.
@@ -2627,9 +2691,6 @@ type CondContext interface {
         Find(s BeanSelector) ([]CondBean, error)
 }
 
-// CondFunc is a function type that determines whether a condition is satisfied.
-type CondFunc func(ctx CondContext) (bool, error)
-
 /************************************* arg ***********************************/
 
 // Arg is an interface for retrieving argument values in function parameter binding.
@@ -2677,6 +2738,12 @@ type Server interface {
 }
 
 /*********************************** bean ************************************/
+
+// BeanMock defines a mock object and its target bean selector for overriding.
+type BeanMock struct {
+        Object interface{}  // Mock instance to replace the target bean
+        Target BeanSelector // Selector to identify the target bean
+}
 
 // BeanID represents the unique identifier for a bean.
 type BeanID struct {
@@ -4074,11 +4141,11 @@ import (
 // onFunc is an implementation of [gs.Condition] that wraps a function.
 // It allows a condition to be evaluated based on the result of a function.
 type onFunc struct {
-        fn gs.CondFunc
+        fn func(ctx gs.CondContext) (bool, error)
 }
 
 // OnFunc creates a Conditional that evaluates using a custom function.
-func OnFunc(fn gs.CondFunc) gs.Condition <span class="cov1" title="1">{
+func OnFunc(fn func(ctx gs.CondContext) (bool, error)) gs.Condition <span class="cov1" title="1">{
         return &amp;onFunc{fn: fn}
 }</span>
 
@@ -4116,27 +4183,27 @@ type onProperty struct {
 }
 
 // OnProperty creates a condition based on the presence and value of a specified property.
-func OnProperty(name string) OnPropertyInterface <span class="cov10" title="4">{
+func OnProperty(name string) OnPropertyInterface <span class="cov10" title="5">{
         return &amp;onProperty{name: name}
 }</span>
 
 // MatchIfMissing sets the condition to match if the property is missing.
-func (c *onProperty) MatchIfMissing() OnPropertyInterface <span class="cov10" title="4">{
+func (c *onProperty) MatchIfMissing() OnPropertyInterface <span class="cov10" title="5">{
         c.matchIfMissing = true
         return c
 }</span>
 
 // HavingValue sets the expected value or expression to match.
-func (c *onProperty) HavingValue(s string) OnPropertyInterface <span class="cov10" title="4">{
+func (c *onProperty) HavingValue(s string) OnPropertyInterface <span class="cov10" title="5">{
         c.havingValue = s
         return c
 }</span>
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) <span class="cov10" title="4">{
+func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) <span class="cov8" title="4">{
 
         // If the context doesn't have the property, handle accordingly.
-        if !ctx.Has(c.name) </span><span class="cov8" title="3">{
+        if !ctx.Has(c.name) </span><span class="cov7" title="3">{
                 return c.matchIfMissing, nil
         }</span>
 
@@ -6017,16 +6084,10 @@ const (
 // based on configuration properties.
 type BeanGroupFunc func(p conf.Properties) ([]*gs.BeanDefinition, error)
 
-// BeanMock defines a mock object and its target bean selector for overriding.
-type BeanMock struct {
-        Object interface{}     // Mock instance to replace the target bean
-        Target gs.BeanSelector // Selector to identify the target bean
-}
-
 // Resolving manages bean definitions, mocks, and dynamic bean registration functions.
 type Resolving struct {
         state RefreshState              // Current refresh state
-        mocks []BeanMock                // Registered mock beans
+        mocks []gs.BeanMock             // Registered mock beans
         beans []*gs_bean.BeanDefinition // Managed bean definitions
         funcs []BeanGroupFunc           // Dynamic bean registration functions
 }
@@ -6048,9 +6109,8 @@ func (c *Resolving) Beans() []*gs_bean.BeanDefinition <span class="cov2" title="
         <span class="cov2" title="2">return beans</span>
 }
 
-// Mock registers a mock object to override a bean matching the selector.
-func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) <span class="cov0" title="0">{
-        mock := BeanMock{Object: obj, Target: target}
+// AddMock adds a mock bean to the container.
+func (c *Resolving) AddMock(mock gs.BeanMock) <span class="cov0" title="0">{
         c.mocks = append(c.mocks, mock)
 }</span>
 
@@ -6140,7 +6200,7 @@ func (c *Resolving) scanConfigurations() error <span class="cov2" title="2">{
                         continue</span>
                 }
                 // Check if the configuration bean has a mock override
-                <span class="cov0" title="0">var foundMocks []BeanMock
+                <span class="cov0" title="0">var foundMocks []gs.BeanMock
                 for _, mock := range c.mocks </span><span class="cov0" title="0">{
                         t, s := mock.Target.TypeAndName()
                         if s != "" &amp;&amp; s != b.Name() </span><span class="cov0" title="0">{
@@ -6257,7 +6317,7 @@ func (c *Resolving) applyMocks() error <span class="cov2" title="2">{
 // implements all the interfaces that the original bean exported. If multiple
 // matching beans are found, or if the mock doesn't implement required interfaces,
 // an error is returned.
-func (c *Resolving) applyMock(mock BeanMock) error <span class="cov0" title="0">{
+func (c *Resolving) applyMock(mock gs.BeanMock) error <span class="cov0" title="0">{
         var foundBeans []*gs_bean.BeanDefinition
         vt := reflect.TypeOf(mock.Object)
         t, s := mock.Target.TypeAndName()
@@ -6804,6 +6864,7 @@ import (
 )
 
 func init() <span class="cov8" title="1">{
+        // Registers a SimplePProfServer object to the container.
         Provide(
                 NewSimplePProfServer,
                 TagArg("${pprof.server.addr:=0.0.0.0:9981}"),

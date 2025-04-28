@@ -43,16 +43,10 @@ const (
 // based on configuration properties.
 type BeanGroupFunc func(p conf.Properties) ([]*gs.BeanDefinition, error)
 
-// BeanMock defines a mock object and its target bean selector for overriding.
-type BeanMock struct {
-	Object interface{}     // Mock instance to replace the target bean
-	Target gs.BeanSelector // Selector to identify the target bean
-}
-
 // Resolving manages bean definitions, mocks, and dynamic bean registration functions.
 type Resolving struct {
 	state RefreshState              // Current refresh state
-	mocks []BeanMock                // Registered mock beans
+	mocks []gs.BeanMock             // Registered mock beans
 	beans []*gs_bean.BeanDefinition // Managed bean definitions
 	funcs []BeanGroupFunc           // Dynamic bean registration functions
 }
@@ -74,9 +68,8 @@ func (c *Resolving) Beans() []*gs_bean.BeanDefinition {
 	return beans
 }
 
-// Mock registers a mock object to override a bean matching the selector.
-func (c *Resolving) Mock(obj interface{}, target gs.BeanSelector) {
-	mock := BeanMock{Object: obj, Target: target}
+// AddMock adds a mock bean to the container.
+func (c *Resolving) AddMock(mock gs.BeanMock) {
 	c.mocks = append(c.mocks, mock)
 }
 
@@ -166,7 +159,7 @@ func (c *Resolving) scanConfigurations() error {
 			continue
 		}
 		// Check if the configuration bean has a mock override
-		var foundMocks []BeanMock
+		var foundMocks []gs.BeanMock
 		for _, mock := range c.mocks {
 			t, s := mock.Target.TypeAndName()
 			if s != "" && s != b.Name() {
@@ -283,7 +276,7 @@ func (c *Resolving) applyMocks() error {
 // implements all the interfaces that the original bean exported. If multiple
 // matching beans are found, or if the mock doesn't implement required interfaces,
 // an error is returned.
-func (c *Resolving) applyMock(mock BeanMock) error {
+func (c *Resolving) applyMock(mock gs.BeanMock) error {
 	var foundBeans []*gs_bean.BeanDefinition
 	vt := reflect.TypeOf(mock.Object)
 	t, s := mock.Target.TypeAndName()

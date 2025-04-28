@@ -21,14 +21,12 @@ import (
 	"net"
 	"net/http"
 	"time"
-
-	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 )
 
 func init() {
 	// Register the default ServeMux as a bean if no other ServeMux instance exists
 	Object(http.DefaultServeMux).Condition(
-		gs_cond.OnMissingBean[*http.ServeMux](),
+		OnMissingBean[*http.ServeMux](),
 		OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
 	)
 

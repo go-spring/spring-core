@@ -103,8 +103,14 @@ func TestResolving(t *testing.T) {
 	t.Run("configuration error - 1", func(t *testing.T) {
 		r := New()
 		r.Object(&TestBean{Value: 1}).Configuration()
-		r.Mock(&TestBean{Value: 9}, gs.BeanSelectorFor[*TestBean]())
-		r.Mock(&TestBean{Value: 9}, gs.BeanSelectorFor[*TestBean]())
+		r.AddMock(gs.BeanMock{
+			Object: &TestBean{Value: 9},
+			Target: gs.BeanSelectorFor[*TestBean](),
+		})
+		r.AddMock(gs.BeanMock{
+			Object: &TestBean{Value: 9},
+			Target: gs.BeanSelectorFor[*TestBean](),
+		})
 		err := r.Refresh(conf.New())
 		assert.ThatError(t, err).Matches("found duplicate mock bean for 'TestBean'")
 	})
@@ -135,7 +141,10 @@ func TestResolving(t *testing.T) {
 		r := New()
 		r.Provide(NewZeroLogger, gs_arg.Value("a")).
 			Export(gs.As[Logger](), gs.As[CtxLogger]())
-		r.Mock(&SimpleLogger{}, gs.BeanSelectorFor[Logger]())
+		r.AddMock(gs.BeanMock{
+			Object: &SimpleLogger{},
+			Target: gs.BeanSelectorFor[Logger](),
+		})
 		err := r.Refresh(conf.New())
 		assert.ThatError(t, err).Matches("found unimplemented interface")
 	})
@@ -144,7 +153,10 @@ func TestResolving(t *testing.T) {
 		r := New()
 		r.Object(&TestBean{Value: 1}).Name("TestBean-1")
 		r.Object(&TestBean{Value: 2}).Name("TestBean-2")
-		r.Mock(&TestBean{}, gs.BeanSelectorFor[*TestBean]())
+		r.AddMock(gs.BeanMock{
+			Object: &TestBean{},
+			Target: gs.BeanSelectorFor[*TestBean](),
+		})
 		err := r.Refresh(conf.New())
 		assert.ThatError(t, err).Matches("found duplicate mocked beans")
 	})
@@ -216,8 +228,14 @@ func TestResolving(t *testing.T) {
 				return
 			})
 			r.Provide(NewLogger, gs_arg.Value("c")).Name("c")
-			r.Mock(NewZeroLogger("a@mocked"), gs.BeanSelectorFor[Logger]("a"))
-			r.Mock(NewZeroLogger("b@mocked"), gs.BeanSelectorFor[CtxLogger]("b"))
+			r.AddMock(gs.BeanMock{
+				Object: NewZeroLogger("a@mocked"),
+				Target: gs.BeanSelectorFor[Logger]("a"),
+			})
+			r.AddMock(gs.BeanMock{
+				Object: NewZeroLogger("b@mocked"),
+				Target: gs.BeanSelectorFor[CtxLogger]("b"),
+			})
 		}
 		{
 			b := r.Object(&http.Server{}).
@@ -237,7 +255,10 @@ func TestResolving(t *testing.T) {
 		{
 			b := r.Object(&TestBean{Value: 1}).Configuration().Name("TestBean")
 			assert.That(t, b.BeanRegistration().Name()).Equal("TestBean")
-			r.Mock(&TestBean{Value: 2}, b)
+			r.AddMock(gs.BeanMock{
+				Object: &TestBean{Value: 2},
+				Target: b,
+			})
 		}
 		{
 			b := r.Object(&TestBean{Value: 1}).Name("TestBean-2").
@@ -245,10 +266,16 @@ func TestResolving(t *testing.T) {
 					Excludes: []string{"^NewChild$"},
 				})
 			assert.That(t, b.BeanRegistration().Name()).Equal("TestBean-2")
-			r.Mock(&ChildBean{Value: 2}, gs.BeanSelectorFor[*ChildBean]("TestBean-2_NewChildV2"))
+			r.AddMock(gs.BeanMock{
+				Object: &ChildBean{Value: 2},
+				Target: gs.BeanSelectorFor[*ChildBean]("TestBean-2_NewChildV2"),
+			})
 		}
 		{
-			r.Mock(&bytes.Buffer{}, gs.BeanSelectorFor[*bytes.Buffer]())
+			r.AddMock(gs.BeanMock{
+				Object: &bytes.Buffer{},
+				Target: gs.BeanSelectorFor[*bytes.Buffer](),
+			})
 		}
 		{
 			b := r.Object(&TestBean{Value: 3}).Name("TestBean-3")
