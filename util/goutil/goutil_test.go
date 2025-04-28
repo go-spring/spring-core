@@ -68,7 +68,7 @@ func TestGoValue(t *testing.T) {
 	assert.Nil(t, err)
 
 	var arr []*goutil.ValueStatus[int]
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		arr = append(arr, goutil.GoValue(t.Context(), func(ctx context.Context) (int, error) {
 			return i, nil
 		}))

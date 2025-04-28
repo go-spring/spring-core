@@ -21,7 +21,7 @@ import (
 )
 
 // Read parses []byte in the toml format into map.
-func Read(b []byte) (map[string]interface{}, error) {
+func Read(b []byte) (map[string]any, error) {
 	tree, err := toml.LoadBytes(b)
 	if err != nil {
 		return nil, err

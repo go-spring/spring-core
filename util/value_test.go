@@ -57,7 +57,7 @@ func (r *receiver) ptrFnWithArgs(i int) {}
 
 func TestFileLine(t *testing.T) {
 	testcases := []struct {
-		fn     interface{}
+		fn     any
 		file   string
 		line   int
 		fnName string

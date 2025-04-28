@@ -189,7 +189,7 @@ func (d *BeanRuntime) Value() reflect.Value {
 }
 
 // Interface returns the underlying value of the bean.
-func (d *BeanRuntime) Interface() interface{} {
+func (d *BeanRuntime) Interface() any {
 	return d.v.Interface()
 }
 
@@ -230,7 +230,7 @@ func makeBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) 
 }
 
 // SetMock sets the mock object for the bean, replacing its runtime information.
-func (d *BeanDefinition) SetMock(obj interface{}) {
+func (d *BeanDefinition) SetMock(obj any) {
 	*d = BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			exports: d.exports,
@@ -324,7 +324,7 @@ func (d *BeanDefinition) OnProfiles(profiles string) {
 			return false, nil
 		}
 		ss := strings.Split(strings.TrimSpace(profiles), ",")
-		for _, s := range strings.Split(val, ",") {
+		for s := range strings.SplitSeq(val, ",") {
 			if slices.Contains(ss, s) {
 				return true, nil
 			}
@@ -345,7 +345,7 @@ func (d *BeanDefinition) String() string {
 
 // NewBean creates a new bean definition. When registering a normal function,
 // use reflect.ValueOf(fn) to avoid conflicts with constructors.
-func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 	var f *gs_arg.Callable
 	var v reflect.Value

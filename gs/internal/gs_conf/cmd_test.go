@@ -65,7 +65,7 @@ func TestCommandArgs(t *testing.T) {
 	t.Run("set return error", func(t *testing.T) {
 		os.Args = []string{"test", "-D", "name=go-spring", "-D", "debug"}
 
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"debug": []string{"true"},
 		})
 		err := NewCommandArgs().CopyTo(p)

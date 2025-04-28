@@ -32,7 +32,7 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"checkInt($)"`
 		}
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a": 4,
 		})
 		err := p.Bind(&v)
@@ -44,7 +44,7 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"checkInt($)"`
 		}
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a": 14,
 		})
 		err := p.Bind(&v)
@@ -55,7 +55,7 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"$+$"`
 		}
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a": 4,
 		})
 		err := p.Bind(&v)

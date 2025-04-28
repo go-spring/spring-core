@@ -249,7 +249,7 @@ type filter struct {
 }
 
 // Do attempts to refresh a single object if it implements the [refreshable] interface.
-func (f *filter) Do(i interface{}, param conf.BindParam) (bool, error) {
+func (f *filter) Do(i any, param conf.BindParam) (bool, error) {
 	v, ok := i.(refreshable)
 	if !ok {
 		return false, nil

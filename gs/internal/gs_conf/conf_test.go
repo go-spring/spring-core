@@ -219,7 +219,7 @@ func TestPropertySources(t *testing.T) {
 
 	t.Run("getFiles - 2", func(t *testing.T) {
 		t.Cleanup(clean)
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"spring.profiles.active": "dev,test",
 		})
 		ps := NewPropertySources(ConfigTypeLocal, "app")
@@ -259,7 +259,7 @@ func TestPropertySources(t *testing.T) {
 
 	t.Run("loadFiles - getFiles error", func(t *testing.T) {
 		t.Cleanup(clean)
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"spring.profiles.active": "${a}",
 		})
 		ps := NewPropertySources(ConfigTypeLocal, "app")

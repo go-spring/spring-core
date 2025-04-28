@@ -41,7 +41,7 @@ func TestRead(t *testing.T) {
 			time="2018-02-17T15:02:31+08:00"
 		`))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
+		assert.That(t, r).Equal(map[string]any{
 			"empty":   "",
 			"bool":    false,
 			"int":     int64(3),
@@ -62,8 +62,8 @@ func TestRead(t *testing.T) {
 			string="hello"
 		`))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
-			"map": map[string]interface{}{
+		assert.That(t, r).Equal(map[string]any{
+			"map": map[string]any{
 				"bool":   false,
 				"float":  3.0,
 				"int":    int64(3),
@@ -87,15 +87,15 @@ func TestRead(t *testing.T) {
 			string="hello"
 		`))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
-			"array": []interface{}{
-				map[string]interface{}{
+		assert.That(t, r).Equal(map[string]any{
+			"array": []any{
+				map[string]any{
 					"bool":   false,
 					"int":    int64(3),
 					"float":  3.0,
 					"string": "hello",
 				},
-				map[string]interface{}{
+				map[string]any{
 					"bool":   true,
 					"int":    int64(20),
 					"float":  0.2,
@@ -120,15 +120,15 @@ func TestRead(t *testing.T) {
 			string="hello"
 		`))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
-			"map": map[string]interface{}{
-				"k1": map[string]interface{}{
+		assert.That(t, r).Equal(map[string]any{
+			"map": map[string]any{
+				"k1": map[string]any{
 					"bool":   false,
 					"int":    int64(3),
 					"float":  3.0,
 					"string": "hello",
 				},
-				"k2": map[string]interface{}{
+				"k2": map[string]any{
 					"bool":   true,
 					"int":    int64(20),
 					"float":  0.2,

@@ -53,7 +53,7 @@ func TestEnvironment(t *testing.T) {
 		defer func() {
 			_ = os.Unsetenv("GS_DB_HOST")
 		}()
-		props := conf.Map(map[string]interface{}{
+		props := conf.Map(map[string]any{
 			"db": []string{"db2"},
 		})
 		err := NewEnvironment().CopyTo(props)

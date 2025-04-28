@@ -158,7 +158,7 @@ type Server interface {
 
 // BeanMock defines a mock object and its target bean selector for overriding.
 type BeanMock struct {
-	Object interface{}  // Mock instance to replace the target bean
+	Object any          // Mock instance to replace the target bean
 	Target BeanSelector // Selector to identify the target bean
 }
 
@@ -170,11 +170,11 @@ type BeanID struct {
 
 // BeanInitFunc defines the prototype for initialization functions.
 // Examples: `func(bean)` or `func(bean) error`.
-type BeanInitFunc = interface{}
+type BeanInitFunc = any
 
 // BeanDestroyFunc defines the prototype for destruction functions.
 // Examples: `func(bean)` or `func(bean) error`.
-type BeanDestroyFunc = interface{}
+type BeanDestroyFunc = any
 
 // Configuration holds parameters for bean setup configuration.
 type Configuration struct {

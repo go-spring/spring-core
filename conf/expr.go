@@ -18,6 +18,7 @@ package conf
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/expr-lang/expr"
 )
@@ -27,7 +28,7 @@ import (
 type ValidateFunc[T any] func(T) bool
 
 // validateFuncs holds a map of registered validation functions.
-var validateFuncs = map[string]interface{}{}
+var validateFuncs = map[string]any{}
 
 // RegisterValidateFunc registers a validation function with a specific name.
 // The function can then be used in validation expressions.
@@ -38,11 +39,9 @@ func RegisterValidateFunc[T any](name string, fn ValidateFunc[T]) {
 // validateField validates a field using a validation expression (tag) and the field value (i).
 // It evaluates the expression and checks if the result is true (i.e., the validation passes).
 // If any error occurs during evaluation or if the validation fails, an error is returned.
-func validateField(tag string, i interface{}) error {
-	env := map[string]interface{}{"$": i}
-	for k, v := range validateFuncs {
-		env[k] = v
-	}
+func validateField(tag string, i any) error {
+	env := map[string]any{"$": i}
+	maps.Copy(env, validateFuncs)
 	r, err := expr.Eval(tag, env)
 	if err != nil {
 		return fmt.Errorf("eval %q returns error, %w", tag, err)

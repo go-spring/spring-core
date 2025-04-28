@@ -48,21 +48,21 @@ func TestValue(t *testing.T) {
 		return v.onRefresh(prop, conf.BindParam{Key: "key"})
 	}
 
-	err := refresh(conf.Map(map[string]interface{}{
+	err := refresh(conf.Map(map[string]any{
 		"key": "42",
 	}))
 	assert.Nil(t, err)
 	assert.That(t, v.Value()).Equal(42)
 
-	err = refresh(conf.Map(map[string]interface{}{
-		"key": map[string]interface{}{
+	err = refresh(conf.Map(map[string]any{
+		"key": map[string]any{
 			"value": "42",
 		},
 	}))
 	assert.ThatError(t, err).Matches("bind path= type=int error << property key isn't simple value")
 
 	var wg sync.WaitGroup
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		n := i
 		wg.Add(1)
 		go func() {
@@ -77,14 +77,14 @@ func TestValue(t *testing.T) {
 	}
 
 	time.Sleep(50 * time.Millisecond)
-	err = refresh(conf.Map(map[string]interface{}{
+	err = refresh(conf.Map(map[string]any{
 		"key": 59,
 	}))
 	assert.Nil(t, err)
 
 	wg.Wait()
 
-	b, err := json.Marshal(map[string]interface{}{"key": &v})
+	b, err := json.Marshal(map[string]any{"key": &v})
 	assert.Nil(t, err)
 	assert.ThatString(t, string(b)).JsonEqual(`{"key":59}`)
 }
@@ -100,7 +100,7 @@ func TestDync(t *testing.T) {
 		}, "mock panic")
 
 		assert.Panic(t, func() {
-			prop := conf.Map(map[string]interface{}{
+			prop := conf.Map(map[string]any{
 				"error.key": "value",
 			})
 			_ = p.Refresh(prop)
@@ -113,7 +113,7 @@ func TestDync(t *testing.T) {
 		p := New(conf.New())
 		assert.That(t, p.ObjectsCount()).Equal(0)
 
-		prop := conf.Map(map[string]interface{}{
+		prop := conf.Map(map[string]any{
 			"config.s1.value": "99",
 		})
 		err := p.Refresh(prop)
@@ -141,7 +141,7 @@ func TestDync(t *testing.T) {
 		assert.That(t, cfg.S1.Value.Value()).Equal(99)
 		assert.That(t, cfg.S2.Value.Value()).Equal(123)
 
-		prop = conf.Map(map[string]interface{}{
+		prop = conf.Map(map[string]any{
 			"config.s1.value": "99",
 			"config.s2.value": "456",
 			"config.s4.value": "123",
@@ -151,7 +151,7 @@ func TestDync(t *testing.T) {
 		assert.That(t, cfg.S1.Value.Value()).Equal(99)
 		assert.That(t, cfg.S2.Value.Value()).Equal(456)
 
-		prop = conf.Map(map[string]interface{}{
+		prop = conf.Map(map[string]any{
 			"config.s1.value": "99",
 			"config.s2.value": "456",
 			"config.s3.value": "xyz",
@@ -161,7 +161,7 @@ func TestDync(t *testing.T) {
 		assert.That(t, cfg.S1.Value.Value()).Equal(99)
 		assert.That(t, cfg.S2.Value.Value()).Equal(456)
 
-		prop = conf.Map(map[string]interface{}{
+		prop = conf.Map(map[string]any{
 			"config.s1.value": "xyz",
 			"config.s2.value": "abc",
 			"config.s3.value": "xyz",
@@ -183,7 +183,7 @@ func TestDync(t *testing.T) {
 	})
 
 	t.Run("refresh struct", func(t *testing.T) {
-		p := New(conf.Map(map[string]interface{}{
+		p := New(conf.Map(map[string]any{
 			"config.s1.value": "99",
 		}))
 
@@ -201,12 +201,12 @@ func TestDync(t *testing.T) {
 		assert.Nil(t, err)
 		assert.That(t, v.Value().S1.Value).Equal(99)
 
-		err = p.Refresh(conf.Map(map[string]interface{}{
+		err = p.Refresh(conf.Map(map[string]any{
 			"config.s1.value": "xyz",
 		}))
 		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \"xyz\": invalid syntax")
 
-		err = p.Refresh(conf.Map(map[string]interface{}{
+		err = p.Refresh(conf.Map(map[string]any{
 			"config.s1.value": "10",
 		}))
 		assert.Nil(t, err)

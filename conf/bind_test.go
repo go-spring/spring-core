@@ -35,9 +35,9 @@ func init() {
 	conf.RegisterSplitter("PointSplitter", PointSplitter)
 }
 
-type funcFilter func(i interface{}, param conf.BindParam) (bool, error)
+type funcFilter func(i any, param conf.BindParam) (bool, error)
 
-func (f funcFilter) Do(i interface{}, param conf.BindParam) (bool, error) {
+func (f funcFilter) Do(i any, param conf.BindParam) (bool, error) {
 	return f(i, param)
 }
 
@@ -77,7 +77,7 @@ func TestConverter(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"time": "2025-02-01M00:00:00",
 		})
 		err := p.Bind(&s)
@@ -304,7 +304,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value int `value:"${v}" expr:"$>9"`
 		}
-		err := conf.Map(map[string]interface{}{
+		err := conf.Map(map[string]any{
 			"v": "1",
 		}).Bind(&s)
 		assert.ThatError(t, err).Matches("validate failed on .* for value 1")
@@ -321,7 +321,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value int `value:"${v}"`
 		}
-		err := conf.Map(map[string]interface{}{
+		err := conf.Map(map[string]any{
 			"v": "abc",
 		}).Bind(&s)
 		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
@@ -331,7 +331,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value uint `value:"${v}"`
 		}
-		err := conf.Map(map[string]interface{}{
+		err := conf.Map(map[string]any{
 			"v": "abc",
 		}).Bind(&s)
 		assert.ThatError(t, err).Matches("strconv.ParseUint: parsing .*: invalid syntax")
@@ -341,7 +341,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value float32 `value:"${v}"`
 		}
-		err := conf.Map(map[string]interface{}{
+		err := conf.Map(map[string]any{
 			"v": "abc",
 		}).Bind(&s)
 		assert.ThatError(t, err).Matches("strconv.ParseFloat: parsing .*: invalid syntax")
@@ -351,7 +351,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value bool `value:"${v}"`
 		}
-		err := conf.Map(map[string]interface{}{
+		err := conf.Map(map[string]any{
 			"v": "abc",
 		}).Bind(&s)
 		assert.ThatError(t, err).Matches("strconv.ParseBool: parsing .*: invalid syntax")
@@ -361,8 +361,8 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value []int `value:"${v}"`
 		}
-		err := conf.Map(map[string]interface{}{
-			"v": []interface{}{
+		err := conf.Map(map[string]any{
+			"v": []any{
 				"1", "2", "a",
 			},
 		}).Bind(&s)
@@ -397,8 +397,8 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
-		err := conf.Map(map[string]interface{}{
-			"v": []interface{}{
+		err := conf.Map(map[string]any{
+			"v": []any{
 				"1", "2", "3",
 			},
 		}).Bind(&s)
@@ -409,7 +409,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
-		err := conf.Map(map[string]interface{}{
+		err := conf.Map(map[string]any{
 			"v": "a:b,1:2",
 		}).Bind(&s)
 		assert.ThatError(t, err).Matches("property conflict at path v")
@@ -437,7 +437,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			int `value:"${v}"`
 		}
-		err := conf.Map(map[string]interface{}{
+		err := conf.Map(map[string]any{
 			"v": "123",
 		}).Bind(&s)
 		assert.Nil(t, err)
@@ -574,7 +574,7 @@ func TestProperties_Bind(t *testing.T) {
 
 		v := reflect.ValueOf(&s).Elem()
 		err = conf.BindValue(conf.New(), v, v.Type(), param,
-			funcFilter(func(i interface{}, param conf.BindParam) (bool, error) {
+			funcFilter(func(i any, param conf.BindParam) (bool, error) {
 				return false, nil
 			}))
 		assert.Nil(t, err)
@@ -592,7 +592,7 @@ func TestProperties_Bind(t *testing.T) {
 
 		v := reflect.ValueOf(&s).Elem()
 		err = conf.BindValue(conf.New(), v, v.Type(), param,
-			funcFilter(func(i interface{}, param conf.BindParam) (bool, error) {
+			funcFilter(func(i any, param conf.BindParam) (bool, error) {
 				return true, nil
 			}))
 		assert.Nil(t, err)
@@ -610,7 +610,7 @@ func TestProperties_Bind(t *testing.T) {
 
 		v := reflect.ValueOf(&s).Elem()
 		err = conf.BindValue(conf.New(), v, v.Type(), param,
-			funcFilter(func(i interface{}, param conf.BindParam) (bool, error) {
+			funcFilter(func(i any, param conf.BindParam) (bool, error) {
 				return false, errors.New("filter error")
 			}))
 		assert.ThatError(t, err).Matches("filter error")

@@ -59,7 +59,7 @@ func TestProperties_Load(t *testing.T) {
 func TestProperties_Resolve(t *testing.T) {
 
 	t.Run("success - 1", func(t *testing.T) {
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		s, err := p.Resolve("${a.b.c[0]}")
@@ -68,7 +68,7 @@ func TestProperties_Resolve(t *testing.T) {
 	})
 
 	t.Run("success - 2", func(t *testing.T) {
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		s, err := p.Resolve("${x:=${a.b.c[0]}}")
@@ -90,7 +90,7 @@ func TestProperties_Resolve(t *testing.T) {
 	})
 
 	t.Run("syntax error - 1", func(t *testing.T) {
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c}")
@@ -98,7 +98,7 @@ func TestProperties_Resolve(t *testing.T) {
 	})
 
 	t.Run("syntax error - 2", func(t *testing.T) {
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c")
@@ -106,7 +106,7 @@ func TestProperties_Resolve(t *testing.T) {
 	})
 
 	t.Run("syntax error - 3", func(t *testing.T) {
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c[0]}==${a.b.c}")
@@ -117,7 +117,7 @@ func TestProperties_Resolve(t *testing.T) {
 func TestProperties_CopyTo(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		assert.That(t, p.Keys()).Equal([]string{
@@ -131,7 +131,7 @@ func TestProperties_CopyTo(t *testing.T) {
 			"a.b.c[0]": "3",
 		})
 
-		s := conf.Map(map[string]interface{}{
+		s := conf.Map(map[string]any{
 			"a.b.c": []string{"4", "5"},
 		})
 		assert.That(t, s.Keys()).Equal([]string{
@@ -156,14 +156,14 @@ func TestProperties_CopyTo(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		assert.That(t, p.Data()).Equal(map[string]string{
 			"a.b.c[0]": "3",
 		})
 
-		s := conf.Map(map[string]interface{}{
+		s := conf.Map(map[string]any{
 			"a.b.c": "3",
 		})
 		assert.That(t, s.Get("a.b.c")).Equal("3")
@@ -177,20 +177,20 @@ func BenchmarkResolve(b *testing.B) {
 	const src = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
 	data := make([]byte, 2000)
-	for i := 0; i < len(data); i++ {
+	for i := range len(data) {
 		data[i] = src[rand.Intn(len(src))]
 	}
 	s := string(data)
 
 	b.Run("contains", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = strings.Contains(s, "${")
 		}
 	})
 
 	p := conf.New()
 	b.Run("resolve", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_, _ = p.Resolve(s)
 		}
 	})

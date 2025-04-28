@@ -38,9 +38,9 @@ type Boot interface {
 	// Config returns the boot configuration.
 	Config() *gs_conf.BootConfig
 	// Object registers an object bean.
-	Object(i interface{}) *gs.RegisteredBean
+	Object(i any) *gs.RegisteredBean
 	// Provide registers a bean using a constructor function.
-	Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean
+	Provide(ctor any, args ...gs.Arg) *gs.RegisteredBean
 	// Register registers a BeanDefinition instance.
 	Register(bd *gs.BeanDefinition) *gs.RegisteredBean
 	// FuncRunner creates a Runner from a function.
@@ -72,14 +72,14 @@ func (b *BootImpl) Config() *gs_conf.BootConfig {
 }
 
 // Object registers an object bean.
-func (b *BootImpl) Object(i interface{}) *gs.RegisteredBean {
+func (b *BootImpl) Object(i any) *gs.RegisteredBean {
 	b.flag = true
 	bd := gs_bean.NewBean(reflect.ValueOf(i))
 	return b.c.Register(bd).Caller(1)
 }
 
 // Provide registers a bean using a constructor function.
-func (b *BootImpl) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+func (b *BootImpl) Provide(ctor any, args ...gs.Arg) *gs.RegisteredBean {
 	b.flag = true
 	bd := gs_bean.NewBean(ctor, args...)
 	return b.c.Register(bd).Caller(1)

@@ -43,7 +43,7 @@ type BeanRuntime interface {
 	Name() string
 	Type() reflect.Type
 	Value() reflect.Value
-	Interface() interface{}
+	Interface() any
 	Callable() *gs_arg.Callable
 	Status() gs_bean.BeanStatus
 	String() string
@@ -156,7 +156,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 }
 
 // Wire injects dependencies into the given object.
-func (c *Injecting) Wire(obj interface{}) error {
+func (c *Injecting) Wire(obj any) error {
 	r := &Injector{
 		state:                   Refreshed,
 		p:                       gs_dync.New(c.p.Data()),
@@ -362,7 +362,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 
 		if foundAny {
 			temp := append(beforeAny, afterAny...)
-			for i := 0; i < len(beans); i++ {
+			for i := range len(beans) {
 				if slices.Contains(temp, i) {
 					continue
 				}
@@ -418,7 +418,7 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 			if str != "" {
 				nullable = true
 				if str != "?" {
-					for _, s := range strings.Split(str, ",") {
+					for s := range strings.SplitSeq(str, ",") {
 						g := parseWireTag(s)
 						tags = append(tags, g)
 						if !g.nullable {
@@ -428,7 +428,7 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 				}
 			}
 			if c.forceAutowireIsNullable {
-				for i := 0; i < len(tags); i++ {
+				for i := range len(tags) {
 					tags[i].nullable = true
 				}
 				nullable = true
@@ -499,10 +499,8 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	// Detect circular dependency.
 	if b.Status() == gs_bean.StatusCreating && b.Callable() != nil {
-		for _, bean := range stack.beans {
-			if bean == b {
-				return errors.New("found circular autowire")
-			}
+		if slices.Contains(stack.beans, b) {
+			return errors.New("found circular autowire")
 		}
 	}
 
@@ -642,7 +640,7 @@ func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) 
 // wireStruct performs dependency injection for a struct.
 func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *Stack) error {
 	// Loop through each field of the struct.
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		ft := t.Field(i)
 		fv := v.Field(i)
 
@@ -795,7 +793,7 @@ func (s *Stack) popDestroyer() {
 }
 
 // getBeforeDestroyers retrieves destroyers that should be processed before a given one for sorting purposes.
-func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
+func getBeforeDestroyers(destroyers *list.List, i any) *list.List {
 	d := i.(*destroyer)
 	result := list.New()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
@@ -810,7 +808,7 @@ func getBeforeDestroyers(destroyers *list.List, i interface{}) *list.List {
 // getSortedDestroyers sorts beans with destroy functions by dependency order.
 func (s *Stack) getSortedDestroyers() []func() {
 
-	destroy := func(v reflect.Value, fn interface{}) func() {
+	destroy := func(v reflect.Value, fn any) func() {
 		return func() {
 			fnValue := reflect.ValueOf(fn)
 			out := fnValue.Call([]reflect.Value{v})

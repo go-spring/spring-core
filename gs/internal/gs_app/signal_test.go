@@ -29,7 +29,7 @@ func TestReadySignal(t *testing.T) {
 		const workers = 3
 
 		signal := NewReadySignal()
-		for i := 0; i < workers; i++ {
+		for i := range workers {
 			num := i
 			signal.Add()
 			go func() {
@@ -53,7 +53,7 @@ func TestReadySignal(t *testing.T) {
 		defer wg.Wait()
 
 		signal := NewReadySignal()
-		for i := 0; i < workers; i++ {
+		for range workers {
 			signal.Add()
 			go func() {
 				defer wg.Done()

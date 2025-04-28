@@ -282,12 +282,12 @@ func TestResolving(t *testing.T) {
 			r.Provide((*TestBean).NewChild, b)
 		}
 
-		p := conf.Map(map[string]interface{}{
+		p := conf.Map(map[string]any{
 			"logger": map[string]string{
 				"a": "",
 				"b": "",
 			},
-			"Enable": map[string]interface{}{
+			"Enable": map[string]any{
 				"ServeMux-2": true,
 			},
 		})

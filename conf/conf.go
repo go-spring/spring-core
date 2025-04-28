@@ -19,6 +19,7 @@ package conf
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -37,7 +38,7 @@ import (
 var (
 	readers    = map[string]Reader{}
 	splitters  = map[string]Splitter{}
-	converters = map[reflect.Type]interface{}{}
+	converters = map[reflect.Type]any{}
 )
 
 func init() {
@@ -56,8 +57,8 @@ func init() {
 	})
 }
 
-// Reader parses []byte into nested map[string]interface{}.
-type Reader func(b []byte) (map[string]interface{}, error)
+// Reader parses []byte into nested map[string]any.
+type Reader func(b []byte) (map[string]any, error)
 
 // RegisterReader registers its Reader for some kind of file extension.
 func RegisterReader(r Reader, ext ...string) {
@@ -99,7 +100,7 @@ type Properties interface {
 	// Resolve resolves string that contains references.
 	Resolve(s string) (string, error)
 	// Bind binds properties into a value.
-	Bind(i interface{}, tag ...string) error
+	Bind(i any, tag ...string) error
 	// CopyTo copies properties into another by override.
 	CopyTo(out *MutableProperties) error
 }
@@ -148,7 +149,7 @@ func Load(file string) (*MutableProperties, error) {
 }
 
 // Map creates *MutableProperties from map.
-func Map(m map[string]interface{}) *MutableProperties {
+func Map(m map[string]any) *MutableProperties {
 	p := New()
 	_ = p.merge(util.FlattenMap(m))
 	return p
@@ -167,9 +168,7 @@ func (p *MutableProperties) merge(m map[string]string) error {
 // Data returns key-value pairs of the properties.
 func (p *MutableProperties) Data() map[string]string {
 	m := make(map[string]string)
-	for k, v := range p.RawData() {
-		m[k] = v
-	}
+	maps.Copy(m, p.RawData())
 	return m
 }
 
@@ -199,7 +198,7 @@ func (p *MutableProperties) Resolve(s string) (string, error) {
 // value:"${a:=b}>>splitter", 'a' is the key, 'b' is the default value,
 // 'splitter' is the Splitter's name when you want split string value
 // into []string value.
-func (p *MutableProperties) Bind(i interface{}, tag ...string) error {
+func (p *MutableProperties) Bind(i any, tag ...string) error {
 
 	var v reflect.Value
 	{

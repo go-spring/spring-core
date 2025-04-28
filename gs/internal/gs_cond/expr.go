@@ -18,18 +18,19 @@ package gs_cond
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/expr-lang/expr"
 )
 
 // funcMap stores registered functions that can be referenced in expressions.
 // These functions are available for use in all expressions evaluated by EvalExpr.
-var funcMap = map[string]interface{}{}
+var funcMap = map[string]any{}
 
 // RegisterExpressFunc registers a function under the given name, making it available
 // for use in expressions evaluated by EvalExpr. Functions must be registered before
 // they are referenced in any expression.
-func RegisterExpressFunc(name string, fn interface{}) {
+func RegisterExpressFunc(name string, fn any) {
 	funcMap[name] = fn
 }
 
@@ -37,10 +38,8 @@ func RegisterExpressFunc(name string, fn interface{}) {
 // `input` is a boolean expression string to evaluate, it must return a boolean result.
 // `val` is a string value accessible as "$" within the expression context.
 func EvalExpr(input string, val string) (bool, error) {
-	env := map[string]interface{}{"$": val}
-	for k, v := range funcMap {
-		env[k] = v
-	}
+	env := map[string]any{"$": val}
+	maps.Copy(env, funcMap)
 	r, err := expr.Eval(input, env)
 	if err != nil {
 		return false, fmt.Errorf("eval %q returns error, %w", input, err)
