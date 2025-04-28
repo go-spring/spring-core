@@ -309,14 +309,7 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
 		if !d.Type().Implements(t) {
 			panic(fmt.Sprintf("doesn't implement interface %s", t))
 		}
-		exported := false
-		for _, export := range d.exports {
-			if t == export {
-				exported = true
-				break
-			}
-		}
-		if exported {
+		if slices.Contains(d.exports, t) {
 			continue
 		}
 		d.exports = append(d.exports, t)
@@ -331,11 +324,9 @@ func (d *BeanDefinition) OnProfiles(profiles string) {
 			return false, nil
 		}
 		ss := strings.Split(strings.TrimSpace(profiles), ",")
-		for s := range slices.Values(strings.Split(val, ",")) {
-			for _, x := range ss {
-				if s == x {
-					return true, nil
-				}
+		for _, s := range strings.Split(val, ",") {
+			if slices.Contains(ss, s) {
+				return true, nil
 			}
 		}
 		return false, nil

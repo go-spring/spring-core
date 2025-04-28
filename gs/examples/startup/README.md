@@ -13,8 +13,8 @@ Configurations can be loaded from various sources including:
 - `sysconf`
 - Local files
 - Remote files
-- Command-line arguments
 - Environment variables
+- Command-line arguments
 
 ### 2. Property Binding
 

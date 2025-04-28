@@ -19,12 +19,12 @@ package gs_dync
 import (
 	"encoding/json"
 	"reflect"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/util"
 )
 
 // refreshable represents an object that can be dynamically refreshed.
@@ -165,11 +165,7 @@ func (p *Properties) Refresh(prop conf.Properties) (err error) {
 		changes[k] = struct{}{}
 	}
 
-	keys := make([]string, 0, len(changes))
-	for k := range changes {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+	keys := util.OrderedMapKeys(changes)
 	return p.refreshKeys(keys)
 }
 
@@ -193,11 +189,7 @@ func (p *Properties) refreshKeys(keys []string) (err error) {
 	// Sort and collect objects that need updating.
 	updateObjects := make([]*refreshObject, 0, len(updateIndexes))
 	{
-		ints := make([]int, 0, len(updateIndexes))
-		for k := range updateIndexes {
-			ints = append(ints, k)
-		}
-		sort.Ints(ints)
+		ints := util.OrderedMapKeys(updateIndexes)
 		for _, k := range ints {
 			updateObjects = append(updateObjects, updateIndexes[k])
 		}
