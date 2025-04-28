@@ -34,11 +34,13 @@ func init() {
 	)
 }
 
-// NewServeMux Creates a new HTTP request multiplexer and registers
+// NewServeMux creates a new HTTP request multiplexer and registers
 // routes with access logging middleware.
 func NewServeMux(c *controller.Controller, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	proto.RegisterRouter(mux, c, Access(logger))
+
+	// Users can customize routes by adding handlers to the mux
 	mux.Handle("GET /", http.FileServer(http.Dir("./public")))
 	return mux
 }

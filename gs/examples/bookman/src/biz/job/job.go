@@ -34,11 +34,15 @@ type Job struct{}
 func (x *Job) Run(ctx context.Context) error {
 	for {
 		select {
-		case <-ctx.Done(): // Gracefully exit when context is canceled
+		case <-ctx.Done():
+			// Gracefully exit when the context is canceled
 			fmt.Println("job exit")
 			return nil
 		default:
-			if gs.Exiting() { // Check if the system is shutting down
+			// Check if the app is shutting down.
+			// In long-running background tasks, checking for shutdown signals
+			// during idle periods or between stages helps ensure timely resource cleanup.
+			if gs.Exiting() {
 				return nil
 			}
 			time.Sleep(time.Millisecond * 300)

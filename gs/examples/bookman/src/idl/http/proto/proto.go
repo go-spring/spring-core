@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
+// Package proto defines the interfaces and route registrations generated from IDL files.
 package proto
 
 import (
 	"net/http"
 )
 
+// Book represents the structure of a book entity.
 type Book struct {
 	Title       string `json:"title"`
 	Author      string `json:"author"`
@@ -29,6 +31,7 @@ type Book struct {
 	RefreshTime string `json:"refreshTime"`
 }
 
+// Controller defines the service interface for book-related operations.
 type Controller interface {
 	ListBooks(w http.ResponseWriter, r *http.Request)
 	GetBook(w http.ResponseWriter, r *http.Request)
@@ -36,6 +39,9 @@ type Controller interface {
 	DeleteBook(w http.ResponseWriter, r *http.Request)
 }
 
+// RegisterRouter registers the HTTP routes for the Controller interface.
+// It maps each method to its corresponding HTTP endpoint,
+// and applies the given middleware (wrap) to each handler.
 func RegisterRouter(mux *http.ServeMux, c Controller, wrap func(next http.Handler) http.Handler) {
 	mux.Handle("GET /books", wrap(http.HandlerFunc(c.ListBooks)))
 	mux.Handle("GET /books/{isbn}", wrap(http.HandlerFunc(c.GetBook)))
