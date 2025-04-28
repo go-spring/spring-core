@@ -26,7 +26,6 @@ import (
 
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
-	"github.com/lvan100/go-assert"
 )
 
 func init() {
@@ -50,7 +49,10 @@ func MockFor[T any](name ...string) BeanMock[T] {
 
 // With registers a mock bean.
 func (m BeanMock[T]) With(obj T) {
-	gs_app.GS.C.Mock(obj, m.selector)
+	gs_app.GS.C.AddMock(gs.BeanMock{
+		Object: obj,
+		Target: m.selector,
+	})
 }
 
 type runArg struct {
@@ -110,6 +112,8 @@ func Get[T any](t *testing.T) T {
 // Wire injects dependencies into the object.
 func Wire[T any](t *testing.T, obj T) T {
 	err := gs_app.GS.C.Wire(obj)
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	return obj
 }

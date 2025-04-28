@@ -23,9 +23,17 @@ import (
 )
 
 func main() {
+	// Register an HTTP handler for the "/echo" endpoint.
 	http.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("hello world!"))
 	})
+
+	// Start the Go-Spring framework.
+	// Compared to http.ListenAndServe, gs.Run() starts a full-featured application context with:
+	// - Auto Configuration: Automatically loads properties and beans.
+	// - Property Binding: Binds external configs (YAML, ENV) into structs.
+	// - Dependency Injection: Wires beans automatically.
+	// - Dynamic Refresh: Updates configs at runtime without restart.
 	gs.Run()
 }
 

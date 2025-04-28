@@ -108,9 +108,6 @@ type CondContext interface {
 	Find(s BeanSelector) ([]CondBean, error)
 }
 
-// CondFunc is a function type that determines whether a condition is satisfied.
-type CondFunc func(ctx CondContext) (bool, error)
-
 /************************************* arg ***********************************/
 
 // Arg is an interface for retrieving argument values in function parameter binding.
@@ -158,6 +155,12 @@ type Server interface {
 }
 
 /*********************************** bean ************************************/
+
+// BeanMock defines a mock object and its target bean selector for overriding.
+type BeanMock struct {
+	Object interface{}  // Mock instance to replace the target bean
+	Target BeanSelector // Selector to identify the target bean
+}
 
 // BeanID represents the unique identifier for a bean.
 type BeanID struct {

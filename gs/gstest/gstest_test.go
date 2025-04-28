@@ -42,12 +42,19 @@ func TestMain(m *testing.M) {
 }
 
 func TestGSTest(t *testing.T) {
+	// The dao.Dao object was not successfully created,
+	// and the corresponding injection will also fail.
+	// The following log will be printed on the console:
+	// autowire error: TagArg::GetArgValue error << bind path=string type=string error << property dao.addr not exist
+
 	a := gstest.Get[*app.App](t)
 	assert.That(t, a.Name).Equal("test")
+
 	s := gstest.Wire(t, new(struct {
 		App     *app.App     `autowire:""`
 		Service *biz.Service `autowire:""`
 	}))
+	assert.Nil(t, s.Service.Dao)
 	assert.That(t, s.App.Name).Equal("test")
 	assert.That(t, s.Service.Hello("xyz")).Equal("hello xyz")
 }
