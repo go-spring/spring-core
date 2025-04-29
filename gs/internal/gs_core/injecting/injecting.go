@@ -211,24 +211,12 @@ type WireTag struct {
 
 // String converts a wireTag back to its string representation.
 func (tag WireTag) String() string {
-	b := bytes.NewBuffer(nil)
-	b.WriteString(tag.beanName)
+	var sb strings.Builder
+	sb.WriteString(tag.beanName)
 	if tag.nullable {
-		b.WriteString("?")
+		sb.WriteString("?")
 	}
-	return b.String()
-}
-
-// toWireString converts a slice of wireTags to a comma-separated string.
-func toWireString(tags []WireTag) string {
-	var buf bytes.Buffer
-	for i, tag := range tags {
-		buf.WriteString(tag.String())
-		if i < len(tags)-1 {
-			buf.WriteByte(',')
-		}
-	}
-	return buf.String()
+	return sb.String()
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
@@ -242,6 +230,18 @@ func parseWireTag(str string) (tag WireTag) {
 		}
 	}
 	return
+}
+
+// toWireString converts a slice of wireTags to a comma-separated string.
+func toWireString(tags []WireTag) string {
+	var buf bytes.Buffer
+	for i, tag := range tags {
+		buf.WriteString(tag.String())
+		if i < len(tags)-1 {
+			buf.WriteByte(',')
+		}
+	}
+	return buf.String()
 }
 
 // getSingleBean retrieves the bean corresponding to the specified tag and assigns it to `v`.
