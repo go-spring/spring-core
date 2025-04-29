@@ -34,6 +34,7 @@ func TestSysConf(t *testing.T) {
 	assert.False(t, sysconf.Has("name"))
 
 	sysconf.Set("name", "Alice")
+	sysconf.Set("name.first", "Alice")
 
 	p := sysconf.Clone()
 	assert.That(t, p.Data()).Equal(map[string]string{"name": "Alice"})
