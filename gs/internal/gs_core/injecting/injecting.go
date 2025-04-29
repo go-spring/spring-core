@@ -40,13 +40,13 @@ import (
 
 // BeanRuntime defines an interface for runtime bean information.
 type BeanRuntime interface {
-	Name() string
-	Type() reflect.Type
-	Value() reflect.Value
-	Interface() any
-	Callable() *gs_arg.Callable
-	Status() gs_bean.BeanStatus
-	String() string
+	Name() string               // The name of the bean
+	Type() reflect.Type         // The type of the bean
+	Value() reflect.Value       // The value of the bean
+	Interface() any             // The Underlying value
+	Callable() *gs_arg.Callable // Constructor, if any
+	Status() gs_bean.BeanStatus // Lifecycle status
+	String() string             // String representation
 }
 
 // refreshState represents the state of a refresh operation.
@@ -60,10 +60,10 @@ const (
 
 // Injecting defines a bean injection container.
 type Injecting struct {
-	p           *gs_dync.Properties
-	beansByName map[string][]BeanRuntime // 用于查找未导出接口
-	beansByType map[reflect.Type][]BeanRuntime
-	destroyers  []func()
+	p           *gs_dync.Properties            // Dynamic properties provider
+	beansByName map[string][]BeanRuntime       // Beans indexed by name
+	beansByType map[reflect.Type][]BeanRuntime // Beans indexed by type
+	destroyers  []func()                       // Cleanup functions in reverse order
 }
 
 // New creates a new Injecting instance.
@@ -78,12 +78,12 @@ func (c *Injecting) RefreshProperties(p conf.Properties) error {
 	return c.p.Refresh(p)
 }
 
-// Refresh refreshes the container with the given beans.
+// Refresh loads and wires all provided bean definitions.
 func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 	allowCircularReferences := cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
 	forceAutowireIsNullable := cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
-	// registers all beans
+	// Index beans by name and type for lookup
 	c.beansByName = make(map[string][]BeanRuntime)
 	c.beansByType = make(map[reflect.Type][]BeanRuntime)
 	for _, b := range beans {
@@ -110,7 +110,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 		forceAutowireIsNullable: forceAutowireIsNullable,
 	}
 
-	// injects all beans
+	// Injects all beans
 	r.state = Refreshing
 	for _, b := range beans {
 		if err = r.wireBean(b, stack); err != nil {
@@ -119,8 +119,8 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 	}
 	r.state = Refreshed
 
+	// Handle lazy fields if circular references are allowed
 	if allowCircularReferences {
-		// processes the bean fields that are marked for lazy injection.
 		for _, f := range stack.lazyFields {
 			tag := strings.TrimSuffix(f.tag, ",lazy")
 			if err = r.autowire(f.v, tag, stack); err != nil {
@@ -131,6 +131,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 		return errors.New("found circular autowire")
 	}
 
+	// Collect destroyer functions sorted by dependencies
 	c.destroyers = stack.getSortedDestroyers()
 
 	forceClean := cast.ToBool(c.p.Data().Get("spring.force-clean"))
@@ -143,6 +144,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 		return nil
 	}
 
+	// Retain beansByName and beansByType for further Wire calls
 	c.beansByName = make(map[string][]BeanRuntime)
 	c.beansByType = make(map[reflect.Type][]BeanRuntime)
 	for _, b := range beans {
@@ -176,12 +178,13 @@ func (c *Injecting) Close() {
 	}
 }
 
+// Injector handles the core autowiring and bean creation logic.
 type Injector struct {
-	state                   refreshState
-	p                       *gs_dync.Properties
-	beansByName             map[string][]BeanRuntime
-	beansByType             map[reflect.Type][]BeanRuntime
-	forceAutowireIsNullable bool
+	state                   refreshState                   // Current wiring state
+	p                       *gs_dync.Properties            // Property resolver
+	beansByName             map[string][]BeanRuntime       // Beans indexed by name
+	beansByType             map[reflect.Type][]BeanRuntime // Beans indexed by type
+	forceAutowireIsNullable bool                           // Treat missing references as nullable
 }
 
 // findBeans finds beans based on a given selector.
@@ -211,24 +214,12 @@ type WireTag struct {
 
 // String converts a wireTag back to its string representation.
 func (tag WireTag) String() string {
-	b := bytes.NewBuffer(nil)
-	b.WriteString(tag.beanName)
+	var sb strings.Builder
+	sb.WriteString(tag.beanName)
 	if tag.nullable {
-		b.WriteString("?")
+		sb.WriteString("?")
 	}
-	return b.String()
-}
-
-// toWireString converts a slice of wireTags to a comma-separated string.
-func toWireString(tags []WireTag) string {
-	var buf bytes.Buffer
-	for i, tag := range tags {
-		buf.WriteString(tag.String())
-		if i < len(tags)-1 {
-			buf.WriteByte(',')
-		}
-	}
-	return buf.String()
+	return sb.String()
 }
 
 // parseWireTag parses a wire tag string and returns a wireTag struct.
@@ -244,8 +235,20 @@ func parseWireTag(str string) (tag WireTag) {
 	return
 }
 
-// getSingleBean retrieves the bean corresponding to the specified tag and assigns it to `v`.
-// `v` should be an uninitialized value.
+// toWireString converts a slice of wireTags to a comma-separated string.
+func toWireString(tags []WireTag) string {
+	var buf bytes.Buffer
+	for i, tag := range tags {
+		buf.WriteString(tag.String())
+		if i < len(tags)-1 {
+			buf.WriteByte(',')
+		}
+	}
+	return buf.String()
+}
+
+// getBean retrieves a single bean matching type t and WireTag criteria.
+// Returns error if not found or multiple matches.
 func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRuntime, error) {
 
 	// Check if the type of `v` is a valid bean receiver type.
@@ -254,7 +257,6 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 	}
 
 	var foundBeans []BeanRuntime
-	// Iterate through all beans of the given type and match against the tag.
 	for _, b := range c.beansByType[t] {
 		if tag.beanName == "" || tag.beanName == b.Name() {
 			foundBeans = append(foundBeans, b)
@@ -274,7 +276,6 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 		}
 	}
 
-	// If no matching beans are found and the tag allows nullable beans, return nil.
 	if len(foundBeans) == 0 {
 		if tag.nullable {
 			return nil, nil
@@ -282,7 +283,6 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 		return nil, fmt.Errorf("can't find bean, bean:%q type:%q", tag, t)
 	}
 
-	// If more than one matching bean is found, return an error.
 	if len(foundBeans) > 1 {
 		msg := fmt.Sprintf("found %d beans, bean:%q type:%q [", len(foundBeans), tag, t)
 		for _, b := range foundBeans {
@@ -292,7 +292,6 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 		return nil, errors.New(msg)
 	}
 
-	// Retrieve the single matching bean.
 	b := foundBeans[0]
 	if c.state == Refreshing {
 		if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
@@ -302,8 +301,8 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 	return b, nil
 }
 
-// getMultiBeans collects beans into the given slice or map value `v`.
-// It supports dependency injection by resolving matching beans based on tags.
+// getBeans retrieves a collection (slice or map) of beans matching element type and WireTags.
+// Supports ordering with '*' wildcard and optional elements.
 func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) {
 
 	et := t.Elem()
@@ -404,7 +403,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 	return beans, nil
 }
 
-// autowire performs dependency injection by tag.
+// autowire injects dependencies into a field or collection based on its kind and tag.
 func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 	str, err := c.p.Data().Resolve(str)
 	if err != nil {
@@ -474,10 +473,7 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 	}
 }
 
-// wireBean performs property binding and dependency injection for the specified bean.
-// It also tracks its injection path. If the bean has an initialization function, it
-// is executed after the injection is completed. If the bean depends on other beans,
-// it attempts to instantiate and inject those dependencies first.
+// wireBean ensures a BeanDefinition is created, its dependencies wired, and init/destroy managed.
 func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	haveDestroy := false
@@ -557,8 +553,7 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	return nil
 }
 
-// getBeanValue retrieves the value of a bean. If it is a constructor bean,
-// it executes the constructor and returns the result.
+// getBeanValue invokes the factory method for a bean definition, handling return values and errors.
 func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error) {
 
 	// If the bean has no callable function, return its value directly.
@@ -576,6 +571,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 		return reflect.Value{}, err
 	}
 
+	// Check last return value for error
 	if o := out[len(out)-1]; util.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
 			if c.forceAutowireIsNullable {
@@ -602,7 +598,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 
 	// Return an error if the value is nil.
 	if b.Value().IsNil() {
-		return reflect.Value{}, fmt.Errorf("%s return nil", b.String()) // b.GetClass(), b.FileLine())
+		return reflect.Value{}, fmt.Errorf("%s return nil", b.String())
 	}
 
 	v := b.Value()
@@ -613,7 +609,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 	return v, nil
 }
 
-// wireBeanValue binds properties and injects dependencies into the value v. v should already be initialized.
+// wireBeanValue injects struct fields for a given reflect.Value and type.
 func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) error {
 
 	// Dereference pointer types and adjust the target type.
@@ -637,7 +633,7 @@ func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) 
 	return c.wireStruct(v, t, param, stack)
 }
 
-// wireStruct performs dependency injection for a struct.
+// wireStruct inspects struct fields and applies autowire or configuration binding based on tags.
 func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *Stack) error {
 	// Loop through each field of the struct.
 	for i := range t.NumField() {
@@ -705,18 +701,18 @@ func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPara
 	return nil
 }
 
-// destroyer stores beans with destroy functions and their call order.
+// destroyer represents a bean's cleanup function and its dependencies on other beans.
 type destroyer struct {
-	current *gs_bean.BeanDefinition   // The current bean being processed.
-	depends []*gs_bean.BeanDefinition // Beans that must be destroyed before the current bean.
+	current *gs_bean.BeanDefinition   // Bean that provides this destroyer
+	depends []*gs_bean.BeanDefinition // Beans that must be destroyed before current
 }
 
-// after adds a bean to the later list, ensuring it is destroyed after the current bean.
+// isDependOn reports whether this destroyer depends on bean b.
 func (d *destroyer) isDependOn(b *gs_bean.BeanDefinition) bool {
 	return slices.Contains(d.depends, b)
 }
 
-// after adds a bean to the later list, ensuring it is destroyed after the current bean.
+// dependOn adds b to the list of dependencies if not already present.
 func (d *destroyer) dependOn(b *gs_bean.BeanDefinition) {
 	if d.isDependOn(b) {
 		return
@@ -731,15 +727,15 @@ type LazyField struct {
 	tag  string        // Associated tag for the field.
 }
 
-// Stack tracks the injection path of beans and their destroyers.
+// Stack tracks bean wiring context: current beans, lazy fields, and destroyers.
 type Stack struct {
-	beans        []*gs_bean.BeanDefinition
-	lazyFields   []LazyField
-	destroyers   *list.List
-	destroyerMap map[gs.BeanID]*destroyer
+	beans        []*gs_bean.BeanDefinition // Current wiring call stack
+	lazyFields   []LazyField               // Fields deferred due to lazy injection
+	destroyers   *list.List                // Linked list of destroyer structs
+	destroyerMap map[gs.BeanID]*destroyer  // Lookup map for destroyer entries
 }
 
-// NewStack creates a new Stack instance.
+// NewStack initializes a fresh wiring stack for a new Refresh or Wire call.
 func NewStack() *Stack {
 	return &Stack{
 		destroyers:   list.New(),
@@ -747,13 +743,13 @@ func NewStack() *Stack {
 	}
 }
 
-// pushBean adds a bean to the injection path.
+// pushBean records that bean b is being wired, used for cycle detection.
 func (s *Stack) pushBean(b *gs_bean.BeanDefinition) {
 	syslog.Debugf("push %s %s", b, b.Status())
 	s.beans = append(s.beans, b)
 }
 
-// popBean removes the last bean from the injection path.
+// popBean removes the most recently pushed bean from the wiring stack.
 func (s *Stack) popBean() {
 	n := len(s.beans)
 	b := s.beans[n-1]
@@ -762,7 +758,7 @@ func (s *Stack) popBean() {
 	syslog.Debugf("pop %s %s", b, b.Status())
 }
 
-// Path returns the injection path as a string.
+// Path builds a readable representation of the wiring stack path for errors.
 func (s *Stack) Path() (path string) {
 	if len(s.beans) == 0 {
 		return ""
@@ -773,7 +769,7 @@ func (s *Stack) Path() (path string) {
 	return path[:len(path)-1] // Remove the trailing newline.
 }
 
-// pushDestroyer tracks a bean with a destroy function, ensuring no duplicates.
+// pushDestroyer registers a destroyer callback for bean b, tracking dependencies.
 func (s *Stack) pushDestroyer(b *gs_bean.BeanDefinition) {
 	beanID := gs.BeanID{Name: b.Name(), Type: b.Type()}
 	d, ok := s.destroyerMap[beanID]
@@ -787,12 +783,12 @@ func (s *Stack) pushDestroyer(b *gs_bean.BeanDefinition) {
 	s.destroyers.PushBack(b)
 }
 
-// popDestroyer removes the last bean from the destroyer stack.
+// popDestroyer removes the last destroyer from the ordering list.
 func (s *Stack) popDestroyer() {
 	s.destroyers.Remove(s.destroyers.Back())
 }
 
-// getBeforeDestroyers retrieves destroyers that should be processed before a given one for sorting purposes.
+// getBeforeDestroyers filters the destroyer list to those that current depends on.
 func getBeforeDestroyers(destroyers *list.List, i any) *list.List {
 	d := i.(*destroyer)
 	result := list.New()
@@ -805,7 +801,7 @@ func getBeforeDestroyers(destroyers *list.List, i any) *list.List {
 	return result
 }
 
-// getSortedDestroyers sorts beans with destroy functions by dependency order.
+// getSortedDestroyers returns callbacks sorted respecting bean dependencies.
 func (s *Stack) getSortedDestroyers() []func() {
 
 	destroy := func(v reflect.Value, fn any) func() {
@@ -833,25 +829,29 @@ func (s *Stack) getSortedDestroyers() []func() {
 	return ret
 }
 
-// ArgContext holds a Container and a Stack to manage dependency injection.
+// ArgContext provides injection context for factory callables,
+// exposing property access and bean lookup.
 type ArgContext struct {
 	c     *Injector
 	stack *Stack
 }
 
-// NewArgContext creates a new ArgContext with a given Container and Stack.
+// NewArgContext constructs a new ArgContext for a wiring operation.
 func NewArgContext(c *Injector, stack *Stack) *ArgContext {
 	return &ArgContext{c: c, stack: stack}
 }
 
+// Has checks whether a configuration key is present.
 func (a *ArgContext) Has(key string) bool {
 	return a.c.p.Data().Has(key)
 }
 
+// Prop retrieves a property value, with optional default.
 func (a *ArgContext) Prop(key string, def ...string) string {
 	return a.c.p.Data().Get(key, def...)
 }
 
+// Find returns beans satisfying a selector, as conditional beans.
 func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 	beans := a.c.findBeans(s)
 	var ret []gs.CondBean
@@ -861,17 +861,17 @@ func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
 	return ret, nil
 }
 
-// Check checks if a given condition matches the container.
+// Check evaluates whether a condition matches in the current context.
 func (a *ArgContext) Check(c gs.Condition) (bool, error) {
 	return c.Matches(a)
 }
 
-// Bind binds a value to a specific tag in the container.
+// Bind binds a configuration property to a [reflect.Value] based on struct tag.
 func (a *ArgContext) Bind(v reflect.Value, tag string) error {
 	return a.c.p.Data().Bind(v, tag)
 }
 
-// Wire wires a value based on a specific tag in the container.
+// Wire performs autowiring on a [reflect.Value], using the given tag.
 func (a *ArgContext) Wire(v reflect.Value, tag string) error {
 	return a.c.autowire(v, tag, a.stack)
 }

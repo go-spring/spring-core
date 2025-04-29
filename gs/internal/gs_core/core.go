@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// Package gs_core provides the core implementation of the Inversion of Control (IoC)
+// container in the Go-Spring framework. It is responsible for managing the lifecycle,
+// dependency resolution, and injection of application beans.
 package gs_core
 
 import (

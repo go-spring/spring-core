@@ -140,10 +140,7 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 		if RetErr == nil {
 			tag, ok := param.Validate.Lookup("expr")
 			if ok && len(tag) > 0 {
-				err := validateField(tag, v.Interface())
-				if err != nil {
-					RetErr = err
-				}
+				RetErr = validateField(tag, v.Interface())
 			}
 		}
 	}()
@@ -326,6 +323,7 @@ func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, fil
 		if param.Tag.HasDef {
 			return nil
 		}
+		return fmt.Errorf("tag for %s requires a default value", param.Path)
 	}
 
 	if !p.Has(param.Key) {
@@ -386,7 +384,7 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
 			if filter != nil {
 				ret, err := filter.Do(fv.Addr().Interface(), subParam)
 				if err != nil {
-					return err
+					return errutil.WrapError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 				}
 				if ret {
 					continue
