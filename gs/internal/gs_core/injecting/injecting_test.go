@@ -190,11 +190,11 @@ func (b *TestBean) NewChildV2() (*ChildBean, error) {
 	return &ChildBean{b.Value}, nil
 }
 
-func objectBean(i interface{}) *gs.BeanDefinition {
+func objectBean(i any) *gs.BeanDefinition {
 	return gs_bean.NewBean(reflect.ValueOf(i))
 }
 
-func provideBean(ctor interface{}, args ...gs.Arg) *gs.BeanDefinition {
+func provideBean(ctor any, args ...gs.Arg) *gs.BeanDefinition {
 	return gs_bean.NewBean(ctor, args...)
 }
 
@@ -217,8 +217,8 @@ type LazyB struct {
 func TestInjecting(t *testing.T) {
 
 	t.Run("lazy error - 1", func(t *testing.T) {
-		r := New(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
+		r := New(conf.Map(map[string]any{
+			"spring": map[string]any{
 				"allow-circular-references": true,
 			},
 		}))
@@ -241,23 +241,23 @@ func TestInjecting(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		r := New(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
+		r := New(conf.Map(map[string]any{
+			"spring": map[string]any{
 				"allow-circular-references":  true,
 				"force-autowire-is-nullable": true,
 			},
-			"logger": map[string]interface{}{
-				"biz": map[string]interface{}{
+			"logger": map[string]any{
+				"biz": map[string]any{
 					"file": "biz.log",
 				},
 			},
-			"server": map[string]interface{}{
-				"enable": map[string]interface{}{
+			"server": map[string]any{
+				"enable": map[string]any{
 					"write-timeout": true,
 				},
 			},
-			"service": map[string]interface{}{
-				"config": map[string]interface{}{
+			"service": map[string]any{
+				"config": map[string]any{
 					"int": 100,
 					"str": "hello",
 				},
@@ -331,23 +331,23 @@ func TestInjecting(t *testing.T) {
 		assert.That(t, s.Server.arg.readTimeout).Equal(0)
 		assert.That(t, s.Server.arg.writeTimeout).Equal(100)
 
-		err = r.RefreshProperties(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
+		err = r.RefreshProperties(conf.Map(map[string]any{
+			"spring": map[string]any{
 				"allow-circular-references":  true,
 				"force-autowire-is-nullable": true,
 			},
-			"logger": map[string]interface{}{
-				"biz": map[string]interface{}{
+			"logger": map[string]any{
+				"biz": map[string]any{
 					"file": "biz.log",
 				},
 			},
-			"server": map[string]interface{}{
-				"enable": map[string]interface{}{
+			"server": map[string]any{
+				"enable": map[string]any{
 					"write-timeout": true,
 				},
 			},
-			"service": map[string]interface{}{
-				"config": map[string]interface{}{
+			"service": map[string]any{
+				"config": map[string]any{
 					"int": 100,
 					"str": "hello",
 				},
@@ -512,8 +512,8 @@ func TestInjecting(t *testing.T) {
 	})
 
 	t.Run("wire error - 14", func(t *testing.T) {
-		r := New(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
+		r := New(conf.Map(map[string]any{
+			"spring": map[string]any{
 				"force-autowire-is-nullable": true,
 			},
 		}))
@@ -545,8 +545,8 @@ func TestInjecting(t *testing.T) {
 	})
 
 	t.Run("wire error - 16", func(t *testing.T) {
-		r := New(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
+		r := New(conf.Map(map[string]any{
+			"spring": map[string]any{
 				"force-autowire-is-nullable": true,
 			},
 		}))
@@ -805,8 +805,8 @@ func TestCircularBean(t *testing.T) {
 	})
 
 	t.Run("found circular - 3", func(t *testing.T) {
-		r := New(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
+		r := New(conf.Map(map[string]any{
+			"spring": map[string]any{
 				"allow-circular-references": true,
 			},
 		}))
@@ -930,8 +930,8 @@ func TestForceClean(t *testing.T) {
 	t.Run("no dync value", func(t *testing.T) {
 		release := make(map[string]struct{})
 
-		r := New(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
+		r := New(conf.Map(map[string]any{
+			"spring": map[string]any{
 				"force-clean": true,
 			},
 		}))
@@ -961,8 +961,8 @@ func TestForceClean(t *testing.T) {
 	})
 
 	t.Run("has dync value", func(t *testing.T) {
-		r := New(conf.Map(map[string]interface{}{
-			"spring": map[string]interface{}{
+		r := New(conf.Map(map[string]any{
+			"spring": map[string]any{
 				"force-clean": true,
 			},
 		}))

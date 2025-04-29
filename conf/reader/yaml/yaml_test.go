@@ -44,7 +44,7 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
+		assert.That(t, r).Equal(map[string]any{
 			"empty":   "",
 			"bool":    false,
 			"int":     3,
@@ -67,8 +67,8 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
-			"map": map[interface{}]interface{}{
+		assert.That(t, r).Equal(map[string]any{
+			"map": map[any]any{
 				"bool":   false,
 				"float":  3.0,
 				"int":    3,
@@ -94,15 +94,15 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
-			"array": []interface{}{
-				map[interface{}]interface{}{
+		assert.That(t, r).Equal(map[string]any{
+			"array": []any{
+				map[any]any{
 					"bool":   false,
 					"int":    3,
 					"float":  3.0,
 					"string": "hello",
 				},
-				map[interface{}]interface{}{
+				map[any]any{
 					"bool":   true,
 					"int":    20,
 					"float":  0.2,
@@ -129,15 +129,15 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
-			"map": map[interface{}]interface{}{
-				"k1": map[interface{}]interface{}{
+		assert.That(t, r).Equal(map[string]any{
+			"map": map[any]any{
+				"k1": map[any]any{
 					"bool":   false,
 					"int":    3,
 					"float":  3.0,
 					"string": "hello",
 				},
-				"k2": map[interface{}]interface{}{
+				"k2": map[any]any{
 					"bool":   true,
 					"int":    20,
 					"float":  0.2,
@@ -155,9 +155,9 @@ func TestRead(t *testing.T) {
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
-			"array": []interface{}{},
-			"map":   map[interface{}]interface{}{},
+		assert.That(t, r).Equal(map[string]any{
+			"array": []any{},
+			"map":   map[any]any{},
 		})
 	})
 }

@@ -83,11 +83,11 @@ func (arg IndexArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 
 // ValueArg represents a fixed-value argument.
 type ValueArg struct {
-	v interface{}
+	v any
 }
 
 // Value creates a fixed-value argument.
-func Value(v interface{}) gs.Arg {
+func Value(v any) gs.Arg {
 	return ValueArg{v: v}
 }
 
@@ -199,7 +199,7 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 }
 
 // CallableFunc is a function that can be called.
-type CallableFunc = interface{}
+type CallableFunc = any
 
 // Callable wraps a function and its bound arguments for invocation.
 type Callable struct {
@@ -278,8 +278,8 @@ func (arg *BindArg) SetFileLine(file string, line int) {
 }
 
 // Condition adds pre-execution conditions to the binding.
-func (arg *BindArg) Condition(c ...gs.Condition) *BindArg {
-	arg.conditions = append(arg.conditions, c...)
+func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg {
+	arg.conditions = append(arg.conditions, conditions...)
 	return arg
 }
 

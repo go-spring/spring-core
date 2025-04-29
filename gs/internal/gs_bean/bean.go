@@ -129,8 +129,8 @@ func (d *BeanMetadata) Conditions() []gs.Condition {
 }
 
 // SetCondition adds a condition to the list of conditions for the bean.
-func (d *BeanMetadata) SetCondition(c ...gs.Condition) {
-	d.conditions = append(d.conditions, c...)
+func (d *BeanMetadata) SetCondition(conditions ...gs.Condition) {
+	d.conditions = append(d.conditions, conditions...)
 }
 
 // Configuration returns the configuration parameters for the bean.
@@ -189,7 +189,7 @@ func (d *BeanRuntime) Value() reflect.Value {
 }
 
 // Interface returns the underlying value of the bean.
-func (d *BeanRuntime) Interface() interface{} {
+func (d *BeanRuntime) Interface() any {
 	return d.v.Interface()
 }
 
@@ -230,7 +230,7 @@ func makeBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) 
 }
 
 // SetMock sets the mock object for the bean, replacing its runtime information.
-func (d *BeanDefinition) SetMock(obj interface{}) {
+func (d *BeanDefinition) SetMock(obj any) {
 	*d = BeanDefinition{
 		BeanMetadata: &BeanMetadata{
 			exports: d.exports,
@@ -309,14 +309,7 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
 		if !d.Type().Implements(t) {
 			panic(fmt.Sprintf("doesn't implement interface %s", t))
 		}
-		exported := false
-		for _, export := range d.exports {
-			if t == export {
-				exported = true
-				break
-			}
-		}
-		if exported {
+		if slices.Contains(d.exports, t) {
 			continue
 		}
 		d.exports = append(d.exports, t)
@@ -331,11 +324,9 @@ func (d *BeanDefinition) OnProfiles(profiles string) {
 			return false, nil
 		}
 		ss := strings.Split(strings.TrimSpace(profiles), ",")
-		for s := range slices.Values(strings.Split(val, ",")) {
-			for _, x := range ss {
-				if s == x {
-					return true, nil
-				}
+		for s := range strings.SplitSeq(val, ",") {
+			if slices.Contains(ss, s) {
+				return true, nil
 			}
 		}
 		return false, nil
@@ -354,7 +345,7 @@ func (d *BeanDefinition) String() string {
 
 // NewBean creates a new bean definition. When registering a normal function,
 // use reflect.ValueOf(fn) to avoid conflicts with constructors.
-func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 
 	var f *gs_arg.Callable
 	var v reflect.Value

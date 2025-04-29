@@ -40,7 +40,7 @@ func TestRead(t *testing.T) {
 			"time": "2018-02-17T15:02:31+08:00"
 		}`))
 		assert.Nil(t, err)
-		assert.That(t, r).Equal(map[string]interface{}{
+		assert.That(t, r).Equal(map[string]any{
 			"empty":  "",
 			"bool":   false,
 			"int":    float64(3),

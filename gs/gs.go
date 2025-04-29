@@ -55,7 +55,7 @@ func TagArg(tag string) Arg {
 
 // ValueArg returns a ValueArg with the specified value.
 // Used to provide specific values for constructor parameters.
-func ValueArg(v interface{}) Arg {
+func ValueArg(v any) Arg {
 	return gs_arg.Value(v)
 }
 
@@ -67,7 +67,7 @@ func IndexArg(n int, arg Arg) Arg {
 
 // BindArg returns a BindArg for the specified function and arguments.
 // Used to provide argument binding for option-style constructor parameters.
-func BindArg(fn interface{}, args ...Arg) *gs_arg.BindArg {
+func BindArg(fn any, args ...Arg) *gs_arg.BindArg {
 	return gs_arg.Bind(fn, args...)
 }
 
@@ -109,7 +109,7 @@ func OnSingleBean[T any](name ...string) Condition {
 }
 
 // RegisterExpressFunc registers a custom expression function.
-func RegisterExpressFunc(name string, fn interface{}) {
+func RegisterExpressFunc(name string, fn any) {
 	gs_cond.RegisterExpressFunc(name, fn)
 }
 
@@ -161,7 +161,7 @@ type (
 )
 
 // NewBean creates a new BeanDefinition.
-func NewBean(objOrCtor interface{}, ctorArgs ...gs.Arg) *gs.BeanDefinition {
+func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *gs.BeanDefinition {
 	return gs_bean.NewBean(objOrCtor, ctorArgs...).Caller(1)
 }
 
@@ -257,13 +257,13 @@ func Component[T any](i T) T {
 }
 
 // Object registers a bean definition for a given object.
-func Object(i interface{}) *RegisteredBean {
+func Object(i any) *RegisteredBean {
 	b := gs_bean.NewBean(reflect.ValueOf(i))
 	return gs_app.GS.C.Register(b).Caller(1)
 }
 
 // Provide registers a bean definition for a given constructor.
-func Provide(ctor interface{}, args ...Arg) *RegisteredBean {
+func Provide(ctor any, args ...Arg) *RegisteredBean {
 	b := gs_bean.NewBean(ctor, args...)
 	return gs_app.GS.C.Register(b).Caller(1)
 }
@@ -313,7 +313,7 @@ func printBanner() {
 	}
 
 	maxLength := 0
-	for _, s := range strings.Split(appBanner, "\n") {
+	for s := range strings.SplitSeq(appBanner, "\n") {
 		fmt.Printf("\x1b[36m%s\x1b[0m\n", s) // CYAN
 		if len(s) > maxLength {
 			maxLength = len(s)

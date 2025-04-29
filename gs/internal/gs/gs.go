@@ -94,8 +94,8 @@ type Condition interface {
 
 // CondBean represents a bean with Name and Type.
 type CondBean interface {
-	Name() string
-	Type() reflect.Type
+	Name() string       // Name of the bean
+	Type() reflect.Type // Type of the bean
 }
 
 // CondContext defines methods for the IoC container used by conditions.
@@ -158,23 +158,23 @@ type Server interface {
 
 // BeanMock defines a mock object and its target bean selector for overriding.
 type BeanMock struct {
-	Object interface{}  // Mock instance to replace the target bean
+	Object any          // Mock instance to replace the target bean
 	Target BeanSelector // Selector to identify the target bean
 }
 
 // BeanID represents the unique identifier for a bean.
 type BeanID struct {
-	Type reflect.Type
-	Name string
+	Type reflect.Type // Type of the bean
+	Name string       // Name of the bean
 }
 
 // BeanInitFunc defines the prototype for initialization functions.
 // Examples: `func(bean)` or `func(bean) error`.
-type BeanInitFunc = interface{}
+type BeanInitFunc = any
 
 // BeanDestroyFunc defines the prototype for destruction functions.
 // Examples: `func(bean)` or `func(bean) error`.
-type BeanDestroyFunc = interface{}
+type BeanDestroyFunc = any
 
 // Configuration holds parameters for bean setup configuration.
 type Configuration struct {
@@ -192,7 +192,7 @@ type BeanRegistration interface {
 	SetDestroy(fn BeanDestroyFunc)
 	SetInitMethod(method string)
 	SetDestroyMethod(method string)
-	SetCondition(c ...Condition)
+	SetCondition(conditions ...Condition)
 	SetDependsOn(selectors ...BeanSelector)
 	SetExport(exports ...reflect.Type)
 	SetConfiguration(c ...Configuration)
@@ -251,8 +251,8 @@ func (d *beanBuilder[T]) DestroyMethod(method string) *T {
 }
 
 // Condition sets the conditions for the bean.
-func (d *beanBuilder[T]) Condition(c ...Condition) *T {
-	d.b.SetCondition(c...)
+func (d *beanBuilder[T]) Condition(conditions ...Condition) *T {
+	d.b.SetCondition(conditions...)
 	return *(**T)(unsafe.Pointer(&d))
 }
 

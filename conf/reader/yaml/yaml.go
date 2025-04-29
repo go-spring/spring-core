@@ -21,8 +21,8 @@ import (
 )
 
 // Read parses []byte in the yaml format into map.
-func Read(b []byte) (map[string]interface{}, error) {
-	ret := make(map[string]interface{})
+func Read(b []byte) (map[string]any, error) {
+	ret := make(map[string]any)
 	err := yaml.Unmarshal(b, &ret)
 	if err != nil {
 		return nil, err

@@ -19,13 +19,13 @@ package prop
 import "github.com/magiconair/properties"
 
 // Read parses []byte in the properties format into map.
-func Read(b []byte) (map[string]interface{}, error) {
+func Read(b []byte) (map[string]any, error) {
 
 	p := properties.NewProperties()
 	p.DisableExpansion = true
 	_ = p.Load(b, properties.UTF8) // always no error
 
-	ret := make(map[string]interface{})
+	ret := make(map[string]any)
 	for k, v := range p.Map() {
 		ret[k] = v
 	}

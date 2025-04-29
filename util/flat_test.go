@@ -24,23 +24,23 @@ import (
 )
 
 func TestFlatten(t *testing.T) {
-	m := util.FlattenMap(map[string]interface{}{
+	m := util.FlattenMap(map[string]any{
 		"int": 123,
 		"str": "abc",
-		"arr": []interface{}{
+		"arr": []any{
 			"abc",
 			"def",
-			map[string]interface{}{
+			map[string]any{
 				"a": "123",
 				"b": "456",
 			},
 			nil,
-			([]interface{})(nil),     // it doesn't equal to nil
+			([]any)(nil),             // it doesn't equal to nil
 			(map[string]string)(nil), // it doesn't equal to nil
-			[]interface{}{},
+			[]any{},
 			map[string]string{},
 		},
-		"map": map[string]interface{}{
+		"map": map[string]any{
 			"a": "123",
 			"b": "456",
 			"arr": []string{
@@ -48,15 +48,15 @@ func TestFlatten(t *testing.T) {
 				"def",
 			},
 			"nil":       nil,
-			"nil_arr":   []interface{}(nil),     // it doesn't equal to nil
+			"nil_arr":   []any(nil),             // it doesn't equal to nil
 			"nil_map":   map[string]string(nil), // it doesn't equal to nil
-			"empty_arr": []interface{}{},
+			"empty_arr": []any{},
 			"empty_map": map[string]string{},
 		},
 		"nil":       nil,
-		"nil_arr":   []interface{}(nil),     // it doesn't equal to nil
+		"nil_arr":   []any(nil),             // it doesn't equal to nil
 		"nil_map":   map[string]string(nil), // it doesn't equal to nil
-		"empty_arr": []interface{}{},
+		"empty_arr": []any{},
 		"empty_map": map[string]string{},
 	})
 	expect := map[string]string{

@@ -34,7 +34,7 @@ func TestTripleSort(t *testing.T) {
 	})
 
 	t.Run("single element", func(t *testing.T) {
-		getBefore := func(_ *list.List, _ interface{}) *list.List {
+		getBefore := func(_ *list.List, _ any) *list.List {
 			return list.New()
 		}
 		sorting := util.ListOf("A")
@@ -46,7 +46,7 @@ func TestTripleSort(t *testing.T) {
 
 	t.Run("independent elements", func(t *testing.T) {
 		// A、B、C
-		getBefore := func(_ *list.List, _ interface{}) *list.List {
+		getBefore := func(_ *list.List, _ any) *list.List {
 			return list.New()
 		}
 		sorting := util.ListOf("A", "B", "C")
@@ -57,7 +57,7 @@ func TestTripleSort(t *testing.T) {
 
 	t.Run("linear dependency", func(t *testing.T) {
 		// A -> B -> C
-		getBefore := func(_ *list.List, current interface{}) *list.List {
+		getBefore := func(_ *list.List, current any) *list.List {
 			l := list.New()
 			switch current {
 			case "A":
@@ -75,7 +75,7 @@ func TestTripleSort(t *testing.T) {
 
 	t.Run("multiple dependencies", func(t *testing.T) {
 		// A -> B&C, B -> C
-		getBefore := func(_ *list.List, current interface{}) *list.List {
+		getBefore := func(_ *list.List, current any) *list.List {
 			l := list.New()
 			switch current {
 			case "A":
@@ -94,7 +94,7 @@ func TestTripleSort(t *testing.T) {
 
 	t.Run("cycle", func(t *testing.T) {
 		// A -> B -> C -> A
-		getBefore := func(_ *list.List, current interface{}) *list.List {
+		getBefore := func(_ *list.List, current any) *list.List {
 			l := list.New()
 			switch current {
 			case "A":

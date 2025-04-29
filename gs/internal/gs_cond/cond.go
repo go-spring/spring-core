@@ -66,9 +66,9 @@ type OnPropertyInterface interface {
 // in the context. It allows for complex matching behaviors such as matching missing
 // properties or evaluating expressions.
 type onProperty struct {
-	name           string      // The name of the property to check.
-	matchIfMissing bool        // Whether to match if the property is missing.
-	havingValue    interface{} // The expected value or expression to match.
+	name           string // The name of the property to check.
+	matchIfMissing bool   // Whether to match if the property is missing.
+	havingValue    any    // The expected value or expression to match.
 }
 
 // OnProperty creates a condition based on the presence and value of a specified property.

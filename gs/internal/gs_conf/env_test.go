@@ -48,50 +48,12 @@ func TestEnvironment(t *testing.T) {
 		assert.That(t, props.Get("API_KEY")).Equal("key123")
 	})
 
-	t.Run("custom patterns", func(t *testing.T) {
-		_ = os.Setenv(IncludeEnvPatterns, "^TEST_")
-		_ = os.Setenv(ExcludeEnvPatterns, "^TEST_INTERNAL")
-		_ = os.Setenv("TEST_PUBLIC", "yes")
-		_ = os.Setenv("TEST_INTERNAL", "no")
-		defer func() {
-			_ = os.Unsetenv(IncludeEnvPatterns)
-			_ = os.Unsetenv(ExcludeEnvPatterns)
-			_ = os.Unsetenv("TEST_PUBLIC")
-			_ = os.Unsetenv("TEST_INTERNAL")
-		}()
-		props := conf.New()
-		err := NewEnvironment().CopyTo(props)
-		assert.Nil(t, err)
-		assert.That(t, props.Get("TEST_PUBLIC")).Equal("yes")
-		assert.False(t, props.Has("TEST_INTERNAL"))
-	})
-
-	t.Run("invalid regex - include", func(t *testing.T) {
-		_ = os.Setenv(IncludeEnvPatterns, "[invalid")
-		defer func() {
-			_ = os.Unsetenv(IncludeEnvPatterns)
-		}()
-		props := conf.New()
-		err := NewEnvironment().CopyTo(props)
-		assert.ThatError(t, err).Matches("error parsing regexp")
-	})
-
-	t.Run("invalid regex - exclude", func(t *testing.T) {
-		_ = os.Setenv(ExcludeEnvPatterns, "[invalid")
-		defer func() {
-			_ = os.Unsetenv(ExcludeEnvPatterns)
-		}()
-		props := conf.New()
-		err := NewEnvironment().CopyTo(props)
-		assert.ThatError(t, err).Matches("error parsing regexp")
-	})
-
 	t.Run("set return error", func(t *testing.T) {
 		_ = os.Setenv("GS_DB_HOST", "db1")
 		defer func() {
 			_ = os.Unsetenv("GS_DB_HOST")
 		}()
-		props := conf.Map(map[string]interface{}{
+		props := conf.Map(map[string]any{
 			"db": []string{"db2"},
 		})
 		err := NewEnvironment().CopyTo(props)

@@ -41,7 +41,7 @@ func PatchValue(v reflect.Value) reflect.Value {
 }
 
 // FuncName returns the function name for a given function.
-func FuncName(fn interface{}) string {
+func FuncName(fn any) string {
 	_, _, fnName := FileLine(fn)
 	return fnName
 }
@@ -49,7 +49,7 @@ func FuncName(fn interface{}) string {
 // FileLine returns the file, line number, and function name for a given function.
 // It uses reflection and runtime information to extract these details.
 // 'fn' is expected to be a function or method value.
-func FileLine(fn interface{}) (file string, line int, fnName string) {
+func FileLine(fn any) (file string, line int, fnName string) {
 
 	fnPtr := reflect.ValueOf(fn).Pointer()
 	fnInfo := runtime.FuncForPC(fnPtr)

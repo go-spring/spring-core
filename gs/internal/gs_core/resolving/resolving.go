@@ -74,13 +74,13 @@ func (c *Resolving) AddMock(mock gs.BeanMock) {
 }
 
 // Object registers a pre-constructed instance as a bean.
-func (c *Resolving) Object(i interface{}) *gs.RegisteredBean {
+func (c *Resolving) Object(i any) *gs.RegisteredBean {
 	b := gs_bean.NewBean(reflect.ValueOf(i))
 	return c.Register(b).Caller(1)
 }
 
 // Provide registers a constructor function to create a bean.
-func (c *Resolving) Provide(ctor interface{}, args ...gs.Arg) *gs.RegisteredBean {
+func (c *Resolving) Provide(ctor any, args ...gs.Arg) *gs.RegisteredBean {
 	b := gs_bean.NewBean(ctor, args...)
 	return c.Register(b).Caller(1)
 }
@@ -220,7 +220,7 @@ func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.Be
 
 	var ret []*gs_bean.BeanDefinition
 	n := bd.Type().NumMethod()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		m := bd.Type().Method(i)
 		skip := false
 		for _, p := range excludes {

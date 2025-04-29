@@ -36,7 +36,7 @@ import (
 )
 
 // OnPanic is a global callback function triggered when a panic occurs.
-var OnPanic = func(ctx context.Context, r interface{}) {
+var OnPanic = func(ctx context.Context, r any) {
 	syslog.Errorf("panic: %v\n%s", r, debug.Stack())
 }
 

@@ -23,7 +23,7 @@ import (
 
 // GetBeforeItems is a function type that returns a list of items
 // that must appear before the given current item in the sorting order.
-type GetBeforeItems func(sorting *list.List, current interface{}) *list.List
+type GetBeforeItems func(sorting *list.List, current any) *list.List
 
 // TripleSort performs a three-way sort (processing, toSort, sorted)
 // to resolve dependencies and return a sorted list.
@@ -49,7 +49,7 @@ func TripleSort(sorting *list.List, fn GetBeforeItems) (*list.List, error) {
 
 // searchInList searches for an element `v` in the list `l`.
 // If the element exists, it returns a pointer to the list element. Otherwise, it returns nil.
-func searchInList(l *list.List, v interface{}) *list.Element {
+func searchInList(l *list.List, v any) *list.Element {
 	for e := l.Front(); e != nil; e = e.Next() {
 		if e.Value == v {
 			return e
@@ -67,7 +67,7 @@ func searchInList(l *list.List, v interface{}) *list.Element {
 // - current: The current item being processed (nil for the first item).
 // - fn: A function that retrieves the list of items that must appear before the current item.
 func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
-	processing *list.List, current interface{}, fn GetBeforeItems) error {
+	processing *list.List, current any, fn GetBeforeItems) error {
 
 	// If no current item is specified, remove and process the first item in the `toSort` list.
 	if current == nil {

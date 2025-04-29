@@ -60,7 +60,7 @@ func TestIsConstructor(t *testing.T) {
 
 func TestIsPropBindingTarget(t *testing.T) {
 	data := []struct {
-		i interface{}
+		i any
 		v bool
 	}{
 		{true, true},                      // Bool
@@ -109,7 +109,7 @@ func TestIsPropBindingTarget(t *testing.T) {
 
 func TestIsBeanType(t *testing.T) {
 	data := []struct {
-		i interface{}
+		i any
 		v bool
 	}{
 		{true, false},                     // Bool

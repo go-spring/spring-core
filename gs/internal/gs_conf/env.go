@@ -18,15 +18,9 @@ package gs_conf
 
 import (
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
-)
-
-const (
-	IncludeEnvPatterns = "INCLUDE_ENV_PATTERNS"
-	ExcludeEnvPatterns = "EXCLUDE_ENV_PATTERNS"
 )
 
 // Environment represents the environment configuration.
@@ -37,18 +31,6 @@ func NewEnvironment() *Environment {
 	return &Environment{}
 }
 
-// lookupEnv searches for an environment variable by key in the environ slice.
-func lookupEnv(environ []string, key string) (value string, found bool) {
-	key = strings.TrimSpace(key) + "="
-	for _, s := range environ {
-		if strings.HasPrefix(s, key) {
-			v := strings.TrimPrefix(s, key)
-			return strings.TrimSpace(v), true
-		}
-	}
-	return "", false
-}
-
 // CopyTo add environment variables that matches IncludeEnvPatterns and
 // exclude environment variables that matches ExcludeEnvPatterns.
 func (c *Environment) CopyTo(p *conf.MutableProperties) error {
@@ -56,46 +38,6 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 	if len(environ) == 0 {
 		return nil
 	}
-
-	toRex := func(patterns []string) ([]*regexp.Regexp, error) {
-		var rex []*regexp.Regexp
-		for _, v := range patterns {
-			exp, err := regexp.Compile(v)
-			if err != nil {
-				return nil, err
-			}
-			rex = append(rex, exp)
-		}
-		return rex, nil
-	}
-
-	includes := []string{".*"}
-	if s, ok := lookupEnv(environ, IncludeEnvPatterns); ok {
-		includes = strings.Split(s, ",")
-	}
-	includeRex, err := toRex(includes)
-	if err != nil {
-		return err
-	}
-
-	var excludes []string
-	if s, ok := lookupEnv(environ, ExcludeEnvPatterns); ok {
-		excludes = strings.Split(s, ",")
-	}
-	excludeRex, err := toRex(excludes)
-	if err != nil {
-		return err
-	}
-
-	matches := func(rex []*regexp.Regexp, s string) bool {
-		for _, r := range rex {
-			if r.MatchString(s) {
-				return true
-			}
-		}
-		return false
-	}
-
 	const prefix = "GS_"
 	for _, env := range environ {
 		ss := strings.SplitN(env, "=", 2)
@@ -103,19 +45,15 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		if len(ss) > 1 {
 			v = ss[1]
 		}
-
 		var propKey string
 		if strings.HasPrefix(k, prefix) {
 			propKey = strings.TrimPrefix(k, prefix)
 			propKey = strings.ReplaceAll(propKey, "_", ".")
 			propKey = strings.ToLower(propKey)
-		} else if matches(includeRex, k) && !matches(excludeRex, k) {
-			propKey = k
 		} else {
-			continue
+			propKey = k
 		}
-
-		if err = p.Set(propKey, v); err != nil {
+		if err := p.Set(propKey, v); err != nil {
 			return err
 		}
 	}

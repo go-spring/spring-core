@@ -54,7 +54,7 @@ func (c *CommandArgs) CopyTo(out *conf.MutableProperties) error {
 
 	cmdArgs := os.Args[1:]
 	n := len(cmdArgs)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if cmdArgs[i] == option {
 			if i+1 >= n {
 				return fmt.Errorf("cmd option %s needs arg", option)

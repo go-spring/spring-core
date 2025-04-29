@@ -26,7 +26,7 @@ import (
 // FlattenMap flattens a nested map, array, or slice into a single-level map
 // with string keys and string values. It recursively processes each element
 // of the input map and adds its flattened representation to the result map.
-func FlattenMap(m map[string]interface{}) map[string]string {
+func FlattenMap(m map[string]any) map[string]string {
 	result := make(map[string]string)
 	for key, val := range m {
 		FlattenValue(key, val, result)
@@ -36,7 +36,7 @@ func FlattenMap(m map[string]interface{}) map[string]string {
 
 // FlattenValue flattens a single value (which can be a map, array, slice,
 // or other types) into the result map.
-func FlattenValue(key string, val interface{}, result map[string]string) {
+func FlattenValue(key string, val any, result map[string]string) {
 	if val == nil {
 		return
 	}
@@ -57,7 +57,7 @@ func FlattenValue(key string, val interface{}, result map[string]string) {
 			result[key] = ""
 			return
 		}
-		for i := 0; i < v.Len(); i++ {
+		for i := range v.Len() {
 			subKey := fmt.Sprintf("%s[%d]", key, i)
 			subValue := v.Index(i).Interface()
 			// If an element is nil, treat it as an empty value and assign an empty string.

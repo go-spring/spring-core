@@ -124,7 +124,7 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 
 // Filter defines an interface for filtering configuration fields during binding.
 type Filter interface {
-	Do(i interface{}, param BindParam) (bool, error)
+	Do(i any, param BindParam) (bool, error)
 }
 
 // BindValue binds a value from properties `p` to the reflect.Value `v` of type `t`
@@ -366,7 +366,7 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
 		return fmt.Errorf("bind path=%s type=%s error: %w", param.Path, v.Type().String(), err)
 	}
 
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		ft := t.Field(i)
 		fv := v.Field(i)
 
