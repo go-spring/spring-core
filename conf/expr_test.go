@@ -51,6 +51,17 @@ func TestExpr(t *testing.T) {
 		assert.ThatError(t, err).Matches("validate failed on .* for value 14")
 	})
 
+	t.Run("syntax error", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"checkInt(2$)"`
+		}
+		p := conf.Map(map[string]interface{}{
+			"a": 4,
+		})
+		err := p.Bind(&v)
+		assert.ThatError(t, err).Matches("eval .* returns error")
+	})
+
 	t.Run("return not bool", func(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"$+$"`

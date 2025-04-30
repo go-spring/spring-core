@@ -323,7 +323,6 @@ func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, fil
 		if param.Tag.HasDef {
 			return nil
 		}
-		return fmt.Errorf("tag for %s requires a default value", param.Path)
 	}
 
 	if !p.Has(param.Key) {
