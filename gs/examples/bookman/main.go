@@ -54,7 +54,10 @@ func runTest(ctx context.Context) error {
 		if err != nil {
 			panic(err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			err = resp.Body.Close()
+			_ = err
+		}()
 		fmt.Print(string(b))
 		time.Sleep(time.Millisecond * 400)
 	})

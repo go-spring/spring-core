@@ -20,8 +20,8 @@ import (
 	"errors"
 )
 
-// ForbiddenMethod throws this error when calling a method is prohibited.
-var ForbiddenMethod = errors.New("forbidden method")
+// ErrForbiddenMethod throws this error when calling a method is prohibited.
+var ErrForbiddenMethod = errors.New("forbidden method")
 
-// UnimplementedMethod throws this error when calling an unimplemented method.
-var UnimplementedMethod = errors.New("unimplemented method")
+// ErrUnimplementedMethod throws this error when calling an unimplemented method.
+var ErrUnimplementedMethod = errors.New("unimplemented method")

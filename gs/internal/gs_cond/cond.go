@@ -269,7 +269,7 @@ func OnExpression(expression string) gs.Condition {
 
 // Matches checks if the condition is met according to the provided context.
 func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
-	err := util.UnimplementedMethod
+	err := util.ErrUnimplementedMethod
 	return false, errutil.WrapError(err, "condition matches error: %s", c)
 }
 

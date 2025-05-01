@@ -211,6 +211,7 @@ type LazyA struct {
 }
 
 type LazyB struct {
+	// nolint
 	dummy int `value:"${dummy:=9}"`
 }
 

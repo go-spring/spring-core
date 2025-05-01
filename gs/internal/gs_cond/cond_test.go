@@ -337,7 +337,7 @@ func TestOnExpression(t *testing.T) {
 	ctx := NewMockCondContext(ctrl)
 	cond := OnExpression("1+1==2")
 	_, err := cond.Matches(ctx)
-	assert.True(t, errors.Is(err, util.UnimplementedMethod))
+	assert.True(t, errors.Is(err, util.ErrUnimplementedMethod))
 }
 
 func TestNot(t *testing.T) {
