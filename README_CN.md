@@ -490,17 +490,15 @@ gs.Object(&GRPCServer{}).AsServer()
 
 ## ⏳ 应用生命周期管理
 
-Go-Spring 在设计上对应用启动、运行、退出过程进行了封装和抽象，提供了以下三个核心生命周期角色：
+Go-Spring 将应用运行周期抽象为三个角色：`Runner`、`Job`、`Server`，含义分别如下：
 
 1. **Runner**：应用启动后立即执行的一次性任务（初始化等）
 2. **Job**：应用运行期间持续运行的后台任务（守护线程、轮询等）
 3. **Server**：对外提供服务的长期服务进程（如 HTTP/gRPC 等）
 
-这些角色可通过 `.AsRunner() / .AsJob() / .AsServer()` 进行注册。
+这些角色可以通过 `.AsRunner() / .AsJob() / .AsServer()` 进行注册。
 
-### 🚀 Runner（应用启动后执行一次）
-
-适用于数据预热、系统初始化、打印信息等场景：
+### 🏃 Runner 示例
 
 ```go
 type Bootstrap struct{}
@@ -515,11 +513,9 @@ func init() {
 }
 ```
 
-Runner 执行过程中如果返回错误，将会终止应用启动流程。
+- Runner 执行过程中如果返回错误，将会终止应用启动流程。
 
-### 🔄 Job（后台任务）
-
-适合执行周期任务、健康检查、定时拉取等持续性逻辑：
+### 🔁 Job 示例
 
 ```go
 type Job struct{}
