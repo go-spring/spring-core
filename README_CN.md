@@ -1,42 +1,50 @@
+# Go-Spring
+
 <div>
-    <img src="https://raw.githubusercontent.com/go-spring/go-spring/master/logo@h.png" width="140" height="*" alt="logo"/>
-    <br/>
-    <img src="https://img.shields.io/github/license/go-spring/spring-core" alt="license"/>
-    <img src="https://img.shields.io/github/go-mod/go-version/go-spring/spring-core" alt="go-version"/>
-    <img src="https://img.shields.io/github/v/release/go-spring/spring-core?include_prereleases" alt="release"/>
-    <img src="https://codecov.io/gh/go-spring/spring-core/branch/main/graph/badge.svg" alt="test-coverage"/>
-    <br/>
+   <img src="https://img.shields.io/github/license/go-spring/spring-core" alt="license"/>
+   <img src="https://img.shields.io/github/go-mod/go-version/go-spring/spring-core" alt="go-version"/>
+   <img src="https://img.shields.io/github/v/release/go-spring/spring-core?include_prereleases" alt="release"/>
+   <img src="https://codecov.io/gh/go-spring/spring-core/branch/main/graph/badge.svg" alt="test-coverage"/>
 </div>
 
 [English](README.md)
 
-**Go-Spring** 是一个功能强大、使用方便的 Go 应用开发框架，其灵感来源于 Java 生态中的 Spring 和 Spring Boot，
-它的设计目标是将 Java 世界中的优秀开发理念无缝迁移到 Go 语言中，从而提升开发效率、增强模块可复用性、提高代码可维护性。
+**Go-Spring 是一个面向现代 Go 应用开发的高性能框架，灵感源自 Java 社区的 Spring / Spring Boot。**
+它的设计理念深度融合 Go 语言的特性，既保留了 Spring 世界中成熟的开发范式，如依赖注入（DI）、自动配置和生命周期管理，
+又避免了传统框架可能带来的繁复和性能开销。
+Go-Spring 让开发者能够在保持 Go 原生风格与执行效率的前提下，享受更高层次的抽象与自动化能力。
 
-它为 Go 应用带来了类似 Spring Boot 的体验，提供自动配置、依赖注入、配置热更新、条件注入、生命周期管理、微服务支持等功能，
-力求“一站式”解决实际开发问题。同时，它又高度兼容 Go 标准库，延续了 Go 一贯的简洁与高性能，特别适合构建现代 Go 微服务系统。
+**无论你是在开发单体应用，还是构建基于微服务的分布式系统，Go-Spring 都提供了统一且灵活的开发体验。**
+它以“开箱即用”的方式简化了项目搭建流程，减少模板代码的编写需求，并且不强加侵入式的框架结构，让开发者可以更专注于业务逻辑的实现。
+Go-Spring 致力于提升开发效率、可维护性和系统的一致性，是 Go 语言生态中一个具有里程碑意义的框架。
 
-## 🌟 框架亮点
+## 🚀 特性一览
 
-1. ⚡ **秒级启动:** 利用 Go 的 `init()` 机制实现 Bean 主动注册，省去运行时扫描，提升应用启动速度。
-2. 🧩 **极致易用:** 支持结构体标签注入和链式 API 配置，开发者无需编写复杂的模板代码，快速上手开发。
-3. 🔄 **配置热更新:** 支持属性绑定与运行时刷新，无需重启应用即可实时生效，适用于灰度发布、动态调整等场景。
-4. 📦 **微服务原生支持:** 内置标准 HTTP Server 启动器与注册机制，具备丰富的生命周期钩子，构建微服务更高效。
-5. 🧪 **完善的测试能力:** 提供 Mock 与单元测试工具，便于开发者编写高质量、可验证的测试用例。
-6. 🔍 **运行时零反射:** 框架仅在启动时使用反射完成 Bean 构造与注入，运行时不依赖反射，保障性能表现。
-7. 💡 **零侵入式设计:** 框架对业务代码无强依赖，使用者无需实现特定接口即可被管理，保持代码干净、易迁移。
+Go-Spring 提供了丰富而实用的特性，帮助开发者高效构建现代 Go 应用：
 
-## ✨ 核心功能
+1. ⚡ **极致启动性能**
+   - 基于 Go 的 `init()` 机制进行 Bean 注册，无运行时扫描，启动迅速；
+   - 注入仅依赖初始化阶段的反射，运行时零反射，保障性能最大化。
 
-1. **🚀 自动配置:** 自动加载配置文件、构建 Bean，支持环境隔离与多文件合并。
-2. **⚙️ 依赖注入:** 结构体字段注入、构造函数注入、接口注入等多种形式。
-3. **🌀 配置热更新:** 支持运行时刷新配置，动态响应配置变更。
-4. **🔄 生命周期管理:** 支持自定义初始化与销毁函数，并提供优雅的退出机制。
-5. **🔌 服务注册:** 原生兼容 HTTP，支持自定义 Server 模型。
-6. **🧪 条件注入:** 支持按属性、环境、Bean 存在与否等灵活注入控制。
-7. **🔧 Bean 注册管理:** 提供灵活的 Bean 注册与构建 API。
-8. **📡 微服务支持:** 内建 Job、Runner、Server 三种运行模型，助力构建多形态微服务架构。
-9. **🧪 单元测试支持:** 内置 Mock、自动注入等机制，支持高质量测试开发。
+2. 🧩 **开箱即用、无侵入式设计**
+   - 支持结构体标签注入与链式配置，无需掌握复杂概念即可使用；
+   - 不强依赖接口或继承结构，业务逻辑保持原生 Go 风格。
+
+3. 🔄 **配置热更新，实时生效**
+   - 多格式、多来源配置加载，支持环境隔离与动态刷新；
+   - 配置变更可即时应用，便于灰度发布与在线调参。
+
+4. ⚙️ **灵活依赖注入机制**
+   - 支持构造函数注入、结构体字段注入、构造函数参数注入多种方式；
+   - 注入行为可按配置项或运行环境灵活调整。
+
+5. 🔌 **多模型服务启动支持**
+   - 内建 HTTP Server 启动器，快速部署 Web 服务；
+   - 支持 `Runner`、`Job`、`Server` 三类运行模型，适配不同服务形态；
+   - 生命周期钩子完备，支持优雅启停。
+
+6. 🧪 **内建测试能力**
+   - 与 `go test` 无缝集成，支持 Bean Mock 和依赖注入，轻松编写单元测试。
 
 ## 📦 安装方式
 
@@ -48,140 +56,130 @@ go get github.com/go-spring/spring-core
 
 ## 🚀 快速开始
 
-Go-Spring 的核心理念之一就是**开箱即用**。下面通过两个简单示例快速体验它的能力。
+Go-Spring 主打“开箱即用”，下面通过两个示例，快速感受其强大能力。
 
-### 示例一：最小 API 使用
+> 更多示例请见：[gs/examples](gs/examples)
+
+### 示例一：最小 API 服务
 
 ```go
 func main() {
-    http.HandleFunc("/echo", func (w http.ResponseWriter, r *http.Request) {
-        _, _ = w.Write([]byte("hello world!"))
+    http.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
+        w.Write([]byte("hello world!"))
     })
     gs.Run()
 }
 ```
 
-在这个例子中你可以看到：
-
-- 无需繁杂配置，Go 标准库 `http` 可以直接使用
-- `gs.Run()` 会托管应用生命周期，包括信号监听、优雅退出等
-
-运行后即可通过如下命令访问服务：
+访问方式：
 
 ```bash
 curl http://127.0.0.1:9090/echo
 # 输出: hello world!
 ```
 
-### 示例二：Startup 基础用法
+✅ 无需繁杂配置，Go 标准库 `http` 可以直接使用;  
+✅ `gs.Run()` 接管生命周期，支持优雅退出、信号监听等能力。
 
-该示例展示了 Go-Spring 的核心能力：**属性绑定**、**依赖注入**、**配置动态刷新**、**标准库兼容**等。
+### 示例二：基础特性展示
 
 ```go
 func init() {
-    // Register the Service struct as a bean.
-    gs.Object(&Service{})
-    
-    // Provide a [*http.ServeMux] as a bean.
-    gs.Provide(func (s *Service) *http.ServeMux {
-        http.HandleFunc("/echo", s.Echo)
-        http.HandleFunc("/refresh", s.Refresh)
-        return http.DefaultServeMux
-    })
-    
-    sysconf.Set("start-time", time.Now().Format(timeLayout))
-    sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+   gs.Object(&Service{})
+   
+   gs.Provide(func (s *Service) *http.ServeMux {
+      http.HandleFunc("/echo", s.Echo)
+      http.HandleFunc("/refresh", s.Refresh)
+      return http.DefaultServeMux
+   })
+   
+   sysconf.Set("start-time", time.Now().Format(timeLayout))
+   sysconf.Set("refresh-time", time.Now().Format(timeLayout))
 }
 ```
-
-服务结构体定义如下：
 
 ```go
 const timeLayout = "2006-01-02 15:04:05.999 -0700 MST"
 
 type Service struct {
-    StartTime   time.Time          `value:"${start-time}"`
-    RefreshTime gs.Dync[time.Time] `value:"${refresh-time}"`
+   StartTime   time.Time          `value:"${start-time}"`
+   RefreshTime gs.Dync[time.Time] `value:"${refresh-time}"`
 }
 
 func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
-    str := fmt.Sprintf("start-time: %s refresh-time: %s",
-        s.StartTime.Format(timeLayout),
-        s.RefreshTime.Value().Format(timeLayout))
-    _, _ = w.Write([]byte(str))
+   str := fmt.Sprintf("start-time: %s refresh-time: %s",
+      s.StartTime.Format(timeLayout),
+      s.RefreshTime.Value().Format(timeLayout))
+   w.Write([]byte(str))
 }
 
 func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
-    sysconf.Set("refresh-time", time.Now().Format(timeLayout))
-    _ = gs.RefreshProperties()
-    _, _ = w.Write([]byte("OK!"))
+   sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+   gs.RefreshProperties()
+   w.Write([]byte("OK!"))
 }
 ```
 
-主函数入口：
-
-```go
-func main() {
-    gs.Run()
-}
-```
-
-请求示例：
+访问方式：
 
 ```bash
-curl http://127.0.0.1:9090/echo
-# 输出: start-time: ... refresh-time: ...
-
-curl http://127.0.0.1:9090/refresh
-# 输出: OK!
-
-curl http://127.0.0.1:9090/echo
-# 输出中的 refresh-time 已更新
+curl http://127.0.0.1:9090/echo     # 查看当前时间
+curl http://127.0.0.1:9090/refresh  # 触发热刷新
 ```
 
-### 更多示例
-
-访问 [gs/examples](gs/examples) 查看更多示例。
+✅ `value` 标签自动绑定配置；  
+✅ `gs.Dync[T]` 实现字段热更新；  
+✅ `gs.Object` `gs.Provide()` 注册 Bean。
 
 ## 🔧 配置管理
 
 Go-Spring 提供了灵活强大的配置加载机制，支持从多种来源获取配置项，轻松满足多环境、多部署场景的需求。
+无论是本地开发、容器化部署，还是云原生架构，Go-Spring 都能够提供一致而灵活的配置支持。
 
-1. **命令行参数（最高优先级）** 以 `-Dkey=value` 形式注入参数
-2. **环境变量** 读取系统环境变量作为配置项
-3. **远程文件** 获取远程配置文件，支持定时轮询更新
-4. **本地文件** 支持格式：`.yaml`/`.yml`/`.properties`/`.toml`等
-5. **`sysconf`内存配置** 适用于测试或临时注入
-6. **默认值（最低优先级）** 通过结构体标签设置
+为了应对配置项来源多样、覆盖关系复杂的实际需求，Go-Spring 构建了一套分层配置加载体系。
+系统会在启动时自动合并不同来源的配置项，并按照优先级规则进行解析和覆盖。
 
-> 注：优先级从1到6依次降低，高优先级的配置会覆盖低优先级的配置。
+### 📌 配置优先级
 
-#### 示例配置文件：
+1. **命令行参数**  
+   使用 `-Dkey=value` 格式注入，优先级最高，适合快速覆盖运行时配置。
 
-```yaml
-# config/app.yml
-server:
-  port: 8080
-app:
-  name: demo-app
-  version: 1.0.0
-```
+2. **环境变量**  
+   直接读取操作系统环境变量，方便在容器或 CI/CD 流水线中注入配置。
 
-结构体绑定：
+3. **远程文件**  
+   支持从配置中心拉取配置，具备定时拉取与热更新能力，适用于集中式配置管理。
+
+4. **本地文件**  
+   支持常见格式，如 `.yaml`、`.properties`、`.toml`，适合大多数开发与部署场景。
+
+5. **内存配置 (`sysconf`)**  
+   适用于测试场景或运行时临时注入配置，具备较高的灵活性。
+
+6. **结构体默认值**  
+   通过结构体标签设定默认值，是配置体系中的最后兜底机制。
+
+示例：属性绑定
 
 ```go
 type AppConfig struct {
-    Name    string `value:"${app.name}"`
-    Version string `value:"${app.version}"`
+   Name    string `value:"${app.name}"`
+   Version string `value:"${app.version}"`
 }
 ```
 
 ## 🔧 Bean 管理
 
-在 Go-Spring 中，**Bean 是应用的核心构建单元**。框架采用显式注册 + 标签声明的模式，结合灵活的条件装配，
-做到了 **零侵入、零反射（运行时）**，非常适合构建大型可维护系统。
+在 Go-Spring 中，**Bean 是应用的核心构建单元**，类似于其他依赖注入框架中的组件概念。
+整个系统围绕 Bean 的注册、初始化、依赖注入与生命周期管理进行组织。
+Go-Spring 不依赖运行时反射，而是通过编译期生成元数据和显式调用方式，实现了类型安全、性能优越的 Bean 管理机制。
+这样设计特别适合构建 **高性能、可维护性强的大型系统**。
 
-### ✅ Bean 注册方式
+框架采用“**显式注册 + 标签声明 + 条件装配**”的组合方式，让开发者对 Bean 的注册与依赖关系有清晰的控制。
+由于不依赖运行时容器扫描，也没有魔法配置，这种做法在保证开发体验的同时，
+进一步提升了调试和运维的可控性，实现了**零侵入、（运行时）零反射**的目标。
+
+### 1️⃣ 注册方式
 
 Go-Spring 提供多种方式注册 Bean：
 
@@ -190,60 +188,64 @@ Go-Spring 提供多种方式注册 Bean：
 - **`gs.Register(bd)`** - 注册完整 Bean 定义（适合底层封装或高级用法）
 - **`gs.GroupRegister(fn)`** - 批量注册多个 Bean（常用于模块初始化等场景）
 
-#### 示例
+示例:
 
 ```go
 gs.Object(&Service{})  // 注册结构体实例
 gs.Provide(NewService) // 使用构造函数注册
-gs.Provide(NewRepo, ValueArg("db")) // 构造函数带参数
-gs.Register(gs.NewBean(NewService)) // 完整定义注册
-gs.GroupRegister(func (p Properties) []*BeanDefinition { // 批量注册
-    return []*BeanDefinition{
+gs.Provide(NewRepo, gs.ValueArg("db")) // 构造函数带参数
+gs.Register(gs.NewBean(NewService))    // 完整定义注册
+
+// 批量注册多个 Bean
+gs.GroupRegister(func (p conf.Properties) []*gs.BeanDefinition {
+    return []*gs.BeanDefinition{
         gs.NewBean(NewUserService),
         gs.NewBean(NewOrderService),
     }
 })
 ```
 
-### 💉 注入方式
+### 2️⃣ 注入方式
 
-Go-Spring 支持字段注入、构造函数注入以及构造参数注入。
+Go-Spring 提供了多种灵活的依赖注入方式。
 
-#### 1. 字段注入
+#### 1. 结构体字段注入
 
-通过标签绑定依赖 Bean 或配置项：
+通过标签将配置项或 Bean 注入结构体字段，适合绝大多数场景。
 
 ```go
 type App struct {
-    Logger    *log.Logger  `autowire:""`
-    StartTime time.Time    `value:"${start-time}"`
+   Logger    *log.Logger  `autowire:""`
+   Filters   []*Filter    `autowire:"access,*?"`
+   StartTime time.Time    `value:"${start-time}"`
 }
 ```
 
-- `autowire:""`：表示自动注入依赖 Bean（根据类型或名称）
-- `value:"${...}"`：表示绑定配置属性值
+- `value:"${...}"` 表示绑定配置值；
+- `autowire:""`  表示按类型和名称自动注入；  
+- `autowire:"access,*?"` 表示按类型和名称注入多个 Bean。
 
 #### 2. 构造函数注入
 
-依赖通过构造函数参数自动注入：
+通过函数参数完成自动注入，Go-Spring 会自动推断并匹配依赖 Bean。
 
 ```go
 func NewService(logger *log.Logger) *Service {
-    return &Service{Logger: logger}
+   return &Service{Logger: logger}
 }
 
 gs.Provide(NewService)
 ```
 
-#### 3. 构造参数注入
+#### 3. 构造函数参数注入
 
-通过包装器指定注入方式：
+可通过参数包装器明确注入行为，更适用于复杂构造逻辑：
 
 ```go
 gs.Provide(NewService,
-    TagArg("${log.level}"),        // 从配置注入
-    ValueArg("some static value"), // 直接值注入
-    BindArg(parseFunc, "arg"), // option 函数注入
+    TagArg("${log.level}"), // 从配置注入
+    ValueArg("value"),      // 直接值注入
+    BindArg(parseFunc),     // option 函数注入
 )
 ```
 
@@ -251,21 +253,21 @@ gs.Provide(NewService,
 
 - **`TagArg(tag)`**：从配置中提取值
 - **`ValueArg(value)`**：使用固定值
-- **`IndexArg(i, v)`**：按参数位置注入
-- **`BindArg(fn, args)`**：通过 option 函数注入
+- **`IndexArg(i, arg)`**：按参数位置注入
+- **`BindArg(fn, args...)`**：通过 option 函数注入
 
-### 🔄 Bean 生命周期配置
+### 3️⃣ 生命周期
 
-每个 Bean 支持自定义生命周期行为，包括初始化、销毁、条件注册等：
+开发者可以为每个 Bean 显式声明初始化、销毁、依赖、条件注册等行为。
 
 ```go
 gs.Provide(NewService).
     Name("myService").
-    Init(func (s *Service) { ... }).
-    Destroy(func (s *Service) { ... }).
+    Init(func(s *Service) { ... }).
+    Destroy(func(s *Service) { ... }).
     Condition(OnProperty("feature.enabled")).
-    DependsOn("logger").
-    Export((*MyInterface)(nil)).
+    DependsOn(gs.BeanSelectorFor[*Repo]()).
+    Export(gs.As[ServiceInterface]()).
     AsRunner()
 ```
 
@@ -274,30 +276,25 @@ gs.Provide(NewService).
 - **`Name(string)`**：指定 Bean 名称
 - **`Init(fn)`**：初始化函数（支持方法名字符串）
 - **`Destroy(fn)`**：销毁函数（支持方法名字符串）
-- **`DependsOn(...)`**：指定依赖的其他 Bean 名称
-- **`Condition(...)`**：条件装配控制（见下一节）
+- **`DependsOn(...)`**：指定依赖的其他 Bean
+- **`Condition(...)`**：条件注册控制
 - **`Export(...)`**：将 Bean 作为接口导出，支持多接口导出
-- **`AsRunner()`**：注册为 `Runner`，运行在主线程
-- **`AsJob()`**：注册为后台任务 Job
-- **`AsServer()`**：注册为服务 Server（需实现接口）
 
-## ⚙️ 条件注入（Condition）
+## ⚙️ 条件注入
 
-Go-Spring 支持基于条件的 Bean 注入机制，这使得组件可以根据运行时环境、配置状态或其他上下文信息进行“按需装配”，
-类似于 Java Spring 的 `@Conditional`。
+Go-Spring 借鉴 Spring 的 `@Conditional` 思想，实现了灵活强大的条件注入系统。通过配置、环境、上下文等条件动态决定 Bean
+是否注册，实现“按需装配”。 这在多环境部署、插件化架构、功能开关、灰度发布等场景中尤为关键。
 
-这种机制特别适合复杂应用场景，比如：多环境部署、插件系统、功能开关、灰度发布等。
+### 🎯 常用条件类型
 
-### 🎯 支持的条件类型
-
-- **`OnProperty("key")`**：当指定配置 key 存在且有值时激活
+- **`OnProperty("key")`**：当指定配置 key 存在时激活
 - **`OnMissingProperty("key")`**：当指定配置 key 不存在时激活
 - **`OnBean[Type]("name")`**：当指定类型/名称的 Bean 存在时激活
 - **`OnMissingBean[Type]("name")`**：当指定类型/名称的 Bean 不存在时激活
 - **`OnSingleBean[Type]("name")`**：当指定类型/名称的 Bean 是唯一实例时激活
 - **`OnFunc(func(ctx CondContext) bool)`**：使用自定义条件逻辑判断是否激活
 
-### 🔍 示例：按属性控制注册
+示例：
 
 ```go
 gs.Provide(NewService).
@@ -306,7 +303,7 @@ gs.Provide(NewService).
 
 只有当配置文件中存在 `service.enabled=true` 时，`NewService` 才会注册。
 
-### 🔁 组合条件
+### 🔁 支持组合条件
 
 Go-Spring 支持组合多个条件，构建更复杂的判断逻辑：
 
@@ -315,7 +312,7 @@ Go-Spring 支持组合多个条件，构建更复杂的判断逻辑：
 - **`Or(...)`** - 任一条件满足即成立
 - **`None(...)`** - 所有条件都不满足时成立
 
-#### 示例：组合条件控制 Bean 激活
+示例：
 
 ```go
 gs.Provide(NewService).
@@ -329,12 +326,10 @@ gs.Provide(NewService).
 
 该 Bean 会在 `feature.enabled` 开启且未注册 `*DeprecatedService` 时启用。
 
-## 🔁 配置动态刷新
+## 🔁 动态配置
 
-Go-Spring 内置了轻量的配置热更新能力。通过 `gs.Dync[T]` 类型与 `gs.RefreshProperties()` 方法的组合，
-可以实现应用在运行中动态响应配置变化，无需重启。
-
-这非常适合微服务、配置中心、灰度发布场景，能够 **显著提升系统的可运维性与弹性**。
+Go-Spring 支持轻量级的配置热更新机制。通过泛型类型 `gs.Dync[T]` 和 `gs.RefreshProperties()`，
+应用可以在运行中实时感知配置变更，而无需重启。这对于微服务架构中的灰度发布、动态调参、配置中心集成等场景尤为关键。
 
 ### 🌡 使用方式
 
@@ -350,21 +345,21 @@ type Config struct {
 
 > 调用时通过 `.Value()` 获取当前值，框架在配置变更时会自动更新该值。
 
-2. 调用 `gs.RefreshProperties()` 手动触发刷新
+2. 调用 `gs.RefreshProperties()` 触发刷新
 
 在配置发生变化后，调用此方法可以让所有动态字段立即更新：
 
 ```go
-_ = gs.RefreshProperties()
+gs.RefreshProperties()
 ```
 
-### 💡 示例：实时版本号更新
+### 示例：版本号更新
 
 ```go
 const versionKey = "app.version"
 
 type App struct {
-    Version gs.Dync[string] `value:"${app.version}"`
+    Version gs.Dync[string] `value:"${app.version:=v0.0.1}"`
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -373,21 +368,21 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func RefreshVersion(w http.ResponseWriter, r *http.Request) {
     sysconf.Set(versionKey, "v2.0.1")
-    _ = gs.RefreshProperties()
+    gs.RefreshProperties()
     fmt.Fprintln(w, "Version updated!")
 }
 ```
 
-注册路由并启动应用：
-
 ```go
-gs.Object(&App{})
-gs.Provide(func (app *App) *http.ServeMux {
-    http.Handle("/", app)
-    http.HandleFunc("/refresh", RefreshVersion)
-    return http.DefaultServeMux
-})
-gs.Run()
+func main() {
+   gs.Object(&App{})
+   gs.Provide(func(app *App) *http.ServeMux {
+      http.Handle("/", app)
+      http.HandleFunc("/refresh", RefreshVersion)
+      return http.DefaultServeMux
+   })
+   gs.Run()
+}
 ```
 
 运行程序后，访问 `/` 会输出当前版本，访问 `/refresh` 后，再次访问 `/` 即可看到更新后的版本号。
@@ -419,7 +414,7 @@ type ReadySignal interface {
 
 你可以在 `ListenAndServe` 中等到主流程触发启动完成信号，然后正式对外提供服务。
 
-### 🛠 示例：标准库 HTTP Server 接入
+### 示例：HTTP Server 接入
 
 ```go
 func init() {
@@ -450,38 +445,27 @@ func (s *MyServer) Shutdown(ctx context.Context) error {
 }
 ```
 
-这样 Server 就会随应用启动自动运行，并在退出时自动关闭。
-
-### 🌐 示例：接入 gRPC Server
+### 示例：gRPC Server 接入
 
 ```go
 type GRPCServer struct {
     svr *grpc.Server
-    lis net.Listener
 }
 
+// ...
+
 func (s *GRPCServer) ListenAndServe(sig gs.ReadySignal) error {
-    var err error
-    s.lis, err = net.Listen("tcp", ":50051")
+    lis, err := net.Listen("tcp", ":9595")
     if err != nil {
         return err
     }
     <-sig.TriggerAndWait()
-    return s.svr.Serve(s.lis)
+    return s.svr.Serve(lis)
 }
 
 func (s *GRPCServer) Shutdown(ctx context.Context) error {
-    stopped := make(chan struct{})
-    go func () {
-        s.svr.GracefulStop()
-        close(stopped)
-    }()
-    select {
-    case <-ctx.Done():
-        s.server.Stop()
-    case <-stopped:
-    }
-    return nil
+   s.svr.GracefulStop()
+   return nil
 }
 ```
 
@@ -496,22 +480,20 @@ gs.Object(&GRPCServer{}).AsServer()
 
 ## ⏳ 应用生命周期管理
 
-Go-Spring 在设计上对应用启动、运行、退出过程进行了封装和抽象，提供了以下三个核心生命周期角色：
+Go-Spring 将应用运行周期抽象为三个角色：`Runner`、`Job`、`Server`，含义分别如下：
 
 1. **Runner**：应用启动后立即执行的一次性任务（初始化等）
 2. **Job**：应用运行期间持续运行的后台任务（守护线程、轮询等）
 3. **Server**：对外提供服务的长期服务进程（如 HTTP/gRPC 等）
 
-这些角色可通过 `.AsRunner() / .AsJob() / .AsServer()` 进行注册。
+这些角色可以通过 `.AsRunner() / .AsJob() / .AsServer()` 进行注册。
 
-### 🚀 Runner（应用启动后执行一次）
-
-适用于数据预热、系统初始化、打印信息等场景：
+示例：Runner
 
 ```go
 type Bootstrap struct{}
 
-func (b *Bootstrap) Run(ctx context.Context) error {
+func (b *Bootstrap) Run() error {
     fmt.Println("Bootstrap init...")
     return nil
 }
@@ -521,35 +503,66 @@ func init() {
 }
 ```
 
-Runner 执行过程中如果返回错误，将会终止应用启动流程。
+- Runner 执行过程中如果返回错误，将会终止应用启动流程。
 
-### 🔄 Job（后台任务）
-
-适合执行周期任务、健康检查、定时拉取等持续性逻辑：
+示例：Job
 
 ```go
 type Job struct{}
 
 func (j *Job) Run(ctx context.Context) error {
-    for {
-    select {
-    case <-ctx.Done():
-        fmt.Println("job exit")
-        return nil
-    default:
-        if gs.Exiting() {
+   for {
+   select {
+      case <-ctx.Done():
+         fmt.Println("job exit")
+         return nil
+      default:
+         if gs.Exiting() {
             return nil
-        }
-        time.Sleep(300 * time.Millisecond)
-        fmt.Println("job tick")
-        }
-    }
+         }
+         time.Sleep(300 * time.Millisecond)
+         fmt.Println("job tick")
+      }
+   }
 }
 
 func init() {
-    gs.Object(&Job{}).AsJob()
+   gs.Object(&Job{}).AsJob()
 }
 ```
 
 - Job 会在 `gs.Run()` 后启动，直到退出信号到来；
 - 支持优雅停止，及时响应 `ctx.Done()` 或 `gs.Exiting()` 状态。
+
+## ⏳ Mock 与单元测试
+
+Go-Spring 提供了和 go test 无缝集成的单元测试框架。
+你可以使用 `gstest.MockFor[T]().With(obj)` 在运行时替换掉一个 bean。
+你可以使用 `gstest.Wire(t, ...)` 或者 `gstest.Get[T](t)` 获取对象实例。
+
+```go
+gstest.MockFor[*book_dao.BookDao]().With(&book_dao.BookDao{
+   Store: map[string]book_dao.Book{
+      "978-0132350884": {
+         Title:     "Clean Code",
+         Author:    "Robert C. Martin",
+         ISBN:      "978-0132350884",
+         Publisher: "Prentice Hall",
+      },
+   },
+})
+```
+
+```go
+o := gstest.Get[*BookDao](t)
+assert.NotNil(t, o)
+```
+
+```go
+s := gstest.Wire(t, new(struct {
+   SvrAddr string            `value:"${server.addr}"`
+   Service *BookService      `autowire:""`
+   BookDao *book_dao.BookDao `autowire:""`
+}))
+assert.That(t, s.SvrAddr).Equal("0.0.0.0:9090")
+```
