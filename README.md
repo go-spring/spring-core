@@ -614,3 +614,27 @@ s := gstest.Wire(t, new(struct {
 }))
 assert.That(t, s.SvrAddr).Equal("0.0.0.0:9090")
 ```
+
+## 📚 Comparison with Other Frameworks
+
+Go-Spring differentiates itself with these key features:
+
+| Feature                  | Go-Spring | Wire | fx | dig |
+|--------------------------|-----------|------|----|-----|
+| Runtime IoC Container    | ✓         | ✗    | ✓  | ✓   |
+| Compile-time Validation  | Partial   | ✓    | ✗  | ✗   |
+| Conditional Beans        | ✓         | ✗    | ✗  | ✗   |
+| Dynamic Configuration    | ✓         | ✗    | ✗  | ✗   |
+| Lifecycle Management     | ✓         | ✗    | ✓  | ✗   |
+| Property Binding         | ✓         | ✗    | ✗  | ✗   |
+| Zero-struct Modification | ✓         | ✓    | ✗  | ✓   |
+
+## 🏢 Who's using Go-Spring?
+
+- ...
+
+> Using Go-Spring and want to be featured here? Welcome to submit a PR!
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
