@@ -512,7 +512,7 @@ type Job struct{}
 
 func (j *Job) Run(ctx context.Context) error {
    for {
-   select {
+      select {
       case <-ctx.Done():
          fmt.Println("job exit")
          return nil
@@ -536,9 +536,11 @@ func init() {
 
 ## ⏳ Mock 与单元测试
 
-Go-Spring 提供了和 go test 无缝集成的单元测试框架。
-你可以使用 `gstest.MockFor[T]().With(obj)` 在运行时替换掉一个 bean。
-你可以使用 `gstest.Wire(t, ...)` 或者 `gstest.Get[T](t)` 获取对象实例。
+Go-Spring 提供了与标准 `go test` 无缝集成的单元测试框架，让依赖注入和模拟测试变得简单高效。
+
+### 1. 模拟对象注入
+
+使用 `gstest.MockFor[T]().With(obj)` 可以在运行时轻松替换任何 bean：
 
 ```go
 gstest.MockFor[*book_dao.BookDao]().With(&book_dao.BookDao{
@@ -553,10 +555,18 @@ gstest.MockFor[*book_dao.BookDao]().With(&book_dao.BookDao{
 })
 ```
 
+### 2. 获取测试对象
+
+有两种方式获取被测试对象：
+
+**直接获取实例**：
+
 ```go
 o := gstest.Get[*BookDao](t)
 assert.NotNil(t, o)
 ```
+
+**结构化注入**：
 
 ```go
 s := gstest.Wire(t, new(struct {
