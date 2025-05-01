@@ -512,7 +512,7 @@ type Job struct{}
 
 func (j *Job) Run(ctx context.Context) error {
    for {
-   select {
+      select {
       case <-ctx.Done():
          fmt.Println("job exit")
          return nil
