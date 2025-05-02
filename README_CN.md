@@ -600,3 +600,19 @@ Go-Spring 具备以下几个显著优势：
 ## 🤝 参与贡献
 
 我们欢迎所有形式的贡献！请查阅 [CONTRIBUTING.md](CONTRIBUTING.md) 获取参与方式。
+
+### 💬 QQ 交流群
+
+<img src="https://raw.githubusercontent.com/go-spring/go-spring-website/master/qq(1).jpeg" width="140" height="*"  alt="qq-group"/>
+
+### 📱 微信公众号
+
+<img src="https://raw.githubusercontent.com/go-spring/go-spring-website/master/go-spring-action.jpg" width="140" height="*"  alt="wechat-public"/>
+
+### 🎉 特别鸣谢！
+
+感谢 JetBrains 公司的 IntelliJ IDEA 产品提供方便快捷的代码编辑和测试环境。
+
+### 🛡️ License
+
+The Go-Spring is released under version 2.0 of the Apache License.
