@@ -638,3 +638,20 @@ Go-Spring differentiates itself with these key features:
 ## 🤝 Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+
+### 💬 QQ Group
+
+<img src="https://raw.githubusercontent.com/go-spring/go-spring-website/master/qq(1).jpeg" width="140" height="*"  alt="qq-group"/>
+
+### 📱 WeChat Official Account
+
+<img src="https://raw.githubusercontent.com/go-spring/go-spring-website/master/go-spring-action.jpg" width="140" height="*"  alt="wechat-public"/>
+
+### 🎉 Thanks!
+
+Thanks to **JetBrains** for providing the **IntelliJ IDEA** product, which offers a convenient and fast code editing and
+testing environment.
+
+### 🛡️ License
+
+The **Go-Spring** is released under version **2.0 of the Apache License**.
