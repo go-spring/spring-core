@@ -955,6 +955,7 @@ func TestForceClean(t *testing.T) {
 		assert.Nil(t, r.beansByType)
 
 		runtime.GC()
+		time.Sleep(100 * time.Millisecond)
 		assert.That(t, release).Equal(map[string]struct{}{
 			"biz": {},
 			"sys": {},
