@@ -211,6 +211,7 @@ type LazyA struct {
 }
 
 type LazyB struct {
+	// nolint
 	dummy int `value:"${dummy:=9}"`
 }
 
@@ -954,6 +955,7 @@ func TestForceClean(t *testing.T) {
 		assert.Nil(t, r.beansByType)
 
 		runtime.GC()
+		time.Sleep(100 * time.Millisecond)
 		assert.That(t, release).Equal(map[string]struct{}{
 			"biz": {},
 			"sys": {},

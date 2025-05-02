@@ -147,6 +147,7 @@ func TestDync(t *testing.T) {
 			"config.s4.value": "123",
 		})
 		err = p.Refresh(prop)
+		assert.Nil(t, err)
 		assert.That(t, p.ObjectsCount()).Equal(2)
 		assert.That(t, cfg.S1.Value.Value()).Equal(99)
 		assert.That(t, cfg.S2.Value.Value()).Equal(456)
@@ -157,6 +158,7 @@ func TestDync(t *testing.T) {
 			"config.s3.value": "xyz",
 		})
 		err = p.Refresh(prop)
+		assert.Nil(t, err)
 		assert.That(t, p.ObjectsCount()).Equal(2)
 		assert.That(t, cfg.S1.Value.Value()).Equal(99)
 		assert.That(t, cfg.S2.Value.Value()).Equal(456)

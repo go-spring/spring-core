@@ -49,7 +49,7 @@ func PointConverter(val string) (image.Point, error) {
 }
 
 func PointSplitter(str string) ([]string, error) {
-	if !(strings.HasPrefix(str, "(") && strings.HasSuffix(str, ")")) {
+	if !strings.HasPrefix(str, "(") || !strings.HasSuffix(str, ")") {
 		return nil, errors.New("split error")
 	}
 	var ret []string

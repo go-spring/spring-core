@@ -59,7 +59,8 @@ func (dao *BookDao) ListBooks() ([]Book, error) {
 
 // GetBook retrieves a book by its ISBN.
 func (dao *BookDao) GetBook(isbn string) (Book, error) {
-	r, _ := dao.Store[isbn]
+	r, ok := dao.Store[isbn]
+	_ = ok
 	return r, nil
 }
 

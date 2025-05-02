@@ -107,12 +107,8 @@ func (c *AppConfig) Refresh() (conf.Properties, error) {
 
 	var sources []PropertyCopier
 	sources = append(sources, NewNamedPropertyCopier("sys", sysconf.Clone()))
-	for _, file := range localFiles {
-		sources = append(sources, file)
-	}
-	for _, file := range remoteFiles {
-		sources = append(sources, file)
-	}
+	sources = append(sources, localFiles...)
+	sources = append(sources, remoteFiles...)
 	sources = append(sources, NewNamedPropertyCopier("remote", c.RemoteProp))
 	sources = append(sources, NewNamedPropertyCopier("env", c.Environment))
 	sources = append(sources, NewNamedPropertyCopier("cmd", c.CommandArgs))
@@ -156,9 +152,7 @@ func (c *BootConfig) Refresh() (conf.Properties, error) {
 
 	var sources []PropertyCopier
 	sources = append(sources, NewNamedPropertyCopier("sys", sysconf.Clone()))
-	for _, file := range localFiles {
-		sources = append(sources, file)
-	}
+	sources = append(sources, localFiles...)
 	sources = append(sources, NewNamedPropertyCopier("env", c.Environment))
 	sources = append(sources, NewNamedPropertyCopier("cmd", c.CommandArgs))
 

@@ -78,7 +78,7 @@ func Index(n int, arg gs.Arg) gs.Arg {
 
 // GetArgValue panics if called directly. IndexArg must be processed by ArgList.
 func (arg IndexArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
-	panic(util.UnimplementedMethod)
+	panic(util.ErrUnimplementedMethod)
 }
 
 // ValueArg represents a fixed-value argument.
