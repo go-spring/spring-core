@@ -45,6 +45,9 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		if len(ss) > 1 {
 			v = ss[1]
 		}
+		if k == "" { // e.g., =::=::
+			continue
+		}
 		var propKey string
 		if strings.HasPrefix(k, prefix) {
 			propKey = strings.TrimPrefix(k, prefix)
