@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
+/*
+Package gs_bean provides core bean management for Go-Spring framework, featuring:
+
+  - Full lifecycle management (instantiation, DI, destruction)
+  - Method-as-factory mechanism (generate child beans via configured rules)
+  - Conditional registration (profile-based activation)
+  - Type-safe interface export validation
+  - Mock replacement mechanism
+*/
 package gs_bean
 
 import (

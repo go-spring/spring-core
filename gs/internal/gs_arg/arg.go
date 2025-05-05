@@ -14,6 +14,16 @@
  * limitations under the License.
  */
 
+/*
+Package gs_arg provides implementation for function argument resolution and binding
+
+Key Features:
+  - Configuration property binding and dependency injection via struct tags
+  - Precise positional binding through index-based arguments
+  - Direct injection of fixed value arguments
+  - Full support for variadic function parameters
+  - Conditional execution with runtime evaluation
+*/
 package gs_arg
 
 import (

@@ -14,6 +14,59 @@
  * limitations under the License.
  */
 
+/*
+Package gs_cond provides conditional component registration for Go-Spring framework,
+offering runtime decision-making through various condition types.
+
+1. Property Conditions
+
+  - Existence check:
+    cond := OnProperty("db.host")
+
+  - Value matching:
+    cond := OnProperty("env").HavingValue("prod")
+
+  - Expression evaluation:
+    cond := OnProperty("port").HavingValue("expr:int($) > 1024")
+
+  - Missing handling:
+    cond := OnProperty("debug").MatchIfMissing()
+
+2. Bean Conditions
+
+  - Existence verification:
+    cond := OnBean[Database]()
+
+  - Absence check:
+    cond := OnMissingBean[Logger]()
+
+  - Singleton validation:
+    cond := OnSingleBean[Config]()
+
+3. Logical Combinators
+
+  - Conjunction:
+    cond := And(condition1, condition2)
+
+  - Disjunction:
+    cond := Or(condition1, condition2)
+
+  - Negation:
+    cond := Not(condition)
+
+  - Universal negation:
+    cond := None(condition1, condition2)
+
+4. Custom Conditions
+
+  - Functional condition:
+    cond := OnFunc(func(ctx gs.CondContext) (bool, error) {
+    return time.Now().Hour() > 9, nil
+    })
+
+  - Expression condition (Pending implementation):
+    cond := OnExpression("beans('redis').size() > 0")
+*/
 package gs_cond
 
 import (

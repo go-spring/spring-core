@@ -14,11 +14,36 @@
  * limitations under the License.
  */
 
-// Package gstest is a unit testing framework designed for dependency injection in go-spring.
-// Unlike standard dependency injection, in unit testing mode, the framework gracefully ignores
-// non-critical dependency injection failures by logging warnings instead of halting execution.
-// This ensures seamless testing workflows when dealing with extensive dependencies,
-// as only the specific dependencies under test need to be validated, while others remain non-blocking.
+/*
+Package gstest provides unit testing utilities for dependency injection in Go-Spring framework.
+
+Key Features:
+  - Non-critical Dependency Tolerance - Gracefully ignores non-test-target injection failures
+    via warning logs (enabled by gs.ForceAutowireIsNullable)
+  - Type-Safe Mocking - Offers MockFor/With methods for compile-time verified mock registration
+  - Context Lifecycle Management - TestMain automates application context bootstrap/teardown
+  - Smart Injection Helpers - Provides Get/Wire utilities to simplify test case composition
+
+Usage Pattern:
+
+	// Register mocks in init function (executes before TestMain)
+	func init() {
+	    gstest.MockFor[*Dao]().With(&MockDao{})
+	}
+
+	func TestMain(m *testing.M) {
+		gstest.TestMain(m)
+	}
+
+	func TestService(t *testing.T) {
+	    // Retrieve autowired test target
+	    service := gstest.Get[*Service](t)
+
+	    // Verify business logic
+	    result := service.Process()
+	    assert.Equal(t, expect, result)
+	}
+*/
 package gstest
 
 import (
