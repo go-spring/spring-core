@@ -18,23 +18,28 @@
 Package gstest provides unit testing utilities for dependency injection in Go-Spring framework.
 
 Key Features:
-  - Non-critical Dependency Tolerance - Gracefully ignores non-test-target injection failures
-    via warning logs (enabled by gs.ForceAutowireIsNullable)
-  - Type-Safe Mocking - Offers MockFor/With methods for compile-time verified mock registration
-  - Context Lifecycle Management - TestMain automates application context bootstrap/teardown
-  - Smart Injection Helpers - Provides Get/Wire utilities to simplify test case composition
+  - Test environment configuration: jobs and servers are disabled, and the "test" profile is automatically activated
+  - Autowire failure tolerance: non-critical autowiring errors are tolerated so that missing beans do not break tests
+  - Type-safe mocking: compile-time checked MockFor/With methods for registering mock beans
+  - Context lifecycle management: TestMain starts and stops the Go-Spring context automatically
+  - Injection helpers: Get[T](t) and Wire(t, obj) simplify bean retrieval and dependency injection
 
 Usage Pattern:
 
-	// Register mocks in init function (executes before TestMain)
+	// Step 1: Register your mock beans before tests run
+	// by calling `MockFor[T]().With(obj)` inside an `init()` function.
 	func init() {
 	    gstest.MockFor[*Dao]().With(&MockDao{})
 	}
 
+	// Step 2: Implement TestMain and invoke `gstest.TestMain(m, opts...)`
+	// to bootstrap the application context, execute all tests, and then shut it down.
+	// You can supply `BeforeRun` and `AfterRun` hooks to run code immediately before or after your test suite.
 	func TestMain(m *testing.M) {
 		gstest.TestMain(m)
 	}
 
+	// Step 3: Write your test cases and use Get[T](t) or Wire(t, obj) to retrieve beans and inject dependencies.
 	func TestService(t *testing.T) {
 	    // Retrieve autowired test target
 	    service := gstest.Get[*Service](t)
