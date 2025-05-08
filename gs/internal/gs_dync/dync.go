@@ -15,15 +15,17 @@
  */
 
 /*
-Package gs_dync provides dynamic configuration binding and
-refresh capabilities for Go applications.
+Package gs_dync provides dynamic configuration binding and refresh capabilities for Go applications.
 
-Features:
-  - Thread-safe atomic.Value based storage with automatic type conversion
-  - Property change listeners with channel-based notifications
-  - Hierarchical configuration key resolution (supports nested structs and map keys)
-  - Live configuration updates with granular change detection
-  - JSON serialization support for configuration values
+This package is built on thread-safe atomic.Value storage with automatic type conversion and supports change listeners,
+making it suitable for components or services that need to react to configuration updates at runtime.
+
+Key Features:
+  - Type-safe and thread-safe encapsulation of configuration values
+  - Change notification mechanism using channels
+  - Hierarchical key resolution for nested structs and map keys
+  - Fine-grained refresh logic that only updates affected objects
+  - JSON serialization support for value persistence and transmission
 
 Examples:
 
@@ -33,7 +35,7 @@ Basic value binding:
 	_ = v.onRefresh(conf.Map(map[string]any{"key": 42}), conf.BindParam{Key: "key"})
 	fmt.Print(v.Value()) // Output: 42
 
-Struct binding with nested configuration:
+Binding nested structs:
 
 	type Config struct {
 		Server struct {
@@ -44,11 +46,6 @@ Struct binding with nested configuration:
 	var cfg Config
 	_ = p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"})
 
-JSON serialization:
-
-	b, _ := json.Marshal(map[string]any{"key": &v})
-	fmt.Print(string(b)) // Output: {"key":42}
-
 Change notification:
 
 	listener := v.NewListener()
@@ -57,6 +54,9 @@ Change notification:
 		fmt.Print("value changed!")
 	}()
 	_ = v.onRefresh(conf.Map(map[string]any{"key": 100}), conf.BindParam{Key: "key"})
+
+This package is ideal for use cases that require hot-reloading of configuration, have complex config structures,
+or demand reactive behavior to configuration changes.
 */
 package gs_dync
 
