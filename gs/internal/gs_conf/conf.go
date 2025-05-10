@@ -14,6 +14,33 @@
  * limitations under the License.
  */
 
+/*
+Package gs_conf provides hierarchical configuration management
+with multi-source support for Go-Spring framework.
+
+Key Features:
+
+1. Command-line argument parsing
+  - Supports `-D key[=value]` format arguments
+  - Customizable prefix via `GS_ARGS_PREFIX` environment variable
+  - Example: `./app -D server.port=8080 -D debug`
+
+2. Environment variable handling
+  - Automatic loading of `GS_` prefixed variables
+  - Conversion rules: `GS_DB_HOST=127.0.0.1` → `db.host=127.0.0.1`
+  - Direct mapping of non-prefixed environment variables
+
+3. Configuration file management
+  - Supports properties/yaml/toml/json formats
+  - Local configurations: ./conf/app.{properties|yaml|toml|json}
+  - Remote configurations: ./conf/remote/app.{properties|yaml|toml|json}
+  - Profile-based configurations (e.g., app-dev.properties)
+
+4. Layered configuration hierarchy
+  - Priority order: System config → File config → Env variables → CLI arguments
+  - Provides AppConfig (application context) and BootConfig (boot context)
+  - High-priority configurations override lower ones
+*/
 package gs_conf
 
 import (

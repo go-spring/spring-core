@@ -14,11 +14,41 @@
  * limitations under the License.
  */
 
-// Package gstest is a unit testing framework designed for dependency injection in go-spring.
-// Unlike standard dependency injection, in unit testing mode, the framework gracefully ignores
-// non-critical dependency injection failures by logging warnings instead of halting execution.
-// This ensures seamless testing workflows when dealing with extensive dependencies,
-// as only the specific dependencies under test need to be validated, while others remain non-blocking.
+/*
+Package gstest provides unit testing utilities for dependency injection in Go-Spring framework.
+
+Key Features:
+  - Test environment configuration: jobs and servers are disabled, and the "test" profile is automatically activated
+  - Autowire failure tolerance: non-critical autowiring errors are tolerated so that missing beans do not break tests
+  - Type-safe mocking: compile-time checked MockFor/With methods for registering mock beans
+  - Context lifecycle management: TestMain starts and stops the Go-Spring context automatically
+  - Injection helpers: Get[T](t) and Wire(t, obj) simplify bean retrieval and dependency injection
+
+Usage Pattern:
+
+	// Step 1: Register your mock beans before tests run
+	// by calling `MockFor[T]().With(obj)` inside an `init()` function.
+	func init() {
+	    gstest.MockFor[*Dao]().With(&MockDao{})
+	}
+
+	// Step 2: Implement TestMain and invoke `gstest.TestMain(m, opts...)`
+	// to bootstrap the application context, execute all tests, and then shut it down.
+	// You can supply `BeforeRun` and `AfterRun` hooks to run code immediately before or after your test suite.
+	func TestMain(m *testing.M) {
+		gstest.TestMain(m)
+	}
+
+	// Step 3: Write your test cases and use Get[T](t) or Wire(t, obj) to retrieve beans and inject dependencies.
+	func TestService(t *testing.T) {
+	    // Retrieve autowired test target
+	    service := gstest.Get[*Service](t)
+
+	    // Verify business logic
+	    result := service.Process()
+	    assert.Equal(t, expect, result)
+	}
+*/
 package gstest
 
 import (

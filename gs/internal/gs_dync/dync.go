@@ -14,6 +14,50 @@
  * limitations under the License.
  */
 
+/*
+Package gs_dync provides dynamic configuration binding and refresh capabilities for Go applications.
+
+This package is built on thread-safe atomic.Value storage with automatic type conversion and supports change listeners,
+making it suitable for components or services that need to react to configuration updates at runtime.
+
+Key Features:
+  - Type-safe and thread-safe encapsulation of configuration values
+  - Change notification mechanism using channels
+  - Hierarchical key resolution for nested structs and map keys
+  - Fine-grained refresh logic that only updates affected objects
+  - JSON serialization support for value persistence and transmission
+
+Examples:
+
+Basic value binding:
+
+	var v Value[int]
+	_ = v.onRefresh(conf.Map(map[string]any{"key": 42}), conf.BindParam{Key: "key"})
+	fmt.Print(v.Value()) // Output: 42
+
+Binding nested structs:
+
+	type Config struct {
+		Server struct {
+			Port Value[int] `value:"${port}"`
+		} `value:"${server}"`
+	}
+
+	var cfg Config
+	_ = p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"})
+
+Change notification:
+
+	listener := v.NewListener()
+	go func() {
+		<-listener.C
+		fmt.Print("value changed!")
+	}()
+	_ = v.onRefresh(conf.Map(map[string]any{"key": 100}), conf.BindParam{Key: "key"})
+
+This package is ideal for use cases that require hot-reloading of configuration, have complex config structures,
+or demand reactive behavior to configuration changes.
+*/
 package gs_dync
 
 import (
