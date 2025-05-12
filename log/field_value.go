@@ -16,7 +16,7 @@
 
 package log
 
-// Value represents a data and encodes it to an Encoder.
+// Value is an interface for types that can encode themselves using an Encoder.
 type Value interface {
 	Encode(enc Encoder) error
 }
