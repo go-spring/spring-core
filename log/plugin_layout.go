@@ -103,7 +103,7 @@ func (c *PatternLayout) getMsg(e *Event) string {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString(e.Marker)
 	buf.WriteString("||")
-	enc := NewFlatEncoder(buf, "||")
+	enc := NewTextEncoder(buf, "||")
 	err := enc.AppendEncoderBegin()
 	if err != nil {
 		return err.Error()

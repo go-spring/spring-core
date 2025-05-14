@@ -183,8 +183,8 @@ type Converter[T any] func(string) (T, error)
 // RegisterConverter registers its converter for non-primitive type such as
 // time.Time, time.Duration, or other user-defined value type.
 func RegisterConverter[T any](fn Converter[T]) {
-	t := reflect.TypeOf(fn)
-	converters[t.Out(0)] = fn
+	t := reflect.TypeFor[T]()
+	converters[t] = fn
 }
 
 // Properties is the interface for read-only properties.

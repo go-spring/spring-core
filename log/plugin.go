@@ -27,9 +27,6 @@ import (
 	"github.com/go-spring/spring-core/util/errutil"
 )
 
-//////////////////////////////////////////////////////////////////////////////
-
-// 类型转换器
 var converters = map[reflect.Type]any{}
 
 func init() {
@@ -37,30 +34,27 @@ func init() {
 	RegisterConverter(ParseColorStyle)
 }
 
-// Converter converts a string to a target type T.
+// Converter function type that converts string to a specific type T.
 type Converter[T any] func(string) (T, error)
 
-// RegisterConverter registers its converter for non-primitive type such as
-// time.Time, time.Duration, or other user-defined value type.
+// RegisterConverter Registers a converter for a specific type T.
 func RegisterConverter[T any](fn Converter[T]) {
-	t := reflect.TypeOf(fn)
-	converters[t.Out(0)] = fn
+	t := reflect.TypeFor[T]()
+	converters[t] = fn
 }
 
-//////////////////////////////////////////////////////////////////////////////
-
-// Initializer 用于 plugin 的初始化
+// Initializer Optional initializer interface for plugin instances.
 type Initializer interface {
 	Init() error
 }
 
-// LifeCycle 用于 plugin 的启动和停止
+// LifeCycle Optional lifecycle interface for plugin instances.
 type LifeCycle interface {
 	Start() error
 	Stop(ctx context.Context)
 }
 
-// PluginType plugin 的类型
+// PluginType Defines types of plugins supported by the logging system.
 type PluginType string
 
 const (
@@ -73,53 +67,54 @@ const (
 	PluginTypeAsyncLogger PluginType = "AsyncLogger"
 )
 
-// plugins stores user registered Plugin(s) .
 var plugins = map[string]*Plugin{}
 
-// Plugin is the name of node label or XML element.
+// Plugin metadata structure
 type Plugin struct {
-	Name  string     // 用于检查重复的 plugin
-	Type  PluginType // 用于注入时候设置类型
-	Class reflect.Type
-	File  string
-	Line  int
+	Name  string       // Name of plugin
+	Type  PluginType   // Type of plugin
+	Class reflect.Type // Underlying struct type
+	File  string       // Source file of registration
+	Line  int          // Line number of registration
 }
 
-// RegisterPlugin registers a Plugin, `i` is used to obtain the type of Plugin.
+// RegisterPlugin Registers a plugin with a given name and type.
 func RegisterPlugin[T any](name string, typ PluginType) {
 	_, file, line, _ := runtime.Caller(1)
 	if p, ok := plugins[name]; ok {
 		panic(fmt.Errorf("duplicate plugin %s in %s:%d and %s:%d", typ, p.File, p.Line, file, line))
 	}
-	p := &Plugin{
+	t := reflect.TypeFor[T]()
+	if t.Kind() != reflect.Struct {
+		panic("T must be struct")
+	}
+	plugins[name] = &Plugin{
 		Name:  name,
 		Type:  typ,
-		Class: reflect.TypeFor[T](),
+		Class: t,
 		File:  file,
 		Line:  line,
 	}
-	plugins[name] = p
 }
 
-//////////////////////////////////////////////////////////////////////////////
-
-// NewPlugin creates a new Plugin.
+// NewPlugin Creates and initializes a plugin instance.
 func NewPlugin(t reflect.Type, node *Node) (reflect.Value, error) {
 	v := reflect.New(t)
-	err := inject(v.Elem(), v.Type().Elem(), node)
+	err := inject(v.Elem(), t, node)
 	if err != nil {
+		err = errutil.WrapError(err, "create plugin %s error", t.String())
 		return reflect.Value{}, err
 	}
-	i, ok := v.Interface().(Initializer)
-	if ok {
+	if i, ok := v.Interface().(Initializer); ok {
 		if err = i.Init(); err != nil {
+			err = errutil.WrapError(err, "init plugin %s error", t.String())
 			return reflect.Value{}, err
 		}
 	}
 	return v, nil
 }
 
-// inject handles the struct field with the PluginAttribute or PluginElement tag.
+// inject Recursively injects values into struct fields based on tags.
 func inject(v reflect.Value, t reflect.Type, node *Node) error {
 	for i := 0; i < v.NumField(); i++ {
 		ft := t.Field(i)
@@ -136,6 +131,7 @@ func inject(v reflect.Value, t reflect.Type, node *Node) error {
 			}
 			continue
 		}
+		// Recursively process anonymous embedded structs
 		if ft.Anonymous && ft.Type.Kind() == reflect.Struct {
 			if err := inject(fv, fv.Type(), node); err != nil {
 				return err
@@ -147,11 +143,13 @@ func inject(v reflect.Value, t reflect.Type, node *Node) error {
 
 type PluginTag string
 
+// Get Gets the value of a key or the first unnamed value.
 func (tag PluginTag) Get(key string) string {
 	v, _ := tag.Lookup(key)
 	return v
 }
 
+// Lookup Looks up a key-value pair in the tag.
 func (tag PluginTag) Lookup(key string) (value string, ok bool) {
 	kvs := strings.Split(string(tag), ",")
 	if key == "" {
@@ -169,25 +167,29 @@ func (tag PluginTag) Lookup(key string) (value string, ok bool) {
 	return "", false
 }
 
-// injectAttribute handles the struct field with the PluginAttribute tag.
+// injectAttribute Injects a value into a struct field from plugin attribute.
 func injectAttribute(tag string, fv reflect.Value, ft reflect.StructField, node *Node) error {
 
 	attrTag := PluginTag(tag)
 	attrName := attrTag.Get("")
+	if attrName == "" {
+		return fmt.Errorf("found no attribute for struct field %s", ft.Name)
+	}
 	val, ok := node.Attributes[attrName]
 	if !ok {
 		val, ok = attrTag.Lookup("default")
 		if !ok {
-			return fmt.Errorf("found no attribute for %s", attrName)
+			return fmt.Errorf("found no attribute for struct field %s", attrName)
 		}
 	}
 
+	// Use a custom converter if available
 	if fn := converters[ft.Type]; fn != nil {
 		fnValue := reflect.ValueOf(fn)
 		out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
 		if !out[1].IsNil() {
 			err := out[1].Interface().(error)
-			return errutil.WrapError(err, "inject error")
+			return errutil.WrapError(err, "inject struct field %s error", ft.Name)
 		}
 		fv.Set(out[0])
 		return nil
@@ -200,28 +202,28 @@ func injectAttribute(tag string, fv reflect.Value, ft reflect.StructField, node 
 			fv.SetUint(u)
 			return nil
 		}
-		return errutil.WrapError(err, "inject %s error", ft.Name)
+		return errutil.WrapError(err, "inject struct field %s error", ft.Name)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		i, err := strconv.ParseInt(val, 0, 0)
 		if err == nil {
 			fv.SetInt(i)
 			return nil
 		}
-		return errutil.WrapError(err, "inject %s error", ft.Name)
+		return errutil.WrapError(err, "inject struct field %s error", ft.Name)
 	case reflect.Float32, reflect.Float64:
 		f, err := strconv.ParseFloat(val, 64)
 		if err == nil {
 			fv.SetFloat(f)
 			return nil
 		}
-		return errutil.WrapError(err, "inject %s error", ft.Name)
+		return errutil.WrapError(err, "inject struct field %s error", ft.Name)
 	case reflect.Bool:
 		b, err := strconv.ParseBool(val)
 		if err == nil {
 			fv.SetBool(b)
 			return nil
 		}
-		return errutil.WrapError(err, "inject %s error", ft.Name)
+		return errutil.WrapError(err, "inject struct field %s error", ft.Name)
 	case reflect.String:
 		fv.SetString(val)
 		return nil
@@ -230,18 +232,20 @@ func injectAttribute(tag string, fv reflect.Value, ft reflect.StructField, node 
 	}
 }
 
-// injectElement handles the struct field with the PluginElement tag.
+// injectElement Injects plugin elements (child nodes) into struct fields.
 func injectElement(tag string, fv reflect.Value, ft reflect.StructField, node *Node) error {
 
 	elemTag := PluginTag(tag)
 	elemType := elemTag.Get("")
+	if elemType == "" {
+		return fmt.Errorf("found no element for struct field %s", ft.Name)
+	}
 
 	var children []reflect.Value
 	for _, c := range node.Children {
 		p, ok := plugins[c.Label]
 		if !ok {
-			err := fmt.Errorf("plugin %s not found", c.Label)
-			return errutil.WrapError(err, "inject element")
+			return fmt.Errorf("plugin %s not found for struct field %s", c.Label, ft.Name)
 		}
 		if string(p.Type) != elemType {
 			continue
@@ -256,12 +260,11 @@ func injectElement(tag string, fv reflect.Value, ft reflect.StructField, node *N
 	if len(children) == 0 {
 		elemLabel, ok := elemTag.Lookup("default")
 		if !ok {
-			return nil
+			return fmt.Errorf("found no plugin elements for struct field %s", ft.Name)
 		}
 		p, ok := plugins[elemLabel]
 		if !ok {
-			err := fmt.Errorf("plugin %s not found", elemLabel)
-			return errutil.WrapError(err, "inject element")
+			return fmt.Errorf("plugin %s not found for struct field %s", elemLabel, ft.Name)
 		}
 		v, err := NewPlugin(p.Class, &Node{Label: elemLabel})
 		if err != nil {
