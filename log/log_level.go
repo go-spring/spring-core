@@ -22,17 +22,17 @@ import (
 )
 
 const (
-	NoneLevel = Level(iota)
-	TraceLevel
-	DebugLevel
-	InfoLevel
-	WarnLevel
-	ErrorLevel
-	PanicLevel
-	FatalLevel
+	NoneLevel  Level = iota // No logging
+	TraceLevel              // Very detailed logging, typically for debugging at a granular level
+	DebugLevel              // Debugging information
+	InfoLevel               // General informational messages
+	WarnLevel               // Warnings that may indicate a potential problem
+	ErrorLevel              // Errors that allow the application to continue running
+	PanicLevel              // Severe issues that may lead to a panic
+	FatalLevel              // Critical issues that will cause application termination
 )
 
-// Level used for identifying the severity of an event.
+// Level is an enumeration used to identify the severity of a logging event.
 type Level int32
 
 func (level Level) String() string {
@@ -58,7 +58,8 @@ func (level Level) String() string {
 	}
 }
 
-// ParseLevel parses string to a level, and returns error if the conversion fails.
+// ParseLevel converts a string (case-insensitive) into a corresponding Level value.
+// Returns an error if the input string does not match any valid level.
 func ParseLevel(str string) (Level, error) {
 	switch strings.ToUpper(str) {
 	case "NONE":

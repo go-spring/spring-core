@@ -31,7 +31,6 @@ var converters = map[reflect.Type]any{}
 
 func init() {
 	RegisterConverter(ParseLevel)
-	RegisterConverter(ParseColorStyle)
 }
 
 // Converter function type that converts string to a specific type T.

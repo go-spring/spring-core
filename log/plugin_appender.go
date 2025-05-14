@@ -27,10 +27,10 @@ func init() {
 	RegisterPlugin[FileAppender]("File", PluginTypeAppender)
 }
 
-// Appender is an Appender that writes log events.
+// Appender is an interface that defines components that handle log output.
 type Appender interface {
-	LifeCycle
-	Append(e *Event)
+	LifeCycle        // Appenders must be startable and stoppable
+	Append(e *Event) // Handles writing a log event
 }
 
 var (
@@ -39,26 +39,27 @@ var (
 	_ Appender = (*FileAppender)(nil)
 )
 
-// BaseAppender is an Appender that writes log events.
+// BaseAppender provides shared configuration and behavior for appenders.
 type BaseAppender struct {
-	Name   string `PluginAttribute:"name"`
-	Layout Layout `PluginElement:"Layout"`
+	Name   string `PluginAttribute:"name"` // Appender name from config
+	Layout Layout `PluginElement:"Layout"` // Layout defines how logs are formatted
 }
 
 func (c *BaseAppender) Start() error             { return nil }
 func (c *BaseAppender) Stop(ctx context.Context) {}
 func (c *BaseAppender) Append(e *Event)          {}
 
-// DiscardAppender is an Appender that ignores log events.
+// DiscardAppender ignores all log events (no output).
 type DiscardAppender struct {
 	BaseAppender
 }
 
-// ConsoleAppender is an Appender that writing messages to os.Stdout.
+// ConsoleAppender writes formatted log events to stdout.
 type ConsoleAppender struct {
 	BaseAppender
 }
 
+// Append formats the event and writes it to standard output.
 func (c *ConsoleAppender) Append(e *Event) {
 	data, err := c.Layout.ToBytes(e)
 	if err != nil {
@@ -67,30 +68,33 @@ func (c *ConsoleAppender) Append(e *Event) {
 	_, _ = os.Stdout.Write(data)
 }
 
-// FileAppender is an Appender writing messages to *os.File.
+// FileAppender writes formatted log events to a specified file.
 type FileAppender struct {
 	BaseAppender
 	FileName string `PluginAttribute:"fileName"`
-	file     *os.File
+	openFile *os.File
 }
 
+// Init opens or creates the log file for appending.
 func (c *FileAppender) Init() error {
 	f, err := os.OpenFile(c.FileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	c.file = f
+	c.openFile = f
 	return nil
 }
 
+// Destroy closes the open file.
 func (c *FileAppender) Destroy() {
-	_ = c.file.Close()
+	_ = c.openFile.Close()
 }
 
+// Append formats the log event and writes it to the file.
 func (c *FileAppender) Append(e *Event) {
 	data, err := c.Layout.ToBytes(e)
 	if err != nil {
 		return
 	}
-	_, _ = c.file.Write(data)
+	_, _ = c.openFile.Write(data)
 }

@@ -27,6 +27,8 @@ var MarkerRequestIn = log.RegisterMarker("_com_request_in")
 var MarkerRequestOut = log.RegisterMarker("_com_request_out")
 
 func TestLog(t *testing.T) {
+	log.Infof("hello %s", "world")
+
 	xml := `
 		<?xml version="1.0" encoding="UTF-8"?>
 		<Configuration>
@@ -35,7 +37,7 @@ func TestLog(t *testing.T) {
 					<JSONLayout/>
 				</Console>
 				<Console name="Console_Pattern">
-					<PatternLayout/>
+					<TextLayout/>
 				</Console>
 			</Appenders>
 			<Loggers>

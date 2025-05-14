@@ -18,7 +18,7 @@ package log
 
 import (
 	"context"
-	"sync/atomic"
+	"errors"
 )
 
 func init() {
@@ -29,24 +29,26 @@ func init() {
 	RegisterPlugin[AsyncLoggerConfig]("AsyncLogger", PluginTypeAsyncLogger)
 }
 
+// Logger is the primary logging structure used to emit log events.
 type Logger struct {
 	privateConfig
 }
 
-// privateConfig is the inner Logger.
+// privateConfig is the interface implemented by all logger configs.
 type privateConfig interface {
-	LifeCycle
-	publish(e *Event)
-	enableLevel(level Level) bool
+	LifeCycle                     // Start/Stop methods
+	publish(e *Event)             // Logic for sending events to appenders
+	enableLevel(level Level) bool // Whether a log level is enabled
 }
 
-// AppenderRef is a reference to an Appender.
+// AppenderRef represents a reference to an appender by name,
+// which will be resolved and bound later.
 type AppenderRef struct {
 	Ref      string `PluginAttribute:"ref"`
 	appender Appender
 }
 
-// baseLoggerConfig is the base of LoggerConfig and AsyncLoggerConfig.
+// baseLoggerConfig contains shared fields for all logger configurations.
 type baseLoggerConfig struct {
 	Name         string         `PluginAttribute:"name"`
 	Level        Level          `PluginAttribute:"level"`
@@ -54,67 +56,66 @@ type baseLoggerConfig struct {
 	AppenderRefs []*AppenderRef `PluginElement:"AppenderRef"`
 }
 
-// filter returns whether the event should be logged.
-func (c *baseLoggerConfig) enableLevel(level Level) bool {
-	return level >= c.Level
-}
-
-// callAppenders calls all the appenders inherited from the hierarchy circumventing.
+// callAppenders sends the event to all configured appenders.
 func (c *baseLoggerConfig) callAppenders(e *Event) {
 	for _, r := range c.AppenderRefs {
 		r.appender.Append(e)
 	}
 }
 
-// LoggerConfig publishes events synchronously.
+// enableLevel returns true if the specified log level is enabled.
+func (c *baseLoggerConfig) enableLevel(level Level) bool {
+	return level >= c.Level
+}
+
+// LoggerConfig is a synchronous logger configuration.
 type LoggerConfig struct {
 	baseLoggerConfig
 }
 
+// Start initializes the logger (no-op for sync loggers).
 func (c *LoggerConfig) Start() error {
 	return nil
 }
 
+// publish sends the event directly to the appenders.
 func (c *LoggerConfig) publish(e *Event) {
 	c.callAppenders(e)
 }
 
+// Stop shuts down the logger (no-op for sync loggers).
 func (c *LoggerConfig) Stop(ctx context.Context) {}
 
-// AsyncLoggerConfig publishes events synchronously.
+// AsyncLoggerConfig is an asynchronous logger configuration.
+// It buffers log events and processes them in a separate goroutine.
 type AsyncLoggerConfig struct {
 	baseLoggerConfig
 
 	BufferSize int `PluginAttribute:"bufferSize,default=10000"`
 
-	buf  chan *Event
-	exit atomic.Bool
-	wait chan struct{}
+	buf  chan *Event   // Channel buffer for log events
+	exit chan struct{} // Signal for shutdown
 }
 
+// Start initializes the asynchronous logger and starts its worker goroutine.
 func (c *AsyncLoggerConfig) Start() error {
+	if c.BufferSize < 0 {
+		return errors.New("buffer size must be positive")
+	}
 	c.buf = make(chan *Event, c.BufferSize)
-	c.wait = make(chan struct{})
+	c.exit = make(chan struct{})
+
+	// Launch a background goroutine to process events
 	go func() {
-		for {
-			select {
-			case e := <-c.buf:
-				if e != nil {
-					c.callAppenders(e)
-				}
-			default:
-				if c.exit.Load() {
-					close(c.wait)
-					return
-				}
-			}
+		for e := range c.buf {
+			c.callAppenders(e)
 		}
+		close(c.exit)
 	}()
 	return nil
 }
 
-// publish pushes events into the queue and these events will consumed by other
-// goroutine, so the current goroutine will not be blocked.
+// publish places the event in the buffer if there's space; drops it otherwise.
 func (c *AsyncLoggerConfig) publish(e *Event) {
 	select {
 	case c.buf <- e:
@@ -122,7 +123,8 @@ func (c *AsyncLoggerConfig) publish(e *Event) {
 	}
 }
 
+// Stop signals the logger to shut down and waits for all events to be flushed.
 func (c *AsyncLoggerConfig) Stop(ctx context.Context) {
-	c.exit.Store(true)
-	<-c.wait
+	close(c.buf)
+	<-c.exit
 }

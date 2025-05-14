@@ -17,17 +17,16 @@
 package log
 
 import (
-	"context"
 	"time"
 )
 
 // Event provides contextual information about a log message.
 type Event struct {
-	Context context.Context
-	Level   Level
-	Time    time.Time
-	File    string
-	Line    int
-	Marker  string
-	Fields  []Field
+	Level     Level     // The severity level of the log (e.g., INFO, ERROR, DEBUG)
+	Time      time.Time // The timestamp when the event occurred
+	File      string    // The source file where the log was triggered
+	Line      int       // The line number in the source file
+	Marker    string    // A tag or marker used to categorize the log (e.g., subsystem name)
+	Fields    []Field   // Custom fields provided specifically for this log event
+	CtxFields []Field   // Additional fields derived from the context (e.g., request ID, user ID)
 }

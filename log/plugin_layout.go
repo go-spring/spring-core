@@ -18,178 +18,108 @@ package log
 
 import (
 	"bytes"
-	"fmt"
+	"strconv"
 	"strings"
-
-	"github.com/go-spring/spring-core/util/color"
 )
 
 func init() {
-	RegisterPlugin[PatternLayout]("PatternLayout", PluginTypeLayout)
+	RegisterPlugin[TextLayout]("TextLayout", PluginTypeLayout)
 	RegisterPlugin[JSONLayout]("JSONLayout", PluginTypeLayout)
 }
 
-// Layout lays out an Event in []byte format.
+// Layout is the interface that defines how a log event is converted to bytes.
 type Layout interface {
 	ToBytes(e *Event) ([]byte, error)
 }
 
-type ColorStyle int
+// TextLayout formats the log event as a human-readable text string.
+type TextLayout struct{}
 
-const (
-	ColorStyleNone = ColorStyle(iota)
-	ColorStyleNormal
-	ColorStyleBright
-)
-
-// ParseColorStyle parses `s` to a ColorStyle value.
-func ParseColorStyle(s string) (ColorStyle, error) {
-	switch strings.ToLower(s) {
-	case "none":
-		return ColorStyleNone, nil
-	case "normal":
-		return ColorStyleNormal, nil
-	case "bright":
-		return ColorStyleBright, nil
-	default:
-		return -1, fmt.Errorf("invalid color style '%s'", s)
+// ToBytes converts a log event to a formatted plain-text line.
+func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
+	const maxLength = 48
+	fileLine := e.File + ":" + strconv.Itoa(e.Line)
+	if n := len(fileLine); n > maxLength-3 {
+		fileLine = "..." + fileLine[n-maxLength:]
 	}
-}
 
-type FormatFunc func(e *Event) string
-
-// A PatternLayout is a flexible layout configurable with pattern string.
-type PatternLayout struct {
-	ColorStyle ColorStyle `PluginAttribute:"colorStyle,default=none"`
-	Pattern    string     `PluginAttribute:"pattern,default=[:level][:time][:fileline][:msg]"`
-	steps      []FormatFunc
-}
-
-func (c *PatternLayout) Init() error {
-	return c.parse(c.Pattern)
-}
-
-// ToBytes lays out an Event in []byte format.
-func (c *PatternLayout) ToBytes(e *Event) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
-	for _, step := range c.steps {
-		buf.WriteString(step(e))
+	buf.WriteString("[")
+	buf.WriteString(strings.ToUpper(e.Level.String()))
+	buf.WriteString("][")
+	buf.WriteString(e.Time.Format("2006-01-02T15:04:05.000"))
+	buf.WriteString("][")
+	buf.WriteString(fileLine)
+	buf.WriteString("] ")
+	buf.WriteString(e.Marker)
+	buf.WriteString("||")
+
+	enc := NewTextEncoder(buf, "||")
+	if err := enc.AppendEncoderBegin(); err != nil {
+		return nil, err
 	}
+	if err := writeFields(enc, e.CtxFields); err != nil {
+		return nil, err
+	}
+	if err := writeFields(enc, e.Fields); err != nil {
+		return nil, err
+	}
+	if err := enc.AppendEncoderEnd(); err != nil {
+		return nil, err
+	}
+
 	buf.WriteByte('\n')
 	return buf.Bytes(), nil
 }
 
-func (c *PatternLayout) parse(pattern string) error {
-	write := func(s string) FormatFunc {
-		return func(e *Event) string {
-			return s
-		}
-	}
-	c.steps = append(c.steps, write("["))
-	c.steps = append(c.steps, c.getLevel)
-	c.steps = append(c.steps, write("]"))
-	c.steps = append(c.steps, write("["))
-	c.steps = append(c.steps, c.getTime)
-	c.steps = append(c.steps, write("]"))
-	c.steps = append(c.steps, write("["))
-	c.steps = append(c.steps, c.getFileLine)
-	c.steps = append(c.steps, write("]"))
-	c.steps = append(c.steps, write(" "))
-	c.steps = append(c.steps, c.getMsg)
-	return nil
-}
-
-func (c *PatternLayout) getMsg(e *Event) string {
-	buf := bytes.NewBuffer(nil)
-	buf.WriteString(e.Marker)
-	buf.WriteString("||")
-	enc := NewTextEncoder(buf, "||")
-	err := enc.AppendEncoderBegin()
-	if err != nil {
-		return err.Error()
-	}
-	for _, f := range e.Fields {
-		err = enc.AppendKey(f.Key)
-		if err != nil {
-			return err.Error()
-		}
-		err = f.Val.Encode(enc)
-		if err != nil {
-			return err.Error()
-		}
-	}
-	err = enc.AppendEncoderEnd()
-	if err != nil {
-		return err.Error()
-	}
-	return buf.String()
-}
-
-func (c *PatternLayout) getLevel(e *Event) string {
-	strLevel := strings.ToUpper(e.Level.String())
-	switch c.ColorStyle {
-	case ColorStyleNormal:
-		if e.Level >= ErrorLevel {
-			strLevel = color.Red.Sprint(strLevel)
-		} else if e.Level == WarnLevel {
-			strLevel = color.Yellow.Sprint(strLevel)
-		} else if e.Level <= DebugLevel {
-			strLevel = color.Green.Sprint(strLevel)
-		}
-	default:
-	}
-	return strLevel
-}
-
-func (c *PatternLayout) getTime(e *Event) string {
-	return e.Time.Format("2006-01-02T15:04:05.000")
-}
-
-// Contract contracts `filename` and replace the excessive part using `...`.
-func Contract(filename string, maxLength int) string {
-	if n := len(filename); maxLength > 3 && n > maxLength-3 {
-		return "..." + filename[n-maxLength+3:]
-	}
-	return filename
-}
-
-func (c *PatternLayout) getFileLine(e *Event) string {
-	return Contract(fmt.Sprintf("%s:%d", e.File, e.Line), 48)
-}
-
-// A JSONLayout is a layout configurable with JSON encoding.
+// JSONLayout formats the log event as a structured JSON object.
 type JSONLayout struct{}
 
-// ToBytes lays out an Event in []byte format.
+// ToBytes converts a log event to a JSON-formatted byte slice.
 func (c *JSONLayout) ToBytes(e *Event) ([]byte, error) {
+	const maxLength = 48
+	fileLine := e.File + ":" + strconv.Itoa(e.Line)
+	if n := len(fileLine); n > maxLength-3 {
+		fileLine = "..." + fileLine[n-maxLength:]
+	}
+
 	fields := []Field{
 		String("level", strings.ToLower(e.Level.String())),
 		String("time", e.Time.Format("2006-01-02T15:04:05.000")),
-		String("fileLine", fmt.Sprintf("%s:%d", e.File, e.Line)),
+		String("fileLine", fileLine),
 		String("marker", e.Marker),
 	}
-	fields = append(fields, e.Fields...)
 
 	buf := bytes.NewBuffer(nil)
 	enc := NewJSONEncoder(buf)
-	err := enc.AppendEncoderBegin()
-	if err != nil {
+	if err := enc.AppendEncoderBegin(); err != nil {
 		return nil, err
 	}
-	for _, f := range fields {
-		err = enc.AppendKey(f.Key)
-		if err != nil {
-			return nil, err
-		}
-		err = f.Val.Encode(enc)
-		if err != nil {
-			return nil, err
-		}
+	if err := writeFields(enc, fields); err != nil {
+		return nil, err
 	}
-	err = enc.AppendEncoderEnd()
-	if err != nil {
+	if err := writeFields(enc, e.CtxFields); err != nil {
+		return nil, err
+	}
+	if err := writeFields(enc, e.Fields); err != nil {
+		return nil, err
+	}
+	if err := enc.AppendEncoderEnd(); err != nil {
 		return nil, err
 	}
 	buf.WriteByte('\n')
 	return buf.Bytes(), nil
+}
+
+// writeFields writes a slice of Field objects to the encoder.
+func writeFields(enc Encoder, fields []Field) error {
+	for _, f := range fields {
+		if err := enc.AppendKey(f.Key); err != nil {
+			return err
+		}
+		if err := f.Val.Encode(enc); err != nil {
+			return err
+		}
+	}
+	return nil
 }

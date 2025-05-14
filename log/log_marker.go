@@ -22,7 +22,8 @@ import (
 
 var markers = map[string]*Marker{}
 
-// Marker is a marker for logging.
+// Marker is a struct representing a named logging marker.
+// It holds a pointer to a Logger and a string identifier.
 type Marker struct {
 	v atomic.Pointer[Logger]
 	s string
@@ -33,17 +34,20 @@ func (m *Marker) GetName() string {
 	return m.s
 }
 
-// GetLogger returns the logger of the marker.
+// GetLogger returns the Logger associated with this marker.
+// It uses atomic loading to ensure safe concurrent access.
 func (m *Marker) GetLogger() *Logger {
 	return m.v.Load()
 }
 
-// SetLogger sets the logger of the marker.
+// SetLogger sets or replaces the Logger associated with this marker.
+// Uses atomic storing to ensure thread safety.
 func (m *Marker) SetLogger(logger *Logger) {
 	m.v.Store(logger)
 }
 
-// RegisterMarker registers a marker.
+// RegisterMarker creates or retrieves a Marker by name.
+// If the marker does not exist, it is created and added to the global registry.
 func RegisterMarker(marker string) *Marker {
 	m, ok := markers[marker]
 	if !ok {
