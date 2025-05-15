@@ -20,6 +20,8 @@ import (
 	"fmt"
 )
 
+const MsgKey = "msg"
+
 // Field represents a log entry field with a key and a corresponding value.
 type Field struct {
 	Key string // The name of the log field.
@@ -28,12 +30,12 @@ type Field struct {
 
 // Msg creates a Field with the key "msg" and a string message value.
 func Msg(msg string) Field {
-	return String("msg", msg)
+	return String(MsgKey, msg)
 }
 
 // Msgf formats the message using fmt.Sprintf and returns a Field with key "msg".
 func Msgf(format string, args ...any) Field {
-	return String("msg", fmt.Sprintf(format, args...))
+	return String(MsgKey, fmt.Sprintf(format, args...))
 }
 
 // Reflect wraps any value into a Field using reflection.

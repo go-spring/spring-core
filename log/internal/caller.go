@@ -21,10 +21,12 @@ import (
 	"sync"
 )
 
-// frameMap 用于缓存调用点，基准测试表明使用缓存大约有 50% 的性能提升。
+// frameMap is used to cache call site information.
+// Benchmarking shows that using this cache improves performance by about 50%.
 var frameMap sync.Map
 
-// Caller 获取调用点的文件及行号信息，fast 为 true 时使用缓存进行加速。
+// Caller returns the file name and line number of the calling function.
+// If 'fast' is true, it uses a cache to speed up the lookup.
 func Caller(skip int, fast bool) (file string, line int, loaded bool) {
 
 	if !fast {

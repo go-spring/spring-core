@@ -47,8 +47,8 @@ type Initializer interface {
 	Init() error
 }
 
-// LifeCycle Optional lifecycle interface for plugin instances.
-type LifeCycle interface {
+// Lifecycle Optional lifecycle interface for plugin instances.
+type Lifecycle interface {
 	Start() error
 	Stop(ctx context.Context)
 }

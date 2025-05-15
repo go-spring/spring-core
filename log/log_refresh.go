@@ -17,22 +17,16 @@
 package log
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
+	"sync/atomic"
 )
 
-// global holds the global logger and appender registry protected by a mutex for thread safety.
-var global struct {
-	Mutex     sync.Mutex          // Mutex to ensure thread-safe updates
-	Loggers   map[string]*Logger  // Registered loggers by name
-	Appenders map[string]Appender // Registered appenders by name
-}
+var initOnce atomic.Bool
 
 // RefreshFile loads a logging configuration from a file by its name.
 func RefreshFile(fileName string) error {
@@ -49,8 +43,9 @@ func RefreshFile(fileName string) error {
 
 // RefreshReader reads the configuration from an io.Reader using the reader for the given extension.
 func RefreshReader(input io.Reader, ext string) error {
-	global.Mutex.Lock()
-	defer global.Mutex.Unlock()
+	if !initOnce.CompareAndSwap(false, true) {
+		return errors.New("log refresh already done")
+	}
 
 	var rootNode *Node
 	{
@@ -184,20 +179,5 @@ func RefreshReader(input io.Reader, ext string) error {
 		marker.SetLogger(logger)
 	}
 
-	Stop(context.Background())
-
-	global.Loggers = cLoggers
-	global.Appenders = cAppenders
 	return nil
-}
-
-// Stop stops all currently active loggers and appenders.
-// This ensures a clean shutdown before applying new configurations.
-func Stop(ctx context.Context) {
-	for _, l := range global.Loggers {
-		l.Stop(ctx)
-	}
-	for _, a := range global.Appenders {
-		a.Stop(ctx)
-	}
 }

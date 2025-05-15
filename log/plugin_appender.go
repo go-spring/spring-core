@@ -29,7 +29,7 @@ func init() {
 
 // Appender is an interface that defines components that handle log output.
 type Appender interface {
-	LifeCycle        // Appenders must be startable and stoppable
+	Lifecycle        // Appenders must be startable and stoppable
 	Append(e *Event) // Handles writing a log event
 }
 
@@ -83,11 +83,6 @@ func (c *FileAppender) Init() error {
 	}
 	c.openFile = f
 	return nil
-}
-
-// Destroy closes the open file.
-func (c *FileAppender) Destroy() {
-	_ = c.openFile.Close()
 }
 
 // Append formats the log event and writes it to the file.

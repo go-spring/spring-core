@@ -37,7 +37,9 @@ type TextLayout struct{}
 
 // ToBytes converts a log event to a formatted plain-text line.
 func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
+	const separator = "||"
 	const maxLength = 48
+
 	fileLine := e.File + ":" + strconv.Itoa(e.Line)
 	if n := len(fileLine); n > maxLength-3 {
 		fileLine = "..." + fileLine[n-maxLength:]
@@ -52,9 +54,9 @@ func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
 	buf.WriteString(fileLine)
 	buf.WriteString("] ")
 	buf.WriteString(e.Marker)
-	buf.WriteString("||")
+	buf.WriteString(separator)
 
-	enc := NewTextEncoder(buf, "||")
+	enc := NewTextEncoder(buf, separator)
 	if err := enc.AppendEncoderBegin(); err != nil {
 		return nil, err
 	}

@@ -36,7 +36,7 @@ type Logger struct {
 
 // privateConfig is the interface implemented by all logger configs.
 type privateConfig interface {
-	LifeCycle                     // Start/Stop methods
+	Lifecycle                     // Start/Stop methods
 	publish(e *Event)             // Logic for sending events to appenders
 	enableLevel(level Level) bool // Whether a log level is enabled
 }
@@ -90,11 +90,9 @@ func (c *LoggerConfig) Stop(ctx context.Context) {}
 // It buffers log events and processes them in a separate goroutine.
 type AsyncLoggerConfig struct {
 	baseLoggerConfig
-
 	BufferSize int `PluginAttribute:"bufferSize,default=10000"`
 
-	buf  chan *Event   // Channel buffer for log events
-	exit chan struct{} // Signal for shutdown
+	buf chan *Event // Channel buffer for log events
 }
 
 // Start initializes the asynchronous logger and starts its worker goroutine.
@@ -103,14 +101,12 @@ func (c *AsyncLoggerConfig) Start() error {
 		return errors.New("buffer size must be positive")
 	}
 	c.buf = make(chan *Event, c.BufferSize)
-	c.exit = make(chan struct{})
 
 	// Launch a background goroutine to process events
 	go func() {
 		for e := range c.buf {
 			c.callAppenders(e)
 		}
-		close(c.exit)
 	}()
 	return nil
 }
@@ -120,11 +116,6 @@ func (c *AsyncLoggerConfig) publish(e *Event) {
 	select {
 	case c.buf <- e:
 	default:
+		// Drop the event if the buffer is full
 	}
-}
-
-// Stop signals the logger to shut down and waits for all events to be flushed.
-func (c *AsyncLoggerConfig) Stop(ctx context.Context) {
-	close(c.buf)
-	<-c.exit
 }
