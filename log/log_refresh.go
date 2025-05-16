@@ -71,7 +71,7 @@ func RefreshReader(input io.Reader, ext string) error {
 		cRoot      *Logger
 		cLoggers   = make(map[string]*Logger)
 		cAppenders = make(map[string]Appender)
-		cMarkers   = make(map[string]*Logger)
+		cTags      = make(map[string]*Logger)
 	)
 
 	// Parse <Appenders> section
@@ -140,16 +140,16 @@ func RefreshReader(input io.Reader, ext string) error {
 			}
 
 			if isRootLogger {
-				if base.Marker != "" {
-					return fmt.Errorf("root logger can not have marker")
+				if base.Tags != "" {
+					return fmt.Errorf("root logger can not have tags attribute")
 				}
 			} else {
-				if base.Marker == "" {
-					return fmt.Errorf("logger must have marker except root logger")
+				if base.Tags == "" {
+					return fmt.Errorf("logger must have tags attribute except root logger")
 				}
-				ss := strings.Split(base.Marker, ",")
+				ss := strings.Split(base.Tags, ",")
 				for _, s := range ss {
-					cMarkers[s] = logger
+					cTags[s] = logger
 				}
 			}
 		}
@@ -170,13 +170,13 @@ func RefreshReader(input io.Reader, ext string) error {
 		}
 	}
 
-	for s, marker := range markers {
-		logger, ok := cMarkers[s]
+	for s, tag := range tags {
+		logger, ok := cTags[s]
 		if !ok {
-			marker.SetLogger(cRoot)
+			tag.SetLogger(cRoot)
 			continue
 		}
-		marker.SetLogger(logger)
+		tag.SetLogger(logger)
 	}
 
 	return nil

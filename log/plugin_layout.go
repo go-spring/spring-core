@@ -53,7 +53,7 @@ func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
 	buf.WriteString("][")
 	buf.WriteString(fileLine)
 	buf.WriteString("] ")
-	buf.WriteString(e.Marker)
+	buf.WriteString(e.Tag)
 	buf.WriteString(separator)
 
 	enc := NewTextEncoder(buf, separator)
@@ -89,7 +89,7 @@ func (c *JSONLayout) ToBytes(e *Event) ([]byte, error) {
 		String("level", strings.ToLower(e.Level.String())),
 		String("time", e.Time.Format("2006-01-02T15:04:05.000")),
 		String("fileLine", fileLine),
-		String("marker", e.Marker),
+		String("tag", e.Tag),
 	}
 
 	buf := bytes.NewBuffer(nil)

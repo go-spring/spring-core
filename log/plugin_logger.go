@@ -52,7 +52,7 @@ type AppenderRef struct {
 type baseLoggerConfig struct {
 	Name         string         `PluginAttribute:"name"`
 	Level        Level          `PluginAttribute:"level"`
-	Marker       string         `PluginAttribute:"marker,default="`
+	Tags         string         `PluginAttribute:"tags,default="`
 	AppenderRefs []*AppenderRef `PluginElement:"AppenderRef"`
 }
 
@@ -81,6 +81,7 @@ func (c *LoggerConfig) Start() error {
 // publish sends the event directly to the appenders.
 func (c *LoggerConfig) publish(e *Event) {
 	c.callAppenders(e)
+	ReleaseEvent(e)
 }
 
 // Stop shuts down the logger (no-op for sync loggers).
@@ -106,6 +107,7 @@ func (c *AsyncLoggerConfig) Start() error {
 	go func() {
 		for e := range c.buf {
 			c.callAppenders(e)
+			ReleaseEvent(e)
 		}
 	}()
 	return nil
@@ -117,5 +119,6 @@ func (c *AsyncLoggerConfig) publish(e *Event) {
 	case c.buf <- e:
 	default:
 		// Drop the event if the buffer is full
+		ReleaseEvent(e)
 	}
 }

@@ -23,27 +23,8 @@ import (
 	"github.com/go-spring/spring-core/log/internal"
 )
 
-// DefaultMarker is the default logging marker used when none is specified.
-var DefaultMarker = RegisterMarker("_def")
-
-func init() {
-	DefaultMarker.SetLogger(&Logger{
-		privateConfig: &LoggerConfig{
-			baseLoggerConfig: baseLoggerConfig{
-				Level: InfoLevel,
-				AppenderRefs: []*AppenderRef{
-					{
-						appender: &ConsoleAppender{
-							BaseAppender: BaseAppender{
-								Layout: &TextLayout{},
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-}
+// TagDefault is a default tag that can be used to set the default logger.
+var TagDefault = GetTag("_def")
 
 // TimeNow is a function that can be overridden to provide custom timestamp behavior (e.g., for testing).
 var TimeNow func(ctx context.Context) time.Time
@@ -51,75 +32,75 @@ var TimeNow func(ctx context.Context) time.Time
 // FieldsFromContext can be set to extract structured fields from the context (e.g., trace IDs, user IDs).
 var FieldsFromContext func(ctx context.Context) []Field
 
-// Trace logs a message at TraceLevel using a marker and a lazy field-generating function.
-func Trace(ctx context.Context, marker *Marker, fn func() []Field) {
-	if marker.GetLogger().enableLevel(TraceLevel) {
-		Record(ctx, TraceLevel, marker, fn()...)
+// Trace logs a message at TraceLevel using a tag and a lazy field-generating function.
+func Trace(ctx context.Context, tag *Tag, fn func() []Field) {
+	if tag.GetLogger().enableLevel(TraceLevel) {
+		Record(ctx, TraceLevel, tag, fn()...)
 	}
 }
 
-// Debug logs a message at DebugLevel using a marker and a lazy field-generating function.
-func Debug(ctx context.Context, marker *Marker, fn func() []Field) {
-	if marker.GetLogger().enableLevel(DebugLevel) {
-		Record(ctx, DebugLevel, marker, fn()...)
+// Debug logs a message at DebugLevel using a tag and a lazy field-generating function.
+func Debug(ctx context.Context, tag *Tag, fn func() []Field) {
+	if tag.GetLogger().enableLevel(DebugLevel) {
+		Record(ctx, DebugLevel, tag, fn()...)
 	}
 }
 
 // Info logs a message at InfoLevel using structured fields.
-func Info(ctx context.Context, marker *Marker, fields ...Field) {
-	Record(ctx, InfoLevel, marker, fields...)
+func Info(ctx context.Context, tag *Tag, fields ...Field) {
+	Record(ctx, InfoLevel, tag, fields...)
 }
 
-// Infof logs a formatted message at InfoLevel using the default marker.
+// Infof logs a formatted message at InfoLevel using the default tag.
 func Infof(format string, args ...interface{}) {
-	Record(context.Background(), InfoLevel, DefaultMarker, Msgf(format, args...))
+	Record(context.Background(), InfoLevel, TagDefault, Msgf(format, args...))
 }
 
 // Warn logs a message at WarnLevel using structured fields.
-func Warn(ctx context.Context, marker *Marker, fields ...Field) {
-	Record(ctx, WarnLevel, marker, fields...)
+func Warn(ctx context.Context, tag *Tag, fields ...Field) {
+	Record(ctx, WarnLevel, tag, fields...)
 }
 
-// Warnf logs a formatted message at WarnLevel using the default marker.
+// Warnf logs a formatted message at WarnLevel using the default tag.
 func Warnf(format string, args ...interface{}) {
-	Record(context.Background(), WarnLevel, DefaultMarker, Msgf(format, args...))
+	Record(context.Background(), WarnLevel, TagDefault, Msgf(format, args...))
 }
 
 // Error logs a message at ErrorLevel using structured fields.
-func Error(ctx context.Context, marker *Marker, fields ...Field) {
-	Record(ctx, ErrorLevel, marker, fields...)
+func Error(ctx context.Context, tag *Tag, fields ...Field) {
+	Record(ctx, ErrorLevel, tag, fields...)
 }
 
-// Errorf logs a formatted message at ErrorLevel using the default marker.
+// Errorf logs a formatted message at ErrorLevel using the default tag.
 func Errorf(format string, args ...interface{}) {
-	Record(context.Background(), ErrorLevel, DefaultMarker, Msgf(format, args...))
+	Record(context.Background(), ErrorLevel, TagDefault, Msgf(format, args...))
 }
 
 // Panic logs a message at PanicLevel using structured fields.
-func Panic(ctx context.Context, marker *Marker, fields ...Field) {
-	Record(ctx, PanicLevel, marker, fields...)
+func Panic(ctx context.Context, tag *Tag, fields ...Field) {
+	Record(ctx, PanicLevel, tag, fields...)
 }
 
-// Panicf logs a formatted message at PanicLevel using the default marker.
+// Panicf logs a formatted message at PanicLevel using the default tag.
 func Panicf(format string, args ...interface{}) {
-	Record(context.Background(), PanicLevel, DefaultMarker, Msgf(format, args...))
+	Record(context.Background(), PanicLevel, TagDefault, Msgf(format, args...))
 }
 
 // Fatal logs a message at FatalLevel using structured fields.
-func Fatal(ctx context.Context, marker *Marker, fields ...Field) {
-	Record(ctx, FatalLevel, marker, fields...)
+func Fatal(ctx context.Context, tag *Tag, fields ...Field) {
+	Record(ctx, FatalLevel, tag, fields...)
 }
 
-// Fatalf logs a formatted message at FatalLevel using the default marker.
+// Fatalf logs a formatted message at FatalLevel using the default tag.
 func Fatalf(format string, args ...interface{}) {
-	Record(context.Background(), FatalLevel, DefaultMarker, Msgf(format, args...))
+	Record(context.Background(), FatalLevel, TagDefault, Msgf(format, args...))
 }
 
 // Record is the core function that handles publishing log events.
 // It checks the logger level, captures caller information, gathers context fields,
 // and sends the log event to the logger.
-func Record(ctx context.Context, level Level, marker *Marker, fields ...Field) {
-	logger := marker.GetLogger()
+func Record(ctx context.Context, level Level, tag *Tag, fields ...Field) {
+	logger := tag.GetLogger()
 	if !logger.enableLevel(level) {
 		return // Skip if the logger doesn't allow this level
 	}
@@ -138,13 +119,14 @@ func Record(ctx context.Context, level Level, marker *Marker, fields ...Field) {
 		ctxFields = FieldsFromContext(ctx)
 	}
 
-	logger.publish(&Event{
-		Level:     level,
-		Time:      now,
-		File:      file,
-		Line:      line,
-		Marker:    marker.GetName(),
-		Fields:    fields,
-		CtxFields: ctxFields,
-	})
+	e := GetEvent()
+	e.Level = level
+	e.Time = now
+	e.File = file
+	e.Line = line
+	e.Tag = tag.GetName()
+	e.Fields = fields
+	e.CtxFields = ctxFields
+
+	logger.publish(e)
 }

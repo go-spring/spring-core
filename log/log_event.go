@@ -17,8 +17,15 @@
 package log
 
 import (
+	"sync"
 	"time"
 )
+
+var eventPool = sync.Pool{
+	New: func() any {
+		return &Event{}
+	},
+}
 
 // Event provides contextual information about a log message.
 type Event struct {
@@ -26,7 +33,26 @@ type Event struct {
 	Time      time.Time // The timestamp when the event occurred
 	File      string    // The source file where the log was triggered
 	Line      int       // The line number in the source file
-	Marker    string    // A tag or marker used to categorize the log (e.g., subsystem name)
+	Tag       string    // A tag used to categorize the log (e.g., subsystem name)
 	Fields    []Field   // Custom fields provided specifically for this log event
 	CtxFields []Field   // Additional fields derived from the context (e.g., request ID, user ID)
+}
+
+func (e *Event) Reset() {
+	e.Level = NoneLevel
+	e.Time = time.Time{}
+	e.File = ""
+	e.Line = 0
+	e.Tag = ""
+	e.Fields = nil
+	e.CtxFields = nil
+}
+
+func GetEvent() *Event {
+	return eventPool.Get().(*Event)
+}
+
+func ReleaseEvent(e *Event) {
+	e.Reset()
+	eventPool.Put(e)
 }

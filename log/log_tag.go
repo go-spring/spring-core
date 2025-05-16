@@ -20,39 +20,57 @@ import (
 	"sync/atomic"
 )
 
-var markers = map[string]*Marker{}
+var tags = map[string]*Tag{}
 
-// Marker is a struct representing a named logging marker.
+var initLogger = &Logger{
+	privateConfig: &LoggerConfig{
+		baseLoggerConfig: baseLoggerConfig{
+			Level: InfoLevel,
+			AppenderRefs: []*AppenderRef{
+				{
+					appender: &ConsoleAppender{
+						BaseAppender: BaseAppender{
+							Layout: &TextLayout{},
+						},
+					},
+				},
+			},
+		},
+	},
+}
+
+// Tag is a struct representing a named logging tag.
 // It holds a pointer to a Logger and a string identifier.
-type Marker struct {
+type Tag struct {
 	v atomic.Pointer[Logger]
 	s string
 }
 
-// GetName returns the name of the marker.
-func (m *Marker) GetName() string {
+// GetName returns the name of the tag.
+func (m *Tag) GetName() string {
 	return m.s
 }
 
-// GetLogger returns the Logger associated with this marker.
+// GetLogger returns the Logger associated with this tag.
 // It uses atomic loading to ensure safe concurrent access.
-func (m *Marker) GetLogger() *Logger {
+func (m *Tag) GetLogger() *Logger {
 	return m.v.Load()
 }
 
-// SetLogger sets or replaces the Logger associated with this marker.
+// SetLogger sets or replaces the Logger associated with this tag.
 // Uses atomic storing to ensure thread safety.
-func (m *Marker) SetLogger(logger *Logger) {
+func (m *Tag) SetLogger(logger *Logger) {
 	m.v.Store(logger)
 }
 
-// RegisterMarker creates or retrieves a Marker by name.
-// If the marker does not exist, it is created and added to the global registry.
-func RegisterMarker(marker string) *Marker {
-	m, ok := markers[marker]
+// GetTag creates or retrieves a Tag by name.
+// If the tag does not exist, it is created and added to the global registry.
+func GetTag(tag string) *Tag {
+	m, ok := tags[tag]
 	if !ok {
-		m = &Marker{s: marker}
-		markers[marker] = m
+		m = &Tag{s: tag}
+		m.v.Store(initLogger)
+		tags[tag] = m
 	}
 	return m
 }

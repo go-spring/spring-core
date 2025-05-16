@@ -23,11 +23,20 @@ import (
 	"github.com/go-spring/spring-core/log"
 )
 
-var MarkerRequestIn = log.RegisterMarker("_com_request_in")
-var MarkerRequestOut = log.RegisterMarker("_com_request_out")
+var TagRequestIn = log.GetTag("_com_request_in")
+var TagRequestOut = log.GetTag("_com_request_out")
 
 func TestLog(t *testing.T) {
+	ctx := t.Context()
+
+	log.Debug(ctx, TagRequestOut, func() []log.Field {
+		return []log.Field{
+			log.Msgf("hello %s", "world"),
+		}
+	})
+
 	log.Infof("hello %s", "world")
+	log.Info(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
 
 	xml := `
 		<?xml version="1.0" encoding="UTF-8"?>
@@ -44,7 +53,7 @@ func TestLog(t *testing.T) {
 				<Root level="trace">
 					<AppenderRef ref="Console_JSON"/>
 				</Root>
-				<Logger name="file" level="trace" marker="_com_request_in,_com_request_out">
+				<Logger name="file" level="trace" tags="_com_request_in,_com_request_out">
 					<AppenderRef ref="Console_Pattern"/>
 				</Logger>
 			</Loggers>
@@ -55,14 +64,12 @@ func TestLog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := t.Context()
-
-	log.Debug(ctx, MarkerRequestOut, func() []log.Field {
+	log.Debug(ctx, TagRequestOut, func() []log.Field {
 		return []log.Field{
 			log.Msgf("hello %s", "world"),
 		}
 	})
 
 	log.Infof("hello %s", "world")
-	log.Info(ctx, MarkerRequestIn, log.Msgf("hello %s", "world"))
+	log.Info(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
 }
