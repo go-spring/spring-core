@@ -131,8 +131,7 @@ func (enc *JSONEncoder) appendSeparator(curr jsonToken) {
 		if enc.last == jsonTokenValue {
 			enc.buf.WriteByte(',')
 		}
-	default:
-		panic("invalid token") // Unexpected usage
+	default: // for linter
 	}
 }
 
