@@ -52,7 +52,7 @@ func GetEvent() *Event {
 	return eventPool.Get().(*Event)
 }
 
-func ReleaseEvent(e *Event) {
+func PutEvent(e *Event) {
 	e.Reset()
 	eventPool.Put(e)
 }

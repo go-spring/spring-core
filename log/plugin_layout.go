@@ -17,7 +17,6 @@
 package log
 
 import (
-	"bytes"
 	"strconv"
 	"strings"
 )
@@ -45,7 +44,7 @@ func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
 		fileLine = "..." + fileLine[n-maxLength:]
 	}
 
-	buf := bytes.NewBuffer(nil)
+	buf := GetBuffer()
 	buf.WriteString("[")
 	buf.WriteString(strings.ToUpper(e.Level.String()))
 	buf.WriteString("][")
@@ -92,7 +91,7 @@ func (c *JSONLayout) ToBytes(e *Event) ([]byte, error) {
 		String("tag", e.Tag),
 	}
 
-	buf := bytes.NewBuffer(nil)
+	buf := GetBuffer()
 	enc := NewJSONEncoder(buf)
 	if err := enc.AppendEncoderBegin(); err != nil {
 		return nil, err

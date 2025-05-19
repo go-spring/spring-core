@@ -22,8 +22,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync/atomic"
+
+	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-core/util/errutil"
 )
 
 var initOnce atomic.Bool
@@ -44,14 +48,14 @@ func RefreshFile(fileName string) error {
 // RefreshReader reads the configuration from an io.Reader using the reader for the given extension.
 func RefreshReader(input io.Reader, ext string) error {
 	if !initOnce.CompareAndSwap(false, true) {
-		return errors.New("log refresh already done")
+		return errors.New("RefreshReader: log refresh already done")
 	}
 
 	var rootNode *Node
 	{
 		r, ok := readers[ext]
 		if !ok {
-			return fmt.Errorf("unsupported file type %s", ext)
+			return fmt.Errorf("RefreshReader: unsupported file type %s", ext)
 		}
 		data, err := io.ReadAll(input)
 		if err != nil {
@@ -64,7 +68,7 @@ func RefreshReader(input io.Reader, ext string) error {
 	}
 
 	if rootNode.Label != "Configuration" {
-		return errors.New("the Configuration root not found")
+		return errors.New("RefreshReader: the Configuration root not found")
 	}
 
 	var (
@@ -79,11 +83,11 @@ func RefreshReader(input io.Reader, ext string) error {
 		for _, c := range node.Children {
 			p, ok := plugins[c.Label]
 			if !ok {
-				return fmt.Errorf("plugin %s not found", c.Label)
+				return fmt.Errorf("RefreshReader: plugin %s not found", c.Label)
 			}
 			name, ok := c.Attributes["name"]
 			if !ok {
-				return errors.New("attribute 'name' not found")
+				return errors.New("RefreshReader: attribute 'name' not found")
 			}
 			v, err := NewPlugin(p.Class, c)
 			if err != nil {
@@ -99,18 +103,18 @@ func RefreshReader(input io.Reader, ext string) error {
 			isRootLogger := c.Label == "Root" || c.Label == "AsyncRoot"
 			if isRootLogger {
 				if cRoot != nil {
-					return errors.New("found more than one root loggers")
+					return errors.New("RefreshReader: found more than one root loggers")
 				}
 				c.Attributes["name"] = ""
 			}
 
 			p, ok := plugins[c.Label]
 			if !ok || p == nil {
-				return fmt.Errorf("plugin %s not found", c.Label)
+				return fmt.Errorf("RefreshReader: plugin %s not found", c.Label)
 			}
 			name, ok := c.Attributes["name"]
 			if !ok {
-				return errors.New("attribute 'name' not found")
+				return errors.New("RefreshReader: attribute 'name' not found")
 			}
 			v, err := NewPlugin(p.Class, c)
 			if err != nil {
@@ -134,18 +138,18 @@ func RefreshReader(input io.Reader, ext string) error {
 			for _, r := range base.AppenderRefs {
 				appender, ok := cAppenders[r.Ref]
 				if !ok {
-					return fmt.Errorf("appender %s not found", r.Ref)
+					return fmt.Errorf("RefreshReader: appender %s not found", r.Ref)
 				}
 				r.appender = appender
 			}
 
 			if isRootLogger {
 				if base.Tags != "" {
-					return fmt.Errorf("root logger can not have tags attribute")
+					return fmt.Errorf("RefreshReader: root logger can not have tags attribute")
 				}
 			} else {
 				if base.Tags == "" {
-					return fmt.Errorf("logger must have tags attribute except root logger")
+					return fmt.Errorf("RefreshReader: logger must have tags attribute except root logger")
 				}
 				ss := strings.Split(base.Tags, ",")
 				for _, s := range ss {
@@ -157,6 +161,20 @@ func RefreshReader(input io.Reader, ext string) error {
 
 	if cRoot == nil {
 		return errors.New("found no root logger")
+	}
+
+	var (
+		logArray []*Logger
+		tagArray []*regexp.Regexp
+	)
+
+	for _, s := range util.OrderedMapKeys(cTags) {
+		r, err := regexp.Compile(s)
+		if err != nil {
+			return errutil.WrapError(err, "RefreshReader: `%s` regexp compile error", s)
+		}
+		tagArray = append(tagArray, r)
+		logArray = append(logArray, cTags[s])
 	}
 
 	for _, a := range cAppenders {
@@ -171,10 +189,12 @@ func RefreshReader(input io.Reader, ext string) error {
 	}
 
 	for s, tag := range tags {
-		logger, ok := cTags[s]
-		if !ok {
-			tag.SetLogger(cRoot)
-			continue
+		logger := cRoot
+		for i, r := range tagArray {
+			if r.MatchString(s) {
+				logger = logArray[i]
+				break
+			}
 		}
 		tag.SetLogger(logger)
 	}

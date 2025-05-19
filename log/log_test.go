@@ -53,7 +53,7 @@ func TestLog(t *testing.T) {
 				<Root level="trace">
 					<AppenderRef ref="Console_JSON"/>
 				</Root>
-				<Logger name="file" level="trace" tags="_com_request_in,_com_request_out">
+				<Logger name="file" level="trace" tags="_com_request_*">
 					<AppenderRef ref="Console_Pattern"/>
 				</Logger>
 			</Loggers>
