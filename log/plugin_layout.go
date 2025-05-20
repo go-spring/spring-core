@@ -45,6 +45,8 @@ func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
 	}
 
 	buf := GetBuffer()
+	defer PutBuffer(buf)
+
 	buf.WriteString("[")
 	buf.WriteString(strings.ToUpper(e.Level.String()))
 	buf.WriteString("][")
@@ -92,6 +94,8 @@ func (c *JSONLayout) ToBytes(e *Event) ([]byte, error) {
 	}
 
 	buf := GetBuffer()
+	defer PutBuffer(buf)
+
 	enc := NewJSONEncoder(buf)
 	if err := enc.AppendEncoderBegin(); err != nil {
 		return nil, err

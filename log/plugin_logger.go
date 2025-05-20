@@ -93,15 +93,17 @@ type AsyncLoggerConfig struct {
 	baseLoggerConfig
 	BufferSize int `PluginAttribute:"bufferSize,default=10000"`
 
-	buf chan *Event // Channel buffer for log events
+	buf  chan *Event // Channel buffer for log events
+	wait chan struct{}
 }
 
 // Start initializes the asynchronous logger and starts its worker goroutine.
 func (c *AsyncLoggerConfig) Start() error {
-	if c.BufferSize < 0 {
-		return errors.New("buffer size must be positive")
+	if c.BufferSize < 100 {
+		return errors.New("bufferSize is too small")
 	}
 	c.buf = make(chan *Event, c.BufferSize)
+	c.wait = make(chan struct{})
 
 	// Launch a background goroutine to process events
 	go func() {
@@ -109,6 +111,7 @@ func (c *AsyncLoggerConfig) Start() error {
 			c.callAppenders(e)
 			PutEvent(e)
 		}
+		close(c.wait)
 	}()
 	return nil
 }
@@ -120,5 +123,14 @@ func (c *AsyncLoggerConfig) publish(e *Event) {
 	default:
 		// Drop the event if the buffer is full
 		PutEvent(e)
+	}
+}
+
+// Stop shuts down the asynchronous logger and waits for the worker goroutine to finish.
+func (c *AsyncLoggerConfig) Stop(ctx context.Context) {
+	close(c.buf)
+	select {
+	case <-ctx.Done():
+	case <-c.wait:
 	}
 }

@@ -27,10 +27,12 @@ var bufPool = sync.Pool{
 	},
 }
 
+// GetBuffer retrieves a bytes.Buffer from the pool.
 func GetBuffer() *bytes.Buffer {
 	return bufPool.Get().(*bytes.Buffer)
 }
 
+// PutBuffer returns a buffer to the pool after resetting it.
 func PutBuffer(buf *bytes.Buffer) {
 	buf.Reset()
 	if buf.Cap() > 1024*1024 { // 1MB
