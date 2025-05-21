@@ -17,13 +17,35 @@
 package log
 
 import (
+	"bytes"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func init() {
 	RegisterPlugin[TextLayout]("TextLayout", PluginTypeLayout)
 	RegisterPlugin[JSONLayout]("JSONLayout", PluginTypeLayout)
+}
+
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return bytes.NewBuffer(nil)
+	},
+}
+
+// GetBuffer retrieves a bytes.Buffer from the pool.
+func GetBuffer() *bytes.Buffer {
+	return bufferPool.Get().(*bytes.Buffer)
+}
+
+// PutBuffer returns a buffer to the pool after resetting it.
+func PutBuffer(buf *bytes.Buffer) {
+	buf.Reset()
+	if buf.Cap() > 1024*1024 { // 1MB
+		return
+	}
+	bufferPool.Put(buf)
 }
 
 // Layout is the interface that defines how a log event is converted to bytes.

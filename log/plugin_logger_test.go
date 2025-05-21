@@ -17,7 +17,6 @@
 package log
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -45,7 +44,7 @@ func TestLoggerConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		defer func() {
-			a.Stop(context.Background())
+			a.Stop()
 		}()
 
 		l := &LoggerConfig{baseLoggerConfig{
@@ -60,7 +59,7 @@ func TestLoggerConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		defer func() {
-			l.Stop(context.Background())
+			l.Stop()
 		}()
 
 		assert.False(t, l.enableLevel(TraceLevel))
@@ -81,7 +80,35 @@ func TestLoggerConfig(t *testing.T) {
 
 func TestAsyncLoggerConfig(t *testing.T) {
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("enable level", func(t *testing.T) {
+		l := &AsyncLoggerConfig{
+			baseLoggerConfig: baseLoggerConfig{
+				Level: InfoLevel,
+			},
+		}
+
+		assert.False(t, l.enableLevel(TraceLevel))
+		assert.False(t, l.enableLevel(DebugLevel))
+		assert.True(t, l.enableLevel(InfoLevel))
+		assert.True(t, l.enableLevel(WarnLevel))
+		assert.True(t, l.enableLevel(ErrorLevel))
+		assert.True(t, l.enableLevel(PanicLevel))
+		assert.True(t, l.enableLevel(FatalLevel))
+	})
+
+	t.Run("error BufferSize", func(t *testing.T) {
+		l := &AsyncLoggerConfig{
+			baseLoggerConfig: baseLoggerConfig{
+				Name: "file",
+			},
+			BufferSize: 10,
+		}
+
+		err := l.Start()
+		assert.ThatError(t, err).Matches("bufferSize is too small")
+	})
+
+	t.Run("drop events", func(t *testing.T) {
 		a := &CountAppender{
 			Appender: &DiscardAppender{},
 		}
@@ -90,7 +117,15 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		defer func() {
-			a.Stop(context.Background())
+			a.Stop()
+		}()
+
+		dropCount := 0
+		OnDropEvent = func(*Event) {
+			dropCount++
+		}
+		defer func() {
+			OnDropEvent = nil
 		}()
 
 		l := &AsyncLoggerConfig{
@@ -108,16 +143,46 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		defer func() {
-			l.Stop(context.Background())
+			l.Stop()
+			assert.True(t, dropCount > 0)
 		}()
 
-		assert.False(t, l.enableLevel(TraceLevel))
-		assert.False(t, l.enableLevel(DebugLevel))
-		assert.True(t, l.enableLevel(InfoLevel))
-		assert.True(t, l.enableLevel(WarnLevel))
-		assert.True(t, l.enableLevel(ErrorLevel))
-		assert.True(t, l.enableLevel(PanicLevel))
-		assert.True(t, l.enableLevel(FatalLevel))
+		for i := 0; i < 5000; i++ {
+			l.publish(GetEvent())
+		}
+
+		time.Sleep(200 * time.Millisecond)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		a := &CountAppender{
+			Appender: &DiscardAppender{},
+		}
+
+		err := a.Start()
+		assert.Nil(t, err)
+
+		defer func() {
+			a.Stop()
+		}()
+
+		l := &AsyncLoggerConfig{
+			baseLoggerConfig: baseLoggerConfig{
+				Level: InfoLevel,
+				Tags:  "_com_*",
+				AppenderRefs: []*AppenderRef{
+					{appender: a},
+				},
+			},
+			BufferSize: 100,
+		}
+
+		err = l.Start()
+		assert.Nil(t, err)
+
+		defer func() {
+			l.Stop()
+		}()
 
 		for i := 0; i < 5; i++ {
 			l.publish(GetEvent())

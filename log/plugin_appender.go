@@ -17,7 +17,6 @@
 package log
 
 import (
-	"context"
 	"os"
 )
 
@@ -45,9 +44,9 @@ type BaseAppender struct {
 	Layout Layout `PluginElement:"Layout"` // Layout defines how logs are formatted
 }
 
-func (c *BaseAppender) Start() error             { return nil }
-func (c *BaseAppender) Stop(ctx context.Context) {}
-func (c *BaseAppender) Append(e *Event)          {}
+func (c *BaseAppender) Start() error    { return nil }
+func (c *BaseAppender) Stop()           {}
+func (c *BaseAppender) Append(e *Event) {}
 
 // DiscardAppender ignores all log events (no output).
 type DiscardAppender struct {
@@ -92,4 +91,11 @@ func (c *FileAppender) Append(e *Event) {
 		return
 	}
 	_, _ = c.openFile.Write(data)
+}
+
+// Stop closes the file.
+func (c *FileAppender) Stop() {
+	if c.openFile != nil {
+		_ = c.openFile.Close()
+	}
 }

@@ -17,6 +17,7 @@
 package log_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -28,6 +29,21 @@ var TagRequestOut = log.GetTag("_com_request_out")
 
 func TestLog(t *testing.T) {
 	ctx := t.Context()
+
+	log.FieldsFromContext = func(ctx context.Context) []log.Field {
+		traceID, _ := ctx.Value("trace_id").(string)
+		if traceID == "" {
+			traceID = "<<trace_id>>"
+		}
+		spanID, _ := ctx.Value("span_id").(string)
+		if spanID == "" {
+			spanID = "<<span_id>>"
+		}
+		return []log.Field{
+			log.String("trace_id", traceID),
+			log.String("span_id", spanID),
+		}
+	}
 
 	log.Debug(ctx, TagRequestOut, func() []log.Field {
 		return []log.Field{
@@ -45,16 +61,16 @@ func TestLog(t *testing.T) {
 				<Console name="Console_JSON">
 					<JSONLayout/>
 				</Console>
-				<Console name="Console_Pattern">
+				<Console name="Console_Text">
 					<TextLayout/>
 				</Console>
 			</Appenders>
 			<Loggers>
 				<Root level="trace">
-					<AppenderRef ref="Console_JSON"/>
+					<AppenderRef ref="Console_Text"/>
 				</Root>
 				<Logger name="file" level="trace" tags="_com_request_*">
-					<AppenderRef ref="Console_Pattern"/>
+					<AppenderRef ref="Console_JSON"/>
 				</Logger>
 			</Loggers>
 		</Configuration>
@@ -63,6 +79,9 @@ func TestLog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	ctx = context.WithValue(ctx, "trace_id", "0a882193682db71edd48044db54cae88")
+	ctx = context.WithValue(ctx, "span_id", "50ef0724418c0a66")
 
 	log.Debug(ctx, TagRequestOut, func() []log.Field {
 		return []log.Field{

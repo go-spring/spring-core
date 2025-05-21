@@ -21,6 +21,8 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+
+	"github.com/go-spring/spring-core/util"
 )
 
 var readers = map[string]Reader{}
@@ -46,6 +48,29 @@ func (node *Node) getChild(label string) *Node {
 		}
 	}
 	return nil
+}
+
+func DumpNode(node *Node, indent int, buf *bytes.Buffer) {
+	for i := 0; i < indent; i++ {
+		buf.WriteString("    ")
+	}
+	buf.WriteString(node.Label)
+	if len(node.Attributes) > 0 {
+		buf.WriteString(" {")
+		for i, k := range util.OrderedMapKeys(node.Attributes) {
+			if i > 0 {
+				buf.WriteString(" ")
+			}
+			buf.WriteString(k)
+			buf.WriteString("=")
+			buf.WriteString(node.Attributes[k])
+		}
+		buf.WriteString("}")
+	}
+	for _, c := range node.Children {
+		buf.WriteString("\n")
+		DumpNode(c, indent+1, buf)
+	}
 }
 
 // Reader is an interface for reading and parsing data into a Node structure.

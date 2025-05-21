@@ -17,7 +17,6 @@
 package log
 
 import (
-	"context"
 	"errors"
 	"os"
 	"testing"
@@ -37,7 +36,7 @@ func TestDiscardAppender(t *testing.T) {
 	err := a.Start()
 	assert.Nil(t, err)
 	a.Append(&Event{})
-	a.Stop(context.Background())
+	a.Stop()
 }
 
 func TestConsoleAppender(t *testing.T) {

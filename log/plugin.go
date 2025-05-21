@@ -17,7 +17,6 @@
 package log
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -50,7 +49,7 @@ type Initializer interface {
 // Lifecycle Optional lifecycle interface for plugin instances.
 type Lifecycle interface {
 	Start() error
-	Stop(ctx context.Context)
+	Stop()
 }
 
 // PluginType Defines types of plugins supported by the logging system.

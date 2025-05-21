@@ -17,9 +17,11 @@
 package log
 
 import (
-	"context"
 	"errors"
 )
+
+// OnDropEvent is a callback function that is called when an event is dropped.
+var OnDropEvent func(*Event)
 
 func init() {
 	RegisterPlugin[AppenderRef]("AppenderRef", PluginTypeAppenderRef)
@@ -85,7 +87,7 @@ func (c *LoggerConfig) publish(e *Event) {
 }
 
 // Stop shuts down the logger (no-op for sync loggers).
-func (c *LoggerConfig) Stop(ctx context.Context) {}
+func (c *LoggerConfig) Stop() {}
 
 // AsyncLoggerConfig is an asynchronous logger configuration.
 // It buffers log events and processes them in a separate goroutine.
@@ -123,14 +125,14 @@ func (c *AsyncLoggerConfig) publish(e *Event) {
 	default:
 		// Drop the event if the buffer is full
 		PutEvent(e)
+		if OnDropEvent != nil {
+			OnDropEvent(e)
+		}
 	}
 }
 
 // Stop shuts down the asynchronous logger and waits for the worker goroutine to finish.
-func (c *AsyncLoggerConfig) Stop(ctx context.Context) {
+func (c *AsyncLoggerConfig) Stop() {
 	close(c.buf)
-	select {
-	case <-ctx.Done():
-	case <-c.wait:
-	}
+	<-c.wait
 }
