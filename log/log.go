@@ -111,7 +111,7 @@ func Record(ctx context.Context, level Level, tag *Tag, fields ...Field) {
 		return // Skip if the logger doesn't allow this level
 	}
 
-	file, line, _ := internal.Caller(2, true)
+	file, line := internal.Caller(2, true)
 
 	// Determine the log timestamp
 	now := time.Now()

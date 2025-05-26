@@ -131,7 +131,7 @@ func Uint(key string, val uint) Field {
 	return Field{Key: key, Val: Uint64Value(val)}
 }
 
-// UintPtr creates a uint Field from a pointer; returns Nil if pointer is nil.
+// UintPtr creates an uint Field from a pointer; returns Nil if pointer is nil.
 func UintPtr(key string, val *uint) Field {
 	if val == nil {
 		return Nil(key)
@@ -144,7 +144,7 @@ func Uint8(key string, val uint8) Field {
 	return Field{Key: key, Val: Uint64Value(val)}
 }
 
-// Uint8Ptr creates a uint8 Field from a pointer; returns Nil if pointer is nil.
+// Uint8Ptr creates an uint8 Field from a pointer; returns Nil if pointer is nil.
 func Uint8Ptr(key string, val *uint8) Field {
 	if val == nil {
 		return Nil(key)
@@ -157,7 +157,7 @@ func Uint16(key string, val uint16) Field {
 	return Field{Key: key, Val: Uint64Value(val)}
 }
 
-// Uint16Ptr creates a uint16 Field from a pointer; returns Nil if pointer is nil.
+// Uint16Ptr creates an uint16 Field from a pointer; returns Nil if pointer is nil.
 func Uint16Ptr(key string, val *uint16) Field {
 	if val == nil {
 		return Nil(key)
@@ -170,7 +170,7 @@ func Uint32(key string, val uint32) Field {
 	return Field{Key: key, Val: Uint64Value(val)}
 }
 
-// Uint32Ptr creates a uint32 Field from a pointer; returns Nil if pointer is nil.
+// Uint32Ptr creates an uint32 Field from a pointer; returns Nil if pointer is nil.
 func Uint32Ptr(key string, val *uint32) Field {
 	if val == nil {
 		return Nil(key)
@@ -183,7 +183,7 @@ func Uint64(key string, val uint64) Field {
 	return Field{Key: key, Val: Uint64Value(val)}
 }
 
-// Uint64Ptr creates a uint64 Field from a pointer; returns Nil if pointer is nil.
+// Uint64Ptr creates an uint64 Field from a pointer; returns Nil if pointer is nil.
 func Uint64Ptr(key string, val *uint64) Field {
 	if val == nil {
 		return Nil(key)
