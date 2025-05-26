@@ -35,6 +35,7 @@ type Event struct {
 	Line      int       // The line number in the source file
 	Tag       string    // A tag used to categorize the log (e.g., subsystem name)
 	Fields    []Field   // Custom fields provided specifically for this log event
+	CtxString string    // The string representation of the context
 	CtxFields []Field   // Additional fields derived from the context (e.g., request ID, user ID)
 }
 
@@ -45,6 +46,7 @@ func (e *Event) Reset() {
 	e.Line = 0
 	e.Tag = ""
 	e.Fields = nil
+	e.CtxString = ""
 	e.CtxFields = nil
 }
 

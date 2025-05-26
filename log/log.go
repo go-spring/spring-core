@@ -32,6 +32,9 @@ var ctxDefault = context.WithValue(context.Background(), "ctxDefault", "")
 // TimeNow is a function that can be overridden to provide custom timestamp behavior (e.g., for testing).
 var TimeNow func(ctx context.Context) time.Time
 
+// StringFromContext can be set to extract a string from the context.
+var StringFromContext func(ctx context.Context) string
+
 // FieldsFromContext can be set to extract structured fields from the context (e.g., trace IDs, user IDs).
 var FieldsFromContext func(ctx context.Context) []Field
 
@@ -116,6 +119,12 @@ func Record(ctx context.Context, level Level, tag *Tag, fields ...Field) {
 		now = TimeNow(ctx)
 	}
 
+	// Extract a string from the context
+	var ctxString string
+	if StringFromContext != nil {
+		ctxString = StringFromContext(ctx)
+	}
+
 	// Extract contextual fields from the context
 	var ctxFields []Field
 	if FieldsFromContext != nil {
@@ -129,6 +138,7 @@ func Record(ctx context.Context, level Level, tag *Tag, fields ...Field) {
 	e.Line = line
 	e.Tag = tag.GetName()
 	e.Fields = fields
+	e.CtxString = ctxString
 	e.CtxFields = ctxFields
 
 	logger.publish(e)

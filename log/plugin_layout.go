@@ -79,6 +79,11 @@ func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
 	buf.WriteString(e.Tag)
 	buf.WriteString(separator)
 
+	if e.CtxString != "" {
+		buf.WriteString(e.CtxString)
+		buf.WriteString(separator)
+	}
+
 	enc := NewTextEncoder(buf, separator)
 	if err := enc.AppendEncoderBegin(); err != nil {
 		return nil, err

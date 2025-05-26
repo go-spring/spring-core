@@ -27,10 +27,10 @@ var frameMap sync.Map
 
 // Caller returns the file name and line number of the calling function.
 // If 'fast' is true, it uses a cache to speed up the lookup.
-func Caller(skip int, fast bool) (file string, line int, loaded bool) {
+func Caller(skip int, fast bool) (file string, line int) {
 
 	if !fast {
-		_, file, line, loaded = runtime.Caller(skip + 1)
+		_, file, line, _ = runtime.Caller(skip + 1)
 		return
 	}
 
@@ -42,9 +42,9 @@ func Caller(skip int, fast bool) (file string, line int, loaded bool) {
 	pc := rpc[0]
 	if v, ok := frameMap.Load(pc); ok {
 		e := v.(*runtime.Frame)
-		return e.File, e.Line, true
+		return e.File, e.Line
 	}
 	frame, _ := runtime.CallersFrames(rpc).Next()
 	frameMap.Store(pc, &frame)
-	return frame.File, frame.Line, false
+	return frame.File, frame.Line
 }
