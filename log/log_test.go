@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/log"
+	"github.com/lvan100/go-assert"
 )
 
 var TagRequestIn = log.GetTag("_com_request_in")
@@ -30,15 +31,13 @@ var TagRequestOut = log.GetTag("_com_request_out")
 func TestLog(t *testing.T) {
 	ctx := t.Context()
 
+	log.StringFromContext = func(ctx context.Context) string {
+		return ""
+	}
+
 	log.FieldsFromContext = func(ctx context.Context) []log.Field {
 		traceID, _ := ctx.Value("trace_id").(string)
-		if traceID == "" {
-			traceID = "<<trace_id>>"
-		}
 		spanID, _ := ctx.Value("span_id").(string)
-		if spanID == "" {
-			spanID = "<<span_id>>"
-		}
 		return []log.Field{
 			log.String("trace_id", traceID),
 			log.String("span_id", spanID),
@@ -57,6 +56,9 @@ func TestLog(t *testing.T) {
 	xml := `
 		<?xml version="1.0" encoding="UTF-8"?>
 		<Configuration>
+			<Properties>
+				<Property name="MaxBufferSize">1048576</Property>
+			</Properties>
 			<Appenders>
 				<Console name="Console_JSON">
 					<JSONLayout/>
@@ -76,9 +78,7 @@ func TestLog(t *testing.T) {
 		</Configuration>
 	`
 	err := log.RefreshReader(strings.NewReader(xml), ".xml")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err)
 
 	ctx = context.WithValue(ctx, "trace_id", "0a882193682db71edd48044db54cae88")
 	ctx = context.WithValue(ctx, "span_id", "50ef0724418c0a66")

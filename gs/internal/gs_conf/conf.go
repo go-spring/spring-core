@@ -285,7 +285,9 @@ func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []st
 				files = append(files, []string{
 					fmt.Sprintf("%s/%s-%s.properties", dir, p.configName, s),
 					fmt.Sprintf("%s/%s-%s.yaml", dir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.yml", dir, p.configName, s),
 					fmt.Sprintf("%s/%s-%s.toml", dir, p.configName, s),
+					fmt.Sprintf("%s/%s-%s.tml", dir, p.configName, s),
 					fmt.Sprintf("%s/%s-%s.json", dir, p.configName, s),
 				}...)
 			}

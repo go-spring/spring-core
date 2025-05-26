@@ -104,14 +104,31 @@ func (r *XMLReader) Read(b []byte) (*Node, error) {
 		}
 		switch t := token.(type) {
 		case xml.StartElement:
-			curr := &Node{
-				Label:      t.Name.Local,
-				Attributes: make(map[string]string),
+			if t.Name.Local == "Property" {
+				var name string
+				for _, attr := range t.Attr {
+					if attr.Name.Local == "name" {
+						name = attr.Value
+						break
+					}
+				}
+				var value string
+				err = d.DecodeElement(&value, &t)
+				if err != nil {
+					return nil, err
+				}
+				curr := stack[len(stack)-1]
+				curr.Attributes[name] = value
+			} else {
+				curr := &Node{
+					Label:      t.Name.Local,
+					Attributes: make(map[string]string),
+				}
+				for _, attr := range t.Attr {
+					curr.Attributes[attr.Name.Local] = attr.Value
+				}
+				stack = append(stack, curr)
 			}
-			for _, attr := range t.Attr {
-				curr.Attributes[attr.Name.Local] = attr.Value
-			}
-			stack = append(stack, curr)
 		case xml.EndElement:
 			curr := stack[len(stack)-1]
 			parent := stack[len(stack)-2]

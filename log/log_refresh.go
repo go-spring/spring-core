@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -164,6 +165,24 @@ func RefreshReader(input io.Reader, ext string) error {
 	}
 
 	var (
+		cfgMaxBufferSize int
+	)
+
+	if node := rootNode.getChild("Properties"); node != nil {
+		strMaxBufferSize, ok := node.Attributes["MaxBufferSize"]
+		if ok {
+			i, err := strconv.Atoi(strMaxBufferSize)
+			if err != nil {
+				return err
+			}
+			if i <= 0 {
+				return errors.New("RefreshReader: MaxBufferSize must be greater than 0")
+			}
+			cfgMaxBufferSize = i
+		}
+	}
+
+	var (
 		logArray []*Logger
 		tagArray []*regexp.Regexp
 	)
@@ -198,6 +217,8 @@ func RefreshReader(input io.Reader, ext string) error {
 		}
 		tag.SetLogger(logger)
 	}
+
+	maxBufferSize.Store(int32(cfgMaxBufferSize))
 
 	return nil
 }

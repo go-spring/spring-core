@@ -21,12 +21,16 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 func init() {
 	RegisterPlugin[TextLayout]("TextLayout", PluginTypeLayout)
 	RegisterPlugin[JSONLayout]("JSONLayout", PluginTypeLayout)
 }
+
+// maxBufferSize is the maximum size of a buffer in the pool.
+var maxBufferSize atomic.Int32
 
 var bufferPool = sync.Pool{
 	New: func() interface{} {
@@ -41,10 +45,11 @@ func GetBuffer() *bytes.Buffer {
 
 // PutBuffer returns a buffer to the pool after resetting it.
 func PutBuffer(buf *bytes.Buffer) {
-	buf.Reset()
-	if buf.Cap() > 1024*1024 { // 1MB
+	size := int(maxBufferSize.Load())
+	if size == 0 || buf.Cap() > size {
 		return
 	}
+	buf.Reset()
 	bufferPool.Put(buf)
 }
 
