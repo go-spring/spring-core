@@ -96,9 +96,9 @@ func RegisterPlugin[T any](name string, typ PluginType) {
 }
 
 // NewPlugin Creates and initializes a plugin instance.
-func NewPlugin(t reflect.Type, node *Node) (reflect.Value, error) {
+func NewPlugin(t reflect.Type, node *Node, properties map[string]string) (reflect.Value, error) {
 	v := reflect.New(t)
-	err := inject(v.Elem(), t, node)
+	err := inject(v.Elem(), t, node, properties)
 	if err != nil {
 		err = errutil.WrapError(err, "create plugin %s error", t.String())
 		return reflect.Value{}, err
@@ -113,25 +113,25 @@ func NewPlugin(t reflect.Type, node *Node) (reflect.Value, error) {
 }
 
 // inject Recursively injects values into struct fields based on tags.
-func inject(v reflect.Value, t reflect.Type, node *Node) error {
+func inject(v reflect.Value, t reflect.Type, node *Node, properties map[string]string) error {
 	for i := 0; i < v.NumField(); i++ {
 		ft := t.Field(i)
 		fv := v.Field(i)
 		if tag, ok := ft.Tag.Lookup("PluginAttribute"); ok {
-			if err := injectAttribute(tag, fv, ft, node); err != nil {
+			if err := injectAttribute(tag, fv, ft, node, properties); err != nil {
 				return err
 			}
 			continue
 		}
 		if tag, ok := ft.Tag.Lookup("PluginElement"); ok {
-			if err := injectElement(tag, fv, ft, node); err != nil {
+			if err := injectElement(tag, fv, ft, node, properties); err != nil {
 				return err
 			}
 			continue
 		}
 		// Recursively process anonymous embedded structs
 		if ft.Anonymous && ft.Type.Kind() == reflect.Struct {
-			if err := inject(fv, fv.Type(), node); err != nil {
+			if err := inject(fv, fv.Type(), node, properties); err != nil {
 				return err
 			}
 		}
@@ -166,7 +166,7 @@ func (tag PluginTag) Lookup(key string) (value string, ok bool) {
 }
 
 // injectAttribute Injects a value into a struct field from plugin attribute.
-func injectAttribute(tag string, fv reflect.Value, ft reflect.StructField, node *Node) error {
+func injectAttribute(tag string, fv reflect.Value, ft reflect.StructField, node *Node, properties map[string]string) error {
 
 	attrTag := PluginTag(tag)
 	attrName := attrTag.Get("")
@@ -179,6 +179,16 @@ func injectAttribute(tag string, fv reflect.Value, ft reflect.StructField, node 
 		if !ok {
 			return fmt.Errorf("found no attribute for struct field %s", attrName)
 		}
+	}
+
+	// Use a property if available
+	val = strings.TrimSpace(val)
+	if strings.HasPrefix(val, "${") && strings.HasSuffix(val, "}") {
+		s, exist := properties[val[2:len(val)-1]]
+		if !exist {
+			return fmt.Errorf("property %s not found", val)
+		}
+		val = s
 	}
 
 	// Use a custom converter if available
@@ -231,7 +241,7 @@ func injectAttribute(tag string, fv reflect.Value, ft reflect.StructField, node 
 }
 
 // injectElement Injects plugin elements (child nodes) into struct fields.
-func injectElement(tag string, fv reflect.Value, ft reflect.StructField, node *Node) error {
+func injectElement(tag string, fv reflect.Value, ft reflect.StructField, node *Node, properties map[string]string) error {
 
 	elemTag := PluginTag(tag)
 	elemType := elemTag.Get("")
@@ -248,7 +258,7 @@ func injectElement(tag string, fv reflect.Value, ft reflect.StructField, node *N
 		if string(p.Type) != elemType {
 			continue
 		}
-		v, err := NewPlugin(p.Class, c)
+		v, err := NewPlugin(p.Class, c, properties)
 		if err != nil {
 			return err
 		}
@@ -264,7 +274,7 @@ func injectElement(tag string, fv reflect.Value, ft reflect.StructField, node *N
 		if !ok {
 			return fmt.Errorf("plugin %s not found for struct field %s", elemLabel, ft.Name)
 		}
-		v, err := NewPlugin(p.Class, &Node{Label: elemLabel})
+		v, err := NewPlugin(p.Class, &Node{Label: elemLabel}, properties)
 		if err != nil {
 			return err
 		}

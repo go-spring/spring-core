@@ -97,23 +97,17 @@ func TestJSONEncoder(t *testing.T) {
 	t.Run("chan error", func(t *testing.T) {
 		buf := bytes.NewBuffer(nil)
 		enc := NewJSONEncoder(buf)
-		err := enc.AppendEncoderBegin()
-		assert.Nil(t, err)
-		err = enc.AppendKey("chan")
-		assert.Nil(t, err)
-		err = enc.AppendReflect(make(chan error))
-		assert.ThatError(t, err).Matches("json: unsupported type: chan error")
+		enc.AppendEncoderBegin()
+		enc.AppendKey("chan")
+		enc.AppendReflect(make(chan error))
 	})
 
 	t.Run("success", func(t *testing.T) {
 		buf := bytes.NewBuffer(nil)
 		enc := NewJSONEncoder(buf)
-		err := enc.AppendEncoderBegin()
-		assert.Nil(t, err)
-		err = writeFields(enc, testFields)
-		assert.Nil(t, err)
-		err = enc.AppendEncoderEnd()
-		assert.Nil(t, err)
+		enc.AppendEncoderBegin()
+		writeFields(enc, testFields)
+		enc.AppendEncoderEnd()
 		assert.ThatString(t, buf.String()).JsonEqual(`{
 	    "msg": "hello world\n\\\t\"\r",
 	    "null": null,
@@ -251,47 +245,31 @@ func TestTextEncoder(t *testing.T) {
 	t.Run("chan error", func(t *testing.T) {
 		buf := bytes.NewBuffer(nil)
 		enc := NewTextEncoder(buf, "||")
-		err := enc.AppendEncoderBegin()
-		assert.Nil(t, err)
-		err = enc.AppendKey("chan")
-		assert.Nil(t, err)
-		err = enc.AppendReflect(make(chan error))
-		assert.ThatError(t, err).Matches("json: unsupported type: chan error")
+		enc.AppendEncoderBegin()
+		enc.AppendKey("chan")
+		enc.AppendReflect(make(chan error))
 	})
 
 	t.Run("success", func(t *testing.T) {
 		buf := bytes.NewBuffer(nil)
 		enc := NewTextEncoder(buf, "||")
-		err := enc.AppendEncoderBegin()
-		assert.Nil(t, err)
-		err = writeFields(enc, testFields)
-		assert.Nil(t, err)
+		enc.AppendEncoderBegin()
+		writeFields(enc, testFields)
 		{
-			err = enc.AppendKey("object_2")
-			assert.Nil(t, err)
-			err = enc.AppendObjectBegin()
-			assert.Nil(t, err)
-			err = enc.AppendKey("map")
-			assert.Nil(t, err)
-			err = enc.AppendReflect(map[string]int{"a": 1})
-			assert.Nil(t, err)
-			err = enc.AppendObjectEnd()
-			assert.Nil(t, err)
+			enc.AppendKey("object_2")
+			enc.AppendObjectBegin()
+			enc.AppendKey("map")
+			enc.AppendReflect(map[string]int{"a": 1})
+			enc.AppendObjectEnd()
 		}
 		{
-			err = enc.AppendKey("array_2")
-			assert.Nil(t, err)
-			err = enc.AppendArrayBegin()
-			assert.Nil(t, err)
-			err = enc.AppendReflect(map[string]int{"a": 1})
-			assert.Nil(t, err)
-			err = enc.AppendReflect(map[string]int{"a": 1})
-			assert.Nil(t, err)
-			err = enc.AppendArrayEnd()
-			assert.Nil(t, err)
+			enc.AppendKey("array_2")
+			enc.AppendArrayBegin()
+			enc.AppendReflect(map[string]int{"a": 1})
+			enc.AppendReflect(map[string]int{"a": 1})
+			enc.AppendArrayEnd()
 		}
-		err = enc.AppendEncoderEnd()
-		assert.Nil(t, err)
+		enc.AppendEncoderEnd()
 		const expect = "msg=hello 中国||msg=hello world\n\\\t\"\r||null=null||" +
 			`bool=false||bool_ptr=false||bool_ptr_nil=null||bools=[true,true,false]||` +
 			`int=1||int_ptr=1||int_ptr_nil=null||int_slice=[1,2,3]||` +

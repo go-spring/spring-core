@@ -212,7 +212,9 @@ func TestPropertySources(t *testing.T) {
 		assert.That(t, files).Equal([]string{
 			"./conf/app.properties",
 			"./conf/app.yaml",
+			"./conf/app.yml",
 			"./conf/app.toml",
+			"./conf/app.tml",
 			"./conf/app.json",
 		})
 	})
@@ -228,15 +230,21 @@ func TestPropertySources(t *testing.T) {
 		assert.That(t, files).Equal([]string{
 			"./conf/app.properties",
 			"./conf/app.yaml",
+			"./conf/app.yml",
 			"./conf/app.toml",
+			"./conf/app.tml",
 			"./conf/app.json",
 			"./conf/app-dev.properties",
 			"./conf/app-dev.yaml",
+			"./conf/app-dev.yml",
 			"./conf/app-dev.toml",
+			"./conf/app-dev.tml",
 			"./conf/app-dev.json",
 			"./conf/app-test.properties",
 			"./conf/app-test.yaml",
+			"./conf/app-test.yml",
 			"./conf/app-test.toml",
+			"./conf/app-test.tml",
 			"./conf/app-test.json",
 		})
 	})

@@ -18,39 +18,46 @@ package log
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
+	"unicode"
 )
 
+var bytesSizeTable = map[string]int64{
+	"B":  1,
+	"KB": 1024,
+	"MB": 1024 * 1024,
+}
+
 func init() {
+	RegisterConverter[HumanizeBytes](ParseHumanizeBytes)
 	RegisterPlugin[TextLayout]("TextLayout", PluginTypeLayout)
 	RegisterPlugin[JSONLayout]("JSONLayout", PluginTypeLayout)
 }
 
-// maxBufferSize is the maximum size of a buffer in the pool.
-var maxBufferSize atomic.Int32
+type HumanizeBytes int
 
-var bufferPool = sync.Pool{
-	New: func() interface{} {
-		return bytes.NewBuffer(nil)
-	},
-}
-
-// GetBuffer retrieves a bytes.Buffer from the pool.
-func GetBuffer() *bytes.Buffer {
-	return bufferPool.Get().(*bytes.Buffer)
-}
-
-// PutBuffer returns a buffer to the pool after resetting it.
-func PutBuffer(buf *bytes.Buffer) {
-	size := int(maxBufferSize.Load())
-	if size == 0 || buf.Cap() > size {
-		return
+// ParseHumanizeBytes converts a human-readable byte string to an integer.
+func ParseHumanizeBytes(s string) (HumanizeBytes, error) {
+	lastDigit := 0
+	for _, r := range s {
+		if !unicode.IsDigit(r) {
+			break
+		}
+		lastDigit++
 	}
-	buf.Reset()
-	bufferPool.Put(buf)
+	num := s[:lastDigit]
+	f, err := strconv.ParseInt(num, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	extra := strings.ToUpper(strings.TrimSpace(s[lastDigit:]))
+	if m, ok := bytesSizeTable[extra]; ok {
+		f *= m
+		return HumanizeBytes(f), nil
+	}
+	return 0, fmt.Errorf("unhandled size name: %q", extra)
 }
 
 // Layout is the interface that defines how a log event is converted to bytes.
@@ -58,28 +65,59 @@ type Layout interface {
 	ToBytes(e *Event) ([]byte, error)
 }
 
+// BaseLayout is the base class for Layout.
+type BaseLayout struct {
+	BufferSize     HumanizeBytes `PluginAttribute:"bufferSize,default=1MB"`
+	FileLineLength int           `PluginAttribute:"fileLineLength,default=48"`
+	buffer         *bytes.Buffer
+}
+
+// GetBuffer returns a buffer that can be used to format the log event.
+func (c *BaseLayout) GetBuffer() *bytes.Buffer {
+	if c.buffer == nil {
+		c.buffer = &bytes.Buffer{}
+		c.buffer.Grow(int(c.BufferSize))
+	}
+	return c.buffer
+}
+
+// PutBuffer puts a buffer back into the pool.
+func (c *BaseLayout) PutBuffer(buf *bytes.Buffer) {
+	if buf.Cap() > int(c.BufferSize) {
+		c.buffer = nil
+		return
+	}
+	c.buffer = buf
+	c.buffer.Reset()
+}
+
+// GetFileLine returns the file name and line number of the log event.
+func (c *BaseLayout) GetFileLine(e *Event) string {
+	fileLine := e.File + ":" + strconv.Itoa(e.Line)
+	if n := len(fileLine); n > c.FileLineLength-3 {
+		fileLine = "..." + fileLine[n-c.FileLineLength:]
+	}
+	return fileLine
+}
+
 // TextLayout formats the log event as a human-readable text string.
-type TextLayout struct{}
+type TextLayout struct {
+	BaseLayout
+}
 
 // ToBytes converts a log event to a formatted plain-text line.
 func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
 	const separator = "||"
-	const maxLength = 48
 
-	fileLine := e.File + ":" + strconv.Itoa(e.Line)
-	if n := len(fileLine); n > maxLength-3 {
-		fileLine = "..." + fileLine[n-maxLength:]
-	}
-
-	buf := GetBuffer()
-	defer PutBuffer(buf)
+	buf := c.GetBuffer()
+	defer c.PutBuffer(buf)
 
 	buf.WriteString("[")
 	buf.WriteString(strings.ToUpper(e.Level.String()))
 	buf.WriteString("][")
 	buf.WriteString(e.Time.Format("2006-01-02T15:04:05.000"))
 	buf.WriteString("][")
-	buf.WriteString(fileLine)
+	buf.WriteString(c.GetFileLine(e))
 	buf.WriteString("] ")
 	buf.WriteString(e.Tag)
 	buf.WriteString(separator)
@@ -90,73 +128,49 @@ func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
 	}
 
 	enc := NewTextEncoder(buf, separator)
-	if err := enc.AppendEncoderBegin(); err != nil {
-		return nil, err
-	}
-	if err := writeFields(enc, e.CtxFields); err != nil {
-		return nil, err
-	}
-	if err := writeFields(enc, e.Fields); err != nil {
-		return nil, err
-	}
-	if err := enc.AppendEncoderEnd(); err != nil {
-		return nil, err
-	}
+	enc.AppendEncoderBegin()
+	writeFields(enc, e.CtxFields)
+	writeFields(enc, e.Fields)
+	enc.AppendEncoderEnd()
 
 	buf.WriteByte('\n')
 	return buf.Bytes(), nil
 }
 
 // JSONLayout formats the log event as a structured JSON object.
-type JSONLayout struct{}
+type JSONLayout struct {
+	BaseLayout
+}
 
 // ToBytes converts a log event to a JSON-formatted byte slice.
 func (c *JSONLayout) ToBytes(e *Event) ([]byte, error) {
-	const maxLength = 48
-	fileLine := e.File + ":" + strconv.Itoa(e.Line)
-	if n := len(fileLine); n > maxLength-3 {
-		fileLine = "..." + fileLine[n-maxLength:]
-	}
+	buf := c.GetBuffer()
+	defer c.PutBuffer(buf)
 
-	fields := []Field{
-		String("level", strings.ToLower(e.Level.String())),
-		String("time", e.Time.Format("2006-01-02T15:04:05.000")),
-		String("fileLine", fileLine),
-		String("tag", e.Tag),
-	}
+	fields := make([]Field, 0, 5)
+	fields = append(fields, String("level", strings.ToLower(e.Level.String())))
+	fields = append(fields, String("time", e.Time.Format("2006-01-02T15:04:05.000")))
+	fields = append(fields, String("fileLine", c.GetFileLine(e)))
+	fields = append(fields, String("tag", e.Tag))
 
-	buf := GetBuffer()
-	defer PutBuffer(buf)
+	if e.CtxString != "" {
+		fields = append(fields, String("ctxString", e.CtxString))
+	}
 
 	enc := NewJSONEncoder(buf)
-	if err := enc.AppendEncoderBegin(); err != nil {
-		return nil, err
-	}
-	if err := writeFields(enc, fields); err != nil {
-		return nil, err
-	}
-	if err := writeFields(enc, e.CtxFields); err != nil {
-		return nil, err
-	}
-	if err := writeFields(enc, e.Fields); err != nil {
-		return nil, err
-	}
-	if err := enc.AppendEncoderEnd(); err != nil {
-		return nil, err
-	}
+	enc.AppendEncoderBegin()
+	writeFields(enc, fields)
+	writeFields(enc, e.CtxFields)
+	writeFields(enc, e.Fields)
+	enc.AppendEncoderEnd()
 	buf.WriteByte('\n')
 	return buf.Bytes(), nil
 }
 
 // writeFields writes a slice of Field objects to the encoder.
-func writeFields(enc Encoder, fields []Field) error {
+func writeFields(enc Encoder, fields []Field) {
 	for _, f := range fields {
-		if err := enc.AppendKey(f.Key); err != nil {
-			return err
-		}
-		if err := f.Val.Encode(enc); err != nil {
-			return err
-		}
+		enc.AppendKey(f.Key)
+		f.Val.Encode(enc)
 	}
-	return nil
 }

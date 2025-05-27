@@ -30,7 +30,12 @@ var initLogger = &Logger{
 				{
 					appender: &ConsoleAppender{
 						BaseAppender: BaseAppender{
-							Layout: &TextLayout{},
+							Layout: &TextLayout{
+								BaseLayout: BaseLayout{
+									BufferSize:     500 * 1024,
+									FileLineLength: 48,
+								},
+							},
 						},
 					},
 				},

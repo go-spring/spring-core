@@ -57,11 +57,11 @@ func TestLog(t *testing.T) {
 		<?xml version="1.0" encoding="UTF-8"?>
 		<Configuration>
 			<Properties>
-				<Property name="MaxBufferSize">1048576</Property>
+				<Property name="LayoutBufferSize">100KB</Property>
 			</Properties>
 			<Appenders>
 				<Console name="Console_JSON">
-					<JSONLayout/>
+					<JSONLayout bufferSize="${LayoutBufferSize}"/>
 				</Console>
 				<Console name="Console_Text">
 					<TextLayout/>

@@ -28,7 +28,7 @@ func TestXMLReader(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		reader := XMLReader{}
 		_, err := reader.Read([]byte(``))
-		assert.ThatError(t, err).Matches("error xml config file")
+		assert.ThatError(t, err).Matches("invalid XML structure: missing root element")
 	})
 
 	t.Run("invalid", func(t *testing.T) {
@@ -42,6 +42,10 @@ func TestXMLReader(t *testing.T) {
 		node, err := reader.Read([]byte(`
 			<?xml version="1.0" encoding="UTF-8"?>
 			<Configuration>
+				<Properties>
+					<Property name="MaxBufferSize">1048576</Property>
+					<Property name="Dummy">foo,bar</Property>
+				</Properties>
 				<Appenders>
 					<Console name="Console_JSON">
 						<JSONLayout/>
@@ -62,26 +66,23 @@ func TestXMLReader(t *testing.T) {
 		`))
 		assert.Nil(t, err)
 
-		child := node.getChild("Configuration")
-		assert.Nil(t, child)
-
-		child = node.getChild("Loggers")
-		assert.That(t, len(child.Children)).Equal(2)
-
 		buf := bytes.NewBuffer(nil)
 		buf.WriteString("\n")
 		DumpNode(node, 3, buf)
 		assert.ThatString(t, buf.String()).Equal(`
-            Configuration
-                Appenders
-                    Console {name=Console_JSON}
-                        JSONLayout
-                    Console {name=Console_Text}
-                        TextLayout
-                Loggers
-                    Root {level=trace}
-                        AppenderRef {ref=Console_Text}
-                    Logger {level=trace name=file tags=_com_request_*}
-                        AppenderRef {ref=Console_JSON}`)
+			Configuration
+				Properties
+					Property {name=MaxBufferSize} : 1048576
+					Property {name=Dummy} : foo,bar
+				Appenders
+					Console {name=Console_JSON}
+						JSONLayout
+					Console {name=Console_Text}
+						TextLayout
+				Loggers
+					Root {level=trace}
+						AppenderRef {ref=Console_Text}
+					Logger {level=trace name=file tags=_com_request_*}
+						AppenderRef {ref=Console_JSON}`)
 	})
 }

@@ -25,19 +25,19 @@ import (
 
 // Encoder is an interface that defines methods for appending structured data elements.
 type Encoder interface {
-	AppendEncoderBegin() error
-	AppendEncoderEnd() error
-	AppendObjectBegin() error
-	AppendObjectEnd() error
-	AppendArrayBegin() error
-	AppendArrayEnd() error
-	AppendKey(key string) error
-	AppendBool(v bool) error
-	AppendInt64(v int64) error
-	AppendUint64(v uint64) error
-	AppendFloat64(v float64) error
-	AppendString(v string) error
-	AppendReflect(v interface{}) error
+	AppendEncoderBegin()
+	AppendEncoderEnd()
+	AppendObjectBegin()
+	AppendObjectEnd()
+	AppendArrayBegin()
+	AppendArrayEnd()
+	AppendKey(key string)
+	AppendBool(v bool)
+	AppendInt64(v int64)
+	AppendUint64(v uint64)
+	AppendFloat64(v float64)
+	AppendString(v string)
+	AppendReflect(v interface{})
 }
 
 var (
@@ -78,45 +78,39 @@ func (enc *JSONEncoder) Reset() {
 }
 
 // AppendEncoderBegin writes the start of an encoder section, represented as a JSON object.
-func (enc *JSONEncoder) AppendEncoderBegin() error {
+func (enc *JSONEncoder) AppendEncoderBegin() {
 	enc.last = jsonTokenObjectBegin
 	enc.buf.WriteByte('{')
-	return nil
 }
 
 // AppendEncoderEnd writes the end of an encoder section (closes a JSON object).
-func (enc *JSONEncoder) AppendEncoderEnd() error {
+func (enc *JSONEncoder) AppendEncoderEnd() {
 	enc.last = jsonTokenObjectEnd
 	enc.buf.WriteByte('}')
-	return nil
 }
 
 // AppendObjectBegin starts a new JSON object.
-func (enc *JSONEncoder) AppendObjectBegin() error {
+func (enc *JSONEncoder) AppendObjectBegin() {
 	enc.last = jsonTokenObjectBegin
 	enc.buf.WriteByte('{')
-	return nil
 }
 
 // AppendObjectEnd ends a JSON object.
-func (enc *JSONEncoder) AppendObjectEnd() error {
+func (enc *JSONEncoder) AppendObjectEnd() {
 	enc.last = jsonTokenObjectEnd
 	enc.buf.WriteByte('}')
-	return nil
 }
 
 // AppendArrayBegin starts a new JSON array.
-func (enc *JSONEncoder) AppendArrayBegin() error {
+func (enc *JSONEncoder) AppendArrayBegin() {
 	enc.last = jsonTokenArrayBegin
 	enc.buf.WriteByte('[')
-	return nil
 }
 
 // AppendArrayEnd ends a JSON array.
-func (enc *JSONEncoder) AppendArrayEnd() error {
+func (enc *JSONEncoder) AppendArrayEnd() {
 	enc.last = jsonTokenArrayEnd
 	enc.buf.WriteByte(']')
-	return nil
 }
 
 // appendSeparator inserts a comma if necessary before a key or value.
@@ -136,68 +130,61 @@ func (enc *JSONEncoder) appendSeparator(curr jsonToken) {
 }
 
 // AppendKey writes a JSON key (as a string followed by a colon).
-func (enc *JSONEncoder) AppendKey(key string) error {
+func (enc *JSONEncoder) AppendKey(key string) {
 	enc.appendSeparator(jsonTokenKey)
 	enc.last = jsonTokenKey
 	enc.buf.WriteByte('"')
 	enc.safeAddString(key)
 	enc.buf.WriteByte('"')
 	enc.buf.WriteByte(':')
-	return nil
 }
 
 // AppendBool writes a boolean value.
-func (enc *JSONEncoder) AppendBool(v bool) error {
+func (enc *JSONEncoder) AppendBool(v bool) {
 	enc.appendSeparator(jsonTokenValue)
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatBool(v))
-	return nil
 }
 
 // AppendInt64 writes a signed 64-bit integer.
-func (enc *JSONEncoder) AppendInt64(v int64) error {
+func (enc *JSONEncoder) AppendInt64(v int64) {
 	enc.appendSeparator(jsonTokenValue)
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatInt(v, 10))
-	return nil
 }
 
 // AppendUint64 writes an unsigned 64-bit integer.
-func (enc *JSONEncoder) AppendUint64(u uint64) error {
+func (enc *JSONEncoder) AppendUint64(u uint64) {
 	enc.appendSeparator(jsonTokenValue)
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatUint(u, 10))
-	return nil
 }
 
 // AppendFloat64 writes a floating-point number.
-func (enc *JSONEncoder) AppendFloat64(v float64) error {
+func (enc *JSONEncoder) AppendFloat64(v float64) {
 	enc.appendSeparator(jsonTokenValue)
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatFloat(v, 'f', -1, 64))
-	return nil
 }
 
 // AppendString writes a string value (properly escaped).
-func (enc *JSONEncoder) AppendString(v string) error {
+func (enc *JSONEncoder) AppendString(v string) {
 	enc.appendSeparator(jsonTokenValue)
 	enc.last = jsonTokenValue
 	enc.buf.WriteByte('"')
 	enc.safeAddString(v)
 	enc.buf.WriteByte('"')
-	return nil
 }
 
 // AppendReflect marshals any Go value into JSON and appends it.
-func (enc *JSONEncoder) AppendReflect(v interface{}) error {
+func (enc *JSONEncoder) AppendReflect(v interface{}) {
 	enc.appendSeparator(jsonTokenValue)
 	enc.last = jsonTokenValue
 	b, err := json.Marshal(v)
 	if err != nil {
-		return err
+		b = []byte(err.Error())
 	}
 	enc.buf.Write(b)
-	return nil
 }
 
 // safeAddString escapes and writes a string according to JSON rules.
@@ -283,53 +270,48 @@ func NewTextEncoder(buf *bytes.Buffer, separator string) *TextEncoder {
 }
 
 // AppendEncoderBegin is a no-op for TextEncoder (no special start token).
-func (enc *TextEncoder) AppendEncoderBegin() error {
-	return nil
-}
+func (enc *TextEncoder) AppendEncoderBegin() {}
 
 // AppendEncoderEnd is a no-op for TextEncoder (no special end token).
-func (enc *TextEncoder) AppendEncoderEnd() error {
-	return nil
-}
+func (enc *TextEncoder) AppendEncoderEnd() {}
 
 // AppendObjectBegin delegates to JSONEncoder and increases JSON depth.
-func (enc *TextEncoder) AppendObjectBegin() error {
+func (enc *TextEncoder) AppendObjectBegin() {
 	enc.jsonDepth++
-	return enc.jsonEncoder.AppendObjectBegin()
+	enc.jsonEncoder.AppendObjectBegin()
 }
 
 // AppendObjectEnd delegates to JSONEncoder, decreases depth, and resets JSON encoder when top-level ends.
-func (enc *TextEncoder) AppendObjectEnd() error {
+func (enc *TextEncoder) AppendObjectEnd() {
 	enc.jsonDepth--
-	err := enc.jsonEncoder.AppendObjectEnd()
+	enc.jsonEncoder.AppendObjectEnd()
 	if enc.jsonDepth == 0 {
 		enc.jsonEncoder.Reset()
 	}
-	return err
 }
 
 // AppendArrayBegin delegates to JSONEncoder and increases JSON depth.
-func (enc *TextEncoder) AppendArrayBegin() error {
+func (enc *TextEncoder) AppendArrayBegin() {
 	enc.jsonDepth++
-	return enc.jsonEncoder.AppendArrayBegin()
+	enc.jsonEncoder.AppendArrayBegin()
 }
 
 // AppendArrayEnd delegates to JSONEncoder, decreases depth, and resets when array ends at top-level.
-func (enc *TextEncoder) AppendArrayEnd() error {
+func (enc *TextEncoder) AppendArrayEnd() {
 	enc.jsonDepth--
-	err := enc.jsonEncoder.AppendArrayEnd()
+	enc.jsonEncoder.AppendArrayEnd()
 	if enc.jsonDepth == 0 {
 		enc.jsonEncoder.Reset()
 	}
-	return err
 }
 
 // AppendKey writes a key for a key-value pair.
 // If inside a JSON object, it delegates to JSONEncoder.
 // Otherwise, it writes key= format and handles separator.
-func (enc *TextEncoder) AppendKey(key string) error {
+func (enc *TextEncoder) AppendKey(key string) {
 	if enc.jsonDepth > 0 {
-		return enc.jsonEncoder.AppendKey(key)
+		enc.jsonEncoder.AppendKey(key)
+		return
 	}
 	if enc.init {
 		enc.buf.WriteString(enc.separator)
@@ -337,63 +319,62 @@ func (enc *TextEncoder) AppendKey(key string) error {
 	enc.init = true
 	enc.buf.WriteString(key)
 	enc.buf.WriteByte('=')
-	return nil
 }
 
 // AppendBool writes a boolean value, delegating to JSONEncoder if inside nested structure.
-func (enc *TextEncoder) AppendBool(v bool) error {
+func (enc *TextEncoder) AppendBool(v bool) {
 	if enc.jsonDepth > 0 {
-		return enc.jsonEncoder.AppendBool(v)
+		enc.jsonEncoder.AppendBool(v)
+		return
 	}
 	enc.buf.WriteString(strconv.FormatBool(v))
-	return nil
 }
 
 // AppendInt64 writes an int64 value, or delegates to JSONEncoder if in nested structure.
-func (enc *TextEncoder) AppendInt64(v int64) error {
+func (enc *TextEncoder) AppendInt64(v int64) {
 	if enc.jsonDepth > 0 {
-		return enc.jsonEncoder.AppendInt64(v)
+		enc.jsonEncoder.AppendInt64(v)
+		return
 	}
 	enc.buf.WriteString(strconv.FormatInt(v, 10))
-	return nil
 }
 
 // AppendUint64 writes a uint64 value, or delegates to JSONEncoder if in nested structure.
-func (enc *TextEncoder) AppendUint64(v uint64) error {
+func (enc *TextEncoder) AppendUint64(v uint64) {
 	if enc.jsonDepth > 0 {
-		return enc.jsonEncoder.AppendUint64(v)
+		enc.jsonEncoder.AppendUint64(v)
+		return
 	}
 	enc.buf.WriteString(strconv.FormatUint(v, 10))
-	return nil
 }
 
 // AppendFloat64 writes a float64 value, or delegates to JSONEncoder if in nested structure.
-func (enc *TextEncoder) AppendFloat64(v float64) error {
+func (enc *TextEncoder) AppendFloat64(v float64) {
 	if enc.jsonDepth > 0 {
-		return enc.jsonEncoder.AppendFloat64(v)
+		enc.jsonEncoder.AppendFloat64(v)
+		return
 	}
 	enc.buf.WriteString(strconv.FormatFloat(v, 'f', -1, 64))
-	return nil
 }
 
 // AppendString writes a raw string, or delegates to JSONEncoder if in nested structure.
-func (enc *TextEncoder) AppendString(v string) error {
+func (enc *TextEncoder) AppendString(v string) {
 	if enc.jsonDepth > 0 {
-		return enc.jsonEncoder.AppendString(v)
+		enc.jsonEncoder.AppendString(v)
+		return
 	}
 	enc.buf.WriteString(v)
-	return nil
 }
 
 // AppendReflect marshals and writes a value using JSON if not nested; otherwise, uses JSONEncoder.
-func (enc *TextEncoder) AppendReflect(v interface{}) error {
+func (enc *TextEncoder) AppendReflect(v interface{}) {
 	if enc.jsonDepth > 0 {
-		return enc.jsonEncoder.AppendReflect(v)
+		enc.jsonEncoder.AppendReflect(v)
+		return
 	}
 	b, err := json.Marshal(v)
 	if err != nil {
-		return err
+		b = []byte(err.Error())
 	}
 	enc.buf.Write(b)
-	return nil
 }

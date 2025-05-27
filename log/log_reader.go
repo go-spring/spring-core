@@ -21,6 +21,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"strings"
 
 	"github.com/go-spring/spring-core/util"
 )
@@ -37,22 +38,24 @@ type Node struct {
 	Label      string            // Tag name of the XML element
 	Children   []*Node           // Child elements (nested tags)
 	Attributes map[string]string // Attributes of the XML element
+	Text       string            // Text content of the XML element
 }
 
-// getChild returns the first child node with the specified label.
-// Returns nil if no matching child is found.
-func (node *Node) getChild(label string) *Node {
+// getChildren returns a slice of child nodes with a specific label.
+func (node *Node) getChildren(label string) []*Node {
+	var ret []*Node
 	for _, c := range node.Children {
 		if c.Label == label {
-			return c
+			ret = append(ret, c)
 		}
 	}
-	return nil
+	return ret
 }
 
+// DumpNode prints the structure of a Node to a buffer.
 func DumpNode(node *Node, indent int, buf *bytes.Buffer) {
 	for i := 0; i < indent; i++ {
-		buf.WriteString("    ")
+		buf.WriteString("\t")
 	}
 	buf.WriteString(node.Label)
 	if len(node.Attributes) > 0 {
@@ -70,6 +73,10 @@ func DumpNode(node *Node, indent int, buf *bytes.Buffer) {
 	for _, c := range node.Children {
 		buf.WriteString("\n")
 		DumpNode(c, indent+1, buf)
+	}
+	if node.Text != "" {
+		buf.WriteString(" : ")
+		buf.WriteString(strings.TrimSpace(node.Text))
 	}
 }
 
@@ -104,30 +111,18 @@ func (r *XMLReader) Read(b []byte) (*Node, error) {
 		}
 		switch t := token.(type) {
 		case xml.StartElement:
-			if t.Name.Local == "Property" {
-				var name string
-				for _, attr := range t.Attr {
-					if attr.Name.Local == "name" {
-						name = attr.Value
-						break
-					}
-				}
-				var value string
-				err = d.DecodeElement(&value, &t)
-				if err != nil {
-					return nil, err
-				}
+			curr := &Node{
+				Label:      t.Name.Local,
+				Attributes: make(map[string]string),
+			}
+			for _, attr := range t.Attr {
+				curr.Attributes[attr.Name.Local] = attr.Value
+			}
+			stack = append(stack, curr)
+		case xml.CharData:
+			if text := strings.TrimSpace(string(t)); text != "" {
 				curr := stack[len(stack)-1]
-				curr.Attributes[name] = value
-			} else {
-				curr := &Node{
-					Label:      t.Name.Local,
-					Attributes: make(map[string]string),
-				}
-				for _, attr := range t.Attr {
-					curr.Attributes[attr.Name.Local] = attr.Value
-				}
-				stack = append(stack, curr)
+				curr.Text += text
 			}
 		case xml.EndElement:
 			curr := stack[len(stack)-1]
@@ -138,7 +133,7 @@ func (r *XMLReader) Read(b []byte) (*Node, error) {
 		}
 	}
 	if len(stack[0].Children) == 0 {
-		return nil, errors.New("error xml config file")
+		return nil, errors.New("invalid XML structure: missing root element")
 	}
 	return stack[0].Children[0], nil
 }

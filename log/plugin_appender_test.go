@@ -78,7 +78,11 @@ func TestConsoleAppender(t *testing.T) {
 
 		a := &ConsoleAppender{
 			BaseAppender: BaseAppender{
-				Layout: &TextLayout{},
+				Layout: &TextLayout{
+					BaseLayout{
+						FileLineLength: 48,
+					},
+				},
 			},
 		}
 		a.Append(&Event{
@@ -154,7 +158,11 @@ func TestFileAppender(t *testing.T) {
 
 		a := &FileAppender{
 			BaseAppender: BaseAppender{
-				Layout: &TextLayout{},
+				Layout: &TextLayout{
+					BaseLayout{
+						FileLineLength: 48,
+					},
+				},
 			},
 			FileName: file.Name(),
 		}
