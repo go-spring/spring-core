@@ -100,6 +100,8 @@ func TestJSONEncoder(t *testing.T) {
 		enc.AppendEncoderBegin()
 		enc.AppendKey("chan")
 		enc.AppendReflect(make(chan error))
+		enc.AppendEncoderEnd()
+		assert.ThatString(t, buf.String()).Equal(`{"chan":"json: unsupported type: chan error"}`)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -248,6 +250,8 @@ func TestTextEncoder(t *testing.T) {
 		enc.AppendEncoderBegin()
 		enc.AppendKey("chan")
 		enc.AppendReflect(make(chan error))
+		enc.AppendEncoderEnd()
+		assert.ThatString(t, buf.String()).Equal("chan=json: unsupported type: chan error")
 	})
 
 	t.Run("success", func(t *testing.T) {

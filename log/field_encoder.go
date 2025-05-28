@@ -45,7 +45,7 @@ var (
 	_ Encoder = (*TextEncoder)(nil)
 )
 
-// jsonToken represents the type of the last JSON token written.
+// jsonToken represents the current state of the encoder while building a JSON structure.
 type jsonToken int
 
 const (
@@ -58,10 +58,10 @@ const (
 	jsonTokenValue
 )
 
-// JSONEncoder encodes Fields in json format.
+// JSONEncoder is a simple JSON encoder.
 type JSONEncoder struct {
-	buf  *bytes.Buffer // Buffer to write JSON output
-	last jsonToken     // The last token type written
+	buf  *bytes.Buffer // Buffer to write JSON output.
+	last jsonToken     // The last token type written.
 }
 
 // NewJSONEncoder creates a new JSONEncoder.
@@ -72,53 +72,53 @@ func NewJSONEncoder(buf *bytes.Buffer) *JSONEncoder {
 	}
 }
 
-// Reset clears the encoder's state.
+// Reset resets the encoder's state.
 func (enc *JSONEncoder) Reset() {
 	enc.last = jsonTokenUnknown
 }
 
-// AppendEncoderBegin writes the start of an encoder section, represented as a JSON object.
+// AppendEncoderBegin writes the start of an encoder section.
 func (enc *JSONEncoder) AppendEncoderBegin() {
 	enc.AppendObjectBegin()
 }
 
-// AppendEncoderEnd writes the end of an encoder section (closes a JSON object).
+// AppendEncoderEnd writes the end of an encoder section.
 func (enc *JSONEncoder) AppendEncoderEnd() {
 	enc.AppendObjectEnd()
 }
 
-// AppendObjectBegin starts a new JSON object.
+// AppendObjectBegin writes the beginning of a JSON object.
 func (enc *JSONEncoder) AppendObjectBegin() {
 	enc.last = jsonTokenObjectBegin
 	enc.buf.WriteByte('{')
 }
 
-// AppendObjectEnd ends a JSON object.
+// AppendObjectEnd writes the end of a JSON object.
 func (enc *JSONEncoder) AppendObjectEnd() {
 	enc.last = jsonTokenObjectEnd
 	enc.buf.WriteByte('}')
 }
 
-// AppendArrayBegin starts a new JSON array.
+// AppendArrayBegin writes the beginning of a JSON array.
 func (enc *JSONEncoder) AppendArrayBegin() {
 	enc.last = jsonTokenArrayBegin
 	enc.buf.WriteByte('[')
 }
 
-// AppendArrayEnd ends a JSON array.
+// AppendArrayEnd writes the end of a JSON array.
 func (enc *JSONEncoder) AppendArrayEnd() {
 	enc.last = jsonTokenArrayEnd
 	enc.buf.WriteByte(']')
 }
 
-// appendSeparator inserts a comma if necessary before a key or value.
+// appendSeparator writes a comma if the previous token requires separation (e.g., between values).
 func (enc *JSONEncoder) appendSeparator() {
 	if enc.last == jsonTokenObjectEnd || enc.last == jsonTokenArrayEnd || enc.last == jsonTokenValue {
 		enc.buf.WriteByte(',')
 	}
 }
 
-// AppendKey writes a JSON key (as a string followed by a colon).
+// AppendKey writes a JSON key.
 func (enc *JSONEncoder) AppendKey(key string) {
 	enc.appendSeparator()
 	enc.last = jsonTokenKey
@@ -135,28 +135,28 @@ func (enc *JSONEncoder) AppendBool(v bool) {
 	enc.buf.WriteString(strconv.FormatBool(v))
 }
 
-// AppendInt64 writes a signed 64-bit integer.
+// AppendInt64 writes an int64 value.
 func (enc *JSONEncoder) AppendInt64(v int64) {
 	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatInt(v, 10))
 }
 
-// AppendUint64 writes an unsigned 64-bit integer.
+// AppendUint64 writes an uint64 value.
 func (enc *JSONEncoder) AppendUint64(u uint64) {
 	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatUint(u, 10))
 }
 
-// AppendFloat64 writes a floating-point number.
+// AppendFloat64 writes a float64 value.
 func (enc *JSONEncoder) AppendFloat64(v float64) {
 	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatFloat(v, 'f', -1, 64))
 }
 
-// AppendString writes a string value (properly escaped).
+// AppendString writes a string value with proper escaping.
 func (enc *JSONEncoder) AppendString(v string) {
 	enc.appendSeparator()
 	enc.last = jsonTokenValue
@@ -171,7 +171,10 @@ func (enc *JSONEncoder) AppendReflect(v interface{}) {
 	enc.last = jsonTokenValue
 	b, err := json.Marshal(v)
 	if err != nil {
-		b = []byte(err.Error())
+		enc.buf.WriteByte('"')
+		enc.safeAddString(err.Error())
+		enc.buf.WriteByte('"')
+		return
 	}
 	enc.buf.Write(b)
 }
@@ -249,7 +252,7 @@ type TextEncoder struct {
 	firstField  bool          // Tracks if the first key-value has been written
 }
 
-// NewTextEncoder creates a new TextEncoder writing to the given buffer, using the specified separator.
+// NewTextEncoder creates a new TextEncoder, using the specified separator.
 func NewTextEncoder(buf *bytes.Buffer, separator string) *TextEncoder {
 	return &TextEncoder{
 		buf:         buf,
@@ -258,19 +261,21 @@ func NewTextEncoder(buf *bytes.Buffer, separator string) *TextEncoder {
 	}
 }
 
-// AppendEncoderBegin is a no-op for TextEncoder (no special start token).
+// AppendEncoderBegin writes the start of an encoder section.
 func (enc *TextEncoder) AppendEncoderBegin() {}
 
-// AppendEncoderEnd is a no-op for TextEncoder (no special end token).
+// AppendEncoderEnd writes the end of an encoder section.
 func (enc *TextEncoder) AppendEncoderEnd() {}
 
-// AppendObjectBegin delegates to JSONEncoder and increases JSON depth.
+// AppendObjectBegin signals the start of a JSON object.
+// Increments the depth and delegates to the JSON encoder.
 func (enc *TextEncoder) AppendObjectBegin() {
 	enc.jsonDepth++
 	enc.jsonEncoder.AppendObjectBegin()
 }
 
-// AppendObjectEnd delegates to JSONEncoder, decreases depth, and resets JSON encoder when top-level ends.
+// AppendObjectEnd signals the end of a JSON object.
+// Decrements the depth and resets the JSON encoder if back to top level.
 func (enc *TextEncoder) AppendObjectEnd() {
 	enc.jsonDepth--
 	enc.jsonEncoder.AppendObjectEnd()
@@ -279,13 +284,15 @@ func (enc *TextEncoder) AppendObjectEnd() {
 	}
 }
 
-// AppendArrayBegin delegates to JSONEncoder and increases JSON depth.
+// AppendArrayBegin signals the start of a JSON array.
+// Increments the depth and delegates to the JSON encoder.
 func (enc *TextEncoder) AppendArrayBegin() {
 	enc.jsonDepth++
 	enc.jsonEncoder.AppendArrayBegin()
 }
 
-// AppendArrayEnd delegates to JSONEncoder, decreases depth, and resets when array ends at top-level.
+// AppendArrayEnd signals the end of a JSON array.
+// Decrements the depth and resets the JSON encoder if back to top level.
 func (enc *TextEncoder) AppendArrayEnd() {
 	enc.jsonDepth--
 	enc.jsonEncoder.AppendArrayEnd()
@@ -294,9 +301,9 @@ func (enc *TextEncoder) AppendArrayEnd() {
 	}
 }
 
-// AppendKey writes a key for a key-value pair.
-// If inside a JSON object, it delegates to JSONEncoder.
-// Otherwise, it writes key= format and handles separator.
+// AppendKey appends a key for a key-value pair.
+// If inside a JSON structure, the key is handled by the JSON encoder.
+// Otherwise, it's written directly with proper separator handling.
 func (enc *TextEncoder) AppendKey(key string) {
 	if enc.jsonDepth > 0 {
 		enc.jsonEncoder.AppendKey(key)
@@ -311,7 +318,7 @@ func (enc *TextEncoder) AppendKey(key string) {
 	enc.buf.WriteByte('=')
 }
 
-// AppendBool writes a boolean value, delegating to JSONEncoder if inside nested structure.
+// AppendBool appends a boolean value, using JSON encoder if nested.
 func (enc *TextEncoder) AppendBool(v bool) {
 	if enc.jsonDepth > 0 {
 		enc.jsonEncoder.AppendBool(v)
@@ -320,7 +327,7 @@ func (enc *TextEncoder) AppendBool(v bool) {
 	enc.buf.WriteString(strconv.FormatBool(v))
 }
 
-// AppendInt64 writes an int64 value, or delegates to JSONEncoder if in nested structure.
+// AppendInt64 appends an int64 value, using JSON encoder if nested.
 func (enc *TextEncoder) AppendInt64(v int64) {
 	if enc.jsonDepth > 0 {
 		enc.jsonEncoder.AppendInt64(v)
@@ -329,7 +336,7 @@ func (enc *TextEncoder) AppendInt64(v int64) {
 	enc.buf.WriteString(strconv.FormatInt(v, 10))
 }
 
-// AppendUint64 writes a uint64 value, or delegates to JSONEncoder if in nested structure.
+// AppendUint64 appends a uint64 value, using JSON encoder if nested.
 func (enc *TextEncoder) AppendUint64(v uint64) {
 	if enc.jsonDepth > 0 {
 		enc.jsonEncoder.AppendUint64(v)
@@ -338,7 +345,7 @@ func (enc *TextEncoder) AppendUint64(v uint64) {
 	enc.buf.WriteString(strconv.FormatUint(v, 10))
 }
 
-// AppendFloat64 writes a float64 value, or delegates to JSONEncoder if in nested structure.
+// AppendFloat64 appends a float64 value, using JSON encoder if nested.
 func (enc *TextEncoder) AppendFloat64(v float64) {
 	if enc.jsonDepth > 0 {
 		enc.jsonEncoder.AppendFloat64(v)
@@ -347,7 +354,7 @@ func (enc *TextEncoder) AppendFloat64(v float64) {
 	enc.buf.WriteString(strconv.FormatFloat(v, 'f', -1, 64))
 }
 
-// AppendString writes a raw string, or delegates to JSONEncoder if in nested structure.
+// AppendString appends a string value, using JSON encoder if nested.
 func (enc *TextEncoder) AppendString(v string) {
 	if enc.jsonDepth > 0 {
 		enc.jsonEncoder.AppendString(v)
@@ -356,7 +363,8 @@ func (enc *TextEncoder) AppendString(v string) {
 	enc.buf.WriteString(v)
 }
 
-// AppendReflect marshals and writes a value using JSON if not nested; otherwise, uses JSONEncoder.
+// AppendReflect uses reflection to marshal any value as JSON.
+// If nested, delegates to JSON encoder.
 func (enc *TextEncoder) AppendReflect(v interface{}) {
 	if enc.jsonDepth > 0 {
 		enc.jsonEncoder.AppendReflect(v)
@@ -364,7 +372,8 @@ func (enc *TextEncoder) AppendReflect(v interface{}) {
 	}
 	b, err := json.Marshal(v)
 	if err != nil {
-		b = []byte(err.Error())
+		enc.AppendString(err.Error())
+		return
 	}
 	enc.buf.Write(b)
 }

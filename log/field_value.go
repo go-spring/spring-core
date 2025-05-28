@@ -29,7 +29,7 @@ func (v BoolValue) Encode(enc Encoder) {
 	enc.AppendBool(bool(v))
 }
 
-// Int64Value represents a int64 carried by Field.
+// Int64Value represents an int64 carried by Field.
 type Int64Value int64
 
 // Encode encodes the data represented by v to an Encoder.
@@ -37,7 +37,7 @@ func (v Int64Value) Encode(enc Encoder) {
 	enc.AppendInt64(int64(v))
 }
 
-// Uint64Value represents a uint64 carried by Field.
+// Uint64Value represents an uint64 carried by Field.
 type Uint64Value uint64
 
 // Encode encodes the data represented by v to an Encoder.
