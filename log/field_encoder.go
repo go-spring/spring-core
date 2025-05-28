@@ -79,14 +79,12 @@ func (enc *JSONEncoder) Reset() {
 
 // AppendEncoderBegin writes the start of an encoder section, represented as a JSON object.
 func (enc *JSONEncoder) AppendEncoderBegin() {
-	enc.last = jsonTokenObjectBegin
-	enc.buf.WriteByte('{')
+	enc.AppendObjectBegin()
 }
 
 // AppendEncoderEnd writes the end of an encoder section (closes a JSON object).
 func (enc *JSONEncoder) AppendEncoderEnd() {
-	enc.last = jsonTokenObjectEnd
-	enc.buf.WriteByte('}')
+	enc.AppendObjectEnd()
 }
 
 // AppendObjectBegin starts a new JSON object.
@@ -114,24 +112,15 @@ func (enc *JSONEncoder) AppendArrayEnd() {
 }
 
 // appendSeparator inserts a comma if necessary before a key or value.
-func (enc *JSONEncoder) appendSeparator(curr jsonToken) {
-	switch curr {
-	case jsonTokenKey:
-		// Insert a comma between key-value pairs or elements
-		if enc.last == jsonTokenObjectEnd || enc.last == jsonTokenArrayEnd || enc.last == jsonTokenValue {
-			enc.buf.WriteByte(',')
-		}
-	case jsonTokenValue:
-		if enc.last == jsonTokenValue {
-			enc.buf.WriteByte(',')
-		}
-	default: // for linter
+func (enc *JSONEncoder) appendSeparator() {
+	if enc.last == jsonTokenObjectEnd || enc.last == jsonTokenArrayEnd || enc.last == jsonTokenValue {
+		enc.buf.WriteByte(',')
 	}
 }
 
 // AppendKey writes a JSON key (as a string followed by a colon).
 func (enc *JSONEncoder) AppendKey(key string) {
-	enc.appendSeparator(jsonTokenKey)
+	enc.appendSeparator()
 	enc.last = jsonTokenKey
 	enc.buf.WriteByte('"')
 	enc.safeAddString(key)
@@ -141,35 +130,35 @@ func (enc *JSONEncoder) AppendKey(key string) {
 
 // AppendBool writes a boolean value.
 func (enc *JSONEncoder) AppendBool(v bool) {
-	enc.appendSeparator(jsonTokenValue)
+	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatBool(v))
 }
 
 // AppendInt64 writes a signed 64-bit integer.
 func (enc *JSONEncoder) AppendInt64(v int64) {
-	enc.appendSeparator(jsonTokenValue)
+	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatInt(v, 10))
 }
 
 // AppendUint64 writes an unsigned 64-bit integer.
 func (enc *JSONEncoder) AppendUint64(u uint64) {
-	enc.appendSeparator(jsonTokenValue)
+	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatUint(u, 10))
 }
 
 // AppendFloat64 writes a floating-point number.
 func (enc *JSONEncoder) AppendFloat64(v float64) {
-	enc.appendSeparator(jsonTokenValue)
+	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteString(strconv.FormatFloat(v, 'f', -1, 64))
 }
 
 // AppendString writes a string value (properly escaped).
 func (enc *JSONEncoder) AppendString(v string) {
-	enc.appendSeparator(jsonTokenValue)
+	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteByte('"')
 	enc.safeAddString(v)
@@ -178,7 +167,7 @@ func (enc *JSONEncoder) AppendString(v string) {
 
 // AppendReflect marshals any Go value into JSON and appends it.
 func (enc *JSONEncoder) AppendReflect(v interface{}) {
-	enc.appendSeparator(jsonTokenValue)
+	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -257,7 +246,7 @@ type TextEncoder struct {
 	separator   string        // Separator used between top-level key-value pairs
 	jsonEncoder *JSONEncoder  // Embedded JSON encoder for nested objects/arrays
 	jsonDepth   int8          // Tracks depth of nested JSON structures
-	init        bool          // Tracks if the first key-value has been written
+	firstField  bool          // Tracks if the first key-value has been written
 }
 
 // NewTextEncoder creates a new TextEncoder writing to the given buffer, using the specified separator.
@@ -313,10 +302,11 @@ func (enc *TextEncoder) AppendKey(key string) {
 		enc.jsonEncoder.AppendKey(key)
 		return
 	}
-	if enc.init {
+	if enc.firstField {
 		enc.buf.WriteString(enc.separator)
+	} else {
+		enc.firstField = true
 	}
-	enc.init = true
 	enc.buf.WriteString(key)
 	enc.buf.WriteByte('=')
 }

@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 )
 
-var tags = map[string]*Tag{}
+var tagMap = map[string]*Tag{}
 
 var initLogger = &Logger{
 	privateConfig: &LoggerConfig{
@@ -71,11 +71,11 @@ func (m *Tag) SetLogger(logger *Logger) {
 // GetTag creates or retrieves a Tag by name.
 // If the tag does not exist, it is created and added to the global registry.
 func GetTag(tag string) *Tag {
-	m, ok := tags[tag]
+	m, ok := tagMap[tag]
 	if !ok {
 		m = &Tag{s: tag}
 		m.v.Store(initLogger)
-		tags[tag] = m
+		tagMap[tag] = m
 	}
 	return m
 }

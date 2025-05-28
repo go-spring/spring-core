@@ -109,7 +109,7 @@ func TestTextLayout(t *testing.T) {
 				FileLineLength: 48,
 			},
 		}
-		b, err := layout.ToBytes(&Event{
+		b := layout.ToBytes(&Event{
 			Level:     InfoLevel,
 			Time:      time.Time{},
 			File:      "gs/examples/bookman/src/biz/service/book_service/book_service_test.go",
@@ -119,7 +119,6 @@ func TestTextLayout(t *testing.T) {
 			CtxString: "trace_id=0a882193682db71edd48044db54cae88||span_id=50ef0724418c0a66",
 			CtxFields: nil,
 		})
-		assert.Nil(t, err)
 		assert.ThatString(t, string(b)).Equal("[INFO][0001-01-01T00:00:00.000][...iz/service/book_service/book_service_test.go:100] _def||trace_id=0a882193682db71edd48044db54cae88||span_id=50ef0724418c0a66||msg=hello world\n")
 	})
 }
@@ -132,7 +131,7 @@ func TestJSONLayout(t *testing.T) {
 				FileLineLength: 48,
 			},
 		}
-		b, err := layout.ToBytes(&Event{
+		b := layout.ToBytes(&Event{
 			Level:     InfoLevel,
 			Time:      time.Time{},
 			File:      "gs/examples/bookman/src/biz/service/book_service/book_service_test.go",
@@ -142,7 +141,6 @@ func TestJSONLayout(t *testing.T) {
 			CtxString: "trace_id=0a882193682db71edd48044db54cae88||span_id=50ef0724418c0a66",
 			CtxFields: nil,
 		})
-		assert.Nil(t, err)
 		assert.ThatString(t, string(b)).Equal(`{"level":"info","time":"0001-01-01T00:00:00.000","fileLine":"...iz/service/book_service/book_service_test.go:100","tag":"_def","ctxString":"trace_id=0a882193682db71edd48044db54cae88||span_id=50ef0724418c0a66","msg":"hello world"}` + "\n")
 	})
 }

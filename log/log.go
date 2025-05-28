@@ -23,12 +23,6 @@ import (
 	"github.com/go-spring/spring-core/log/internal"
 )
 
-// TagDefault is a default tag that can be used to set the default logger.
-var TagDefault = GetTag("_def")
-
-// ctxDefault is the default context for formatted logging methods (e.g. Infof/Warnf).
-var ctxDefault = context.WithValue(context.Background(), "ctxDefault", "")
-
 // TimeNow is a function that can be overridden to provide custom timestamp behavior (e.g., for testing).
 var TimeNow func(ctx context.Context) time.Time
 
@@ -57,19 +51,9 @@ func Info(ctx context.Context, tag *Tag, fields ...Field) {
 	Record(ctx, InfoLevel, tag, fields...)
 }
 
-// Infof logs a formatted message at InfoLevel using the default tag.
-func Infof(format string, args ...interface{}) {
-	Record(ctxDefault, InfoLevel, TagDefault, Msgf(format, args...))
-}
-
 // Warn logs a message at WarnLevel using structured fields.
 func Warn(ctx context.Context, tag *Tag, fields ...Field) {
 	Record(ctx, WarnLevel, tag, fields...)
-}
-
-// Warnf logs a formatted message at WarnLevel using the default tag.
-func Warnf(format string, args ...interface{}) {
-	Record(ctxDefault, WarnLevel, TagDefault, Msgf(format, args...))
 }
 
 // Error logs a message at ErrorLevel using structured fields.
@@ -77,29 +61,14 @@ func Error(ctx context.Context, tag *Tag, fields ...Field) {
 	Record(ctx, ErrorLevel, tag, fields...)
 }
 
-// Errorf logs a formatted message at ErrorLevel using the default tag.
-func Errorf(format string, args ...interface{}) {
-	Record(ctxDefault, ErrorLevel, TagDefault, Msgf(format, args...))
-}
-
 // Panic logs a message at PanicLevel using structured fields.
 func Panic(ctx context.Context, tag *Tag, fields ...Field) {
 	Record(ctx, PanicLevel, tag, fields...)
 }
 
-// Panicf logs a formatted message at PanicLevel using the default tag.
-func Panicf(format string, args ...interface{}) {
-	Record(ctxDefault, PanicLevel, TagDefault, Msgf(format, args...))
-}
-
 // Fatal logs a message at FatalLevel using structured fields.
 func Fatal(ctx context.Context, tag *Tag, fields ...Field) {
 	Record(ctx, FatalLevel, tag, fields...)
-}
-
-// Fatalf logs a formatted message at FatalLevel using the default tag.
-func Fatalf(format string, args ...interface{}) {
-	Record(ctxDefault, FatalLevel, TagDefault, Msgf(format, args...))
 }
 
 // Record is the core function that handles publishing log events.

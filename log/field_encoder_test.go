@@ -106,7 +106,7 @@ func TestJSONEncoder(t *testing.T) {
 		buf := bytes.NewBuffer(nil)
 		enc := NewJSONEncoder(buf)
 		enc.AppendEncoderBegin()
-		writeFields(enc, testFields)
+		WriteFields(enc, testFields)
 		enc.AppendEncoderEnd()
 		assert.ThatString(t, buf.String()).JsonEqual(`{
 	    "msg": "hello world\n\\\t\"\r",
@@ -254,7 +254,7 @@ func TestTextEncoder(t *testing.T) {
 		buf := bytes.NewBuffer(nil)
 		enc := NewTextEncoder(buf, "||")
 		enc.AppendEncoderBegin()
-		writeFields(enc, testFields)
+		WriteFields(enc, testFields)
 		{
 			enc.AppendKey("object_2")
 			enc.AppendObjectBegin()

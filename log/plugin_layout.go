@@ -32,8 +32,8 @@ var bytesSizeTable = map[string]int64{
 
 func init() {
 	RegisterConverter[HumanizeBytes](ParseHumanizeBytes)
-	RegisterPlugin[TextLayout]("TextLayout", PluginTypeLayout)
-	RegisterPlugin[JSONLayout]("JSONLayout", PluginTypeLayout)
+	RegisterPlugin[*TextLayout]("TextLayout", PluginTypeLayout)
+	RegisterPlugin[*JSONLayout]("JSONLayout", PluginTypeLayout)
 }
 
 type HumanizeBytes int
@@ -62,15 +62,20 @@ func ParseHumanizeBytes(s string) (HumanizeBytes, error) {
 
 // Layout is the interface that defines how a log event is converted to bytes.
 type Layout interface {
-	ToBytes(e *Event) ([]byte, error)
+	Lifecycle
+	ToBytes(e *Event) []byte
 }
 
 // BaseLayout is the base class for Layout.
 type BaseLayout struct {
 	BufferSize     HumanizeBytes `PluginAttribute:"bufferSize,default=1MB"`
 	FileLineLength int           `PluginAttribute:"fileLineLength,default=48"`
-	buffer         *bytes.Buffer
+
+	buffer *bytes.Buffer
 }
+
+func (c *BaseLayout) Start() error { return nil }
+func (c *BaseLayout) Stop()        {}
 
 // GetBuffer returns a buffer that can be used to format the log event.
 func (c *BaseLayout) GetBuffer() *bytes.Buffer {
@@ -106,7 +111,7 @@ type TextLayout struct {
 }
 
 // ToBytes converts a log event to a formatted plain-text line.
-func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
+func (c *TextLayout) ToBytes(e *Event) []byte {
 	const separator = "||"
 
 	buf := c.GetBuffer()
@@ -129,12 +134,12 @@ func (c *TextLayout) ToBytes(e *Event) ([]byte, error) {
 
 	enc := NewTextEncoder(buf, separator)
 	enc.AppendEncoderBegin()
-	writeFields(enc, e.CtxFields)
-	writeFields(enc, e.Fields)
+	WriteFields(enc, e.CtxFields)
+	WriteFields(enc, e.Fields)
 	enc.AppendEncoderEnd()
 
 	buf.WriteByte('\n')
-	return buf.Bytes(), nil
+	return buf.Bytes()
 }
 
 // JSONLayout formats the log event as a structured JSON object.
@@ -143,7 +148,7 @@ type JSONLayout struct {
 }
 
 // ToBytes converts a log event to a JSON-formatted byte slice.
-func (c *JSONLayout) ToBytes(e *Event) ([]byte, error) {
+func (c *JSONLayout) ToBytes(e *Event) []byte {
 	buf := c.GetBuffer()
 	defer c.PutBuffer(buf)
 
@@ -159,18 +164,11 @@ func (c *JSONLayout) ToBytes(e *Event) ([]byte, error) {
 
 	enc := NewJSONEncoder(buf)
 	enc.AppendEncoderBegin()
-	writeFields(enc, fields)
-	writeFields(enc, e.CtxFields)
-	writeFields(enc, e.Fields)
+	WriteFields(enc, fields)
+	WriteFields(enc, e.CtxFields)
+	WriteFields(enc, e.Fields)
 	enc.AppendEncoderEnd()
-	buf.WriteByte('\n')
-	return buf.Bytes(), nil
-}
 
-// writeFields writes a slice of Field objects to the encoder.
-func writeFields(enc Encoder, fields []Field) {
-	for _, f := range fields {
-		enc.AppendKey(f.Key)
-		f.Val.Encode(enc)
-	}
+	buf.WriteByte('\n')
+	return buf.Bytes()
 }

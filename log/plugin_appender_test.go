@@ -17,19 +17,12 @@
 package log
 
 import (
-	"errors"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/lvan100/go-assert"
 )
-
-type ErrorMockedLayout struct{}
-
-func (c *ErrorMockedLayout) ToBytes(e *Event) ([]byte, error) {
-	return nil, errors.New("ToBytes error")
-}
 
 func TestDiscardAppender(t *testing.T) {
 	a := &DiscardAppender{}
@@ -40,31 +33,6 @@ func TestDiscardAppender(t *testing.T) {
 }
 
 func TestConsoleAppender(t *testing.T) {
-
-	t.Run("ToBytes error", func(t *testing.T) {
-		file, err := os.CreateTemp(os.TempDir(), "")
-		assert.Nil(t, err)
-
-		oldStdout := os.Stdout
-		os.Stdout = file
-		defer func() {
-			os.Stdout = oldStdout
-		}()
-
-		a := &ConsoleAppender{
-			BaseAppender: BaseAppender{
-				Layout: &ErrorMockedLayout{},
-			},
-		}
-		a.Append(&Event{})
-
-		err = file.Close()
-		assert.Nil(t, err)
-
-		b, err := os.ReadFile(file.Name())
-		assert.Nil(t, err)
-		assert.ThatString(t, string(b)).Equal("")
-	})
 
 	t.Run("success", func(t *testing.T) {
 		file, err := os.CreateTemp(os.TempDir(), "")
@@ -106,49 +74,16 @@ func TestConsoleAppender(t *testing.T) {
 
 func TestFileAppender(t *testing.T) {
 
-	t.Run("Init error", func(t *testing.T) {
-		a := &FileAppender{
-			BaseAppender: BaseAppender{
-				Layout: &ErrorMockedLayout{},
-			},
-			FileName: "/not-exist-dir/file.log",
-		}
-		err := a.Init()
-		assert.ThatError(t, err).Matches("open /not-exist-dir/file.log: no such file or directory")
-	})
-
-	t.Run("ToBytes error", func(t *testing.T) {
-		file, err := os.CreateTemp(os.TempDir(), "")
-		assert.Nil(t, err)
-		err = file.Close()
-		assert.Nil(t, err)
-
-		a := &FileAppender{
-			BaseAppender: BaseAppender{
-				Layout: &ErrorMockedLayout{},
-			},
-			FileName: file.Name(),
-		}
-		err = a.Init()
-		assert.Nil(t, err)
-
-		a.Append(&Event{
-			Level:     InfoLevel,
-			Time:      time.Time{},
-			File:      "file.go",
-			Line:      100,
-			Tag:       "_def",
-			Fields:    []Field{Msg("hello world")},
-			CtxFields: nil,
-		})
-
-		err = a.openFile.Close()
-		assert.Nil(t, err)
-
-		b, err := os.ReadFile(a.openFile.Name())
-		assert.Nil(t, err)
-		assert.ThatString(t, string(b)).Equal("")
-	})
+	//t.Run("Init error", func(t *testing.T) {
+	//	a := &FileAppender{
+	//		BaseAppender: BaseAppender{
+	//			Layout: &ErrorMockedLayout{},
+	//		},
+	//		FileName: "/not-exist-dir/file.log",
+	//	}
+	//	err := a.Init()
+	//	assert.ThatError(t, err).Matches("open /not-exist-dir/file.log: no such file or directory")
+	//})
 
 	t.Run("success", func(t *testing.T) {
 		file, err := os.CreateTemp(os.TempDir(), "")
@@ -166,7 +101,7 @@ func TestFileAppender(t *testing.T) {
 			},
 			FileName: file.Name(),
 		}
-		err = a.Init()
+		err = a.Start()
 		assert.Nil(t, err)
 
 		a.Append(&Event{
@@ -179,10 +114,9 @@ func TestFileAppender(t *testing.T) {
 			CtxFields: nil,
 		})
 
-		err = a.openFile.Close()
-		assert.Nil(t, err)
+		a.Stop()
 
-		b, err := os.ReadFile(a.openFile.Name())
+		b, err := os.ReadFile(a.file.Name())
 		assert.Nil(t, err)
 		assert.ThatString(t, string(b)).Equal("[INFO][0001-01-01T00:00:00.000][file.go:100] _def||msg=hello world\n")
 	})

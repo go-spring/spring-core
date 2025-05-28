@@ -181,6 +181,9 @@ func RefreshReader(input io.Reader, ext string) error {
 			}
 			ss := strings.Split(base.Tags, ",")
 			for _, s := range ss {
+				if s = strings.TrimSpace(s); s == "" {
+					return fmt.Errorf("RefreshReader: logger tag can not be empty")
+				}
 				cTags[s] = logger
 			}
 		}
@@ -215,7 +218,7 @@ func RefreshReader(input io.Reader, ext string) error {
 		}
 	}
 
-	for s, tag := range tags {
+	for s, tag := range tagMap {
 		logger := cRoot
 		for i, r := range tagArray {
 			if r.MatchString(s) {

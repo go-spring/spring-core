@@ -239,19 +239,6 @@ func (v StringsValue) Encode(enc Encoder) {
 	enc.AppendArrayEnd()
 }
 
-// ObjectValue represents a slice of Field carried by Field.
-type ObjectValue []Field
-
-// Encode encodes the data represented by v to an Encoder.
-func (v ObjectValue) Encode(enc Encoder) {
-	enc.AppendObjectBegin()
-	for _, f := range v {
-		enc.AppendKey(f.Key)
-		f.Val.Encode(enc)
-	}
-	enc.AppendObjectEnd()
-}
-
 // ArrayValue represents a slice of Value carried by Field.
 type ArrayValue []Value
 
@@ -262,4 +249,22 @@ func (v ArrayValue) Encode(enc Encoder) {
 		val.Encode(enc)
 	}
 	enc.AppendArrayEnd()
+}
+
+// ObjectValue represents a slice of Field carried by Field.
+type ObjectValue []Field
+
+// Encode encodes the data represented by v to an Encoder.
+func (v ObjectValue) Encode(enc Encoder) {
+	enc.AppendObjectBegin()
+	WriteFields(enc, v)
+	enc.AppendObjectEnd()
+}
+
+// WriteFields writes a slice of Field objects to the encoder.
+func WriteFields(enc Encoder, fields []Field) {
+	for _, f := range fields {
+		enc.AppendKey(f.Key)
+		f.Val.Encode(enc)
+	}
 }

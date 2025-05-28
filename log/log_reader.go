@@ -70,13 +70,13 @@ func DumpNode(node *Node, indent int, buf *bytes.Buffer) {
 		}
 		buf.WriteString("}")
 	}
+	if node.Text != "" {
+		buf.WriteString(" : ")
+		buf.WriteString(node.Text)
+	}
 	for _, c := range node.Children {
 		buf.WriteString("\n")
 		DumpNode(c, indent+1, buf)
-	}
-	if node.Text != "" {
-		buf.WriteString(" : ")
-		buf.WriteString(strings.TrimSpace(node.Text))
 	}
 }
 

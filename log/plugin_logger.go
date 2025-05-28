@@ -24,11 +24,11 @@ import (
 var OnDropEvent func(*Event)
 
 func init() {
-	RegisterPlugin[AppenderRef]("AppenderRef", PluginTypeAppenderRef)
-	RegisterPlugin[LoggerConfig]("Root", PluginTypeRoot)
-	RegisterPlugin[AsyncLoggerConfig]("AsyncRoot", PluginTypeAsyncRoot)
-	RegisterPlugin[LoggerConfig]("Logger", PluginTypeLogger)
-	RegisterPlugin[AsyncLoggerConfig]("AsyncLogger", PluginTypeAsyncLogger)
+	RegisterPlugin[*AppenderRef]("AppenderRef", PluginTypeAppenderRef)
+	RegisterPlugin[*LoggerConfig]("Root", PluginTypeRoot)
+	RegisterPlugin[*AsyncLoggerConfig]("AsyncRoot", PluginTypeAsyncRoot)
+	RegisterPlugin[*LoggerConfig]("Logger", PluginTypeLogger)
+	RegisterPlugin[*AsyncLoggerConfig]("AsyncLogger", PluginTypeAsyncLogger)
 }
 
 // Logger is the primary logging structure used to emit log events.
@@ -50,6 +50,9 @@ type AppenderRef struct {
 	appender Appender
 }
 
+func (a *AppenderRef) Start() error { return nil }
+func (a *AppenderRef) Stop()        {}
+
 // baseLoggerConfig contains shared fields for all logger configurations.
 type baseLoggerConfig struct {
 	Name         string         `PluginAttribute:"name"`
@@ -57,6 +60,9 @@ type baseLoggerConfig struct {
 	Tags         string         `PluginAttribute:"tags,default="`
 	AppenderRefs []*AppenderRef `PluginElement:"AppenderRef"`
 }
+
+func (c *baseLoggerConfig) Start() error { return nil }
+func (c *baseLoggerConfig) Stop()        {}
 
 // callAppenders sends the event to all configured appenders.
 func (c *baseLoggerConfig) callAppenders(e *Event) {
@@ -75,19 +81,11 @@ type LoggerConfig struct {
 	baseLoggerConfig
 }
 
-// Start initializes the logger (no-op for sync loggers).
-func (c *LoggerConfig) Start() error {
-	return nil
-}
-
 // publish sends the event directly to the appenders.
 func (c *LoggerConfig) publish(e *Event) {
 	c.callAppenders(e)
 	PutEvent(e)
 }
-
-// Stop shuts down the logger (no-op for sync loggers).
-func (c *LoggerConfig) Stop() {}
 
 // AsyncLoggerConfig is an asynchronous logger configuration.
 // It buffers log events and processes them in a separate goroutine.

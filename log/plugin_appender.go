@@ -21,9 +21,9 @@ import (
 )
 
 func init() {
-	RegisterPlugin[DiscardAppender]("Discard", PluginTypeAppender)
-	RegisterPlugin[ConsoleAppender]("Console", PluginTypeAppender)
-	RegisterPlugin[FileAppender]("File", PluginTypeAppender)
+	RegisterPlugin[*DiscardAppender]("Discard", PluginTypeAppender)
+	RegisterPlugin[*ConsoleAppender]("Console", PluginTypeAppender)
+	RegisterPlugin[*FileAppender]("File", PluginTypeAppender)
 }
 
 // Appender is an interface that defines components that handle log output.
@@ -60,10 +60,7 @@ type ConsoleAppender struct {
 
 // Append formats the event and writes it to standard output.
 func (c *ConsoleAppender) Append(e *Event) {
-	data, err := c.Layout.ToBytes(e)
-	if err != nil {
-		return
-	}
+	data := c.Layout.ToBytes(e)
 	_, _ = os.Stdout.Write(data)
 }
 
@@ -71,31 +68,28 @@ func (c *ConsoleAppender) Append(e *Event) {
 type FileAppender struct {
 	BaseAppender
 	FileName string `PluginAttribute:"fileName"`
-	openFile *os.File
+
+	file *os.File
 }
 
-// Init opens or creates the log file for appending.
-func (c *FileAppender) Init() error {
+func (c *FileAppender) Start() error {
 	f, err := os.OpenFile(c.FileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	c.openFile = f
+	c.file = f
 	return nil
 }
 
 // Append formats the log event and writes it to the file.
 func (c *FileAppender) Append(e *Event) {
-	data, err := c.Layout.ToBytes(e)
-	if err != nil {
-		return
-	}
-	_, _ = c.openFile.Write(data)
+	data := c.Layout.ToBytes(e)
+	_, _ = c.file.Write(data)
 }
 
 // Stop closes the file.
 func (c *FileAppender) Stop() {
-	if c.openFile != nil {
-		_ = c.openFile.Close()
+	if c.file != nil {
+		_ = c.file.Close()
 	}
 }

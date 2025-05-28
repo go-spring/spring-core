@@ -28,10 +28,6 @@ import (
 
 var converters = map[reflect.Type]any{}
 
-func init() {
-	RegisterConverter(ParseLevel)
-}
-
 // Converter function type that converts string to a specific type T.
 type Converter[T any] func(string) (T, error)
 
@@ -39,11 +35,6 @@ type Converter[T any] func(string) (T, error)
 func RegisterConverter[T any](fn Converter[T]) {
 	t := reflect.TypeFor[T]()
 	converters[t] = fn
-}
-
-// Initializer Optional initializer interface for plugin instances.
-type Initializer interface {
-	Init() error
 }
 
 // Lifecycle Optional lifecycle interface for plugin instances.
@@ -77,12 +68,12 @@ type Plugin struct {
 }
 
 // RegisterPlugin Registers a plugin with a given name and type.
-func RegisterPlugin[T any](name string, typ PluginType) {
+func RegisterPlugin[T Lifecycle](name string, typ PluginType) {
 	_, file, line, _ := runtime.Caller(1)
 	if p, ok := plugins[name]; ok {
 		panic(fmt.Errorf("duplicate plugin %s in %s:%d and %s:%d", typ, p.File, p.Line, file, line))
 	}
-	t := reflect.TypeFor[T]()
+	t := reflect.TypeFor[T]().Elem()
 	if t.Kind() != reflect.Struct {
 		panic("T must be struct")
 	}
@@ -98,16 +89,8 @@ func RegisterPlugin[T any](name string, typ PluginType) {
 // NewPlugin Creates and initializes a plugin instance.
 func NewPlugin(t reflect.Type, node *Node, properties map[string]string) (reflect.Value, error) {
 	v := reflect.New(t)
-	err := inject(v.Elem(), t, node, properties)
-	if err != nil {
-		err = errutil.WrapError(err, "create plugin %s error", t.String())
-		return reflect.Value{}, err
-	}
-	if i, ok := v.Interface().(Initializer); ok {
-		if err = i.Init(); err != nil {
-			err = errutil.WrapError(err, "init plugin %s error", t.String())
-			return reflect.Value{}, err
-		}
+	if err := inject(v.Elem(), t, node, properties); err != nil {
+		return reflect.Value{}, errutil.WrapError(err, "create plugin %s error", t.String())
 	}
 	return v, nil
 }

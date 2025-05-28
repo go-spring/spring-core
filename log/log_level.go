@@ -21,6 +21,10 @@ import (
 	"strings"
 )
 
+func init() {
+	RegisterConverter(ParseLevel)
+}
+
 const (
 	NoneLevel  Level = iota // No logging
 	TraceLevel              // Very detailed logging, typically for debugging at a granular level

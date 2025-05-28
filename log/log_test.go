@@ -25,6 +25,7 @@ import (
 	"github.com/lvan100/go-assert"
 )
 
+var TagDefault = log.GetTag("_def")
 var TagRequestIn = log.GetTag("_com_request_in")
 var TagRequestOut = log.GetTag("_com_request_out")
 
@@ -50,7 +51,7 @@ func TestLog(t *testing.T) {
 		}
 	})
 
-	log.Infof("hello %s", "world")
+	log.Info(ctx, TagDefault, log.Msgf("hello %s", "world"))
 	log.Info(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
 
 	xml := `
@@ -89,6 +90,6 @@ func TestLog(t *testing.T) {
 		}
 	})
 
-	log.Infof("hello %s", "world")
+	log.Info(ctx, TagDefault, log.Msgf("hello %s", "world"))
 	log.Info(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
 }
