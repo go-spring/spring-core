@@ -43,10 +43,6 @@ func TestLoggerConfig(t *testing.T) {
 		err := a.Start()
 		assert.Nil(t, err)
 
-		defer func() {
-			a.Stop()
-		}()
-
 		l := &LoggerConfig{baseLoggerConfig{
 			Level: InfoLevel,
 			Tags:  "_com_*",
@@ -57,10 +53,6 @@ func TestLoggerConfig(t *testing.T) {
 
 		err = l.Start()
 		assert.Nil(t, err)
-
-		defer func() {
-			l.Stop()
-		}()
 
 		assert.False(t, l.enableLevel(TraceLevel))
 		assert.False(t, l.enableLevel(DebugLevel))
@@ -75,6 +67,9 @@ func TestLoggerConfig(t *testing.T) {
 		}
 
 		assert.That(t, a.count).Equal(5)
+
+		l.Stop()
+		a.Stop()
 	})
 }
 
@@ -116,10 +111,6 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		err := a.Start()
 		assert.Nil(t, err)
 
-		defer func() {
-			a.Stop()
-		}()
-
 		dropCount := 0
 		OnDropEvent = func(*Event) {
 			dropCount++
@@ -142,16 +133,16 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		err = l.Start()
 		assert.Nil(t, err)
 
-		defer func() {
-			l.Stop()
-			assert.True(t, dropCount > 0)
-		}()
-
 		for i := 0; i < 5000; i++ {
 			l.publish(GetEvent())
 		}
 
 		time.Sleep(200 * time.Millisecond)
+
+		l.Stop()
+		a.Stop()
+
+		assert.True(t, dropCount > 0)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -161,10 +152,6 @@ func TestAsyncLoggerConfig(t *testing.T) {
 
 		err := a.Start()
 		assert.Nil(t, err)
-
-		defer func() {
-			a.Stop()
-		}()
 
 		l := &AsyncLoggerConfig{
 			baseLoggerConfig: baseLoggerConfig{
@@ -180,15 +167,14 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		err = l.Start()
 		assert.Nil(t, err)
 
-		defer func() {
-			l.Stop()
-		}()
-
 		for i := 0; i < 5; i++ {
 			l.publish(GetEvent())
 		}
 
 		time.Sleep(100 * time.Millisecond)
 		assert.That(t, a.count).Equal(5)
+
+		l.Stop()
+		a.Stop()
 	})
 }

@@ -94,21 +94,16 @@ func TestParseHumanizeBytes(t *testing.T) {
 
 func TestTextLayout(t *testing.T) {
 
-	//t.Run("error - encoder begin", func(t *testing.T) {
-	//	layout := &TextLayout{
-	//		BaseLayout{
-	//			FileLineLength: 48,
-	//		},
-	//	}
-	//
-	//})
-
 	t.Run("success", func(t *testing.T) {
 		layout := &TextLayout{
 			BaseLayout{
 				FileLineLength: 48,
 			},
 		}
+
+		err := layout.Start()
+		assert.Nil(t, err)
+
 		b := layout.ToBytes(&Event{
 			Level:     InfoLevel,
 			Time:      time.Time{},
@@ -120,6 +115,8 @@ func TestTextLayout(t *testing.T) {
 			CtxFields: nil,
 		})
 		assert.ThatString(t, string(b)).Equal("[INFO][0001-01-01T00:00:00.000][...iz/service/book_service/book_service_test.go:100] _def||trace_id=0a882193682db71edd48044db54cae88||span_id=50ef0724418c0a66||msg=hello world\n")
+
+		layout.Stop()
 	})
 }
 
@@ -131,6 +128,10 @@ func TestJSONLayout(t *testing.T) {
 				FileLineLength: 48,
 			},
 		}
+
+		err := layout.Start()
+		assert.Nil(t, err)
+
 		b := layout.ToBytes(&Event{
 			Level:     InfoLevel,
 			Time:      time.Time{},
@@ -142,5 +143,7 @@ func TestJSONLayout(t *testing.T) {
 			CtxFields: nil,
 		})
 		assert.ThatString(t, string(b)).Equal(`{"level":"info","time":"0001-01-01T00:00:00.000","fileLine":"...iz/service/book_service/book_service_test.go:100","tag":"_def","ctxString":"trace_id=0a882193682db71edd48044db54cae88||span_id=50ef0724418c0a66","msg":"hello world"}` + "\n")
+
+		layout.Stop()
 	})
 }

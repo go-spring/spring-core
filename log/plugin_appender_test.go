@@ -74,16 +74,20 @@ func TestConsoleAppender(t *testing.T) {
 
 func TestFileAppender(t *testing.T) {
 
-	//t.Run("Init error", func(t *testing.T) {
-	//	a := &FileAppender{
-	//		BaseAppender: BaseAppender{
-	//			Layout: &ErrorMockedLayout{},
-	//		},
-	//		FileName: "/not-exist-dir/file.log",
-	//	}
-	//	err := a.Init()
-	//	assert.ThatError(t, err).Matches("open /not-exist-dir/file.log: no such file or directory")
-	//})
+	t.Run("Start error", func(t *testing.T) {
+		a := &FileAppender{
+			BaseAppender: BaseAppender{
+				Layout: &TextLayout{
+					BaseLayout{
+						FileLineLength: 48,
+					},
+				},
+			},
+			FileName: "/not-exist-dir/file.log",
+		}
+		err := a.Start()
+		assert.ThatError(t, err).Matches("open /not-exist-dir/file.log: no such file or directory")
+	})
 
 	t.Run("success", func(t *testing.T) {
 		file, err := os.CreateTemp(os.TempDir(), "")

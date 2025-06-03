@@ -74,9 +74,6 @@ func RegisterPlugin[T Lifecycle](name string, typ PluginType) {
 		panic(fmt.Errorf("duplicate plugin %s in %s:%d and %s:%d", typ, p.File, p.Line, file, line))
 	}
 	t := reflect.TypeFor[T]().Elem()
-	if t.Kind() != reflect.Struct {
-		panic("T must be struct")
-	}
 	plugins[name] = &Plugin{
 		Name:  name,
 		Type:  typ,
@@ -160,7 +157,7 @@ func injectAttribute(tag string, fv reflect.Value, ft reflect.StructField, node 
 	if !ok {
 		val, ok = attrTag.Lookup("default")
 		if !ok {
-			return fmt.Errorf("found no attribute for struct field %s", attrName)
+			return fmt.Errorf("found no attribute for struct field %s", ft.Name)
 		}
 	}
 
