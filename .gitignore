@@ -32,8 +32,7 @@ go.work.sum
 
 /conf/remote/
 
-gs/examples/bookman/.cover/
-gs/examples/bookman/conf/
-gs/examples/bookman/log/*.log
+doc/examples/bookman/conf/
+doc/examples/bookman/log/*.log
 
 coverage.txt

@@ -265,13 +265,11 @@ func (p *PropertySources) getDefaultDir(resolver conf.Properties) (configDir str
 }
 
 // getFiles returns the list of configuration files based on the configuration directory and active profiles.
-func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []string, err error) {
+func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (files []string, err error) {
+	extensions := []string{".properties", ".yaml", ".yml", ".toml", ".tml", ".json"}
 
-	files := []string{
-		fmt.Sprintf("%s/%s.properties", dir, p.configName),
-		fmt.Sprintf("%s/%s.yaml", dir, p.configName),
-		fmt.Sprintf("%s/%s.toml", dir, p.configName),
-		fmt.Sprintf("%s/%s.json", dir, p.configName),
+	for _, ext := range extensions {
+		files = append(files, fmt.Sprintf("%s/%s%s", dir, p.configName, ext))
 	}
 
 	activeProfiles, err := resolver.Resolve("${spring.profiles.active:=}")
@@ -282,12 +280,9 @@ func (p *PropertySources) getFiles(dir string, resolver conf.Properties) (_ []st
 	if activeProfiles = strings.TrimSpace(activeProfiles); activeProfiles != "" {
 		for s := range strings.SplitSeq(activeProfiles, ",") {
 			if s = strings.TrimSpace(s); s != "" {
-				files = append(files, []string{
-					fmt.Sprintf("%s/%s-%s.properties", dir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.yaml", dir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.toml", dir, p.configName, s),
-					fmt.Sprintf("%s/%s-%s.json", dir, p.configName, s),
-				}...)
+				for _, ext := range extensions {
+					files = append(files, fmt.Sprintf("%s/%s-%s%s", dir, p.configName, s, ext))
+				}
 			}
 		}
 	}
