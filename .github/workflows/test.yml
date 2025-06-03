@@ -24,8 +24,7 @@ jobs:
         run: go mod download
 
       - name: Run tests
-        run: go test -count=1 -coverprofile=coverage.txt ./... &&
-          grep -v "^github.com/go-spring/spring-core/log" coverage.txt > coverage.txt.tmp && mv coverage.txt.tmp coverage.txt
+        run: go test -count=1 -coverprofile=coverage.txt ./...
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5

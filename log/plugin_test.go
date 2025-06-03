@@ -25,8 +25,11 @@ import (
 
 func TestRegisterPlugin(t *testing.T) {
 	assert.Panic(t, func() {
-		RegisterPlugin[*FileAppender]("File", PluginTypeAppender)
-	}, "duplicate plugin Appender in .*/plugin_appender.go:26 and .*/plugin_test.go:28")
+		RegisterPlugin[int]("DummyLayout", PluginTypeLayout)
+	}, "T must be struct")
+	assert.Panic(t, func() {
+		RegisterPlugin[FileAppender]("File", PluginTypeAppender)
+	}, "duplicate plugin Appender in .*/plugin_appender.go:26 and .*/plugin_test.go:31")
 }
 
 func TestInjectAttribute(t *testing.T) {
@@ -128,7 +131,7 @@ func TestInjectElement(t *testing.T) {
 		assert.ThatError(t, err).Matches("create plugin log.ErrorPlugin error << found no element for struct field Layout")
 	})
 
-	t.Run("plugin not found", func(t *testing.T) {
+	t.Run("plugin not found - 1", func(t *testing.T) {
 		type ErrorPlugin struct {
 			Layout Layout `PluginElement:"Layout"`
 		}
@@ -154,7 +157,33 @@ func TestInjectElement(t *testing.T) {
 		assert.ThatError(t, err).Matches("create plugin log.ErrorPlugin error << found no plugin elements for struct field Layout")
 	})
 
-	t.Run("NewPlugin error", func(t *testing.T) {
+	t.Run("plugin not found - 2", func(t *testing.T) {
+		type ErrorPlugin struct {
+			Layout Layout `PluginElement:"Layout,default"`
+		}
+		typ := reflect.TypeFor[ErrorPlugin]()
+		_, err := NewPlugin(typ, &Node{
+			Children: []*Node{
+				{Label: "File"},
+			},
+		}, nil)
+		assert.ThatError(t, err).Matches("create plugin log.ErrorPlugin error << found no plugin elements for struct field Layout")
+	})
+
+	t.Run("plugin not found - 3", func(t *testing.T) {
+		type ErrorPlugin struct {
+			Layout Layout `PluginElement:"Layout,default=DummyLayout"`
+		}
+		typ := reflect.TypeFor[ErrorPlugin]()
+		_, err := NewPlugin(typ, &Node{
+			Children: []*Node{
+				{Label: "File"},
+			},
+		}, nil)
+		assert.ThatError(t, err).Matches("create plugin log.ErrorPlugin error << plugin DummyLayout not found for struct field Layout")
+	})
+
+	t.Run("NewPlugin error - 1", func(t *testing.T) {
 		type ErrorPlugin struct {
 			Layout Layout `PluginElement:"Layout"`
 		}
@@ -171,5 +200,74 @@ func TestInjectElement(t *testing.T) {
 		}, nil)
 		assert.ThatError(t, err).Matches(`create plugin log.ErrorPlugin error << create plugin log.TextLayout error ` +
 			`<< inject struct field BufferSize error << unhandled size name: \"GB\"`)
+	})
+
+	t.Run("NewPlugin error - 2", func(t *testing.T) {
+		type ErrorPlugin struct {
+			Appender Appender `PluginElement:"Appender,default=File"`
+		}
+		typ := reflect.TypeFor[ErrorPlugin]()
+		_, err := NewPlugin(typ, &Node{}, nil)
+		assert.ThatError(t, err).Matches(`create plugin log.ErrorPlugin error << create plugin log.FileAppender error ` +
+			`<< found no attribute for struct field Name`)
+	})
+
+	t.Run("NewPlugin error - 3", func(t *testing.T) {
+		type ErrorPlugin struct {
+			Layout Layout `PluginElement:"Layout"`
+		}
+		typ := reflect.TypeFor[ErrorPlugin]()
+		_, err := NewPlugin(typ, &Node{
+			Children: []*Node{
+				{Label: "TextLayout"},
+				{Label: "TextLayout"},
+			},
+		}, nil)
+		assert.ThatError(t, err).Matches("create plugin log.ErrorPlugin error << found 2 plugin elements for struct field Layout")
+	})
+
+	t.Run("NewPlugin error - 4", func(t *testing.T) {
+		type ErrorPlugin struct {
+			Layout map[string]Layout `PluginElement:"Layout"`
+		}
+		typ := reflect.TypeFor[ErrorPlugin]()
+		_, err := NewPlugin(typ, &Node{
+			Children: []*Node{
+				{Label: "TextLayout"},
+				{Label: "TextLayout"},
+			},
+		}, nil)
+		assert.ThatError(t, err).Matches("create plugin log.ErrorPlugin error << unsupported inject type map\\[string]log.Layout for struct field Layout")
+	})
+
+	t.Run("NewPlugin success - 1", func(t *testing.T) {
+		type ErrorPlugin struct {
+			Layout Layout `PluginElement:"Layout"`
+		}
+		typ := reflect.TypeFor[ErrorPlugin]()
+		_, err := NewPlugin(typ, &Node{
+			Children: []*Node{
+				{Label: "TextLayout"},
+			},
+		}, nil)
+		assert.Nil(t, err)
+	})
+
+	t.Run("NewPlugin success - 2", func(t *testing.T) {
+		type ErrorPlugin struct {
+			Layout Layout `PluginElement:"Layout,default=TextLayout"`
+		}
+		typ := reflect.TypeFor[ErrorPlugin]()
+		_, err := NewPlugin(typ, &Node{}, nil)
+		assert.Nil(t, err)
+	})
+
+	t.Run("NewPlugin success - 3", func(t *testing.T) {
+		type ErrorPlugin struct {
+			Layouts []Layout `PluginElement:"Layout,default=TextLayout"`
+		}
+		typ := reflect.TypeFor[ErrorPlugin]()
+		_, err := NewPlugin(typ, &Node{}, nil)
+		assert.Nil(t, err)
 	})
 }

@@ -18,8 +18,8 @@ package log_test
 
 import (
 	"context"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-spring/spring-core/log"
 	"github.com/lvan100/go-assert"
@@ -31,6 +31,10 @@ var TagRequestOut = log.GetTag("_com_request_out")
 
 func TestLog(t *testing.T) {
 	ctx := t.Context()
+
+	log.TimeNow = func(ctx context.Context) time.Time {
+		return time.Now()
+	}
 
 	log.StringFromContext = func(ctx context.Context) string {
 		return ""
@@ -54,35 +58,17 @@ func TestLog(t *testing.T) {
 	log.Info(ctx, TagDefault, log.Msgf("hello %s", "world"))
 	log.Info(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
 
-	xml := `
-		<?xml version="1.0" encoding="UTF-8"?>
-		<Configuration>
-			<Properties>
-				<Property name="LayoutBufferSize">100KB</Property>
-			</Properties>
-			<Appenders>
-				<Console name="Console_JSON">
-					<JSONLayout bufferSize="${LayoutBufferSize}"/>
-				</Console>
-				<Console name="Console_Text">
-					<TextLayout/>
-				</Console>
-			</Appenders>
-			<Loggers>
-				<Root level="trace">
-					<AppenderRef ref="Console_Text"/>
-				</Root>
-				<Logger name="file" level="trace" tags="_com_request_*">
-					<AppenderRef ref="Console_JSON"/>
-				</Logger>
-			</Loggers>
-		</Configuration>
-	`
-	err := log.RefreshReader(strings.NewReader(xml), ".xml")
+	err := log.RefreshFile("testdata/log.xml")
 	assert.Nil(t, err)
 
 	ctx = context.WithValue(ctx, "trace_id", "0a882193682db71edd48044db54cae88")
 	ctx = context.WithValue(ctx, "span_id", "50ef0724418c0a66")
+
+	log.Trace(ctx, TagRequestOut, func() []log.Field {
+		return []log.Field{
+			log.Msgf("hello %s", "world"),
+		}
+	})
 
 	log.Debug(ctx, TagRequestOut, func() []log.Field {
 		return []log.Field{
@@ -90,6 +76,14 @@ func TestLog(t *testing.T) {
 		}
 	})
 
-	log.Info(ctx, TagDefault, log.Msgf("hello %s", "world"))
 	log.Info(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
+	log.Warn(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
+	log.Error(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
+	log.Panic(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
+	log.Fatal(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
+
+	log.Info(ctx, TagDefault, log.Msgf("hello %s", "world"))
+	log.Warn(ctx, TagDefault, log.Msgf("hello %s", "world"))
+	log.Error(ctx, TagDefault, log.Msgf("hello %s", "world"))
+	log.Panic(ctx, TagDefault, log.Msgf("hello %s", "world"))
 }

@@ -36,3 +36,5 @@ doc/examples/bookman/conf/
 doc/examples/bookman/log/*.log
 
 coverage.txt
+
+log/access.log

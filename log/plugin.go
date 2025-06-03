@@ -68,12 +68,15 @@ type Plugin struct {
 }
 
 // RegisterPlugin Registers a plugin with a given name and type.
-func RegisterPlugin[T Lifecycle](name string, typ PluginType) {
+func RegisterPlugin[T any](name string, typ PluginType) {
 	_, file, line, _ := runtime.Caller(1)
 	if p, ok := plugins[name]; ok {
 		panic(fmt.Errorf("duplicate plugin %s in %s:%d and %s:%d", typ, p.File, p.Line, file, line))
 	}
-	t := reflect.TypeFor[T]().Elem()
+	t := reflect.TypeFor[T]()
+	if t.Kind() != reflect.Struct {
+		panic("T must be struct")
+	}
 	plugins[name] = &Plugin{
 		Name:  name,
 		Type:  typ,
@@ -135,11 +138,10 @@ func (tag PluginTag) Lookup(key string) (value string, ok bool) {
 	}
 	for i := 1; i < len(kvs); i++ {
 		ss := strings.Split(kvs[i], "=")
-		if ss[0] == key {
-			if len(ss) > 1 {
-				return ss[1], true
-			}
-			return "", true
+		if len(ss) != 2 {
+			return "", false
+		} else if ss[0] == key {
+			return ss[1], true
 		}
 	}
 	return "", false

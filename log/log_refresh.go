@@ -38,9 +38,7 @@ func RefreshFile(fileName string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = file.Close()
-	}()
+	defer file.Close()
 	ext := filepath.Ext(fileName)
 	return RefreshReader(file, ext)
 }
@@ -68,7 +66,7 @@ func RefreshReader(input io.Reader, ext string) error {
 	}
 
 	if rootNode.Label != "Configuration" {
-		return errors.New("RefreshReader: the Configuration root not found")
+		return errors.New("RefreshReader: Configuration root not found")
 	}
 
 	var (
@@ -82,26 +80,28 @@ func RefreshReader(input io.Reader, ext string) error {
 	// Parse <Properties> section
 	nodes := rootNode.getChildren("Properties")
 	if len(nodes) > 1 {
-		return errors.New("RefreshReader: <Properties> section must be unique")
+		return errors.New("RefreshReader: Properties section must be unique")
 	}
-	for _, c := range nodes[0].Children {
-		if c.Label != "Property" {
-			continue
+	if len(nodes) == 1 {
+		for _, c := range nodes[0].Children {
+			if c.Label != "Property" {
+				continue
+			}
+			name, ok := c.Attributes["name"]
+			if !ok {
+				return fmt.Errorf("RefreshReader: attribute 'name' not found for node %s", c.Label)
+			}
+			properties[name] = c.Text
 		}
-		name, ok := c.Attributes["name"]
-		if !ok {
-			return errors.New("RefreshReader: attribute 'name' not found")
-		}
-		properties[name] = c.Text
 	}
 
 	// Parse <Appenders> section
 	nodes = rootNode.getChildren("Appenders")
 	if len(nodes) == 0 {
-		return errors.New("RefreshReader: <Appenders> section not found")
+		return errors.New("RefreshReader: Appenders section not found")
 	}
 	if len(nodes) > 1 {
-		return errors.New("RefreshReader: <Appenders> section must be unique")
+		return errors.New("RefreshReader: Appenders section must be unique")
 	}
 	for _, c := range nodes[0].Children {
 		p, ok := plugins[c.Label]
@@ -122,10 +122,10 @@ func RefreshReader(input io.Reader, ext string) error {
 	// Parse <Loggers> section
 	nodes = rootNode.getChildren("Loggers")
 	if len(nodes) == 0 {
-		return errors.New("RefreshReader: <Loggers> section not found")
+		return errors.New("RefreshReader: Loggers section not found")
 	}
 	if len(nodes) > 1 {
-		return errors.New("RefreshReader: <Loggers> section must be unique")
+		return errors.New("RefreshReader: Loggers section must be unique")
 	}
 	for _, c := range nodes[0].Children {
 		isRootLogger := c.Label == "Root" || c.Label == "AsyncRoot"
@@ -133,7 +133,7 @@ func RefreshReader(input io.Reader, ext string) error {
 			if cRoot != nil {
 				return errors.New("RefreshReader: found more than one root loggers")
 			}
-			c.Attributes["name"] = ""
+			c.Attributes["name"] = "::root::"
 		}
 
 		p, ok := plugins[c.Label]
@@ -142,7 +142,7 @@ func RefreshReader(input io.Reader, ext string) error {
 		}
 		name, ok := c.Attributes["name"]
 		if !ok {
-			return errors.New("RefreshReader: attribute 'name' not found")
+			return fmt.Errorf("RefreshReader: attribute 'name' not found for node %s", c.Label)
 		}
 		v, err := NewPlugin(p.Class, c, properties)
 		if err != nil {
@@ -173,24 +173,27 @@ func RefreshReader(input io.Reader, ext string) error {
 
 		if isRootLogger {
 			if base.Tags != "" {
-				return fmt.Errorf("RefreshReader: root logger can not have tags attribute")
+				return fmt.Errorf("RefreshReader: root logger can not have attribute 'tags'")
 			}
 		} else {
-			if base.Tags == "" {
-				return fmt.Errorf("RefreshReader: logger must have tags attribute except root logger")
-			}
-			ss := strings.Split(base.Tags, ",")
-			for _, s := range ss {
+			var ss []string
+			for _, s := range strings.Split(base.Tags, ",") {
 				if s = strings.TrimSpace(s); s == "" {
-					return fmt.Errorf("RefreshReader: logger tag can not be empty")
+					continue
 				}
+				ss = append(ss, s)
+			}
+			if len(ss) == 0 {
+				return fmt.Errorf("RefreshReader: logger must have attribute 'tags' except root logger")
+			}
+			for _, s := range ss {
 				cTags[s] = logger
 			}
 		}
 	}
 
 	if cRoot == nil {
-		return errors.New("found no root logger")
+		return errors.New("RefreshReader: found no root logger")
 	}
 
 	var (
@@ -209,12 +212,12 @@ func RefreshReader(input io.Reader, ext string) error {
 
 	for _, a := range cAppenders {
 		if err := a.Start(); err != nil {
-			return err
+			return errutil.WrapError(err, "RefreshReader: appender %s start error", a.GetName())
 		}
 	}
 	for _, l := range cLoggers {
 		if err := l.Start(); err != nil {
-			return err
+			return errutil.WrapError(err, "RefreshReader: logger %s start error", l.GetName())
 		}
 	}
 

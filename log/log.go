@@ -34,14 +34,14 @@ var FieldsFromContext func(ctx context.Context) []Field
 
 // Trace logs a message at TraceLevel using a tag and a lazy field-generating function.
 func Trace(ctx context.Context, tag *Tag, fn func() []Field) {
-	if tag.GetLogger().enableLevel(TraceLevel) {
+	if tag.GetLogger().EnableLevel(TraceLevel) {
 		Record(ctx, TraceLevel, tag, fn()...)
 	}
 }
 
 // Debug logs a message at DebugLevel using a tag and a lazy field-generating function.
 func Debug(ctx context.Context, tag *Tag, fn func() []Field) {
-	if tag.GetLogger().enableLevel(DebugLevel) {
+	if tag.GetLogger().EnableLevel(DebugLevel) {
 		Record(ctx, DebugLevel, tag, fn()...)
 	}
 }
@@ -76,7 +76,7 @@ func Fatal(ctx context.Context, tag *Tag, fields ...Field) {
 // and sends the log event to the logger.
 func Record(ctx context.Context, level Level, tag *Tag, fields ...Field) {
 	logger := tag.GetLogger()
-	if !logger.enableLevel(level) {
+	if !logger.EnableLevel(level) {
 		return // Skip if the logger doesn't allow this level
 	}
 
@@ -110,5 +110,5 @@ func Record(ctx context.Context, level Level, tag *Tag, fields ...Field) {
 	e.CtxString = ctxString
 	e.CtxFields = ctxFields
 
-	logger.publish(e)
+	logger.Publish(e)
 }

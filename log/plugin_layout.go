@@ -32,8 +32,8 @@ var bytesSizeTable = map[string]int64{
 
 func init() {
 	RegisterConverter[HumanizeBytes](ParseHumanizeBytes)
-	RegisterPlugin[*TextLayout]("TextLayout", PluginTypeLayout)
-	RegisterPlugin[*JSONLayout]("JSONLayout", PluginTypeLayout)
+	RegisterPlugin[TextLayout]("TextLayout", PluginTypeLayout)
+	RegisterPlugin[JSONLayout]("JSONLayout", PluginTypeLayout)
 }
 
 type HumanizeBytes int
@@ -62,7 +62,6 @@ func ParseHumanizeBytes(s string) (HumanizeBytes, error) {
 
 // Layout is the interface that defines how a log event is converted to bytes.
 type Layout interface {
-	Lifecycle
 	ToBytes(e *Event) []byte
 }
 
@@ -73,9 +72,6 @@ type BaseLayout struct {
 
 	buffer *bytes.Buffer
 }
-
-func (c *BaseLayout) Start() error { return nil }
-func (c *BaseLayout) Stop()        {}
 
 // GetBuffer returns a buffer that can be used to format the log event.
 func (c *BaseLayout) GetBuffer() *bytes.Buffer {
