@@ -25,6 +25,9 @@ import (
 	"github.com/lvan100/go-assert"
 )
 
+const TraceID = "trace_id"
+const SpanID = "span_id"
+
 var TagDefault = log.GetTag("_def")
 var TagRequestIn = log.GetTag("_com_request_in")
 var TagRequestOut = log.GetTag("_com_request_out")
@@ -41,11 +44,11 @@ func TestLog(t *testing.T) {
 	}
 
 	log.FieldsFromContext = func(ctx context.Context) []log.Field {
-		traceID, _ := ctx.Value("trace_id").(string)
-		spanID, _ := ctx.Value("span_id").(string)
+		traceID, _ := ctx.Value(TraceID).(string)
+		spanID, _ := ctx.Value(SpanID).(string)
 		return []log.Field{
-			log.String("trace_id", traceID),
-			log.String("span_id", spanID),
+			log.String(TraceID, traceID),
+			log.String(SpanID, spanID),
 		}
 	}
 
@@ -61,8 +64,8 @@ func TestLog(t *testing.T) {
 	err := log.RefreshFile("testdata/log.xml")
 	assert.Nil(t, err)
 
-	ctx = context.WithValue(ctx, "trace_id", "0a882193682db71edd48044db54cae88")
-	ctx = context.WithValue(ctx, "span_id", "50ef0724418c0a66")
+	ctx = context.WithValue(ctx, TraceID, "0a882193682db71edd48044db54cae88")
+	ctx = context.WithValue(ctx, SpanID, "50ef0724418c0a66")
 
 	log.Trace(ctx, TagRequestOut, func() []log.Field {
 		return []log.Field{

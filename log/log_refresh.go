@@ -38,6 +38,7 @@ func RefreshFile(fileName string) error {
 	if err != nil {
 		return err
 	}
+	// nolint: errcheck
 	defer file.Close()
 	ext := filepath.Ext(fileName)
 	return RefreshReader(file, ext)
