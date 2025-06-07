@@ -215,6 +215,11 @@ func Web(enable bool) *AppStarter {
 
 // Run runs the app and waits for an interrupt signal to exit.
 func (s *AppStarter) Run() {
+	s.RunWith(nil)
+}
+
+// RunWith runs the app with a given function and waits for an interrupt signal to exit.
+func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 	var err error
 	defer func() {
 		if err != nil {
@@ -226,12 +231,30 @@ func (s *AppStarter) Run() {
 		return
 	}
 	B = nil
-	err = gs_app.GS.Run()
+	err = gs_app.GS.RunWith(fn)
+}
+
+// RunAsync runs the app asynchronously and returns a function to stop the app.
+func (s *AppStarter) RunAsync() (func(), error) {
+	if err := gs_app.GS.Start(); err != nil {
+		return nil, err
+	}
+	return func() { gs_app.GS.Stop() }, nil
 }
 
 // Run runs the app and waits for an interrupt signal to exit.
 func Run() {
 	new(AppStarter).Run()
+}
+
+// RunWith runs the app with a given function and waits for an interrupt signal to exit.
+func RunWith(fn func(ctx context.Context) error) {
+	new(AppStarter).RunWith(fn)
+}
+
+// RunAsync runs the app asynchronously and returns a function to stop the app.
+func RunAsync() (func(), error) {
+	return new(AppStarter).RunAsync()
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.

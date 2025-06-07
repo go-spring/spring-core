@@ -74,10 +74,22 @@ func NewApp() *App {
 // (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
 // a graceful shutdown.
 func (app *App) Run() error {
-	app.C.Object(app)
+	return app.RunWith(nil)
+}
 
+// RunWith starts the application and listens for termination signals
+// (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
+// a graceful shutdown.
+func (app *App) RunWith(fn func(ctx context.Context) error) error {
 	if err := app.Start(); err != nil {
 		return err
+	}
+
+	// runs the user-defined function
+	if fn != nil {
+		if err := fn(app.ctx); err != nil {
+			return err
+		}
 	}
 
 	// listens for OS termination signals
@@ -99,9 +111,10 @@ func (app *App) Run() error {
 // loading, IoC container refreshing, dependency injection, and runs
 // runners, jobs and servers.
 func (app *App) Start() error {
-	var p conf.Properties
+	app.C.Object(app)
 
 	// loads the layered app properties
+	var p conf.Properties
 	{
 		var err error
 		if p, err = app.P.Refresh(); err != nil {
