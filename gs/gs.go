@@ -236,6 +236,11 @@ func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 
 // RunAsync runs the app asynchronously and returns a function to stop the app.
 func (s *AppStarter) RunAsync() (func(), error) {
+	printBanner()
+	if err := B.(*gs_app.BootImpl).Run(); err != nil {
+		return nil, err
+	}
+	B = nil
 	if err := gs_app.GS.Start(); err != nil {
 		return nil, err
 	}
