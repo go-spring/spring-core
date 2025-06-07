@@ -17,12 +17,23 @@
 package main
 
 import (
+	"time"
+
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 func main() {
 	// Disable the built-in HTTP service.
-	gs.Web(false).Run()
+	stopApp, err := gs.Web(false).RunAsync()
+	if err != nil {
+		syslog.Errorf("app run failed: %s", err.Error())
+	}
+
+	syslog.Infof("app started")
+	time.Sleep(time.Minute)
+
+	stopApp()
 }
 
 // ~ telnet 127.0.0.1 9090

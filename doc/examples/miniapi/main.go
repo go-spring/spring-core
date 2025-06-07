@@ -17,9 +17,11 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/spring-core/util/syslog"
 )
 
 func main() {
@@ -34,7 +36,10 @@ func main() {
 	// - Property Binding: Binds external configs (YAML, ENV) into structs.
 	// - Dependency Injection: Wires beans automatically.
 	// - Dynamic Refresh: Updates configs at runtime without restart.
-	gs.Run()
+	gs.RunWith(func(ctx context.Context) error {
+		syslog.Infof("app started")
+		return nil
+	})
 }
 
 //~ curl http://127.0.0.1:9090/echo

@@ -21,14 +21,15 @@ import (
 )
 
 func init() {
-	RegisterPlugin[*DiscardAppender]("Discard", PluginTypeAppender)
-	RegisterPlugin[*ConsoleAppender]("Console", PluginTypeAppender)
-	RegisterPlugin[*FileAppender]("File", PluginTypeAppender)
+	RegisterPlugin[DiscardAppender]("Discard", PluginTypeAppender)
+	RegisterPlugin[ConsoleAppender]("Console", PluginTypeAppender)
+	RegisterPlugin[FileAppender]("File", PluginTypeAppender)
 }
 
 // Appender is an interface that defines components that handle log output.
 type Appender interface {
 	Lifecycle        // Appenders must be startable and stoppable
+	GetName() string // Returns the appender name
 	Append(e *Event) // Handles writing a log event
 }
 
@@ -44,6 +45,7 @@ type BaseAppender struct {
 	Layout Layout `PluginElement:"Layout"` // Layout defines how logs are formatted
 }
 
+func (c *BaseAppender) GetName() string { return c.Name }
 func (c *BaseAppender) Start() error    { return nil }
 func (c *BaseAppender) Stop()           {}
 func (c *BaseAppender) Append(e *Event) {}

@@ -54,16 +54,16 @@ func TestLoggerConfig(t *testing.T) {
 		err = l.Start()
 		assert.Nil(t, err)
 
-		assert.False(t, l.enableLevel(TraceLevel))
-		assert.False(t, l.enableLevel(DebugLevel))
-		assert.True(t, l.enableLevel(InfoLevel))
-		assert.True(t, l.enableLevel(WarnLevel))
-		assert.True(t, l.enableLevel(ErrorLevel))
-		assert.True(t, l.enableLevel(PanicLevel))
-		assert.True(t, l.enableLevel(FatalLevel))
+		assert.False(t, l.EnableLevel(TraceLevel))
+		assert.False(t, l.EnableLevel(DebugLevel))
+		assert.True(t, l.EnableLevel(InfoLevel))
+		assert.True(t, l.EnableLevel(WarnLevel))
+		assert.True(t, l.EnableLevel(ErrorLevel))
+		assert.True(t, l.EnableLevel(PanicLevel))
+		assert.True(t, l.EnableLevel(FatalLevel))
 
 		for i := 0; i < 5; i++ {
-			l.publish(&Event{})
+			l.Publish(&Event{})
 		}
 
 		assert.That(t, a.count).Equal(5)
@@ -82,13 +82,13 @@ func TestAsyncLoggerConfig(t *testing.T) {
 			},
 		}
 
-		assert.False(t, l.enableLevel(TraceLevel))
-		assert.False(t, l.enableLevel(DebugLevel))
-		assert.True(t, l.enableLevel(InfoLevel))
-		assert.True(t, l.enableLevel(WarnLevel))
-		assert.True(t, l.enableLevel(ErrorLevel))
-		assert.True(t, l.enableLevel(PanicLevel))
-		assert.True(t, l.enableLevel(FatalLevel))
+		assert.False(t, l.EnableLevel(TraceLevel))
+		assert.False(t, l.EnableLevel(DebugLevel))
+		assert.True(t, l.EnableLevel(InfoLevel))
+		assert.True(t, l.EnableLevel(WarnLevel))
+		assert.True(t, l.EnableLevel(ErrorLevel))
+		assert.True(t, l.EnableLevel(PanicLevel))
+		assert.True(t, l.EnableLevel(FatalLevel))
 	})
 
 	t.Run("error BufferSize", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		for i := 0; i < 5000; i++ {
-			l.publish(GetEvent())
+			l.Publish(GetEvent())
 		}
 
 		time.Sleep(200 * time.Millisecond)
@@ -168,7 +168,7 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		for i := 0; i < 5; i++ {
-			l.publish(GetEvent())
+			l.Publish(GetEvent())
 		}
 
 		time.Sleep(100 * time.Millisecond)
