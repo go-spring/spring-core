@@ -20,7 +20,7 @@ import (
 	"math"
 	"unsafe"
 
-	"fields/encoder"
+	"benchmark-fields/encoder"
 )
 
 type (
@@ -32,24 +32,15 @@ type ValueType int
 const (
 	ValueTypeBool = ValueType(iota)
 	ValueTypeInt64
-	ValueTypeUint64
 	ValueTypeFloat64
 	ValueTypeString
 	ValueTypeReflect
 	ValueTypeBools
-	ValueTypeInts
-	ValueTypeInt8s
-	ValueTypeInt16s
-	ValueTypeInt32s
 	ValueTypeInt64s
-	ValueTypeUints
-	ValueTypeUint8s
-	ValueTypeUint16s
-	ValueTypeUint32s
-	ValueTypeUint64s
-	ValueTypeFloat32s
 	ValueTypeFloat64s
 	ValueTypeStrings
+	ValueTypeArray
+	ValueTypeObject
 )
 
 type Value struct {
@@ -58,113 +49,7 @@ type Value struct {
 	Any  any
 }
 
-func (v Value) Encode(enc encoder.Encoder) {
-	switch v.Type {
-	case ValueTypeBool:
-		if v.Num == 0 {
-			enc.AppendBool(false)
-		} else {
-			enc.AppendBool(true)
-		}
-	case ValueTypeInt64:
-		enc.AppendInt64(int64(v.Num))
-	case ValueTypeUint64:
-		enc.AppendUint64(v.Num)
-	case ValueTypeFloat64:
-		enc.AppendFloat64(math.Float64frombits(v.Num))
-	case ValueTypeString:
-		enc.AppendString(unsafe.String(v.Any.(StringDataPtr), v.Num))
-	case ValueTypeReflect:
-		enc.AppendReflect(v.Any)
-	case ValueTypeBools:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]bool) {
-			enc.AppendBool(val)
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeInts:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]int) {
-			enc.AppendInt64(int64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeInt8s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]int8) {
-			enc.AppendInt64(int64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeInt16s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]int16) {
-			enc.AppendInt64(int64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeInt32s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]int32) {
-			enc.AppendInt64(int64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeInt64s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]int64) {
-			enc.AppendInt64(val)
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeUints:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]uint) {
-			enc.AppendUint64(uint64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeUint8s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]uint8) {
-			enc.AppendUint64(uint64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeUint16s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]uint16) {
-			enc.AppendUint64(uint64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeUint32s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]uint32) {
-			enc.AppendUint64(uint64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeUint64s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]uint64) {
-			enc.AppendUint64(val)
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeFloat32s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]float32) {
-			enc.AppendFloat64(float64(val))
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeFloat64s:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]float64) {
-			enc.AppendFloat64(val)
-		}
-		enc.AppendArrayEnd()
-	case ValueTypeStrings:
-		enc.AppendArrayBegin()
-		for _, val := range v.Any.([]string) {
-			enc.AppendString(val)
-		}
-		enc.AppendArrayEnd()
-
-	default: // for linter
-	}
-}
-
+// BoolValue represents a bool carried by Field.
 func BoolValue(v bool) Value {
 	if v {
 		return Value{
@@ -179,6 +64,7 @@ func BoolValue(v bool) Value {
 	}
 }
 
+// Int64Value represents an int64 carried by Field.
 func Int64Value(v int64) Value {
 	return Value{
 		Type: ValueTypeInt64,
@@ -186,13 +72,7 @@ func Int64Value(v int64) Value {
 	}
 }
 
-func Uint64Value(v uint64) Value {
-	return Value{
-		Type: ValueTypeUint64,
-		Num:  v,
-	}
-}
-
+// Float64Value represents a float64 carried by Field.
 func Float64Value(v float64) Value {
 	return Value{
 		Type: ValueTypeFloat64,
@@ -200,6 +80,7 @@ func Float64Value(v float64) Value {
 	}
 }
 
+// StringValue represents a string carried by Field.
 func StringValue(v string) Value {
 	return Value{
 		Type: ValueTypeString,
@@ -208,6 +89,7 @@ func StringValue(v string) Value {
 	}
 }
 
+// ReflectValue represents an interface{} carried by Field.
 func ReflectValue(v any) Value {
 	return Value{
 		Type: ValueTypeReflect,
@@ -215,6 +97,7 @@ func ReflectValue(v any) Value {
 	}
 }
 
+// BoolsValue represents a slice of bool carried by Field.
 func BoolsValue(v []bool) Value {
 	return Value{
 		Type: ValueTypeBools,
@@ -222,34 +105,7 @@ func BoolsValue(v []bool) Value {
 	}
 }
 
-func IntsValue(v []int) Value {
-	return Value{
-		Type: ValueTypeInts,
-		Any:  v,
-	}
-}
-
-func Int8sValue(v []int8) Value {
-	return Value{
-		Type: ValueTypeInt8s,
-		Any:  v,
-	}
-}
-
-func Int16sValue(v []int16) Value {
-	return Value{
-		Type: ValueTypeInt16s,
-		Any:  v,
-	}
-}
-
-func Int32sValue(v []int32) Value {
-	return Value{
-		Type: ValueTypeInt32s,
-		Any:  v,
-	}
-}
-
+// Int64sValue represents a slice of int64 carried by Field.
 func Int64sValue(v []int64) Value {
 	return Value{
 		Type: ValueTypeInt64s,
@@ -257,48 +113,7 @@ func Int64sValue(v []int64) Value {
 	}
 }
 
-func UintsValue(v []uint) Value {
-	return Value{
-		Type: ValueTypeUints,
-		Any:  v,
-	}
-}
-
-func Uint8sValue(v []uint8) Value {
-	return Value{
-		Type: ValueTypeUint8s,
-		Any:  v,
-	}
-}
-
-func Uint16sValue(v []uint16) Value {
-	return Value{
-		Type: ValueTypeUint16s,
-		Any:  v,
-	}
-}
-
-func Uint32sValue(v []uint32) Value {
-	return Value{
-		Type: ValueTypeUint32s,
-		Any:  v,
-	}
-}
-
-func Uint64sValue(v []uint64) Value {
-	return Value{
-		Type: ValueTypeUint64s,
-		Any:  v,
-	}
-}
-
-func Float32sValue(v []float32) Value {
-	return Value{
-		Type: ValueTypeFloat32s,
-		Any:  v,
-	}
-}
-
+// Float64sValue represents a slice of float64 carried by Field.
 func Float64sValue(v []float64) Value {
 	return Value{
 		Type: ValueTypeFloat64s,
@@ -306,6 +121,7 @@ func Float64sValue(v []float64) Value {
 	}
 }
 
+// StringsValue represents a slice of string carried by Field.
 func StringsValue(v []string) Value {
 	return Value{
 		Type: ValueTypeStrings,
@@ -313,9 +129,17 @@ func StringsValue(v []string) Value {
 	}
 }
 
-type ArrayValue []Value
+type arrVal []Value
 
-func (v ArrayValue) Encode(enc encoder.Encoder) {
+// ArrayValue represents a slice of Value carried by Field.
+func ArrayValue(val ...Value) Value {
+	return Value{
+		Type: ValueTypeArray,
+		Any:  arrVal(val),
+	}
+}
+
+func (v arrVal) Encode(enc encoder.Encoder) {
 	enc.AppendArrayBegin()
 	for _, val := range v {
 		val.Encode(enc)
@@ -323,9 +147,17 @@ func (v ArrayValue) Encode(enc encoder.Encoder) {
 	enc.AppendArrayEnd()
 }
 
-type ObjectValue []Field
+type objVal []Field
 
-func (v ObjectValue) Encode(enc encoder.Encoder) {
+// ObjectValue represents a slice of Field carried by Field.
+func ObjectValue(fields ...Field) Value {
+	return Value{
+		Type: ValueTypeObject,
+		Any:  objVal(fields),
+	}
+}
+
+func (v objVal) Encode(enc encoder.Encoder) {
 	enc.AppendObjectBegin()
 	WriteFields(enc, v)
 	enc.AppendObjectEnd()
@@ -335,5 +167,54 @@ func WriteFields(enc encoder.Encoder, fields []Field) {
 	for _, f := range fields {
 		enc.AppendKey(f.Key)
 		f.Val.Encode(enc)
+	}
+}
+
+// Encode encodes the Value to the encoder.
+func (v Value) Encode(enc encoder.Encoder) {
+	switch v.Type {
+	case ValueTypeBool:
+		if v.Num == 0 {
+			enc.AppendBool(false)
+		} else {
+			enc.AppendBool(true)
+		}
+	case ValueTypeInt64:
+		enc.AppendInt64(int64(v.Num))
+	case ValueTypeFloat64:
+		enc.AppendFloat64(math.Float64frombits(v.Num))
+	case ValueTypeString:
+		enc.AppendString(unsafe.String(v.Any.(StringDataPtr), v.Num))
+	case ValueTypeReflect:
+		enc.AppendReflect(v.Any)
+	case ValueTypeBools:
+		enc.AppendArrayBegin()
+		for _, val := range v.Any.([]bool) {
+			enc.AppendBool(val)
+		}
+		enc.AppendArrayEnd()
+	case ValueTypeInt64s:
+		enc.AppendArrayBegin()
+		for _, val := range v.Any.([]int64) {
+			enc.AppendInt64(val)
+		}
+		enc.AppendArrayEnd()
+	case ValueTypeFloat64s:
+		enc.AppendArrayBegin()
+		for _, val := range v.Any.([]float64) {
+			enc.AppendFloat64(val)
+		}
+		enc.AppendArrayEnd()
+	case ValueTypeStrings:
+		enc.AppendArrayBegin()
+		for _, val := range v.Any.([]string) {
+			enc.AppendString(val)
+		}
+		enc.AppendArrayEnd()
+	case ValueTypeArray:
+		v.Any.(arrVal).Encode(enc)
+	case ValueTypeObject:
+		v.Any.(objVal).Encode(enc)
+	default: // for linter
 	}
 }

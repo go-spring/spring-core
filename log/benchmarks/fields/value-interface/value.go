@@ -17,7 +17,7 @@
 package value_interface
 
 import (
-	"fields/encoder"
+	"benchmark-fields/encoder"
 )
 
 // Value is an interface for types that can encode themselves using an Encoder.
@@ -39,14 +39,6 @@ type Int64Value int64
 // Encode encodes the data represented by v to an Encoder.
 func (v Int64Value) Encode(enc encoder.Encoder) {
 	enc.AppendInt64(int64(v))
-}
-
-// Uint64Value represents an uint64 carried by Field.
-type Uint64Value uint64
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Uint64Value) Encode(enc encoder.Encoder) {
-	enc.AppendUint64(uint64(v))
 }
 
 // Float64Value represents a float64 carried by Field.
@@ -87,54 +79,6 @@ func (v BoolsValue) Encode(enc encoder.Encoder) {
 	enc.AppendArrayEnd()
 }
 
-// IntsValue represents a slice of int carried by Field.
-type IntsValue []int
-
-// Encode encodes the data represented by v to an Encoder.
-func (v IntsValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendInt64(int64(val))
-	}
-	enc.AppendArrayEnd()
-}
-
-// Int8sValue represents a slice of int8 carried by Field.
-type Int8sValue []int8
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Int8sValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendInt64(int64(val))
-	}
-	enc.AppendArrayEnd()
-}
-
-// Int16sValue represents a slice of int16 carried by Field.
-type Int16sValue []int16
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Int16sValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendInt64(int64(val))
-	}
-	enc.AppendArrayEnd()
-}
-
-// Int32sValue represents a slice of int32 carried by Field.
-type Int32sValue []int32
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Int32sValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendInt64(int64(val))
-	}
-	enc.AppendArrayEnd()
-}
-
 // Int64sValue represents a slice of int64 carried by Field.
 type Int64sValue []int64
 
@@ -143,78 +87,6 @@ func (v Int64sValue) Encode(enc encoder.Encoder) {
 	enc.AppendArrayBegin()
 	for _, val := range v {
 		enc.AppendInt64(val)
-	}
-	enc.AppendArrayEnd()
-}
-
-// UintsValue represents a slice of uint carried by Field.
-type UintsValue []uint
-
-// Encode encodes the data represented by v to an Encoder.
-func (v UintsValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendUint64(uint64(val))
-	}
-	enc.AppendArrayEnd()
-}
-
-// Uint8sValue represents a slice of uint8 carried by Field.
-type Uint8sValue []uint8
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Uint8sValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendUint64(uint64(val))
-	}
-	enc.AppendArrayEnd()
-}
-
-// Uint16sValue represents a slice of uint16 carried by Field.
-type Uint16sValue []uint16
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Uint16sValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendUint64(uint64(val))
-	}
-	enc.AppendArrayEnd()
-}
-
-// Uint32sValue represents a slice of uint32 carried by Field.
-type Uint32sValue []uint32
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Uint32sValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendUint64(uint64(val))
-	}
-	enc.AppendArrayEnd()
-}
-
-// Uint64sValue represents a slice of uint64 carried by Field.
-type Uint64sValue []uint64
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Uint64sValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendUint64(val)
-	}
-	enc.AppendArrayEnd()
-}
-
-// Float32sValue represents a slice of float32 carried by Field.
-type Float32sValue []float32
-
-// Encode encodes the data represented by v to an Encoder.
-func (v Float32sValue) Encode(enc encoder.Encoder) {
-	enc.AppendArrayBegin()
-	for _, val := range v {
-		enc.AppendFloat64(float64(val))
 	}
 	enc.AppendArrayEnd()
 }
