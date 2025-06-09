@@ -89,4 +89,9 @@ func TestLog(t *testing.T) {
 	log.Warn(ctx, TagDefault, log.Msgf("hello %s", "world"))
 	log.Error(ctx, TagDefault, log.Msgf("hello %s", "world"))
 	log.Panic(ctx, TagDefault, log.Msgf("hello %s", "world"))
+
+	log.Error(ctx, TagDefault, log.Fields(map[string]any{
+		"key1": "value1",
+		"key2": "value2",
+	})...)
 }

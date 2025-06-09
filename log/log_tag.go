@@ -17,6 +17,7 @@
 package log
 
 import (
+	"strings"
 	"sync/atomic"
 )
 
@@ -68,9 +69,40 @@ func (m *Tag) SetLogger(logger *Logger) {
 	m.v.Store(logger)
 }
 
+// isValidTag checks whether the tag is valid according to the following rules:
+// 1. The length must be between 4 and 36 characters.
+// 2. Only lowercase letters (a-z), digits (0-9), and underscores (_) are allowed.
+// 3. The tag can start with an underscore.
+// 4. Underscores separate the tag into 1 to 4 non-empty segments.
+// 5. No empty segments are allowed (i.e., no consecutive or trailing underscores).
+func isValidTag(tag string) bool {
+	if len(tag) < 4 || len(tag) > 36 {
+		return false
+	}
+	for i := 0; i < len(tag); i++ {
+		c := tag[i]
+		if !(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '_' {
+			return false
+		}
+	}
+	ss := strings.Split(strings.TrimPrefix(tag, "_"), "_")
+	if len(ss) < 1 || len(ss) > 4 {
+		return false
+	}
+	for _, s := range ss {
+		if s == "" {
+			return false
+		}
+	}
+	return true
+}
+
 // GetTag creates or retrieves a Tag by name.
 // If the tag does not exist, it is created and added to the global registry.
 func GetTag(tag string) *Tag {
+	if !isValidTag(tag) {
+		panic("invalid tag name")
+	}
 	m, ok := tagMap[tag]
 	if !ok {
 		m = &Tag{s: tag}

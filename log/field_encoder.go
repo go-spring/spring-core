@@ -123,7 +123,7 @@ func (enc *JSONEncoder) AppendKey(key string) {
 	enc.appendSeparator()
 	enc.last = jsonTokenKey
 	enc.buf.WriteByte('"')
-	enc.safeAddString(key)
+	SafeWriteString(enc.buf, key)
 	enc.buf.WriteByte('"')
 	enc.buf.WriteByte(':')
 }
@@ -161,7 +161,7 @@ func (enc *JSONEncoder) AppendString(v string) {
 	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteByte('"')
-	enc.safeAddString(v)
+	SafeWriteString(enc.buf, v)
 	enc.buf.WriteByte('"')
 }
 
@@ -172,74 +172,11 @@ func (enc *JSONEncoder) AppendReflect(v interface{}) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		enc.buf.WriteByte('"')
-		enc.safeAddString(err.Error())
+		SafeWriteString(enc.buf, err.Error())
 		enc.buf.WriteByte('"')
 		return
 	}
 	enc.buf.Write(b)
-}
-
-// safeAddString escapes and writes a string according to JSON rules.
-func (enc *JSONEncoder) safeAddString(s string) {
-	for i := 0; i < len(s); {
-		// Try to add a single-byte (ASCII) character directly
-		if enc.tryAddRuneSelf(s[i]) {
-			i++
-			continue
-		}
-		// Decode multi-byte UTF-8 character
-		r, size := utf8.DecodeRuneInString(s[i:])
-		// Handle invalid UTF-8 encoding
-		if enc.tryAddRuneError(r, size) {
-			i++
-			continue
-		}
-		// Valid multi-byte rune; add as is
-		enc.buf.WriteString(s[i : i+size])
-		i += size
-	}
-}
-
-// tryAddRuneSelf handles ASCII characters and escapes control/quote characters.
-func (enc *JSONEncoder) tryAddRuneSelf(b byte) bool {
-	const _hex = "0123456789abcdef"
-	if b >= utf8.RuneSelf {
-		return false // not a single-byte rune
-	}
-	if 0x20 <= b && b != '\\' && b != '"' {
-		enc.buf.WriteByte(b)
-		return true
-	}
-	// Handle escaping
-	switch b {
-	case '\\', '"':
-		enc.buf.WriteByte('\\')
-		enc.buf.WriteByte(b)
-	case '\n':
-		enc.buf.WriteByte('\\')
-		enc.buf.WriteByte('n')
-	case '\r':
-		enc.buf.WriteByte('\\')
-		enc.buf.WriteByte('r')
-	case '\t':
-		enc.buf.WriteByte('\\')
-		enc.buf.WriteByte('t')
-	default:
-		// Encode bytes < 0x20, except for the escape sequences above.
-		enc.buf.WriteString(`\u00`)
-		enc.buf.WriteByte(_hex[b>>4])
-		enc.buf.WriteByte(_hex[b&0xF])
-	}
-	return true
-}
-
-// tryAddRuneError checks and escapes invalid UTF-8 runes.
-func (enc *JSONEncoder) tryAddRuneError(r rune, size int) bool {
-	if r == utf8.RuneError && size == 1 {
-		enc.buf.WriteString(`\ufffd`)
-		return true
-	}
-	return false
 }
 
 // TextEncoder encodes key-value pairs in a plain text format,
@@ -314,7 +251,7 @@ func (enc *TextEncoder) AppendKey(key string) {
 	} else {
 		enc.firstField = true
 	}
-	enc.buf.WriteString(key)
+	SafeWriteString(enc.buf, key)
 	enc.buf.WriteByte('=')
 }
 
@@ -360,7 +297,7 @@ func (enc *TextEncoder) AppendString(v string) {
 		enc.jsonEncoder.AppendString(v)
 		return
 	}
-	enc.buf.WriteString(v)
+	SafeWriteString(enc.buf, v)
 }
 
 // AppendReflect uses reflection to marshal any value as JSON.
@@ -372,8 +309,73 @@ func (enc *TextEncoder) AppendReflect(v interface{}) {
 	}
 	b, err := json.Marshal(v)
 	if err != nil {
-		enc.AppendString(err.Error())
+		SafeWriteString(enc.buf, err.Error())
 		return
 	}
 	enc.buf.Write(b)
+}
+
+/************************************* string ********************************/
+
+// SafeWriteString escapes and writes a string according to JSON rules.
+func SafeWriteString(buf *bytes.Buffer, s string) {
+	for i := 0; i < len(s); {
+		// Try to add a single-byte (ASCII) character directly
+		if tryAddRuneSelf(buf, s[i]) {
+			i++
+			continue
+		}
+		// Decode multi-byte UTF-8 character
+		r, size := utf8.DecodeRuneInString(s[i:])
+		// Handle invalid UTF-8 encoding
+		if tryAddRuneError(buf, r, size) {
+			i++
+			continue
+		}
+		// Valid multi-byte rune; add as is
+		buf.WriteString(s[i : i+size])
+		i += size
+	}
+}
+
+// tryAddRuneSelf handles ASCII characters and escapes control/quote characters.
+func tryAddRuneSelf(buf *bytes.Buffer, b byte) bool {
+	const _hex = "0123456789abcdef"
+	if b >= utf8.RuneSelf {
+		return false // not a single-byte rune
+	}
+	if 0x20 <= b && b != '\\' && b != '"' {
+		buf.WriteByte(b)
+		return true
+	}
+	// Handle escaping
+	switch b {
+	case '\\', '"':
+		buf.WriteByte('\\')
+		buf.WriteByte(b)
+	case '\n':
+		buf.WriteByte('\\')
+		buf.WriteByte('n')
+	case '\r':
+		buf.WriteByte('\\')
+		buf.WriteByte('r')
+	case '\t':
+		buf.WriteByte('\\')
+		buf.WriteByte('t')
+	default:
+		// Encode bytes < 0x20, except for the escape sequences above.
+		buf.WriteString(`\u00`)
+		buf.WriteByte(_hex[b>>4])
+		buf.WriteByte(_hex[b&0xF])
+	}
+	return true
+}
+
+// tryAddRuneError checks and escapes invalid UTF-8 runes.
+func tryAddRuneError(buf *bytes.Buffer, r rune, size int) bool {
+	if r == utf8.RuneError && size == 1 {
+		buf.WriteString(`\ufffd`)
+		return true
+	}
+	return false
 }

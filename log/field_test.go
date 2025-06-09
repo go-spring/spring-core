@@ -268,7 +268,7 @@ func TestTextEncoder(t *testing.T) {
 			enc.AppendArrayEnd()
 		}
 		enc.AppendEncoderEnd()
-		const expect = "msg=hello 中国||msg=hello world\n\\\t\"\r||null=null||" +
+		const expect = `msg=hello 中国||msg=hello world\n\\\t\"\r||null=null||` +
 			`bool=false||bool_ptr=true||bool_ptr_nil=null||bools=[true,true,false]||` +
 			`int=1||int_ptr=1||int_ptr_nil=null||int_slice=[1,2,3]||` +
 			`int8=1||int8_ptr=1||int8_ptr_nil=null||int8_slice=[1,2,3]||` +
@@ -282,7 +282,7 @@ func TestTextEncoder(t *testing.T) {
 			`uint64=1||uint64_ptr=1||uint64_ptr_nil=null||uint64_slice=[1,2,3]||` +
 			`float32=1||float32_ptr=1||float32_ptr_nil=null||float32_slice=[1,2,3]||` +
 			`float64=1||float64_ptr=1||float64_ptr_nil=null||float64_slice=[1,2,3]||` +
-			`string=` + "\x80\xC2\xED\xA0\x08" + `||string_ptr=a||string_ptr_nil=null||string_slice=["a","b","c"]||` +
+			`string=\ufffd\ufffd\ufffd\ufffd\u0008||string_ptr=a||string_ptr_nil=null||string_slice=["a","b","c"]||` +
 			`object={"int64":1,"uint64":1,"string":"a"}||struct={"Int64":10}||` +
 			`object_2={"map":{"a":1}}||array_2=[{"a":1},{"a":1}]`
 		assert.ThatString(t, buf.String()).Equal(expect)

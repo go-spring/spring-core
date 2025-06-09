@@ -35,7 +35,9 @@ func init() {
 		NewSimpleHttpServer,
 		IndexArg(1, BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}"))),
 		IndexArg(1, BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}"))),
+		IndexArg(1, BindArg(SetHttpServerHeaderTimeout, TagArg("${http.server.headerTimeout:=1s}"))),
 		IndexArg(1, BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}"))),
+		IndexArg(1, BindArg(SetHttpServerIdleTimeout, TagArg("${http.server.idleTimeout:=60s}"))),
 	).Condition(
 		OnBean[*http.ServeMux](),
 		OnProperty(EnableServersProp).HavingValue("true").MatchIfMissing(),
@@ -45,9 +47,11 @@ func init() {
 
 // HttpServerConfig holds configuration options for the HTTP server.
 type HttpServerConfig struct {
-	Address      string        // The address to bind the server to.
-	ReadTimeout  time.Duration // The read timeout duration.
-	WriteTimeout time.Duration // The write timeout duration.
+	Address       string        // The address to bind the server to.
+	ReadTimeout   time.Duration // The read timeout duration.
+	HeaderTimeout time.Duration // The header timeout duration.
+	WriteTimeout  time.Duration // The write timeout duration.
+	IdleTimeout   time.Duration // The idle timeout duration.
 }
 
 // HttpServerOption is a function type for setting options on HttpServerConfig.
@@ -67,10 +71,24 @@ func SetHttpServerReadTimeout(timeout time.Duration) HttpServerOption {
 	}
 }
 
+// SetHttpServerHeaderTimeout sets the header timeout for the HTTP server.
+func SetHttpServerHeaderTimeout(timeout time.Duration) HttpServerOption {
+	return func(arg *HttpServerConfig) {
+		arg.HeaderTimeout = timeout
+	}
+}
+
 // SetHttpServerWriteTimeout sets the write timeout for the HTTP server.
 func SetHttpServerWriteTimeout(timeout time.Duration) HttpServerOption {
 	return func(arg *HttpServerConfig) {
 		arg.WriteTimeout = timeout
+	}
+}
+
+// SetHttpServerIdleTimeout sets the idle timeout for the HTTP server.
+func SetHttpServerIdleTimeout(timeout time.Duration) HttpServerOption {
+	return func(arg *HttpServerConfig) {
+		arg.IdleTimeout = timeout
 	}
 }
 
@@ -82,9 +100,11 @@ type SimpleHttpServer struct {
 // NewSimpleHttpServer creates a new instance of SimpleHttpServer.
 func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHttpServer {
 	arg := &HttpServerConfig{
-		Address:      "0.0.0.0:9090",
-		ReadTimeout:  time.Second * 5,
-		WriteTimeout: time.Second * 5,
+		Address:       "0.0.0.0:9090",
+		ReadTimeout:   time.Second * 5,
+		HeaderTimeout: time.Second,
+		WriteTimeout:  time.Second * 5,
+		IdleTimeout:   time.Second * 60,
 	}
 	for _, opt := range opts {
 		opt(arg)

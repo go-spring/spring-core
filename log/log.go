@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/log/internal"
+	"github.com/go-spring/spring-core/util"
 )
 
 // TimeNow is a function that can be overridden to provide custom timestamp behavior (e.g., for testing).
@@ -32,49 +33,58 @@ var StringFromContext func(ctx context.Context) string
 // FieldsFromContext can be set to extract structured fields from the context (e.g., trace IDs, user IDs).
 var FieldsFromContext func(ctx context.Context) []Field
 
+// Fields converts a map of string keys to any values to a slice of Field.
+func Fields(fields map[string]any) []Field {
+	var ret []Field
+	for _, k := range util.OrderedMapKeys(fields) {
+		ret = append(ret, Any(k, fields[k]))
+	}
+	return ret
+}
+
 // Trace logs a message at TraceLevel using a tag and a lazy field-generating function.
 func Trace(ctx context.Context, tag *Tag, fn func() []Field) {
 	if tag.GetLogger().EnableLevel(TraceLevel) {
-		Record(ctx, TraceLevel, tag, fn()...)
+		Record(ctx, TraceLevel, tag, fn())
 	}
 }
 
 // Debug logs a message at DebugLevel using a tag and a lazy field-generating function.
 func Debug(ctx context.Context, tag *Tag, fn func() []Field) {
 	if tag.GetLogger().EnableLevel(DebugLevel) {
-		Record(ctx, DebugLevel, tag, fn()...)
+		Record(ctx, DebugLevel, tag, fn())
 	}
 }
 
 // Info logs a message at InfoLevel using structured fields.
 func Info(ctx context.Context, tag *Tag, fields ...Field) {
-	Record(ctx, InfoLevel, tag, fields...)
+	Record(ctx, InfoLevel, tag, fields)
 }
 
 // Warn logs a message at WarnLevel using structured fields.
 func Warn(ctx context.Context, tag *Tag, fields ...Field) {
-	Record(ctx, WarnLevel, tag, fields...)
+	Record(ctx, WarnLevel, tag, fields)
 }
 
 // Error logs a message at ErrorLevel using structured fields.
 func Error(ctx context.Context, tag *Tag, fields ...Field) {
-	Record(ctx, ErrorLevel, tag, fields...)
+	Record(ctx, ErrorLevel, tag, fields)
 }
 
 // Panic logs a message at PanicLevel using structured fields.
 func Panic(ctx context.Context, tag *Tag, fields ...Field) {
-	Record(ctx, PanicLevel, tag, fields...)
+	Record(ctx, PanicLevel, tag, fields)
 }
 
 // Fatal logs a message at FatalLevel using structured fields.
 func Fatal(ctx context.Context, tag *Tag, fields ...Field) {
-	Record(ctx, FatalLevel, tag, fields...)
+	Record(ctx, FatalLevel, tag, fields)
 }
 
 // Record is the core function that handles publishing log events.
 // It checks the logger level, captures caller information, gathers context fields,
 // and sends the log event to the logger.
-func Record(ctx context.Context, level Level, tag *Tag, fields ...Field) {
+func Record(ctx context.Context, level Level, tag *Tag, fields []Field) {
 	logger := tag.GetLogger()
 	if !logger.EnableLevel(level) {
 		return // Skip if the logger doesn't allow this level
