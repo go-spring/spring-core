@@ -85,6 +85,12 @@ func TestLog(t *testing.T) {
 	log.Panic(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
 	log.Fatal(ctx, TagRequestIn, log.Msgf("hello %s", "world"))
 
+	log.Infof(ctx, TagRequestIn, "hello %s", "world")
+	log.Warnf(ctx, TagRequestIn, "hello %s", "world")
+	log.Errorf(ctx, TagRequestIn, "hello %s", "world")
+	log.Panicf(ctx, TagRequestIn, "hello %s", "world")
+	log.Fatalf(ctx, TagRequestIn, "hello %s", "world")
+
 	log.Info(ctx, TagDefault, log.Msgf("hello %s", "world"))
 	log.Warn(ctx, TagDefault, log.Msgf("hello %s", "world"))
 	log.Error(ctx, TagDefault, log.Msgf("hello %s", "world"))
