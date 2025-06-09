@@ -32,7 +32,7 @@ var testFields = []Field{
 	Msg("hello world\n\\\t\"\r"),
 	Any("null", nil),
 	Any("bool", false),
-	Any("bool_ptr", ptr(false)),
+	Any("bool_ptr", ptr(true)),
 	Any("bool_ptr_nil", (*bool)(nil)),
 	Any("bools", []bool{true, true, false}),
 	Any("int", int(1)),
@@ -87,7 +87,6 @@ var testFields = []Field{
 	Any("string_ptr", ptr("a")),
 	Any("string_ptr_nil", (*string)(nil)),
 	Any("string_slice", []string{"a", "b", "c"}),
-	Array("array", Int64Value(1), Uint64Value(2), StringValue("a")),
 	Object("object", Any("int64", int64(1)), Any("uint64", uint64(1)), Any("string", "a")),
 	Any("struct", struct{ Int64 int64 }{10}),
 }
@@ -114,7 +113,7 @@ func TestJSONEncoder(t *testing.T) {
 	    "msg": "hello world\n\\\t\"\r",
 	    "null": null,
 	    "bool": false,
-	    "bool_ptr": false,
+	    "bool_ptr": true,
 	    "bool_ptr_nil": null,
 	    "bools": [
 	        true,
@@ -225,11 +224,6 @@ func TestJSONEncoder(t *testing.T) {
 	        "b",
 	        "c"
 	    ],
-	    "array": [
-	        1,
-	        2,
-	        "a"
-	    ],
 	    "object": {
 	        "int64": 1,
 	        "uint64": 1,
@@ -275,7 +269,7 @@ func TestTextEncoder(t *testing.T) {
 		}
 		enc.AppendEncoderEnd()
 		const expect = "msg=hello 中国||msg=hello world\n\\\t\"\r||null=null||" +
-			`bool=false||bool_ptr=false||bool_ptr_nil=null||bools=[true,true,false]||` +
+			`bool=false||bool_ptr=true||bool_ptr_nil=null||bools=[true,true,false]||` +
 			`int=1||int_ptr=1||int_ptr_nil=null||int_slice=[1,2,3]||` +
 			`int8=1||int8_ptr=1||int8_ptr_nil=null||int8_slice=[1,2,3]||` +
 			`int16=1||int16_ptr=1||int16_ptr_nil=null||int16_slice=[1,2,3]||` +
@@ -289,7 +283,7 @@ func TestTextEncoder(t *testing.T) {
 			`float32=1||float32_ptr=1||float32_ptr_nil=null||float32_slice=[1,2,3]||` +
 			`float64=1||float64_ptr=1||float64_ptr_nil=null||float64_slice=[1,2,3]||` +
 			`string=` + "\x80\xC2\xED\xA0\x08" + `||string_ptr=a||string_ptr_nil=null||string_slice=["a","b","c"]||` +
-			`array=[1,2,"a"]||object={"int64":1,"uint64":1,"string":"a"}||struct={"Int64":10}||` +
+			`object={"int64":1,"uint64":1,"string":"a"}||struct={"Int64":10}||` +
 			`object_2={"map":{"a":1}}||array_2=[{"a":1},{"a":1}]`
 		assert.ThatString(t, buf.String()).Equal(expect)
 	})
