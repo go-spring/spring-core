@@ -23,46 +23,55 @@ import (
 	"benchmark-fields/encoder"
 )
 
-func BenchmarkBools(b *testing.B) {
+func BenchmarkValueInterface(b *testing.B) {
 
-	// bools-8     11332849	  107.7 ns/op
-	// int64s-8     9080331	  129.8 ns/op
-	// float64s-8   2051444	  583.3 ns/op
-	// strings-8    8384014	  142.4 ns/op
+	// bools-8      10998112	105.1 ns/op	  152 B/op	  4 allocs/op
+	// int64s-8      9017383	131.5 ns/op	  152 B/op	  4 allocs/op
+	// float64s-8    1904684	634.8 ns/op	  344 B/op	 12 allocs/op
+	// strings-8     8188070	145.1 ns/op	  152 B/op	  4 allocs/op
 
 	arrBools := []bool{true, false, true, false, true, false}
 	arrInt64s := []int64{1, 2, 3, 4, 5, 6, 7, 8}
 	arrFloat64s := []float64{1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8}
 	arrStrings := []string{"a", "b", "c", "d", "e", "f", "g", "h"}
 
-	b.ResetTimer()
-	b.ReportAllocs()
-
 	b.Run("bools", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Bools("arr", arrBools)
-			WriteFields(encoder.NewJSONEncoder(bytes.NewBuffer(nil)), []Field{v})
+			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
 		}
 	})
 
 	b.Run("int64s", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Int64s("arr", arrInt64s)
-			WriteFields(encoder.NewJSONEncoder(bytes.NewBuffer(nil)), []Field{v})
+			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
 		}
 	})
 
 	b.Run("float64s", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Float64s("arr", arrFloat64s)
-			WriteFields(encoder.NewJSONEncoder(bytes.NewBuffer(nil)), []Field{v})
+			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
 		}
 	})
 
 	b.Run("strings", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Strings("arr", arrStrings)
-			WriteFields(encoder.NewJSONEncoder(bytes.NewBuffer(nil)), []Field{v})
+			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
 		}
 	})
 }

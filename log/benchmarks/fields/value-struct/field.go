@@ -16,6 +16,10 @@
 
 package value_struct
 
+import (
+	"benchmark-fields/encoder"
+)
+
 // Field represents a structured log field with a key and a value.
 type Field struct {
 	Key string // The name of the field.
@@ -108,4 +112,9 @@ func Any(key string, value interface{}) Field {
 	default:
 		return Reflect(key, val)
 	}
+}
+
+func (f *Field) Encode(enc encoder.Encoder) {
+	enc.AppendKey(f.Key)
+	f.Val.Encode(enc)
 }

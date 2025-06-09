@@ -133,14 +133,8 @@ type ObjectValue []Field
 // Encode encodes the data represented by v to an Encoder.
 func (v ObjectValue) Encode(enc encoder.Encoder) {
 	enc.AppendObjectBegin()
-	WriteFields(enc, v)
-	enc.AppendObjectEnd()
-}
-
-// WriteFields writes a slice of Field objects to the encoder.
-func WriteFields(enc encoder.Encoder, fields []Field) {
-	for _, f := range fields {
-		enc.AppendKey(f.Key)
-		f.Val.Encode(enc)
+	for _, f := range v {
+		f.Encode(enc)
 	}
+	enc.AppendObjectEnd()
 }

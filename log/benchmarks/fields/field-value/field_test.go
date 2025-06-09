@@ -56,16 +56,16 @@ func (arr strings) EncodeArray(enc encoder.Encoder) {
 	}
 }
 
-func BenchmarkBools(b *testing.B) {
+func BenchmarkFieldValue(b *testing.B) {
 
-	// bools-8         	            11279228    108.3 ns/op
-	// bools_as_ArrayValue-8        11232891    108.0 ns/op
-	// int64s-8                      8994212    131.2 ns/op
-	// int64s_as_ArrayValue-8        9007236	131.8 ns/op
-	// float64s-8                    1994095	600.4 ns/op
-	// float64s_as_ArrayValue-8      1985868	605.9 ns/op
-	// strings-8                     8231821	145.5 ns/op
-	// strings_as_ArrayValue-8       8147164	148.5 ns/op
+	// bools-8         	            10706354	123.8 ns/op	  152 B/op	  4 allocs/op
+	// bools_as_ArrayValue-8        11192071	107.9 ns/op	  152 B/op	  4 allocs/op
+	// int64s-8                      9132631	131.0 ns/op	  152 B/op	  4 allocs/op
+	// int64s_as_ArrayValue-8        9038806	131.8 ns/op	  152 B/op	  4 allocs/op
+	// float64s-8                    2022433	597.8 ns/op	  344 B/op	 12 allocs/op
+	// float64s_as_ArrayValue-8      1988160	602.1 ns/op	  344 B/op	 12 allocs/op
+	// strings-8                     8134866	145.5 ns/op	  152 B/op	  4 allocs/op
+	// strings_as_ArrayValue-8       8170756	165.6 ns/op	  152 B/op	  4 allocs/op
 
 	arrBools := []bool{true, false, true, false, true, false}
 	arrInt64s := []int64{1, 2, 3, 4, 5, 6, 7, 8}
@@ -130,10 +130,10 @@ func BenchmarkBools(b *testing.B) {
 	fmt.Println(b7.String())
 	fmt.Println(b8.String())
 
-	b.ResetTimer()
-	b.ReportAllocs()
-
 	b.Run("bools", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Bools("arr", arrBools)
 			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
@@ -141,6 +141,9 @@ func BenchmarkBools(b *testing.B) {
 	})
 
 	b.Run("bools as ArrayValue", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Array("arr", bools(arrBools))
 			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
@@ -148,6 +151,9 @@ func BenchmarkBools(b *testing.B) {
 	})
 
 	b.Run("int64s", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Int64s("arr", arrInt64s)
 			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
@@ -155,6 +161,9 @@ func BenchmarkBools(b *testing.B) {
 	})
 
 	b.Run("int64s as ArrayValue", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Array("arr", int64s(arrInt64s))
 			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
@@ -162,6 +171,9 @@ func BenchmarkBools(b *testing.B) {
 	})
 
 	b.Run("float64s", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Float64s("arr", arrFloat64s)
 			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
@@ -169,6 +181,9 @@ func BenchmarkBools(b *testing.B) {
 	})
 
 	b.Run("float64s as ArrayValue", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Array("arr", float64s(arrFloat64s))
 			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
@@ -176,6 +191,9 @@ func BenchmarkBools(b *testing.B) {
 	})
 
 	b.Run("strings", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Strings("arr", arrStrings)
 			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))
@@ -183,6 +201,9 @@ func BenchmarkBools(b *testing.B) {
 	})
 
 	b.Run("strings as ArrayValue", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+
 		for b.Loop() {
 			v := Array("arr", strings(arrStrings))
 			v.Encode(encoder.NewJSONEncoder(bytes.NewBuffer(nil)))

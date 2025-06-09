@@ -159,15 +159,10 @@ func ObjectValue(fields ...Field) Value {
 
 func (v objVal) Encode(enc encoder.Encoder) {
 	enc.AppendObjectBegin()
-	WriteFields(enc, v)
-	enc.AppendObjectEnd()
-}
-
-func WriteFields(enc encoder.Encoder, fields []Field) {
-	for _, f := range fields {
-		enc.AppendKey(f.Key)
-		f.Val.Encode(enc)
+	for _, f := range v {
+		f.Encode(enc)
 	}
+	enc.AppendObjectEnd()
 }
 
 // Encode encodes the Value to the encoder.
