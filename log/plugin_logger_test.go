@@ -112,7 +112,7 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		dropCount := 0
-		OnDropEvent = func(*Event) {
+		OnDropEvent = func(logger string, e *Event) {
 			dropCount++
 		}
 		defer func() {

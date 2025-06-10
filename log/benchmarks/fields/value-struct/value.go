@@ -23,10 +23,6 @@ import (
 	"benchmark-fields/encoder"
 )
 
-type (
-	StringDataPtr *byte // used in Value.Any when the Value is a string
-)
-
 type ValueType int
 
 const (
@@ -85,7 +81,7 @@ func StringValue(v string) Value {
 	return Value{
 		Type: ValueTypeString,
 		Num:  uint64(len(v)),
-		Any:  StringDataPtr(unsafe.StringData(v)),
+		Any:  unsafe.StringData(v),
 	}
 }
 
@@ -131,14 +127,6 @@ func StringsValue(v []string) Value {
 
 type arrVal []Value
 
-// ArrayValue represents a slice of Value carried by Field.
-func ArrayValue(val ...Value) Value {
-	return Value{
-		Type: ValueTypeArray,
-		Any:  arrVal(val),
-	}
-}
-
 func (v arrVal) Encode(enc encoder.Encoder) {
 	enc.AppendArrayBegin()
 	for _, val := range v {
@@ -147,15 +135,15 @@ func (v arrVal) Encode(enc encoder.Encoder) {
 	enc.AppendArrayEnd()
 }
 
-type objVal []Field
-
-// ObjectValue represents a slice of Field carried by Field.
-func ObjectValue(fields ...Field) Value {
+// ArrayValue represents a slice of Value carried by Field.
+func ArrayValue(val ...Value) Value {
 	return Value{
-		Type: ValueTypeObject,
-		Any:  objVal(fields),
+		Type: ValueTypeArray,
+		Any:  arrVal(val),
 	}
 }
+
+type objVal []Field
 
 func (v objVal) Encode(enc encoder.Encoder) {
 	enc.AppendObjectBegin()
@@ -165,21 +153,25 @@ func (v objVal) Encode(enc encoder.Encoder) {
 	enc.AppendObjectEnd()
 }
 
+// ObjectValue represents a slice of Field carried by Field.
+func ObjectValue(fields ...Field) Value {
+	return Value{
+		Type: ValueTypeObject,
+		Any:  objVal(fields),
+	}
+}
+
 // Encode encodes the Value to the encoder.
 func (v Value) Encode(enc encoder.Encoder) {
 	switch v.Type {
 	case ValueTypeBool:
-		if v.Num == 0 {
-			enc.AppendBool(false)
-		} else {
-			enc.AppendBool(true)
-		}
+		enc.AppendBool(v.Num != 0)
 	case ValueTypeInt64:
 		enc.AppendInt64(int64(v.Num))
 	case ValueTypeFloat64:
 		enc.AppendFloat64(math.Float64frombits(v.Num))
 	case ValueTypeString:
-		enc.AppendString(unsafe.String(v.Any.(StringDataPtr), v.Num))
+		enc.AppendString(unsafe.String(v.Any.(*byte), v.Num))
 	case ValueTypeReflect:
 		enc.AppendReflect(v.Any)
 	case ValueTypeBools:

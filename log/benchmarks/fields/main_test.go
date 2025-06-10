@@ -35,11 +35,11 @@ var (
 
 func BenchmarkFields(b *testing.B) {
 
-	// value_interface/bools-8   	10864762	109.4 ns/op	  152 B/op	  4 allocs/op
+	// value_interface/bools-8      10864762	109.4 ns/op	  152 B/op	  4 allocs/op
 	// value_struct/bools-8         11207328	107.6 ns/op	  152 B/op	  4 allocs/op
 	// field_value/bools-8          11133696	108.8 ns/op	  152 B/op	  4 allocs/op
 
-	// value_interface/int64s-8  	 8831475	138.4 ns/op	  152 B/op	  4 allocs/op
+	// value_interface/int64s-8      8831475	138.4 ns/op	  152 B/op	  4 allocs/op
 	// value_struct/int64s-8         8929010	134.1 ns/op	  152 B/op	  4 allocs/op
 	// field_value/int64s-8          8978941	132.0 ns/op	  152 B/op	  4 allocs/op
 

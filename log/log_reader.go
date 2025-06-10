@@ -129,7 +129,7 @@ func (r *XMLReader) Read(b []byte) (*Node, error) {
 			parent := stack[len(stack)-2]
 			parent.Children = append(parent.Children, curr)
 			stack = stack[:len(stack)-1]
-		default:
+		default: // for linter
 		}
 	}
 	if len(stack[0].Children) == 0 {

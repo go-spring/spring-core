@@ -20,75 +20,72 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/go-spring/spring-core/util"
 	"github.com/lvan100/go-assert"
 )
-
-func ptr[T any](i T) *T {
-	return &i
-}
 
 var testFields = []Field{
 	Msgf("hello %s", "中国"),
 	Msg("hello world\n\\\t\"\r"),
 	Any("null", nil),
 	Any("bool", false),
-	Any("bool_ptr", ptr(true)),
+	Any("bool_ptr", util.Ptr(true)),
 	Any("bool_ptr_nil", (*bool)(nil)),
 	Any("bools", []bool{true, true, false}),
 	Any("int", int(1)),
-	Any("int_ptr", ptr(int(1))),
+	Any("int_ptr", util.Ptr(int(1))),
 	Any("int_ptr_nil", (*int)(nil)),
 	Any("int_slice", []int{int(1), int(2), int(3)}),
 	Any("int8", int8(1)),
-	Any("int8_ptr", ptr(int8(1))),
+	Any("int8_ptr", util.Ptr(int8(1))),
 	Any("int8_ptr_nil", (*int8)(nil)),
 	Any("int8_slice", []int8{int8(1), int8(2), int8(3)}),
 	Any("int16", int16(1)),
-	Any("int16_ptr", ptr(int16(1))),
+	Any("int16_ptr", util.Ptr(int16(1))),
 	Any("int16_ptr_nil", (*int16)(nil)),
 	Any("int16_slice", []int16{int16(1), int16(2), int16(3)}),
 	Any("int32", int32(1)),
-	Any("int32_ptr", ptr(int32(1))),
+	Any("int32_ptr", util.Ptr(int32(1))),
 	Any("int32_ptr_nil", (*int32)(nil)),
 	Any("int32_slice", []int32{int32(1), int32(2), int32(3)}),
 	Any("int64", int64(1)),
-	Any("int64_ptr", ptr(int64(1))),
+	Any("int64_ptr", util.Ptr(int64(1))),
 	Any("int64_ptr_nil", (*int64)(nil)),
 	Any("int64_slice", []int64{int64(1), int64(2), int64(3)}),
 	Any("uint", uint(1)),
-	Any("uint_ptr", ptr(uint(1))),
+	Any("uint_ptr", util.Ptr(uint(1))),
 	Any("uint_ptr_nil", (*uint)(nil)),
 	Any("uint_slice", []uint{uint(1), uint(2), uint(3)}),
 	Any("uint8", uint8(1)),
-	Any("uint8_ptr", ptr(uint8(1))),
+	Any("uint8_ptr", util.Ptr(uint8(1))),
 	Any("uint8_ptr_nil", (*uint8)(nil)),
 	Any("uint8_slice", []uint8{uint8(1), uint8(2), uint8(3)}),
 	Any("uint16", uint16(1)),
-	Any("uint16_ptr", ptr(uint16(1))),
+	Any("uint16_ptr", util.Ptr(uint16(1))),
 	Any("uint16_ptr_nil", (*uint16)(nil)),
 	Any("uint16_slice", []uint16{uint16(1), uint16(2), uint16(3)}),
 	Any("uint32", uint32(1)),
-	Any("uint32_ptr", ptr(uint32(1))),
+	Any("uint32_ptr", util.Ptr(uint32(1))),
 	Any("uint32_ptr_nil", (*uint32)(nil)),
 	Any("uint32_slice", []uint32{uint32(1), uint32(2), uint32(3)}),
 	Any("uint64", uint64(1)),
-	Any("uint64_ptr", ptr(uint64(1))),
+	Any("uint64_ptr", util.Ptr(uint64(1))),
 	Any("uint64_ptr_nil", (*uint64)(nil)),
 	Any("uint64_slice", []uint64{uint64(1), uint64(2), uint64(3)}),
 	Any("float32", float32(1)),
-	Any("float32_ptr", ptr(float32(1))),
+	Any("float32_ptr", util.Ptr(float32(1))),
 	Any("float32_ptr_nil", (*float32)(nil)),
 	Any("float32_slice", []float32{float32(1), float32(2), float32(3)}),
 	Any("float64", float64(1)),
-	Any("float64_ptr", ptr(float64(1))),
+	Any("float64_ptr", util.Ptr(float64(1))),
 	Any("float64_ptr_nil", (*float64)(nil)),
 	Any("float64_slice", []float64{float64(1), float64(2), float64(3)}),
 	Any("string", "\x80\xC2\xED\xA0\x08"),
-	Any("string_ptr", ptr("a")),
+	Any("string_ptr", util.Ptr("a")),
 	Any("string_ptr_nil", (*string)(nil)),
 	Any("string_slice", []string{"a", "b", "c"}),
 	Object("object", Any("int64", int64(1)), Any("uint64", uint64(1)), Any("string", "a")),
-	Any("struct", struct{ Int64 int64 }{10}),
+	Reflect("struct", struct{ Int64 int64 }{10}),
 }
 
 func TestJSONEncoder(t *testing.T) {
@@ -229,9 +226,9 @@ func TestJSONEncoder(t *testing.T) {
 	        "uint64": 1,
 	        "string": "a"
 	    },
-		"struct": {
-			"Int64": 10
-		}
+	    "struct": {
+	        "Int64": 10
+	    }
 	}`)
 	})
 }

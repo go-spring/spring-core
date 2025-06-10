@@ -58,7 +58,7 @@ func (arr strings) EncodeArray(enc encoder.Encoder) {
 
 func BenchmarkFieldValue(b *testing.B) {
 
-	// bools-8         	            10706354	123.8 ns/op	  152 B/op	  4 allocs/op
+	// bools-8                      10706354	123.8 ns/op	  152 B/op	  4 allocs/op
 	// bools_as_ArrayValue-8        11192071	107.9 ns/op	  152 B/op	  4 allocs/op
 	// int64s-8                      9132631	131.0 ns/op	  152 B/op	  4 allocs/op
 	// int64s_as_ArrayValue-8        9038806	131.8 ns/op	  152 B/op	  4 allocs/op

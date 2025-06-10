@@ -39,6 +39,7 @@ type Event struct {
 	CtxFields []Field   // Additional fields derived from the context (e.g., request ID, user ID)
 }
 
+// Reset clears the Event's fields so the instance can be reused.
 func (e *Event) Reset() {
 	e.Level = NoneLevel
 	e.Time = time.Time{}
@@ -50,10 +51,13 @@ func (e *Event) Reset() {
 	e.CtxFields = nil
 }
 
+// GetEvent retrieves an *Event from the pool.
+// If the pool is empty, a new Event will be created by the New function.
 func GetEvent() *Event {
 	return eventPool.Get().(*Event)
 }
 
+// PutEvent resets the given Event and returns it to the pool for reuse.
 func PutEvent(e *Event) {
 	e.Reset()
 	eventPool.Put(e)

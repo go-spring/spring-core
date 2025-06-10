@@ -39,8 +39,8 @@ const (
 // Level is an enumeration used to identify the severity of a logging event.
 type Level int32
 
-func (level Level) String() string {
-	switch level {
+func (l Level) String() string {
+	switch l {
 	case NoneLevel:
 		return "NONE"
 	case TraceLevel:
@@ -64,8 +64,8 @@ func (level Level) String() string {
 
 // ParseLevel converts a string (case-insensitive) into a corresponding Level value.
 // Returns an error if the input string does not match any valid level.
-func ParseLevel(str string) (Level, error) {
-	switch strings.ToUpper(str) {
+func ParseLevel(s string) (Level, error) {
+	switch strings.ToUpper(s) {
 	case "NONE":
 		return NoneLevel, nil
 	case "TRACE":
@@ -83,6 +83,6 @@ func ParseLevel(str string) (Level, error) {
 	case "FATAL":
 		return FatalLevel, nil
 	default:
-		return -1, fmt.Errorf("invalid level %s", str)
+		return -1, fmt.Errorf("invalid level %s", s)
 	}
 }

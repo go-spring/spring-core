@@ -123,7 +123,7 @@ func (enc *JSONEncoder) AppendKey(key string) {
 	enc.appendSeparator()
 	enc.last = jsonTokenKey
 	enc.buf.WriteByte('"')
-	SafeWriteString(enc.buf, key)
+	WriteLogString(enc.buf, key)
 	enc.buf.WriteByte('"')
 	enc.buf.WriteByte(':')
 }
@@ -161,7 +161,7 @@ func (enc *JSONEncoder) AppendString(v string) {
 	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	enc.buf.WriteByte('"')
-	SafeWriteString(enc.buf, v)
+	WriteLogString(enc.buf, v)
 	enc.buf.WriteByte('"')
 }
 
@@ -172,7 +172,7 @@ func (enc *JSONEncoder) AppendReflect(v interface{}) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		enc.buf.WriteByte('"')
-		SafeWriteString(enc.buf, err.Error())
+		WriteLogString(enc.buf, err.Error())
 		enc.buf.WriteByte('"')
 		return
 	}
@@ -186,7 +186,7 @@ type TextEncoder struct {
 	separator   string        // Separator used between top-level key-value pairs
 	jsonEncoder *JSONEncoder  // Embedded JSON encoder for nested objects/arrays
 	jsonDepth   int8          // Tracks depth of nested JSON structures
-	firstField  bool          // Tracks if the first key-value has been written
+	wroteField  bool          // Tracks if the first key-value has been written
 }
 
 // NewTextEncoder creates a new TextEncoder, using the specified separator.
@@ -246,12 +246,12 @@ func (enc *TextEncoder) AppendKey(key string) {
 		enc.jsonEncoder.AppendKey(key)
 		return
 	}
-	if enc.firstField {
+	if enc.wroteField {
 		enc.buf.WriteString(enc.separator)
 	} else {
-		enc.firstField = true
+		enc.wroteField = true
 	}
-	SafeWriteString(enc.buf, key)
+	WriteLogString(enc.buf, key)
 	enc.buf.WriteByte('=')
 }
 
@@ -297,7 +297,7 @@ func (enc *TextEncoder) AppendString(v string) {
 		enc.jsonEncoder.AppendString(v)
 		return
 	}
-	SafeWriteString(enc.buf, v)
+	WriteLogString(enc.buf, v)
 }
 
 // AppendReflect uses reflection to marshal any value as JSON.
@@ -309,7 +309,7 @@ func (enc *TextEncoder) AppendReflect(v interface{}) {
 	}
 	b, err := json.Marshal(v)
 	if err != nil {
-		SafeWriteString(enc.buf, err.Error())
+		WriteLogString(enc.buf, err.Error())
 		return
 	}
 	enc.buf.Write(b)
@@ -317,8 +317,8 @@ func (enc *TextEncoder) AppendReflect(v interface{}) {
 
 /************************************* string ********************************/
 
-// SafeWriteString escapes and writes a string according to JSON rules.
-func SafeWriteString(buf *bytes.Buffer, s string) {
+// WriteLogString escapes and writes a string according to JSON rules.
+func WriteLogString(buf *bytes.Buffer, s string) {
 	for i := 0; i < len(s); {
 		// Try to add a single-byte (ASCII) character directly
 		if tryAddRuneSelf(buf, s[i]) {

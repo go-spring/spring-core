@@ -65,11 +65,6 @@ func NewJSONEncoder(buf *bytes.Buffer) *JSONEncoder {
 	}
 }
 
-// Reset resets the encoder's state.
-func (enc *JSONEncoder) Reset() {
-	enc.last = jsonTokenUnknown
-}
-
 // AppendEncoderBegin writes the start of an encoder section.
 func (enc *JSONEncoder) AppendEncoderBegin() {
 	enc.AppendObjectBegin()

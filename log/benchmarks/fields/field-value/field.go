@@ -40,11 +40,11 @@ const (
 
 // Field represents a structured log field with a key and it's value.
 type Field struct {
-	Key  string    // field key
-	Type ValueType // value type
-	Num  uint64    // numeric value
-	Str  string    // string value
-	Any  any       // other value
+	Key  string
+	Type ValueType
+	Num  uint64
+	Str  string
+	Any  any
 }
 
 // Nil creates a Field with a nil value.

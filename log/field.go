@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"math"
 	"unsafe"
+
+	"github.com/go-spring/spring-core/util"
 )
 
 const MsgKey = "msg"
@@ -86,7 +88,7 @@ func BoolPtr(key string, val *bool) Field {
 }
 
 // Int creates a Field for an int value.
-func Int(key string, val int) Field {
+func Int[T util.IntType](key string, val T) Field {
 	return Field{
 		Key:  key,
 		Type: ValueTypeInt64,
@@ -95,83 +97,15 @@ func Int(key string, val int) Field {
 }
 
 // IntPtr creates a Field from a *int, or returns Nil if pointer is nil.
-func IntPtr(key string, val *int) Field {
+func IntPtr[T util.IntType](key string, val *T) Field {
 	if val == nil {
 		return Nil(key)
 	}
 	return Int(key, *val)
 }
 
-// Int8 creates a Field for an int8 value.
-func Int8(key string, val int8) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeInt64,
-		Num:  uint64(val),
-	}
-}
-
-// Int8Ptr creates a Field from a *int8, or returns Nil if pointer is nil.
-func Int8Ptr(key string, val *int8) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Int8(key, *val)
-}
-
-// Int16 creates a Field for an int16 value.
-func Int16(key string, val int16) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeInt64,
-		Num:  uint64(val),
-	}
-}
-
-// Int16Ptr creates a Field from a *int16, or returns Nil if pointer is nil.
-func Int16Ptr(key string, val *int16) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Int16(key, *val)
-}
-
-// Int32 creates a Field for an int32 value.
-func Int32(key string, val int32) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeInt64,
-		Num:  uint64(val),
-	}
-}
-
-// Int32Ptr creates a Field from a *int32, or returns Nil if pointer is nil.
-func Int32Ptr(key string, val *int32) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Int32(key, *val)
-}
-
-// Int64 creates a Field for an int64 value.
-func Int64(key string, val int64) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeInt64,
-		Num:  uint64(val),
-	}
-}
-
-// Int64Ptr creates a Field from a *int64, or returns Nil if pointer is nil.
-func Int64Ptr(key string, val *int64) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Int64(key, *val)
-}
-
 // Uint creates a Field for an uint value.
-func Uint(key string, val uint) Field {
+func Uint[T util.UintType](key string, val T) Field {
 	return Field{
 		Key:  key,
 		Type: ValueTypeUint64,
@@ -180,83 +114,15 @@ func Uint(key string, val uint) Field {
 }
 
 // UintPtr creates a Field from a *uint, or returns Nil if pointer is nil.
-func UintPtr(key string, val *uint) Field {
+func UintPtr[T util.UintType](key string, val *T) Field {
 	if val == nil {
 		return Nil(key)
 	}
 	return Uint(key, *val)
 }
 
-// Uint8 creates a Field for an uint8 value.
-func Uint8(key string, val uint8) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeUint64,
-		Num:  uint64(val),
-	}
-}
-
-// Uint8Ptr creates a Field from a *uint8, or returns Nil if pointer is nil.
-func Uint8Ptr(key string, val *uint8) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Uint8(key, *val)
-}
-
-// Uint16 creates a Field for an uint16 value.
-func Uint16(key string, val uint16) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeUint64,
-		Num:  uint64(val),
-	}
-}
-
-// Uint16Ptr creates a Field from a *uint16, or returns Nil if pointer is nil.
-func Uint16Ptr(key string, val *uint16) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Uint16(key, *val)
-}
-
-// Uint32 creates a Field for an uint32 value.
-func Uint32(key string, val uint32) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeUint64,
-		Num:  uint64(val),
-	}
-}
-
-// Uint32Ptr creates a Field from a *uint32, or returns Nil if pointer is nil.
-func Uint32Ptr(key string, val *uint32) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Uint32(key, *val)
-}
-
-// Uint64 creates a Field for an uint64 value.
-func Uint64(key string, val uint64) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeUint64,
-		Num:  val,
-	}
-}
-
-// Uint64Ptr creates a Field from a *uint64, or returns Nil if pointer is nil.
-func Uint64Ptr(key string, val *uint64) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Uint64(key, *val)
-}
-
-// Float32 creates a Field for a float32 value.
-func Float32(key string, val float32) Field {
+// Float creates a Field for a float32 value.
+func Float[T util.FloatType](key string, val T) Field {
 	return Field{
 		Key:  key,
 		Type: ValueTypeFloat64,
@@ -264,29 +130,12 @@ func Float32(key string, val float32) Field {
 	}
 }
 
-// Float32Ptr creates a Field from a *float32, or returns Nil if pointer is nil.
-func Float32Ptr(key string, val *float32) Field {
+// FloatPtr creates a Field from a *float32, or returns Nil if pointer is nil.
+func FloatPtr[T util.FloatType](key string, val *T) Field {
 	if val == nil {
 		return Nil(key)
 	}
-	return Float32(key, *val)
-}
-
-// Float64 creates a Field for a float64 value.
-func Float64(key string, val float64) Field {
-	return Field{
-		Key:  key,
-		Type: ValueTypeFloat64,
-		Num:  math.Float64bits(val),
-	}
-}
-
-// Float64Ptr creates a Field from a *float64, or returns Nil if pointer is nil.
-func Float64Ptr(key string, val *float64) Field {
-	if val == nil {
-		return Nil(key)
-	}
-	return Float64(key, *val)
+	return Float(key, *val)
 }
 
 // String creates a Field for a string value.
@@ -330,172 +179,46 @@ func Bools(key string, val []bool) Field {
 	return Array(key, bools(val))
 }
 
-type ints []int
+type sliceOfInt[T util.IntType] []T
 
 // EncodeArray encodes a slice of ints using the Encoder interface.
-func (arr ints) EncodeArray(enc Encoder) {
+func (arr sliceOfInt[T]) EncodeArray(enc Encoder) {
 	for _, v := range arr {
 		enc.AppendInt64(int64(v))
 	}
 }
 
 // Ints creates a Field with a slice of integers.
-func Ints(key string, val []int) Field {
-	return Array(key, ints(val))
+func Ints[T util.IntType](key string, val []T) Field {
+	return Array(key, sliceOfInt[T](val))
 }
 
-type int8s []int8
-
-// EncodeArray encodes a slice of int8s using the Encoder interface.
-func (arr int8s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendInt64(int64(v))
-	}
-}
-
-// Int8s creates a Field with a slice of int8 values.
-func Int8s(key string, val []int8) Field {
-	return Array(key, int8s(val))
-}
-
-type int16s []int16
-
-// EncodeArray encodes a slice of int16s using the Encoder interface.
-func (arr int16s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendInt64(int64(v))
-	}
-}
-
-// Int16s creates a Field with a slice of int16 values.
-func Int16s(key string, val []int16) Field {
-	return Array(key, int16s(val))
-}
-
-type int32s []int32
-
-// EncodeArray encodes a slice of int32s using the Encoder interface.
-func (arr int32s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendInt64(int64(v))
-	}
-}
-
-// Int32s creates a Field with a slice of int32 values.
-func Int32s(key string, val []int32) Field {
-	return Array(key, int32s(val))
-}
-
-type int64s []int64
-
-// EncodeArray encodes a slice of int64s using the Encoder interface.
-func (arr int64s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendInt64(v)
-	}
-}
-
-// Int64s creates a Field with a slice of int64 values.
-func Int64s(key string, val []int64) Field {
-	return Array(key, int64s(val))
-}
-
-type uints []uint
+type sliceOfUint[T util.UintType] []T
 
 // EncodeArray encodes a slice of uints using the Encoder interface.
-func (arr uints) EncodeArray(enc Encoder) {
+func (arr sliceOfUint[T]) EncodeArray(enc Encoder) {
 	for _, v := range arr {
 		enc.AppendUint64(uint64(v))
 	}
 }
 
 // Uints creates a Field with a slice of unsigned integers.
-func Uints(key string, val []uint) Field {
-	return Array(key, uints(val))
+func Uints[T util.UintType](key string, val []T) Field {
+	return Array(key, sliceOfUint[T](val))
 }
 
-type uint8s []uint8
-
-// EncodeArray encodes a slice of uint8s using the Encoder interface.
-func (arr uint8s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendUint64(uint64(v))
-	}
-}
-
-// Uint8s creates a Field with a slice of uint8 values.
-func Uint8s(key string, val []uint8) Field {
-	return Array(key, uint8s(val))
-}
-
-type uint16s []uint16
-
-// EncodeArray encodes a slice of uint16s using the Encoder interface.
-func (arr uint16s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendUint64(uint64(v))
-	}
-}
-
-// Uint16s creates a Field with a slice of uint16 values.
-func Uint16s(key string, val []uint16) Field {
-	return Array(key, uint16s(val))
-}
-
-type uint32s []uint32
-
-// EncodeArray encodes a slice of uint32s using the Encoder interface.
-func (arr uint32s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendUint64(uint64(v))
-	}
-}
-
-// Uint32s creates a Field with a slice of uint32 values.
-func Uint32s(key string, val []uint32) Field {
-	return Array(key, uint32s(val))
-}
-
-type uint64s []uint64
-
-// EncodeArray encodes a slice of uint64s using the Encoder interface.
-func (arr uint64s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendUint64(v)
-	}
-}
-
-// Uint64s creates a Field with a slice of uint64 values.
-func Uint64s(key string, val []uint64) Field {
-	return Array(key, uint64s(val))
-}
-
-type float32s []float32
+type sliceOfFloat[T util.FloatType] []T
 
 // EncodeArray encodes a slice of float32s using the Encoder interface.
-func (arr float32s) EncodeArray(enc Encoder) {
+func (arr sliceOfFloat[T]) EncodeArray(enc Encoder) {
 	for _, v := range arr {
 		enc.AppendFloat64(float64(v))
 	}
 }
 
-// Float32s creates a Field with a slice of float32 values.
-func Float32s(key string, val []float32) Field {
-	return Array(key, float32s(val))
-}
-
-type float64s []float64
-
-// EncodeArray encodes a slice of float64s using the Encoder interface.
-func (arr float64s) EncodeArray(enc Encoder) {
-	for _, v := range arr {
-		enc.AppendFloat64(v)
-	}
-}
-
-// Float64s creates a Field with a slice of float64 values.
-func Float64s(key string, val []float64) Field {
-	return Array(key, float64s(val))
+// Floats creates a Field with a slice of float32 values.
+func Floats[T util.FloatType](key string, val []T) Field {
+	return Array(key, sliceOfFloat[T](val))
 }
 
 type sliceOfString []string
@@ -558,32 +281,32 @@ func Any(key string, value interface{}) Field {
 		return Ints(key, val)
 
 	case int8:
-		return Int8(key, val)
+		return Int(key, val)
 	case *int8:
-		return Int8Ptr(key, val)
+		return IntPtr(key, val)
 	case []int8:
-		return Int8s(key, val)
+		return Ints(key, val)
 
 	case int16:
-		return Int16(key, val)
+		return Int(key, val)
 	case *int16:
-		return Int16Ptr(key, val)
+		return IntPtr(key, val)
 	case []int16:
-		return Int16s(key, val)
+		return Ints(key, val)
 
 	case int32:
-		return Int32(key, val)
+		return Int(key, val)
 	case *int32:
-		return Int32Ptr(key, val)
+		return IntPtr(key, val)
 	case []int32:
-		return Int32s(key, val)
+		return Ints(key, val)
 
 	case int64:
-		return Int64(key, val)
+		return Int(key, val)
 	case *int64:
-		return Int64Ptr(key, val)
+		return IntPtr(key, val)
 	case []int64:
-		return Int64s(key, val)
+		return Ints(key, val)
 
 	case uint:
 		return Uint(key, val)
@@ -593,46 +316,46 @@ func Any(key string, value interface{}) Field {
 		return Uints(key, val)
 
 	case uint8:
-		return Uint8(key, val)
+		return Uint(key, val)
 	case *uint8:
-		return Uint8Ptr(key, val)
+		return UintPtr(key, val)
 	case []uint8:
-		return Uint8s(key, val)
+		return Uints(key, val)
 
 	case uint16:
-		return Uint16(key, val)
+		return Uint(key, val)
 	case *uint16:
-		return Uint16Ptr(key, val)
+		return UintPtr(key, val)
 	case []uint16:
-		return Uint16s(key, val)
+		return Uints(key, val)
 
 	case uint32:
-		return Uint32(key, val)
+		return Uint(key, val)
 	case *uint32:
-		return Uint32Ptr(key, val)
+		return UintPtr(key, val)
 	case []uint32:
-		return Uint32s(key, val)
+		return Uints(key, val)
 
 	case uint64:
-		return Uint64(key, val)
+		return Uint(key, val)
 	case *uint64:
-		return Uint64Ptr(key, val)
+		return UintPtr(key, val)
 	case []uint64:
-		return Uint64s(key, val)
+		return Uints(key, val)
 
 	case float32:
-		return Float32(key, val)
+		return Float(key, val)
 	case *float32:
-		return Float32Ptr(key, val)
+		return FloatPtr(key, val)
 	case []float32:
-		return Float32s(key, val)
+		return Floats(key, val)
 
 	case float64:
-		return Float64(key, val)
+		return Float(key, val)
 	case *float64:
-		return Float64Ptr(key, val)
+		return FloatPtr(key, val)
 	case []float64:
-		return Float64s(key, val)
+		return Floats(key, val)
 
 	case string:
 		return String(key, val)

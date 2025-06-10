@@ -21,7 +21,7 @@ import (
 )
 
 // OnDropEvent is a callback function that is called when an event is dropped.
-var OnDropEvent func(*Event)
+var OnDropEvent func(logger string, e *Event)
 
 func init() {
 	RegisterPlugin[AppenderRef]("AppenderRef", PluginTypeAppenderRef)
@@ -127,7 +127,7 @@ func (c *AsyncLoggerConfig) Publish(e *Event) {
 		// Drop the event if the buffer is full
 		PutEvent(e)
 		if OnDropEvent != nil {
-			OnDropEvent(e)
+			OnDropEvent(c.Name, e)
 		}
 	}
 }
