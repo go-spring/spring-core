@@ -54,7 +54,7 @@ func (node *Node) getChildren(label string) []*Node {
 
 // DumpNode prints the structure of a Node to a buffer.
 func DumpNode(node *Node, indent int, buf *bytes.Buffer) {
-	for i := 0; i < indent; i++ {
+	for range indent {
 		buf.WriteString("\t")
 	}
 	buf.WriteString(node.Label)

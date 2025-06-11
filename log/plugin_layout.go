@@ -148,19 +148,19 @@ func (c *JSONLayout) ToBytes(e *Event) []byte {
 	buf := c.GetBuffer()
 	defer c.PutBuffer(buf)
 
-	fields := make([]Field, 0, 5)
-	fields = append(fields, String("level", strings.ToLower(e.Level.String())))
-	fields = append(fields, String("time", e.Time.Format("2006-01-02T15:04:05.000")))
-	fields = append(fields, String("fileLine", c.GetFileLine(e)))
-	fields = append(fields, String("tag", e.Tag))
+	headers := make([]Field, 0, 5)
+	headers = append(headers, String("level", strings.ToLower(e.Level.String())))
+	headers = append(headers, String("time", e.Time.Format("2006-01-02T15:04:05.000")))
+	headers = append(headers, String("fileLine", c.GetFileLine(e)))
+	headers = append(headers, String("tag", e.Tag))
 
 	if e.CtxString != "" {
-		fields = append(fields, String("ctxString", e.CtxString))
+		headers = append(headers, String("ctxString", e.CtxString))
 	}
 
 	enc := NewJSONEncoder(buf)
 	enc.AppendEncoderBegin()
-	WriteFields(enc, fields)
+	WriteFields(enc, headers)
 	WriteFields(enc, e.CtxFields)
 	WriteFields(enc, e.Fields)
 	enc.AppendEncoderEnd()

@@ -38,7 +38,7 @@ func TestCaller(t *testing.T) {
 	})
 
 	t.Run("fast true", func(t *testing.T) {
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			file, line := internal.Caller(0, true)
 			assert.ThatString(t, file).Matches(".*/caller_test.go")
 			assert.That(t, line).Equal(42)
@@ -52,13 +52,13 @@ func BenchmarkCaller(b *testing.B) {
 	// BenchmarkCaller/slow-8   6314623  190.3 ns/op
 
 	b.Run("fast", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			internal.Caller(0, true)
 		}
 	})
 
 	b.Run("slow", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			internal.Caller(0, false)
 		}
 	})

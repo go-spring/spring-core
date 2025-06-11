@@ -17,6 +17,7 @@
 package log
 
 import (
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -81,7 +82,7 @@ func isValidTag(tag string) bool {
 	if len(tag) < 3 || len(tag) > 36 {
 		return false
 	}
-	for i := 0; i < len(tag); i++ {
+	for i := range len(tag) {
 		c := tag[i]
 		if !(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '_' {
 			return false
@@ -91,12 +92,7 @@ func isValidTag(tag string) bool {
 	if len(ss) < 1 || len(ss) > 4 {
 		return false
 	}
-	for _, s := range ss {
-		if s == "" {
-			return false
-		}
-	}
-	return true
+	return !slices.Contains(ss, "")
 }
 
 // GetTag creates or retrieves a Tag by name.

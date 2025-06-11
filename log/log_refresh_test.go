@@ -31,6 +31,11 @@ func (r funcReader) Read(p []byte) (n int, err error) {
 }
 
 func TestRefresh(t *testing.T) {
+	t.Cleanup(func() {
+		for _, tag := range tagMap {
+			tag.SetLogger(initLogger)
+		}
+	})
 
 	t.Run("file not exist", func(t *testing.T) {
 		defer func() { initOnce.Store(false) }()
@@ -316,7 +321,7 @@ func TestRefresh(t *testing.T) {
 				</Loggers>
 			</Configuration>
 		`), ".xml")
-		assert.ThatError(t, err).Matches("RefreshReader: logger must have attribute 'tags' except root logger")
+		assert.ThatError(t, err).Matches("RefreshReader: logger must have attribute 'tags'")
 	})
 
 	t.Run("Root error - 1", func(t *testing.T) {

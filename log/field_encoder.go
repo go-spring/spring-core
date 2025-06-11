@@ -37,7 +37,7 @@ type Encoder interface {
 	AppendUint64(v uint64)
 	AppendFloat64(v float64)
 	AppendString(v string)
-	AppendReflect(v interface{})
+	AppendReflect(v any)
 }
 
 var (
@@ -166,7 +166,7 @@ func (enc *JSONEncoder) AppendString(v string) {
 }
 
 // AppendReflect marshals any Go value into JSON and appends it.
-func (enc *JSONEncoder) AppendReflect(v interface{}) {
+func (enc *JSONEncoder) AppendReflect(v any) {
 	enc.appendSeparator()
 	enc.last = jsonTokenValue
 	b, err := json.Marshal(v)
@@ -302,7 +302,7 @@ func (enc *TextEncoder) AppendString(v string) {
 
 // AppendReflect uses reflection to marshal any value as JSON.
 // If nested, delegates to JSON encoder.
-func (enc *TextEncoder) AppendReflect(v interface{}) {
+func (enc *TextEncoder) AppendReflect(v any) {
 	if enc.jsonDepth > 0 {
 		enc.jsonEncoder.AppendReflect(v)
 		return

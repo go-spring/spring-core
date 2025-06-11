@@ -125,10 +125,11 @@ func (c *AsyncLoggerConfig) Publish(e *Event) {
 	case c.buf <- e:
 	default:
 		// Drop the event if the buffer is full
-		PutEvent(e)
 		if OnDropEvent != nil {
 			OnDropEvent(c.Name, e)
 		}
+		// Return the event to the pool
+		PutEvent(e)
 	}
 }
 

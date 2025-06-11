@@ -157,7 +157,7 @@ func StringPtr(key string, val *string) Field {
 }
 
 // Reflect wraps any value into a Field using reflection.
-func Reflect(key string, val interface{}) Field {
+func Reflect(key string, val any) Field {
 	return Field{
 		Key:  key,
 		Type: ValueTypeReflect,
@@ -261,7 +261,7 @@ func Object(key string, fields ...Field) Field {
 // Any creates a Field from a value of any type by inspecting its dynamic type.
 // It dispatches to the appropriate typed constructor based on the actual value.
 // If the type is not explicitly handled, it falls back to using Reflect.
-func Any(key string, value interface{}) Field {
+func Any(key string, value any) Field {
 	switch val := value.(type) {
 	case nil:
 		return Nil(key)

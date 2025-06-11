@@ -162,6 +162,7 @@ func RefreshReader(input io.Reader, ext string) error {
 			base = &config.baseLoggerConfig
 		case *AsyncLoggerConfig:
 			base = &config.baseLoggerConfig
+		default: // for linter
 		}
 
 		for _, r := range base.AppenderRefs {
@@ -178,14 +179,14 @@ func RefreshReader(input io.Reader, ext string) error {
 			}
 		} else {
 			var ss []string
-			for _, s := range strings.Split(base.Tags, ",") {
+			for s := range strings.SplitSeq(base.Tags, ",") {
 				if s = strings.TrimSpace(s); s == "" {
 					continue
 				}
 				ss = append(ss, s)
 			}
 			if len(ss) == 0 {
-				return fmt.Errorf("RefreshReader: logger must have attribute 'tags' except root logger")
+				return fmt.Errorf("RefreshReader: logger must have attribute 'tags'")
 			}
 			for _, s := range ss {
 				cTags[s] = logger
@@ -210,6 +211,9 @@ func RefreshReader(input io.Reader, ext string) error {
 		tagArray = append(tagArray, r)
 		logArray = append(logArray, cTags[s])
 	}
+
+	// todo(lvan100): currently, there is only one refresh operation,
+	// so exception handling is temporarily ignored.
 
 	for _, a := range cAppenders {
 		if err := a.Start(); err != nil {

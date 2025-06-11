@@ -97,7 +97,7 @@ func NewPlugin(t reflect.Type, node *Node, properties map[string]string) (reflec
 
 // inject Recursively injects values into struct fields based on tags.
 func inject(v reflect.Value, t reflect.Type, node *Node, properties map[string]string) error {
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		ft := t.Field(i)
 		fv := v.Field(i)
 		if tag, ok := ft.Tag.Lookup("PluginAttribute"); ok {
@@ -266,7 +266,7 @@ func injectElement(tag string, fv reflect.Value, ft reflect.StructField, node *N
 	switch fv.Kind() {
 	case reflect.Slice:
 		slice := reflect.MakeSlice(ft.Type, 0, len(children))
-		for j := 0; j < len(children); j++ {
+		for j := range len(children) {
 			slice = reflect.Append(slice, children[j])
 		}
 		fv.Set(slice)

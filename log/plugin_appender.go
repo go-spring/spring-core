@@ -78,6 +78,7 @@ type FileAppender struct {
 	file *os.File
 }
 
+// Start opens the file.
 func (c *FileAppender) Start() error {
 	f, err := os.OpenFile(c.FileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
 	if err != nil {

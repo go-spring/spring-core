@@ -62,7 +62,7 @@ func TestLoggerConfig(t *testing.T) {
 		assert.True(t, l.EnableLevel(PanicLevel))
 		assert.True(t, l.EnableLevel(FatalLevel))
 
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			l.Publish(&Event{})
 		}
 
@@ -133,7 +133,7 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		err = l.Start()
 		assert.Nil(t, err)
 
-		for i := 0; i < 5000; i++ {
+		for range 5000 {
 			l.Publish(GetEvent())
 		}
 
@@ -167,7 +167,7 @@ func TestAsyncLoggerConfig(t *testing.T) {
 		err = l.Start()
 		assert.Nil(t, err)
 
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			l.Publish(GetEvent())
 		}
 
