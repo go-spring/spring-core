@@ -38,10 +38,9 @@ func TestConsoleAppender(t *testing.T) {
 		file, err := os.CreateTemp(os.TempDir(), "")
 		assert.Nil(t, err)
 
-		oldStdout := os.Stdout
-		os.Stdout = file
+		Stdout = file
 		defer func() {
-			os.Stdout = oldStdout
+			Stdout = os.Stdout
 		}()
 
 		a := &ConsoleAppender{

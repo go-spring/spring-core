@@ -30,7 +30,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	"github.com/go-spring/spring-core/util/syslog"
+	"github.com/go-spring/spring-core/log"
 )
 
 const (
@@ -172,6 +172,13 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 
 /*********************************** app *************************************/
 
+// Property sets a system property.
+func Property(key string, val string) {
+	if err := gs_conf.SysConf.Set(key, val); err != nil {
+		log.Errorf(context.Background(), log.TagGS, "failed to set property key=%s, err=%v", key, err)
+	}
+}
+
 type (
 	Runner      = gs.Runner
 	Job         = gs.Job
@@ -223,7 +230,7 @@ func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 	var err error
 	defer func() {
 		if err != nil {
-			syslog.Errorf("app run failed: %s", err.Error())
+			log.Errorf(context.Background(), log.TagGS, "app run failed: %v", err)
 		}
 	}()
 	printBanner()

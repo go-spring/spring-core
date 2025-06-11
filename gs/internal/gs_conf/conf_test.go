@@ -22,14 +22,13 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/util/sysconf"
 	"github.com/lvan100/go-assert"
 )
 
 func clean() {
 	os.Args = nil
 	os.Clearenv()
-	sysconf.Clear()
+	SysConf = conf.New()
 }
 
 func TestAppConfig(t *testing.T) {
@@ -74,7 +73,7 @@ func TestAppConfig(t *testing.T) {
 	t.Run("merge error - 2", func(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
-		sysconf.Set("http.server[0].addr", "0.0.0.0:8080")
+		_ = SysConf.Set("http.server[0].addr", "0.0.0.0:8080")
 		_, err := NewAppConfig().Refresh()
 		assert.ThatError(t, err).Matches("property conflict at path http.server.addr")
 	})
@@ -113,7 +112,7 @@ func TestBootConfig(t *testing.T) {
 	t.Run("merge error - 2", func(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
-		sysconf.Set("http.server[0].addr", "0.0.0.0:8080")
+		_ = SysConf.Set("http.server[0].addr", "0.0.0.0:8080")
 		_, err := NewBootConfig().Refresh()
 		assert.ThatError(t, err).Matches("property conflict at path http.server.addr")
 	})

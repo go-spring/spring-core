@@ -29,7 +29,7 @@ func TestRegisterPlugin(t *testing.T) {
 	}, "T must be struct")
 	assert.Panic(t, func() {
 		RegisterPlugin[FileAppender]("File", PluginTypeAppender)
-	}, "duplicate plugin Appender in .*/plugin_appender.go:26 and .*/plugin_test.go:31")
+	}, "duplicate plugin Appender in .*/plugin_appender.go:30 and .*/plugin_test.go:31")
 }
 
 func TestInjectAttribute(t *testing.T) {

@@ -17,8 +17,12 @@
 package log
 
 import (
+	"io"
 	"os"
 )
+
+// Stdout is the standard output stream used by appenders.
+var Stdout io.Writer = os.Stdout
 
 func init() {
 	RegisterPlugin[DiscardAppender]("Discard", PluginTypeAppender)
@@ -63,7 +67,7 @@ type ConsoleAppender struct {
 // Append formats the event and writes it to standard output.
 func (c *ConsoleAppender) Append(e *Event) {
 	data := c.Layout.ToBytes(e)
-	_, _ = os.Stdout.Write(data)
+	_, _ = Stdout.Write(data)
 }
 
 // FileAppender writes formatted log events to a specified file.

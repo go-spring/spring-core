@@ -19,6 +19,8 @@ package log
 import (
 	"strings"
 	"sync/atomic"
+
+	"github.com/go-spring/spring-core/util"
 )
 
 var tagMap = map[string]*Tag{}
@@ -70,13 +72,13 @@ func (m *Tag) SetLogger(logger *Logger) {
 }
 
 // isValidTag checks whether the tag is valid according to the following rules:
-// 1. The length must be between 4 and 36 characters.
+// 1. The length must be between 3 and 36 characters.
 // 2. Only lowercase letters (a-z), digits (0-9), and underscores (_) are allowed.
 // 3. The tag can start with an underscore.
 // 4. Underscores separate the tag into 1 to 4 non-empty segments.
 // 5. No empty segments are allowed (i.e., no consecutive or trailing underscores).
 func isValidTag(tag string) bool {
-	if len(tag) < 4 || len(tag) > 36 {
+	if len(tag) < 3 || len(tag) > 36 {
 		return false
 	}
 	for i := 0; i < len(tag); i++ {
@@ -110,4 +112,9 @@ func GetTag(tag string) *Tag {
 		tagMap[tag] = m
 	}
 	return m
+}
+
+// GetAllTags returns all registered tags.
+func GetAllTags() []string {
+	return util.OrderedMapKeys(tagMap)
 }

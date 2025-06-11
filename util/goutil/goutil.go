@@ -29,15 +29,14 @@ package goutil
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime/debug"
 	"sync"
-
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
 // OnPanic is a global callback function triggered when a panic occurs.
 var OnPanic = func(ctx context.Context, r any) {
-	syslog.Errorf("panic: %v\n%s", r, debug.Stack())
+	fmt.Printf("panic: %v\n%s\n", r, debug.Stack())
 }
 
 /********************************** go ***************************************/

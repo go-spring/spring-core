@@ -19,6 +19,8 @@ package log
 import (
 	"strings"
 	"testing"
+
+	"github.com/lvan100/go-assert"
 )
 
 func TestIsValidTag(t *testing.T) {
@@ -29,7 +31,7 @@ func TestIsValidTag(t *testing.T) {
 	}{
 		{"valid_1segments", "_def", true},
 		{"valid_4segments", "service_module_submodule_component00", true},
-		{"too_short_3", "abc", false},
+		{"too_short_2", "ab", false},
 		{"too_long_37", strings.Repeat("a", 37), false},
 		{"uppercase", "Invalid_Tag", false},
 		{"special_char", "tag!name", false},
@@ -49,4 +51,15 @@ func TestIsValidTag(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetAllTags(t *testing.T) {
+	tags := GetAllTags()
+	assert.That(t, tags).Equal([]string{
+		"_biz",
+		"_com_request_in",
+		"_com_request_out",
+		"_def",
+		"_gs",
+	})
 }

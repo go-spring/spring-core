@@ -24,6 +24,12 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
+var (
+	TagGS  = GetTag("_gs")
+	TagDef = GetTag("_def")
+	TagBiz = GetTag("_biz")
+)
+
 // TimeNow is a function that can be overridden to provide custom timestamp behavior (e.g., for testing).
 var TimeNow func(ctx context.Context) time.Time
 
