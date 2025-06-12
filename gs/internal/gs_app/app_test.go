@@ -26,10 +26,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
-	"github.com/go-spring/spring-core/log"
 	"github.com/go-spring/spring-core/util/goutil"
 	"github.com/lvan100/go-assert"
 	"go.uber.org/mock/gomock"
@@ -39,7 +39,7 @@ var logBuf = &bytes.Buffer{}
 
 func init() {
 	goutil.OnPanic = func(ctx context.Context, r any) {
-		log.Panicf(ctx, log.TagGS, "panic: %v\n%s\n", r, debug.Stack())
+		log.Panicf(ctx, log.TagDef, "panic: %v\n%s\n", r, debug.Stack())
 	}
 }
 

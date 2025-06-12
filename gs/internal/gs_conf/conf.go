@@ -80,6 +80,21 @@ func (c *NamedPropertyCopier) CopyTo(out *conf.MutableProperties) error {
 	return nil
 }
 
+/******************************** SysConfig **********************************/
+
+type SysConfig struct {
+	Environment *Environment // Environment variables as configuration source.
+	CommandArgs *CommandArgs // Command line arguments as configuration source.
+}
+
+func (c *SysConfig) Refresh() (conf.Properties, error) {
+	return merge(
+		NewNamedPropertyCopier("sys", SysConf),
+		NewNamedPropertyCopier("env", c.Environment),
+		NewNamedPropertyCopier("cmd", c.CommandArgs),
+	)
+}
+
 /******************************** AppConfig **********************************/
 
 // AppConfig represents a layered application configuration.
@@ -115,11 +130,7 @@ func merge(sources ...PropertyCopier) (conf.Properties, error) {
 
 // Refresh merges all layers of configurations into a read-only properties.
 func (c *AppConfig) Refresh() (conf.Properties, error) {
-	p, err := merge(
-		NewNamedPropertyCopier("sys", SysConf),
-		NewNamedPropertyCopier("env", c.Environment),
-		NewNamedPropertyCopier("cmd", c.CommandArgs),
-	)
+	p, err := new(SysConfig).Refresh()
 	if err != nil {
 		return nil, err
 	}
@@ -165,11 +176,7 @@ func NewBootConfig() *BootConfig {
 
 // Refresh merges all layers of configurations into a read-only properties.
 func (c *BootConfig) Refresh() (conf.Properties, error) {
-	p, err := merge(
-		NewNamedPropertyCopier("sys", SysConf),
-		NewNamedPropertyCopier("env", c.Environment),
-		NewNamedPropertyCopier("cmd", c.CommandArgs),
-	)
+	p, err := new(SysConfig).Refresh()
 	if err != nil {
 		return nil, err
 	}

@@ -28,13 +28,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
-	"github.com/go-spring/spring-core/log"
 	"github.com/go-spring/spring-core/util"
 	"github.com/spf13/cast"
 )
@@ -99,7 +99,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 	defer func() {
 		if err != nil || len(stack.beans) > 0 {
 			err = fmt.Errorf("%s ↩\n%s", err, stack.Path())
-			log.Errorf(context.Background(), log.TagGS, "%v", err)
+			log.Errorf(context.Background(), log.TagApp, "%v", err)
 		}
 	}()
 
@@ -272,7 +272,7 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 			}
 			if !slices.Contains(foundBeans, b) {
 				foundBeans = append(foundBeans, b)
-				log.Warnf(context.Background(), log.TagGS, "you should call Export() on %s", b)
+				log.Warnf(context.Background(), log.TagApp, "you should call Export() on %s", b)
 			}
 		}
 	}
@@ -566,7 +566,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 	out, err := b.Callable().Call(NewArgContext(c, stack))
 	if err != nil {
 		if c.forceAutowireIsNullable {
-			log.Warnf(context.Background(), log.TagGS, "autowire error: %v", err)
+			log.Warnf(context.Background(), log.TagApp, "autowire error: %v", err)
 			return reflect.Value{}, nil
 		}
 		return reflect.Value{}, err
@@ -576,7 +576,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 	if o := out[len(out)-1]; util.IsErrorType(o.Type()) {
 		if i := o.Interface(); i != nil {
 			if c.forceAutowireIsNullable {
-				log.Warnf(context.Background(), log.TagGS, "autowire error: %v", err)
+				log.Warnf(context.Background(), log.TagApp, "autowire error: %v", err)
 				return reflect.Value{}, nil
 			}
 			return reflect.Value{}, i.(error)
@@ -746,7 +746,7 @@ func NewStack() *Stack {
 
 // pushBean records that bean b is being wired, used for cycle detection.
 func (s *Stack) pushBean(b *gs_bean.BeanDefinition) {
-	log.Debugf(context.Background(), log.TagGS, "push %s %s", b, b.Status())
+	log.Debugf(context.Background(), log.TagApp, "push %s %s", b, b.Status())
 	s.beans = append(s.beans, b)
 }
 
@@ -756,7 +756,7 @@ func (s *Stack) popBean() {
 	b := s.beans[n-1]
 	s.beans[n-1] = nil
 	s.beans = s.beans[:n-1]
-	log.Debugf(context.Background(), log.TagGS, "pop %s %s", b, b.Status())
+	log.Debugf(context.Background(), log.TagApp, "pop %s %s", b, b.Status())
 }
 
 // Path builds a readable representation of the wiring stack path for errors.
@@ -810,7 +810,7 @@ func (s *Stack) getSortedDestroyers() []func() {
 			fnValue := reflect.ValueOf(fn)
 			out := fnValue.Call([]reflect.Value{v})
 			if len(out) > 0 && !out[0].IsNil() {
-				log.Errorf(context.Background(), log.TagGS, "%v", out[0].Interface())
+				log.Errorf(context.Background(), log.TagApp, "%v", out[0].Interface())
 			}
 		}
 	}

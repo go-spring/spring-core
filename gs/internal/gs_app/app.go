@@ -27,11 +27,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
-	"github.com/go-spring/spring-core/log"
 	"github.com/go-spring/spring-core/util/goutil"
 )
 
@@ -97,7 +97,7 @@ func (app *App) RunWith(fn func(ctx context.Context) error) error {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		sig := <-ch
-		log.Infof(context.Background(), log.TagGS, "Received signal: %v", sig)
+		log.Infof(context.Background(), log.TagApp, "Received signal: %v", sig)
 		app.ShutDown()
 	}()
 
@@ -145,7 +145,7 @@ func (app *App) Start() error {
 					}
 				}()
 				if err := job.Run(app.ctx); err != nil {
-					log.Errorf(context.Background(), log.TagGS, "job run error: %v", err)
+					log.Errorf(context.Background(), log.TagApp, "job run error: %v", err)
 					app.ShutDown()
 				}
 			})
@@ -169,7 +169,7 @@ func (app *App) Start() error {
 				}()
 				err := svr.ListenAndServe(sig)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.Errorf(context.Background(), log.TagGS, "server serve error: %v", err)
+					log.Errorf(context.Background(), log.TagApp, "server serve error: %v", err)
 					sig.Intercept()
 					app.ShutDown()
 				}
@@ -179,7 +179,7 @@ func (app *App) Start() error {
 		if sig.Intercepted() {
 			return nil
 		}
-		log.Infof(context.Background(), log.TagGS, "ready to serve requests")
+		log.Infof(context.Background(), log.TagApp, "ready to serve requests")
 		sig.Close()
 	}
 	return nil
@@ -196,7 +196,7 @@ func (app *App) Stop() {
 		for _, svr := range app.Servers {
 			goutil.GoFunc(func() {
 				if err := svr.Shutdown(ctx); err != nil {
-					log.Errorf(context.Background(), log.TagGS, "shutdown server failed: %v", err)
+					log.Errorf(context.Background(), log.TagApp, "shutdown server failed: %v", err)
 				}
 			})
 		}
@@ -207,9 +207,9 @@ func (app *App) Stop() {
 
 	select {
 	case <-waitChan:
-		log.Infof(context.Background(), log.TagGS, "shutdown complete")
+		log.Infof(context.Background(), log.TagApp, "shutdown complete")
 	case <-ctx.Done():
-		log.Infof(context.Background(), log.TagGS, "shutdown timeout")
+		log.Infof(context.Background(), log.TagApp, "shutdown timeout")
 	}
 }
 
