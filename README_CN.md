@@ -4,10 +4,13 @@
    <img src="https://img.shields.io/github/license/go-spring/spring-core" alt="license"/>
    <img src="https://img.shields.io/github/go-mod/go-version/go-spring/spring-core" alt="go-version"/>
    <img src="https://img.shields.io/github/v/release/go-spring/spring-core?include_prereleases" alt="release"/>
-   <img src="https://codecov.io/gh/go-spring/spring-core/branch/main/graph/badge.svg" alt="test-coverage"/>
+   <a href="https://codecov.io/gh/go-spring/spring-core" > 
+      <img src="https://codecov.io/gh/go-spring/spring-core/graph/badge.svg?token=SX7CV1T0O8" alt="test-coverage"/>
+   </a>
+   <a href="https://deepwiki.com/go-spring/spring-core"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </div>
 
-[English](README.md)
+[English](README.md) | [中文](README_CN.md)
 
 **Go-Spring 是一个面向现代 Go 应用开发的高性能框架，灵感源自 Java 社区的 Spring / Spring Boot。**
 它的设计理念深度融合 Go 语言的特性，既保留了 Spring 世界中成熟的开发范式，如依赖注入（DI）、自动配置和生命周期管理，

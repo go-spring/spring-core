@@ -27,12 +27,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/spring-core/util/goutil"
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
 // GS is the global application instance.
@@ -74,10 +74,22 @@ func NewApp() *App {
 // (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
 // a graceful shutdown.
 func (app *App) Run() error {
-	app.C.Object(app)
+	return app.RunWith(nil)
+}
 
+// RunWith starts the application and listens for termination signals
+// (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
+// a graceful shutdown.
+func (app *App) RunWith(fn func(ctx context.Context) error) error {
 	if err := app.Start(); err != nil {
 		return err
+	}
+
+	// runs the user-defined function
+	if fn != nil {
+		if err := fn(app.ctx); err != nil {
+			return err
+		}
 	}
 
 	// listens for OS termination signals
@@ -85,7 +97,7 @@ func (app *App) Run() error {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		sig := <-ch
-		syslog.Infof("Received signal: %v", sig)
+		log.Infof(context.Background(), log.TagApp, "Received signal: %v", sig)
 		app.ShutDown()
 	}()
 
@@ -99,9 +111,10 @@ func (app *App) Run() error {
 // loading, IoC container refreshing, dependency injection, and runs
 // runners, jobs and servers.
 func (app *App) Start() error {
-	var p conf.Properties
+	app.C.Object(app)
 
 	// loads the layered app properties
+	var p conf.Properties
 	{
 		var err error
 		if p, err = app.P.Refresh(); err != nil {
@@ -132,7 +145,7 @@ func (app *App) Start() error {
 					}
 				}()
 				if err := job.Run(app.ctx); err != nil {
-					syslog.Errorf("job run error: %s", err.Error())
+					log.Errorf(context.Background(), log.TagApp, "job run error: %v", err)
 					app.ShutDown()
 				}
 			})
@@ -156,7 +169,7 @@ func (app *App) Start() error {
 				}()
 				err := svr.ListenAndServe(sig)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {
-					syslog.Errorf("server serve error: %s", err.Error())
+					log.Errorf(context.Background(), log.TagApp, "server serve error: %v", err)
 					sig.Intercept()
 					app.ShutDown()
 				}
@@ -166,7 +179,7 @@ func (app *App) Start() error {
 		if sig.Intercepted() {
 			return nil
 		}
-		syslog.Infof("ready to serve requests")
+		log.Infof(context.Background(), log.TagApp, "ready to serve requests")
 		sig.Close()
 	}
 	return nil
@@ -183,7 +196,7 @@ func (app *App) Stop() {
 		for _, svr := range app.Servers {
 			goutil.GoFunc(func() {
 				if err := svr.Shutdown(ctx); err != nil {
-					syslog.Errorf("shutdown server failed: %s", err.Error())
+					log.Errorf(context.Background(), log.TagApp, "shutdown server failed: %v", err)
 				}
 			})
 		}
@@ -194,9 +207,9 @@ func (app *App) Stop() {
 
 	select {
 	case <-waitChan:
-		syslog.Infof("shutdown complete")
+		log.Infof(context.Background(), log.TagApp, "shutdown complete")
 	case <-ctx.Done():
-		syslog.Infof("shutdown timeout")
+		log.Infof(context.Background(), log.TagApp, "shutdown timeout")
 	}
 }
 

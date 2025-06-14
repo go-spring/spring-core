@@ -55,12 +55,12 @@ const (
 type Attribute string
 
 // Sprint returns a string formatted according to console properties.
-func (attr Attribute) Sprint(a ...interface{}) string {
+func (attr Attribute) Sprint(a ...any) string {
 	return wrap([]Attribute{attr}, fmt.Sprint(a...))
 }
 
 // Sprintf returns a string formatted according to console properties.
-func (attr Attribute) Sprintf(format string, a ...interface{}) string {
+func (attr Attribute) Sprintf(format string, a ...any) string {
 	return wrap([]Attribute{attr}, fmt.Sprintf(format, a...))
 }
 
@@ -74,12 +74,12 @@ func NewText(attributes ...Attribute) *Text {
 }
 
 // Sprint returns a string formatted according to console properties.
-func (c *Text) Sprint(a ...interface{}) string {
+func (c *Text) Sprint(a ...any) string {
 	return wrap(c.attributes, fmt.Sprint(a...))
 }
 
 // Sprintf returns a string formatted according to console properties.
-func (c *Text) Sprintf(format string, a ...interface{}) string {
+func (c *Text) Sprintf(format string, a ...any) string {
 	return wrap(c.attributes, fmt.Sprintf(format, a...))
 }
 
@@ -89,7 +89,7 @@ func wrap(attributes []Attribute, str string) string {
 	}
 	var buf bytes.Buffer
 	buf.WriteString("\x1b[")
-	for i := 0; i < len(attributes); i++ {
+	for i := range len(attributes) {
 		buf.WriteString(string(attributes[i]))
 		if i < len(attributes)-1 {
 			buf.WriteByte(';')

@@ -23,6 +23,21 @@ import (
 // errorType is the [reflect.Type] of the error interface.
 var errorType = reflect.TypeFor[error]()
 
+// IntType is the type of int, int8, int16, int32, int64.
+type IntType interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64
+}
+
+// UintType is the type of uint, uint8, uint16, uint32, uint64.
+type UintType interface {
+	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+
+// FloatType is the type of float32, float64.
+type FloatType interface {
+	~float32 | ~float64
+}
+
 // IsFuncType returns true if the provided type t is a function type.
 func IsFuncType(t reflect.Type) bool {
 	return t.Kind() == reflect.Func

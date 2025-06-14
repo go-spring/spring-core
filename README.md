@@ -4,10 +4,13 @@
    <img src="https://img.shields.io/github/license/go-spring/spring-core" alt="license"/>
    <img src="https://img.shields.io/github/go-mod/go-version/go-spring/spring-core" alt="go-version"/>
    <img src="https://img.shields.io/github/v/release/go-spring/spring-core?include_prereleases" alt="release"/>
-   <img src="https://codecov.io/gh/go-spring/spring-core/branch/main/graph/badge.svg" alt="test-coverage"/>
+   <a href="https://codecov.io/gh/go-spring/spring-core" > 
+      <img src="https://codecov.io/gh/go-spring/spring-core/graph/badge.svg?token=SX7CV1T0O8" alt="test-coverage"/>
+   </a>
+   <a href="https://deepwiki.com/go-spring/spring-core"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </div>
 
-[中文](README_CN.md)
+[English](README.md) | [中文](README_CN.md)
 
 **Go-Spring is a high-performance framework for modern Go application development, inspired by the Spring / Spring Boot
 ecosystem in the Java community.**

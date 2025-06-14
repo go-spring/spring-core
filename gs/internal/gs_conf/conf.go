@@ -49,11 +49,13 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/util/sysconf"
 )
 
 // osStat only for test.
 var osStat = os.Stat
+
+// SysConf is the builtin configuration.
+var SysConf = conf.New()
 
 // PropertyCopier defines the interface for copying properties.
 type PropertyCopier interface {
@@ -76,6 +78,21 @@ func (c *NamedPropertyCopier) CopyTo(out *conf.MutableProperties) error {
 		return c.PropertyCopier.CopyTo(out)
 	}
 	return nil
+}
+
+/******************************** SysConfig **********************************/
+
+type SysConfig struct {
+	Environment *Environment // Environment variables as configuration source.
+	CommandArgs *CommandArgs // Command line arguments as configuration source.
+}
+
+func (c *SysConfig) Refresh() (conf.Properties, error) {
+	return merge(
+		NewNamedPropertyCopier("sys", SysConf),
+		NewNamedPropertyCopier("env", c.Environment),
+		NewNamedPropertyCopier("cmd", c.CommandArgs),
+	)
 }
 
 /******************************** AppConfig **********************************/
@@ -113,11 +130,7 @@ func merge(sources ...PropertyCopier) (conf.Properties, error) {
 
 // Refresh merges all layers of configurations into a read-only properties.
 func (c *AppConfig) Refresh() (conf.Properties, error) {
-	p, err := merge(
-		NewNamedPropertyCopier("sys", sysconf.Clone()),
-		NewNamedPropertyCopier("env", c.Environment),
-		NewNamedPropertyCopier("cmd", c.CommandArgs),
-	)
+	p, err := new(SysConfig).Refresh()
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +146,7 @@ func (c *AppConfig) Refresh() (conf.Properties, error) {
 	}
 
 	var sources []PropertyCopier
-	sources = append(sources, NewNamedPropertyCopier("sys", sysconf.Clone()))
+	sources = append(sources, NewNamedPropertyCopier("sys", SysConf))
 	sources = append(sources, localFiles...)
 	sources = append(sources, remoteFiles...)
 	sources = append(sources, NewNamedPropertyCopier("remote", c.RemoteProp))
@@ -163,11 +176,7 @@ func NewBootConfig() *BootConfig {
 
 // Refresh merges all layers of configurations into a read-only properties.
 func (c *BootConfig) Refresh() (conf.Properties, error) {
-	p, err := merge(
-		NewNamedPropertyCopier("sys", sysconf.Clone()),
-		NewNamedPropertyCopier("env", c.Environment),
-		NewNamedPropertyCopier("cmd", c.CommandArgs),
-	)
+	p, err := new(SysConfig).Refresh()
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +187,7 @@ func (c *BootConfig) Refresh() (conf.Properties, error) {
 	}
 
 	var sources []PropertyCopier
-	sources = append(sources, NewNamedPropertyCopier("sys", sysconf.Clone()))
+	sources = append(sources, NewNamedPropertyCopier("sys", SysConf))
 	sources = append(sources, localFiles...)
 	sources = append(sources, NewNamedPropertyCopier("env", c.Environment))
 	sources = append(sources, NewNamedPropertyCopier("cmd", c.CommandArgs))

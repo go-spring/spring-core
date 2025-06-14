@@ -23,6 +23,11 @@ import (
 	"unsafe"
 )
 
+// Ptr returns a pointer to the given value.
+func Ptr[T any](i T) *T {
+	return &i
+}
+
 const (
 	flagStickyRO = 1 << 5
 	flagEmbedRO  = 1 << 6

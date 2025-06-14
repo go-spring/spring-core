@@ -18,8 +18,6 @@ package gs
 
 import (
 	"strconv"
-
-	"github.com/go-spring/spring-core/util/sysconf"
 )
 
 const (
@@ -34,35 +32,35 @@ const (
 
 // AllowCircularReferences enables or disables circular references between beans.
 func AllowCircularReferences(enable bool) {
-	sysconf.Set(AllowCircularReferencesProp, strconv.FormatBool(enable))
+	Property(AllowCircularReferencesProp, strconv.FormatBool(enable))
 }
 
 // ForceAutowireIsNullable forces autowire to be nullable.
 func ForceAutowireIsNullable(enable bool) {
-	sysconf.Set(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
+	Property(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
 }
 
 // SetActiveProfiles sets the active profiles for the app.
 func SetActiveProfiles(profiles string) {
-	sysconf.Set(ActiveProfilesProp, profiles)
+	Property(ActiveProfilesProp, profiles)
 }
 
 // EnableJobs enables or disables the app jobs.
 func EnableJobs(enable bool) {
-	sysconf.Set(EnableJobsProp, strconv.FormatBool(enable))
+	Property(EnableJobsProp, strconv.FormatBool(enable))
 }
 
 // EnableServers enables or disables the app servers.
 func EnableServers(enable bool) {
-	sysconf.Set(EnableServersProp, strconv.FormatBool(enable))
+	Property(EnableServersProp, strconv.FormatBool(enable))
 }
 
 // EnableSimpleHttpServer enables or disables the simple HTTP server.
 func EnableSimpleHttpServer(enable bool) {
-	sysconf.Set(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
+	Property(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
 }
 
 // EnableSimplePProfServer enables or disables the simple pprof server.
 func EnableSimplePProfServer(enable bool) {
-	sysconf.Set(EnableSimplePProfServerProp, strconv.FormatBool(enable))
+	Property(EnableSimplePProfServerProp, strconv.FormatBool(enable))
 }

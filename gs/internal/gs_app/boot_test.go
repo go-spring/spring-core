@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
-	"github.com/go-spring/spring-core/util/sysconf"
+	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/lvan100/go-assert"
 )
 
@@ -32,7 +32,7 @@ func TestBoot(t *testing.T) {
 
 	t.Run("flag is false", func(t *testing.T) {
 		t.Cleanup(clean)
-		sysconf.Set("a", "123")
+		_ = gs_conf.SysConf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		err := boot.Run()
@@ -41,7 +41,7 @@ func TestBoot(t *testing.T) {
 
 	t.Run("config refresh error", func(t *testing.T) {
 		t.Cleanup(clean)
-		sysconf.Set("a", "123")
+		_ = gs_conf.SysConf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		boot.Object(bytes.NewBuffer(nil))

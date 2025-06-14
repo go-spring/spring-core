@@ -18,10 +18,9 @@ package gs
 
 import (
 	"context"
-	"fmt"
 	"reflect"
-	"strings"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
@@ -30,7 +29,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
 const (
@@ -172,6 +170,13 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 
 /*********************************** app *************************************/
 
+// Property sets a system property.
+func Property(key string, val string) {
+	if err := gs_conf.SysConf.Set(key, val); err != nil {
+		log.Errorf(context.Background(), log.TagApp, "failed to set property key=%s, err=%v", key, err)
+	}
+}
+
 type (
 	Runner      = gs.Runner
 	Job         = gs.Job
@@ -205,8 +210,6 @@ func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
 	return Object(funcJob(fn)).AsJob().Caller(1)
 }
 
-type AppStarter struct{}
-
 // Web enables or disables the built-in web server.
 func Web(enable bool) *AppStarter {
 	EnableSimpleHttpServer(enable)
@@ -214,24 +217,18 @@ func Web(enable bool) *AppStarter {
 }
 
 // Run runs the app and waits for an interrupt signal to exit.
-func (s *AppStarter) Run() {
-	var err error
-	defer func() {
-		if err != nil {
-			syslog.Errorf("app run failed: %s", err.Error())
-		}
-	}()
-	printBanner()
-	if err = B.(*gs_app.BootImpl).Run(); err != nil {
-		return
-	}
-	B = nil
-	err = gs_app.GS.Run()
-}
-
-// Run runs the app and waits for an interrupt signal to exit.
 func Run() {
 	new(AppStarter).Run()
+}
+
+// RunWith runs the app with a given function and waits for an interrupt signal to exit.
+func RunWith(fn func(ctx context.Context) error) {
+	new(AppStarter).RunWith(fn)
+}
+
+// RunAsync runs the app asynchronously and returns a function to stop the app.
+func RunAsync() (func(), error) {
+	return new(AppStarter).RunAsync()
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.
@@ -285,51 +282,4 @@ func RefreshProperties() error {
 		return err
 	}
 	return gs_app.GS.C.RefreshProperties(p)
-}
-
-/********************************** banner ***********************************/
-
-var appBanner = `
-   ____    ___            ____    ____    ____    ___   _   _    ____ 
-  / ___|  / _ \          / ___|  |  _ \  |  _ \  |_ _| | \ | |  / ___|
- | |  _  | | | |  _____  \___ \  | |_) | | |_) |  | |  |  \| | | |  _ 
- | |_| | | |_| | |_____|  ___) | |  __/  |  _ <   | |  | |\  | | |_| |
-  \____|  \___/          |____/  |_|     |_| \_\ |___| |_| \_|  \____| 
-`
-
-// Banner sets a custom app banner.
-func Banner(banner string) {
-	appBanner = banner
-}
-
-// printBanner prints the app banner.
-func printBanner() {
-	if len(appBanner) == 0 {
-		return
-	}
-
-	if appBanner[0] != '\n' {
-		fmt.Println()
-	}
-
-	maxLength := 0
-	for s := range strings.SplitSeq(appBanner, "\n") {
-		fmt.Printf("\x1b[36m%s\x1b[0m\n", s) // CYAN
-		if len(s) > maxLength {
-			maxLength = len(s)
-		}
-	}
-
-	if appBanner[len(appBanner)-1] != '\n' {
-		fmt.Println()
-	}
-
-	var padding []byte
-	if n := (maxLength - len(Version)) / 2; n > 0 {
-		padding = make([]byte, n)
-		for i := range padding {
-			padding[i] = ' '
-		}
-	}
-	fmt.Println(string(padding) + Version + "\n")
 }

@@ -20,14 +20,17 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"log/slog"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"testing"
 	"time"
 
+	"github.com/go-spring/log"
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/util/sysconf"
+	"github.com/go-spring/spring-core/gs/internal/gs_conf"
+	"github.com/go-spring/spring-core/util/goutil"
 	"github.com/lvan100/go-assert"
 	"go.uber.org/mock/gomock"
 )
@@ -35,14 +38,17 @@ import (
 var logBuf = &bytes.Buffer{}
 
 func init() {
-	slog.SetDefault(slog.New(slog.NewTextHandler(logBuf, nil)))
+	goutil.OnPanic = func(ctx context.Context, r any) {
+		log.Panicf(ctx, log.TagDef, "panic: %v\n%s\n", r, debug.Stack())
+	}
 }
 
 func clean() {
 	logBuf.Reset()
+	log.Stdout = logBuf
 	os.Args = nil
 	os.Clearenv()
-	sysconf.Clear()
+	gs_conf.SysConf = conf.New()
 }
 
 func TestApp(t *testing.T) {
@@ -67,7 +73,7 @@ func TestApp(t *testing.T) {
 
 	t.Run("config refresh error", func(t *testing.T) {
 		t.Cleanup(clean)
-		sysconf.Set("a", "123")
+		_ = gs_conf.SysConf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		app := NewApp()
 		err := app.Run()
@@ -98,8 +104,8 @@ func TestApp(t *testing.T) {
 
 	t.Run("disable jobs & servers", func(t *testing.T) {
 		t.Cleanup(clean)
-		sysconf.Set("spring.app.enable-jobs", "false")
-		sysconf.Set("spring.app.enable-servers", "false")
+		_ = gs_conf.SysConf.Set("spring.app.enable-jobs", "false")
+		_ = gs_conf.SysConf.Set("spring.app.enable-servers", "false")
 		app := NewApp()
 		go func() {
 			time.Sleep(50 * time.Millisecond)
@@ -252,7 +258,7 @@ func TestApp(t *testing.T) {
 
 	t.Run("shutdown timeout", func(t *testing.T) {
 		t.Cleanup(clean)
-		sysconf.Set("spring.app.shutdown-timeout", "10ms")
+		_ = gs_conf.SysConf.Set("spring.app.shutdown-timeout", "10ms")
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		app := NewApp()
