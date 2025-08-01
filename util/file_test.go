@@ -14,32 +14,21 @@
  * limitations under the License.
  */
 
-package main
+package util_test
 
 import (
-	"context"
-	"os"
-	"time"
+	"testing"
 
-	"github.com/go-spring/log"
-	"github.com/go-spring/spring-core/gs"
+	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-core/util"
 )
 
-func main() {
-	// Disable the built-in HTTP service.
-	stopApp, err := gs.Web(false).RunAsync()
-	if err != nil {
-		log.Errorf(context.Background(), log.TagApp, "app run failed: %s", err.Error())
-		os.Exit(1)
-	}
+func TestPathExists(t *testing.T) {
+	exists, err := util.PathExists("file.go")
+	assert.That(t, err).Nil()
+	assert.That(t, exists).True()
 
-	log.Infof(context.Background(), log.TagApp, "app started")
-	time.Sleep(time.Minute)
-
-	stopApp()
+	exists, err = util.PathExists("file_not_exist.go")
+	assert.That(t, err).Nil()
+	assert.That(t, exists).False()
 }
-
-// ~ telnet 127.0.0.1 9090
-// Trying 127.0.0.1...
-// telnet: connect to address 127.0.0.1: Connection refused
-// telnet: Unable to connect to remote host

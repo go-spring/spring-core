@@ -14,32 +14,22 @@
  * limitations under the License.
  */
 
-package main
+package util
 
 import (
-	"context"
 	"os"
-	"time"
-
-	"github.com/go-spring/log"
-	"github.com/go-spring/spring-core/gs"
 )
 
-func main() {
-	// Disable the built-in HTTP service.
-	stopApp, err := gs.Web(false).RunAsync()
+// PathExists checks whether the specified file or directory exists.
+// Returns true if the path exists, false if it does not exist,
+// and an error if the check fails for another reason (e.g., permission denied).
+func PathExists(file string) (bool, error) {
+	_, err := os.Stat(file)
 	if err != nil {
-		log.Errorf(context.Background(), log.TagApp, "app run failed: %s", err.Error())
-		os.Exit(1)
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	log.Infof(context.Background(), log.TagApp, "app started")
-	time.Sleep(time.Minute)
-
-	stopApp()
+	return true, nil
 }
-
-// ~ telnet 127.0.0.1 9090
-// Trying 127.0.0.1...
-// telnet: connect to address 127.0.0.1: Connection refused
-// telnet: Unable to connect to remote host

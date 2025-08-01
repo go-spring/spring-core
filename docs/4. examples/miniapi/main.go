@@ -20,8 +20,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 	// - Dependency Injection: Wires beans automatically.
 	// - Dynamic Refresh: Updates configs at runtime without restart.
 	gs.RunWith(func(ctx context.Context) error {
-		syslog.Infof("app started")
+		log.Infof(ctx, log.TagApp, "app started")
 		return nil
 	})
 }

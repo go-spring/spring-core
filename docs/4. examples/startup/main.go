@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/util/sysconf"
 )
 
 func init() {
@@ -36,8 +35,8 @@ func init() {
 		return http.DefaultServeMux
 	})
 
-	sysconf.Set("start-time", time.Now().Format(timeLayout))
-	sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+	gs.Property("start-time", time.Now().Format(timeLayout))
+	gs.Property("refresh-time", time.Now().Format(timeLayout))
 }
 
 const timeLayout = "2006-01-02 15:04:05.999 -0700 MST"
@@ -55,7 +54,7 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
-	sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+	gs.Property("refresh-time", time.Now().Format(timeLayout))
 	_ = gs.RefreshProperties()
 	_, _ = w.Write([]byte("OK!"))
 }

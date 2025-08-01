@@ -24,10 +24,10 @@ import (
 	"testing"
 
 	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/gs-mock/gsmock"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/util"
-	"go.uber.org/mock/gomock"
 )
 
 func TestBeanStatus(t *testing.T) {
@@ -200,10 +200,10 @@ func TestBeanDefinition(t *testing.T) {
 		assert.That(t, len(bean.Conditions())).Equal(1)
 
 		t.Run("no profile property", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			ctx := NewMockCondContext(ctrl)
-			ctx.EXPECT().Prop(gomock.Any()).Return("")
+			m := gsmock.NewManager()
+			ctx := gs.NewCondContextMockImpl(m)
+			ctx.MockProp().ReturnValue("")
+
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
 				assert.That(t, err).Nil()
@@ -212,10 +212,10 @@ func TestBeanDefinition(t *testing.T) {
 		})
 
 		t.Run("profile property not match", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			ctx := NewMockCondContext(ctrl)
-			ctx.EXPECT().Prop(gomock.Any()).Return("prod")
+			m := gsmock.NewManager()
+			ctx := gs.NewCondContextMockImpl(m)
+			ctx.MockProp().ReturnValue("prod")
+
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
 				assert.That(t, err).Nil()
@@ -224,10 +224,10 @@ func TestBeanDefinition(t *testing.T) {
 		})
 
 		t.Run("profile property is dev", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			ctx := NewMockCondContext(ctrl)
-			ctx.EXPECT().Prop(gomock.Any()).Return("dev")
+			m := gsmock.NewManager()
+			ctx := gs.NewCondContextMockImpl(m)
+			ctx.MockProp().ReturnValue("dev")
+
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
 				assert.That(t, err).Nil()
@@ -236,10 +236,10 @@ func TestBeanDefinition(t *testing.T) {
 		})
 
 		t.Run("profile property is test", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			ctx := NewMockCondContext(ctrl)
-			ctx.EXPECT().Prop(gomock.Any()).Return("test")
+			m := gsmock.NewManager()
+			ctx := gs.NewCondContextMockImpl(m)
+			ctx.MockProp().ReturnValue("test")
+
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
 				assert.That(t, err).Nil()
@@ -248,10 +248,10 @@ func TestBeanDefinition(t *testing.T) {
 		})
 
 		t.Run("profile property is dev&test", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			ctx := NewMockCondContext(ctrl)
-			ctx.EXPECT().Prop(gomock.Any()).Return("dev,test")
+			m := gsmock.NewManager()
+			ctx := gs.NewCondContextMockImpl(m)
+			ctx.MockProp().ReturnValue("dev,test")
+
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
 				assert.That(t, err).Nil()

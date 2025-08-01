@@ -31,7 +31,9 @@ import (
 func TestBoot(t *testing.T) {
 
 	t.Run("flag is false", func(t *testing.T) {
-		t.Cleanup(clean)
+		Reset()
+		t.Cleanup(Reset)
+
 		_ = gs_conf.SysConf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
@@ -40,7 +42,9 @@ func TestBoot(t *testing.T) {
 	})
 
 	t.Run("config refresh error", func(t *testing.T) {
-		t.Cleanup(clean)
+		Reset()
+		t.Cleanup(Reset)
+
 		_ = gs_conf.SysConf.Set("a", "123")
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
@@ -50,7 +54,9 @@ func TestBoot(t *testing.T) {
 	})
 
 	t.Run("container refresh error", func(t *testing.T) {
-		t.Cleanup(clean)
+		Reset()
+		t.Cleanup(Reset)
+
 		boot := NewBoot().(*BootImpl)
 		boot.Provide(func() (*bytes.Buffer, error) {
 			return nil, errors.New("fail to create bean")
@@ -60,7 +66,9 @@ func TestBoot(t *testing.T) {
 	})
 
 	t.Run("runner return error", func(t *testing.T) {
-		t.Cleanup(clean)
+		Reset()
+		t.Cleanup(Reset)
+
 		boot := NewBoot().(*BootImpl)
 		boot.FuncRunner(func() error {
 			return errors.New("runner return error")
@@ -70,7 +78,9 @@ func TestBoot(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		t.Cleanup(clean)
+		Reset()
+		t.Cleanup(Reset)
+
 		boot := NewBoot().(*BootImpl)
 		bd := gs_bean.NewBean(reflect.ValueOf(funcRunner(func() error {
 			return nil
