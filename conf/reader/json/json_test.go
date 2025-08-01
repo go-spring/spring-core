@@ -19,7 +19,7 @@ package json
 import (
 	"testing"
 
-	"github.com/lvan100/go-assert"
+	"github.com/go-spring/gs-assert/assert"
 )
 
 func TestRead(t *testing.T) {
@@ -39,7 +39,7 @@ func TestRead(t *testing.T) {
 			"date": "2018-02-17",
 			"time": "2018-02-17T15:02:31+08:00"
 		}`))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"empty":  "",
 			"bool":   false,

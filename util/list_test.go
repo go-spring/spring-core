@@ -19,14 +19,14 @@ package util_test
 import (
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/util"
-	"github.com/lvan100/go-assert"
 )
 
 func TestListOf(t *testing.T) {
-	assert.Nil(t, util.AllOfList[string](nil))
+	assert.That(t, util.AllOfList[string](nil)).Nil()
 	l := util.ListOf[string]()
-	assert.Nil(t, util.AllOfList[string](l))
+	assert.That(t, util.AllOfList[string](l)).Nil()
 	l = util.ListOf("a", "b", "c")
 	assert.That(t, []string{"a", "b", "c"}).Equal(util.AllOfList[string](l))
 }

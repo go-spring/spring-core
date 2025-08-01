@@ -21,10 +21,10 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
-	"github.com/lvan100/go-assert"
 )
 
 func TestContainer(t *testing.T) {
@@ -33,7 +33,7 @@ func TestContainer(t *testing.T) {
 		c := New()
 		c.Object(&http.Server{})
 		err := c.Refresh(conf.New())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		c.Close()
 	})
 

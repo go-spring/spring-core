@@ -19,8 +19,8 @@ package conf_test
 import (
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/lvan100/go-assert"
 )
 
 func TestExpr(t *testing.T) {
@@ -36,7 +36,7 @@ func TestExpr(t *testing.T) {
 			"a": 4,
 		})
 		err := p.Bind(&v)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, 4).Equal(v.A)
 	})
 

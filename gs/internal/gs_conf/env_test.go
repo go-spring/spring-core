@@ -20,8 +20,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/lvan100/go-assert"
 )
 
 func TestEnvironment(t *testing.T) {
@@ -30,7 +30,7 @@ func TestEnvironment(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		props := conf.New()
 		err := NewEnvironment().CopyTo(props)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, 0).Equal(len(props.Keys()))
 	})
 
@@ -43,7 +43,7 @@ func TestEnvironment(t *testing.T) {
 		}()
 		props := conf.New()
 		err := NewEnvironment().CopyTo(props)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, props.Get("db.host")).Equal("db1")
 		assert.That(t, props.Get("API_KEY")).Equal("key123")
 	})

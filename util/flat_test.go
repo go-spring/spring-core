@@ -19,8 +19,8 @@ package util_test
 import (
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/util"
-	"github.com/lvan100/go-assert"
 )
 
 func TestFlatten(t *testing.T) {

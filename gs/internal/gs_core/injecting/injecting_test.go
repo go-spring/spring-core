@@ -26,13 +26,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
-	"github.com/lvan100/go-assert"
 )
 
 type Logger interface {
@@ -308,13 +308,13 @@ func TestInjecting(t *testing.T) {
 		}
 
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		time.Sleep(time.Millisecond * 50)
 
 		c := &Controller{}
 		err = r.Wire(c)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, len(c.Loggers)).Equal(2)
 
 		s := &struct {
@@ -322,7 +322,7 @@ func TestInjecting(t *testing.T) {
 			Service *Service `autowire:""`
 		}{}
 		err = r.Wire(s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.Service.Status).Equal(1)
 		assert.That(t, s.Service.Filter).Equal(myFilter)
 		assert.That(t, s.Service.Int).Equal(100)
@@ -355,14 +355,14 @@ func TestInjecting(t *testing.T) {
 			},
 			"addr": "0.0.0.0:5050",
 		}))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		assert.That(t, s.Service.Repository.Addr.Value()).Equal("0.0.0.0:5050")
 
 		err = r.Wire(new(struct {
 			ChildBean *ChildBean `autowire:""`
 		}))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		r.Close()
 
@@ -496,7 +496,7 @@ func TestInjecting(t *testing.T) {
 			objectBean(&SimpleLogger{}).Export(gs.As[Logger]()),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.Loggers).Equal([3]Logger{nil, nil, nil})
 	})
 
@@ -526,7 +526,7 @@ func TestInjecting(t *testing.T) {
 			provideBean(NewZeroLogger),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.Logger).Equal((*ZeroLogger)(nil))
 	})
 
@@ -561,7 +561,7 @@ func TestInjecting(t *testing.T) {
 			}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.Logger).Equal((*ZeroLogger)(nil))
 	})
 
@@ -579,9 +579,9 @@ func TestInjecting(t *testing.T) {
 	t.Run("wire error - 22", func(t *testing.T) {
 		r := New(conf.New())
 		err := r.Refresh(extractBeans(nil))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		err = r.Wire(new(int))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 	})
 
 	t.Run("wire error - 23", func(t *testing.T) {
@@ -625,7 +625,7 @@ func TestInjecting(t *testing.T) {
 			}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		r.Close()
 	})
 }
@@ -749,14 +749,14 @@ func TestCircularBean(t *testing.T) {
 			objectBean(&C{}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		var s struct {
 			A *A `autowire:""`
 			B *B `autowire:""`
 			C *C `autowire:""`
 		}
 		err = r.Wire(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.A.B).Equal(s.B)
 		assert.That(t, s.B.C).Equal(s.C)
 		assert.That(t, s.C.A).Equal(s.A)
@@ -770,14 +770,14 @@ func TestCircularBean(t *testing.T) {
 			provideBean(NewE, gs_arg.Index(1, gs_arg.Tag("?"))),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		var s struct {
 			C *C `autowire:""`
 			D *D `autowire:""`
 			E *E `autowire:""`
 		}
 		err = r.Wire(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.C.D).Equal(s.D)
 		assert.That(t, s.D.E).Equal(s.E)
 		assert.That(t, s.E.c).Equal(s.C)
@@ -817,14 +817,14 @@ func TestCircularBean(t *testing.T) {
 			provideBean(NewJ),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		var s struct {
 			H *H `autowire:""`
 			I *I `autowire:""`
 			J *J `autowire:""`
 		}
 		err = r.Wire(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.H.i).Equal(s.I)
 		assert.That(t, s.I.J).Equal(s.J)
 		assert.That(t, s.J.H).Equal(s.H)
@@ -886,16 +886,16 @@ func TestDestroy(t *testing.T) {
 			objectBean(&DestroyB{}).DestroyMethod("Destroy"),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		var s struct {
 			DestroyA *DestroyA `autowire:""`
 			DestroyB *DestroyB `autowire:""`
 		}
 		err = r.Wire(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		r.Close()
-		assert.True(t, s.DestroyA.value == 1 || s.DestroyA.value == 2)
-		assert.True(t, s.DestroyB.value == 1 || s.DestroyB.value == 2)
+		assert.That(t, s.DestroyA.value == 1 || s.DestroyA.value == 2).True()
+		assert.That(t, s.DestroyB.value == 1 || s.DestroyB.value == 2).True()
 	})
 
 	t.Run("dependency", func(t *testing.T) {
@@ -909,13 +909,13 @@ func TestDestroy(t *testing.T) {
 			objectBean(&DestroyE{}).DestroyMethod("Destroy"),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		var s struct {
 			DestroyC *DestroyC `autowire:""`
 			DestroyE *DestroyE `autowire:""`
 		}
 		err = r.Wire(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		r.Close()
 		assert.That(t, s.DestroyC.value).Equal(2)
 		assert.That(t, s.DestroyE.value).Equal(1)
@@ -949,10 +949,10 @@ func TestForceClean(t *testing.T) {
 
 		beans := []*gs.BeanDefinition{b1, b2}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
-		assert.Nil(t, r.p)
-		assert.Nil(t, r.beansByName)
-		assert.Nil(t, r.beansByType)
+		assert.That(t, err).Nil()
+		assert.That(t, r.p).Nil()
+		assert.That(t, r.beansByName).Nil()
+		assert.That(t, r.beansByType).Nil()
 
 		runtime.GC()
 		time.Sleep(100 * time.Millisecond)
@@ -973,9 +973,9 @@ func TestForceClean(t *testing.T) {
 			objectBean(&SimpleLogger{}).Name("sys"),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Nil(t, err)
-		assert.NotNil(t, r.p)
-		assert.Nil(t, r.beansByName)
-		assert.Nil(t, r.beansByType)
+		assert.That(t, err).Nil()
+		assert.That(t, r.p).NotNil()
+		assert.That(t, r.beansByName).Nil()
+		assert.That(t, r.beansByType).Nil()
 	})
 }

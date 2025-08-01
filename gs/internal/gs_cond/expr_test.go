@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/lvan100/go-assert"
+	"github.com/go-spring/gs-assert/assert"
 )
 
 func TestEvalExpr(t *testing.T) {
@@ -28,13 +28,13 @@ func TestEvalExpr(t *testing.T) {
 	assert.ThatError(t, err).Matches("doesn't return bool value")
 
 	ok, err := EvalExpr("int($)==3", "3")
-	assert.Nil(t, err)
-	assert.True(t, ok)
+	assert.That(t, err).Nil()
+	assert.That(t, ok).True()
 
 	RegisterExpressFunc("equal", func(s string, i int) bool {
 		return s == strconv.Itoa(i)
 	})
 	ok, err = EvalExpr("equal($,9)", "9")
-	assert.Nil(t, err)
-	assert.True(t, ok)
+	assert.That(t, err).Nil()
+	assert.That(t, ok).True()
 }

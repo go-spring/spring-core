@@ -23,10 +23,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/util"
-	"github.com/lvan100/go-assert"
 	"go.uber.org/mock/gomock"
 )
 
@@ -71,7 +71,7 @@ func TestBeanDefinition(t *testing.T) {
 		assert.That(t, bean.Type()).Equal(reflect.TypeFor[*TestBean]())
 		assert.That(t, bean.Value().Interface()).Equal(a)
 		assert.That(t, bean.Interface()).Equal(a)
-		assert.Nil(t, bean.Callable())
+		assert.That(t, bean.Callable()).Nil()
 
 		bean.SetStatus(StatusCreated)
 		assert.That(t, StatusCreated).Equal(bean.Status())
@@ -87,7 +87,7 @@ func TestBeanDefinition(t *testing.T) {
 		assert.That(t, beanName).Equal("test-1")
 		assert.ThatString(t, bean.String()).Matches(`name=test-1 .*/gs/internal/gs_bean/bean_test.go:79`)
 
-		assert.Nil(t, bean.BeanRuntime.Callable())
+		assert.That(t, bean.BeanRuntime.Callable()).Nil()
 		assert.That(t, bean.BeanRuntime.Status()).Equal(StatusWired)
 		assert.That(t, bean.BeanRuntime.String()).Equal("test-1")
 	})
@@ -206,8 +206,8 @@ func TestBeanDefinition(t *testing.T) {
 			ctx.EXPECT().Prop(gomock.Any()).Return("")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
-				assert.Nil(t, err)
-				assert.False(t, ok)
+				assert.That(t, err).Nil()
+				assert.That(t, ok).False()
 			}
 		})
 
@@ -218,8 +218,8 @@ func TestBeanDefinition(t *testing.T) {
 			ctx.EXPECT().Prop(gomock.Any()).Return("prod")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
-				assert.Nil(t, err)
-				assert.False(t, ok)
+				assert.That(t, err).Nil()
+				assert.That(t, ok).False()
 			}
 		})
 
@@ -230,8 +230,8 @@ func TestBeanDefinition(t *testing.T) {
 			ctx.EXPECT().Prop(gomock.Any()).Return("dev")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
-				assert.Nil(t, err)
-				assert.True(t, ok)
+				assert.That(t, err).Nil()
+				assert.That(t, ok).True()
 			}
 		})
 
@@ -242,8 +242,8 @@ func TestBeanDefinition(t *testing.T) {
 			ctx.EXPECT().Prop(gomock.Any()).Return("test")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
-				assert.Nil(t, err)
-				assert.True(t, ok)
+				assert.That(t, err).Nil()
+				assert.That(t, ok).True()
 			}
 		})
 
@@ -254,8 +254,8 @@ func TestBeanDefinition(t *testing.T) {
 			ctx.EXPECT().Prop(gomock.Any()).Return("dev,test")
 			for _, c := range bean.Conditions() {
 				ok, err := c.Matches(ctx)
-				assert.Nil(t, err)
-				assert.True(t, ok)
+				assert.That(t, err).Nil()
+				assert.That(t, ok).True()
 			}
 		})
 	})
@@ -263,17 +263,17 @@ func TestBeanDefinition(t *testing.T) {
 	t.Run("configuration", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
-		assert.Nil(t, bean.Configuration())
+		assert.That(t, bean.Configuration()).Nil()
 
 		bean.SetConfiguration()
-		assert.NotNil(t, bean.Configuration())
-		assert.Nil(t, bean.Configuration().Includes)
-		assert.Nil(t, bean.Configuration().Excludes)
+		assert.That(t, bean.Configuration()).NotNil()
+		assert.That(t, bean.Configuration().Includes).Nil()
+		assert.That(t, bean.Configuration().Excludes).Nil()
 
 		bean.SetConfiguration(gs.Configuration{
 			Includes: []string{"New.*"},
 		})
-		assert.NotNil(t, bean.Configuration())
+		assert.That(t, bean.Configuration()).NotNil()
 		assert.That(t, bean.Configuration().Includes).Equal([]string{"New.*"})
 	})
 
@@ -282,7 +282,7 @@ func TestBeanDefinition(t *testing.T) {
 		bean := makeBean(v.Type(), v, nil, "test")
 		bean.SetExport(gs.As[io.Writer]())
 		bean.SetMock(bytes.NewBufferString(""))
-		assert.True(t, bean.Mocked())
+		assert.That(t, bean.Mocked()).True()
 	})
 }
 

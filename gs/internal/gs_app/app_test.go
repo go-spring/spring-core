@@ -26,12 +26,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/util/goutil"
-	"github.com/lvan100/go-assert"
 	"go.uber.org/mock/gomock"
 )
 
@@ -60,13 +60,13 @@ func TestApp(t *testing.T) {
 		go func() {
 			time.Sleep(50 * time.Millisecond)
 			p, err := os.FindProcess(os.Getpid())
-			assert.Nil(t, err)
+			assert.That(t, err).Nil()
 			err = p.Signal(os.Interrupt)
-			assert.Nil(t, err)
+			assert.That(t, err).Nil()
 			time.Sleep(50 * time.Millisecond)
 		}()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		assert.ThatString(t, logBuf.String()).Contains("Received signal: interrupt")
 	})
@@ -109,15 +109,15 @@ func TestApp(t *testing.T) {
 		app := NewApp()
 		go func() {
 			time.Sleep(50 * time.Millisecond)
-			assert.False(t, app.EnableJobs)
-			assert.False(t, app.EnableServers)
+			assert.That(t, app.EnableJobs).False()
+			assert.That(t, app.EnableServers).False()
 			assert.That(t, len(app.Jobs)).Equal(0)
 			assert.That(t, len(app.Servers)).Equal(0)
 			assert.That(t, len(app.Runners)).Equal(0)
 			app.ShutDown()
 		}()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		assert.ThatString(t, logBuf.String()).Contains("shutdown complete")
 	})
@@ -131,7 +131,7 @@ func TestApp(t *testing.T) {
 		app := NewApp()
 		app.C.Object(r).AsJob()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		assert.ThatString(t, logBuf.String()).Contains("job run error: job return error")
 	})
@@ -147,7 +147,7 @@ func TestApp(t *testing.T) {
 		app := NewApp()
 		app.C.Object(r).AsJob()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		assert.ThatString(t, logBuf.String()).Contains("panic: job panic")
 	})
@@ -162,7 +162,7 @@ func TestApp(t *testing.T) {
 		app := NewApp()
 		app.C.Object(r).AsServer()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		assert.ThatString(t, logBuf.String()).Contains("server serve error: server return error")
 	})
@@ -179,7 +179,7 @@ func TestApp(t *testing.T) {
 		app := NewApp()
 		app.C.Object(r).AsServer()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		assert.ThatString(t, logBuf.String()).Contains("panic: server panic")
 	})
@@ -242,15 +242,15 @@ func TestApp(t *testing.T) {
 		go func() {
 			time.Sleep(50 * time.Millisecond)
 			assert.That(t, app.ShutDownTimeout).Equal(time.Second * 15)
-			assert.True(t, app.EnableJobs)
-			assert.True(t, app.EnableServers)
+			assert.That(t, app.EnableJobs).True()
+			assert.That(t, app.EnableServers).True()
 			assert.That(t, len(app.Jobs)).Equal(2)
 			assert.That(t, len(app.Servers)).Equal(2)
 			assert.That(t, len(app.Runners)).Equal(2)
 			app.ShutDown()
 		}()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		<-j2Wait
 		assert.ThatString(t, logBuf.String()).Contains("shutdown complete")
@@ -277,7 +277,7 @@ func TestApp(t *testing.T) {
 			app.ShutDown()
 		}()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		assert.ThatString(t, logBuf.String()).Contains("shutdown timeout")
 	})
@@ -301,7 +301,7 @@ func TestApp(t *testing.T) {
 			app.ShutDown()
 		}()
 		err := app.Run()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
 		assert.ThatString(t, logBuf.String()).Contains("shutdown server failed: server shutdown error")
 	})

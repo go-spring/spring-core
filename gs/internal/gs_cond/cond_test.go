@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
-	"github.com/lvan100/go-assert"
 	"go.uber.org/mock/gomock"
 )
 
@@ -107,8 +107,8 @@ func TestOnFunc(t *testing.T) {
 		fn := func(ctx gs.CondContext) (bool, error) { return true, nil }
 		cond := OnFunc(fn)
 		ok, err := cond.Matches(nil)
-		assert.True(t, ok)
-		assert.Nil(t, err)
+		assert.That(t, ok).True()
+		assert.That(t, err).Nil()
 	})
 
 	t.Run("error", func(t *testing.T) {
@@ -128,8 +128,8 @@ func TestOnProperty(t *testing.T) {
 		ctx.EXPECT().Has("test.prop").Return(true)
 		cond := OnProperty("test.prop")
 		ok, err := cond.Matches(ctx)
-		assert.True(t, ok)
-		assert.Nil(t, err)
+		assert.That(t, ok).True()
+		assert.That(t, err).Nil()
 	})
 
 	t.Run("property exist and match", func(t *testing.T) {
@@ -140,8 +140,8 @@ func TestOnProperty(t *testing.T) {
 		ctx.EXPECT().Prop("test.prop").Return("42")
 		cond := OnProperty("test.prop").HavingValue("42")
 		ok, err := cond.Matches(ctx)
-		assert.True(t, ok)
-		assert.Nil(t, err)
+		assert.That(t, ok).True()
+		assert.That(t, err).Nil()
 	})
 
 	t.Run("property exist but not match", func(t *testing.T) {
@@ -152,7 +152,7 @@ func TestOnProperty(t *testing.T) {
 		ctx.EXPECT().Prop("test.prop").Return("42")
 		cond := OnProperty("test.prop").HavingValue("100")
 		ok, _ := cond.Matches(ctx)
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 
 	t.Run("property not exist but MatchIfMissing", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestOnProperty(t *testing.T) {
 		ctx.EXPECT().Has("missing.prop").Return(false)
 		cond := OnProperty("missing.prop").MatchIfMissing()
 		ok, _ := cond.Matches(ctx)
-		assert.True(t, ok)
+		assert.That(t, ok).True()
 	})
 
 	t.Run("expression", func(t *testing.T) {
@@ -175,7 +175,7 @@ func TestOnProperty(t *testing.T) {
 			ctx.EXPECT().Prop("test.prop").Return("42")
 			cond := OnProperty("test.prop").HavingValue("expr:int($) > 40")
 			ok, _ := cond.Matches(ctx)
-			assert.True(t, ok)
+			assert.That(t, ok).True()
 		})
 
 		t.Run("string expression", func(t *testing.T) {
@@ -186,7 +186,7 @@ func TestOnProperty(t *testing.T) {
 			ctx.EXPECT().Prop("test.prop").Return("42")
 			cond := OnProperty("test.prop").HavingValue(`expr:$ == "42"`)
 			ok, _ := cond.Matches(ctx)
-			assert.True(t, ok)
+			assert.That(t, ok).True()
 		})
 
 		t.Run("invalid expression", func(t *testing.T) {
@@ -211,7 +211,7 @@ func TestOnMissingProperty(t *testing.T) {
 		ctx.EXPECT().Has(gomock.Any()).Return(true)
 		cond := OnMissingProperty("existing")
 		ok, _ := cond.Matches(ctx)
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 
 	t.Run("property not exist", func(t *testing.T) {
@@ -221,7 +221,7 @@ func TestOnMissingProperty(t *testing.T) {
 		ctx.EXPECT().Has(gomock.Any()).Return(false)
 		cond := OnMissingProperty("missing")
 		ok, _ := cond.Matches(ctx)
-		assert.True(t, ok)
+		assert.That(t, ok).True()
 	})
 }
 
@@ -234,8 +234,8 @@ func TestOnBean(t *testing.T) {
 		ctx.EXPECT().Find(gomock.Any()).Return([]gs.CondBean{nil}, nil)
 		cond := OnBean[any]("b")
 		ok, err := cond.Matches(ctx)
-		assert.Nil(t, err)
-		assert.True(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
 	})
 
 	t.Run("not found bean", func(t *testing.T) {
@@ -245,8 +245,8 @@ func TestOnBean(t *testing.T) {
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, nil)
 		cond := OnBean[any]("b")
 		ok, err := cond.Matches(ctx)
-		assert.Nil(t, err)
-		assert.False(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).False()
 	})
 
 	t.Run("return error", func(t *testing.T) {
@@ -257,7 +257,7 @@ func TestOnBean(t *testing.T) {
 		cond := OnBean[any]("b")
 		ok, err := cond.Matches(ctx)
 		assert.ThatError(t, err).Matches("test error")
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 }
 
@@ -270,8 +270,8 @@ func TestOnMissingBean(t *testing.T) {
 		ctx.EXPECT().Find(gomock.Any()).Return(nil, nil)
 		cond := OnMissingBean[any]("bean1")
 		ok, err := cond.Matches(ctx)
-		assert.Nil(t, err)
-		assert.True(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
 	})
 
 	t.Run("found bean", func(t *testing.T) {
@@ -281,8 +281,8 @@ func TestOnMissingBean(t *testing.T) {
 		ctx.EXPECT().Find(gomock.Any()).Return([]gs.CondBean{nil}, nil)
 		cond := OnMissingBean[any]("bean1")
 		ok, err := cond.Matches(ctx)
-		assert.Nil(t, err)
-		assert.False(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).False()
 	})
 
 	t.Run("return error", func(t *testing.T) {
@@ -293,7 +293,7 @@ func TestOnMissingBean(t *testing.T) {
 		cond := OnMissingBean[any]("b")
 		ok, err := cond.Matches(ctx)
 		assert.ThatError(t, err).Matches("test error")
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 }
 
@@ -306,7 +306,7 @@ func TestOnSingleBean(t *testing.T) {
 		ctx.EXPECT().Find(gomock.Any()).Return([]gs.CondBean{nil}, nil)
 		cond := OnSingleBean[any]("b")
 		ok, _ := cond.Matches(ctx)
-		assert.True(t, ok)
+		assert.That(t, ok).True()
 	})
 
 	t.Run("found two beans", func(t *testing.T) {
@@ -316,7 +316,7 @@ func TestOnSingleBean(t *testing.T) {
 		ctx.EXPECT().Find(gomock.Any()).Return([]gs.CondBean{nil, nil}, nil)
 		cond := OnSingleBean[any]("b")
 		ok, _ := cond.Matches(ctx)
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 
 	t.Run("return error", func(t *testing.T) {
@@ -327,7 +327,7 @@ func TestOnSingleBean(t *testing.T) {
 		cond := OnSingleBean[any]("b")
 		ok, err := cond.Matches(ctx)
 		assert.ThatError(t, err).Matches("test error")
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 }
 
@@ -337,7 +337,7 @@ func TestOnExpression(t *testing.T) {
 	ctx := NewMockCondContext(ctrl)
 	cond := OnExpression("1+1==2")
 	_, err := cond.Matches(ctx)
-	assert.True(t, errors.Is(err, util.ErrUnimplementedMethod))
+	assert.That(t, errors.Is(err, util.ErrUnimplementedMethod)).True()
 }
 
 func TestNot(t *testing.T) {
@@ -345,15 +345,15 @@ func TestNot(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
 		cond := Not(trueCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.False(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).False()
 	})
 
 	t.Run("false", func(t *testing.T) {
 		cond := Not(falseCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.True(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
 	})
 
 	t.Run("return error", func(t *testing.T) {
@@ -364,7 +364,7 @@ func TestNot(t *testing.T) {
 		cond := OnSingleBean[any]("b")
 		ok, err := Not(cond).Matches(ctx)
 		assert.ThatError(t, err).Matches("test error")
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 }
 
@@ -372,7 +372,7 @@ func TestAnd(t *testing.T) {
 
 	t.Run("nil", func(t *testing.T) {
 		cond := And()
-		assert.Nil(t, cond)
+		assert.That(t, cond)
 	})
 
 	t.Run("one condition", func(t *testing.T) {
@@ -383,15 +383,15 @@ func TestAnd(t *testing.T) {
 	t.Run("two conditions | true", func(t *testing.T) {
 		cond := And(trueCond, trueCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.True(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
 	})
 
 	t.Run("two conditions | false", func(t *testing.T) {
 		cond := And(trueCond, falseCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.False(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).False()
 	})
 
 	t.Run("return error", func(t *testing.T) {
@@ -402,7 +402,7 @@ func TestAnd(t *testing.T) {
 		cond := OnSingleBean[any]("b")
 		ok, err := And(cond, trueCond).Matches(ctx)
 		assert.ThatError(t, err).Matches("test error")
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 }
 
@@ -410,7 +410,7 @@ func TestOr(t *testing.T) {
 
 	t.Run("nil", func(t *testing.T) {
 		cond := Or()
-		assert.Nil(t, cond)
+		assert.That(t, cond).Nil()
 	})
 
 	t.Run("one condition", func(t *testing.T) {
@@ -421,15 +421,15 @@ func TestOr(t *testing.T) {
 	t.Run("two conditions | true", func(t *testing.T) {
 		cond := Or(trueCond, falseCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.True(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
 	})
 
 	t.Run("two conditions | false", func(t *testing.T) {
 		cond := Or(falseCond, falseCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.False(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).False()
 	})
 
 	t.Run("return error", func(t *testing.T) {
@@ -440,7 +440,7 @@ func TestOr(t *testing.T) {
 		cond := OnSingleBean[any]("b")
 		ok, err := Or(cond, trueCond).Matches(ctx)
 		assert.ThatError(t, err).Matches("test error")
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 }
 
@@ -448,28 +448,28 @@ func TestNone(t *testing.T) {
 
 	t.Run("nil", func(t *testing.T) {
 		cond := None()
-		assert.Nil(t, cond)
+		assert.That(t, cond).Nil()
 	})
 
 	t.Run("one condition", func(t *testing.T) {
 		cond := None(trueCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.False(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).False()
 	})
 
 	t.Run("two conditions | false", func(t *testing.T) {
 		cond := None(trueCond, falseCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.False(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).False()
 	})
 
 	t.Run("two conditions | true", func(t *testing.T) {
 		cond := None(falseCond, falseCond)
 		ok, err := cond.Matches(nil)
-		assert.Nil(t, err)
-		assert.True(t, ok)
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
 	})
 
 	t.Run("return error", func(t *testing.T) {
@@ -480,6 +480,6 @@ func TestNone(t *testing.T) {
 		cond := OnSingleBean[any]("b")
 		ok, err := None(cond, trueCond).Matches(ctx)
 		assert.ThatError(t, err).Matches("test error")
-		assert.False(t, ok)
+		assert.That(t, ok).False()
 	})
 }

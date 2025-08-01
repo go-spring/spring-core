@@ -21,8 +21,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/util"
-	"github.com/lvan100/go-assert"
 )
 
 func TestPatchValue(t *testing.T) {

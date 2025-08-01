@@ -24,8 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/lvan100/go-assert"
 )
 
 type MockPanicRefreshable struct{}
@@ -51,7 +51,7 @@ func TestValue(t *testing.T) {
 	err := refresh(conf.Map(map[string]any{
 		"key": "42",
 	}))
-	assert.Nil(t, err)
+	assert.That(t, err).Nil()
 	assert.That(t, v.Value()).Equal(42)
 
 	err = refresh(conf.Map(map[string]any{
@@ -80,13 +80,13 @@ func TestValue(t *testing.T) {
 	err = refresh(conf.Map(map[string]any{
 		"key": 59,
 	}))
-	assert.Nil(t, err)
+	assert.That(t, err).Nil()
 
 	wg.Wait()
 
 	b, err := json.Marshal(map[string]any{"key": &v})
-	assert.Nil(t, err)
-	assert.ThatString(t, string(b)).JsonEqual(`{"key":59}`)
+	assert.That(t, err).Nil()
+	assert.ThatString(t, string(b)).JSONEqual(`{"key":59}`)
 }
 
 func TestDync(t *testing.T) {
@@ -117,12 +117,12 @@ func TestDync(t *testing.T) {
 			"config.s1.value": "99",
 		})
 		err := p.Refresh(prop)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, p.Data()).Equal(prop)
 
 		var v int
 		err = p.RefreshField(reflect.ValueOf(&v), conf.BindParam{Key: "config.s1.value"})
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, v).Equal(99)
 		assert.That(t, p.ObjectsCount()).Equal(0)
 
@@ -136,7 +136,7 @@ func TestDync(t *testing.T) {
 		}
 
 		err = p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"})
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, p.ObjectsCount()).Equal(2)
 		assert.That(t, cfg.S1.Value.Value()).Equal(99)
 		assert.That(t, cfg.S2.Value.Value()).Equal(123)
@@ -147,7 +147,7 @@ func TestDync(t *testing.T) {
 			"config.s4.value": "123",
 		})
 		err = p.Refresh(prop)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, p.ObjectsCount()).Equal(2)
 		assert.That(t, cfg.S1.Value.Value()).Equal(99)
 		assert.That(t, cfg.S2.Value.Value()).Equal(456)
@@ -158,7 +158,7 @@ func TestDync(t *testing.T) {
 			"config.s3.value": "xyz",
 		})
 		err = p.Refresh(prop)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, p.ObjectsCount()).Equal(2)
 		assert.That(t, cfg.S1.Value.Value()).Equal(99)
 		assert.That(t, cfg.S2.Value.Value()).Equal(456)
@@ -174,7 +174,7 @@ func TestDync(t *testing.T) {
 
 		s1 := &Value[string]{}
 		err = p.RefreshField(reflect.ValueOf(s1), conf.BindParam{Key: "config.s3.value"})
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s1.Value()).Equal("xyz")
 		assert.That(t, p.ObjectsCount()).Equal(3)
 
@@ -197,10 +197,10 @@ func TestDync(t *testing.T) {
 
 		var param conf.BindParam
 		err := param.BindTag("${config}", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		err = p.RefreshField(reflect.ValueOf(v), param)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, v.Value().S1.Value).Equal(99)
 
 		err = p.Refresh(conf.Map(map[string]any{
@@ -211,7 +211,7 @@ func TestDync(t *testing.T) {
 		err = p.Refresh(conf.Map(map[string]any{
 			"config.s1.value": "10",
 		}))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, v.Value().S1.Value).Equal(10)
 	})
 }

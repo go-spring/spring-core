@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lvan100/go-assert"
+	"github.com/go-spring/gs-assert/assert"
 )
 
 func TestRead(t *testing.T) {
@@ -43,7 +43,7 @@ func TestRead(t *testing.T) {
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"empty":   "",
 			"bool":    false,
@@ -66,7 +66,7 @@ func TestRead(t *testing.T) {
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"map": map[any]any{
 				"bool":   false,
@@ -93,7 +93,7 @@ func TestRead(t *testing.T) {
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"array": []any{
 				map[any]any{
@@ -128,7 +128,7 @@ func TestRead(t *testing.T) {
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"map": map[any]any{
 				"k1": map[any]any{
@@ -154,7 +154,7 @@ func TestRead(t *testing.T) {
 		`
 		str = strings.ReplaceAll(str, "\t", "  ")
 		r, err := Read([]byte(str))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"array": []any{},
 			"map":   map[any]any{},

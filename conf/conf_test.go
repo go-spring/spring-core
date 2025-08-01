@@ -21,15 +21,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/lvan100/go-assert"
 )
 
 func TestProperties_Load(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		p, err := conf.Load("./testdata/config/app.properties")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, p.Data()).Equal(map[string]string{
 			"properties.list[0]":          "1",
 			"properties.list[1]":          "2",
@@ -63,7 +63,7 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		})
 		s, err := p.Resolve("${a.b.c[0]}")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s).Equal("3")
 	})
 
@@ -72,14 +72,14 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		})
 		s, err := p.Resolve("${x:=${a.b.c[0]}}")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s).Equal("3")
 	})
 
 	t.Run("default", func(t *testing.T) {
 		p := conf.New()
 		s, err := p.Resolve("${a.b.c:=123}")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s).Equal("123")
 	})
 
@@ -124,8 +124,8 @@ func TestProperties_CopyTo(t *testing.T) {
 			"a.b.c[0]",
 		})
 
-		assert.True(t, p.Has("a.b.c"))
-		assert.True(t, p.Has("a.b.c[0]"))
+		assert.That(t, p.Has("a.b.c")).True()
+		assert.That(t, p.Has("a.b.c[0]")).True()
 		assert.That(t, p.Get("a.b.c[0]")).Equal("3")
 		assert.That(t, p.Data()).Equal(map[string]string{
 			"a.b.c[0]": "3",
@@ -139,16 +139,16 @@ func TestProperties_CopyTo(t *testing.T) {
 			"a.b.c[1]",
 		})
 
-		assert.True(t, s.Has("a.b.c"))
-		assert.True(t, s.Has("a.b.c[0]"))
-		assert.True(t, s.Has("a.b.c[1]"))
+		assert.That(t, s.Has("a.b.c")).True()
+		assert.That(t, s.Has("a.b.c[0]")).True()
+		assert.That(t, s.Has("a.b.c[1]")).True()
 		assert.That(t, s.Data()).Equal(map[string]string{
 			"a.b.c[0]": "4",
 			"a.b.c[1]": "5",
 		})
 
 		err := p.CopyTo(s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.Data()).Equal(map[string]string{
 			"a.b.c[0]": "3",
 			"a.b.c[1]": "5",

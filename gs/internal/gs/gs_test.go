@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/lvan100/go-assert"
+	"github.com/go-spring/gs-assert/assert"
 	"go.uber.org/mock/gomock"
 )
 

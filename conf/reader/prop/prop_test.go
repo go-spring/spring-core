@@ -19,7 +19,7 @@ package prop
 import (
 	"testing"
 
-	"github.com/lvan100/go-assert"
+	"github.com/go-spring/gs-assert/assert"
 )
 
 func TestRead(t *testing.T) {
@@ -34,7 +34,7 @@ func TestRead(t *testing.T) {
 			date=2018-02-17
 			time=2018-02-17T15:02:31+08:00
 		`))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"empty":  "",
 			"bool":   "false",
@@ -53,7 +53,7 @@ func TestRead(t *testing.T) {
 			map.float=3.0
 			map.string=hello
 		`))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"map.bool":   "false",
 			"map.int":    "3",
@@ -73,7 +73,7 @@ func TestRead(t *testing.T) {
 			array[1].float=0.2
 			array[1].string=hello
 		`))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"array[0].bool":   "false",
 			"array[0].int":    "3",
@@ -98,7 +98,7 @@ func TestRead(t *testing.T) {
 			map.k2.float=0.2
 			map.k2.string=hello
 		`))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, r).Equal(map[string]any{
 			"map.k1.bool":   "false",
 			"map.k1.int":    "3",

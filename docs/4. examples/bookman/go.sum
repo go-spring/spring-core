@@ -2,6 +2,10 @@ github.com/expr-lang/expr v1.17.2 h1:o0A99O/Px+/DTjEnQiodAgOIK9PPxL8DtXhBRKC+Iso
 github.com/expr-lang/expr v1.17.2/go.mod h1:8/vRC7+7HBzESEqt5kKpYXxrxkr31SaO8r40VO/1IT4=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
+github.com/go-spring/gs-assert v1.0.2 h1:9vDppl7ZwMvQE4c83ac7GzN0VxZC5BrQue7dND7NclQ=
+github.com/go-spring/gs-assert v1.0.2/go.mod h1:FfibkqWz4HUBpbig1cKMlzW8Ha7RywTB93f1Q/NuF9I=
+github.com/go-spring/log v0.0.2 h1:Apt5hjV5kBjm+jxYzYkLBMEBUt9x7xw/7zINljMENFo=
+github.com/go-spring/log v0.0.2/go.mod h1:aKAsCR5Fv4WyFBtNtHNZV4YmitRutJ1Wh9fRI/IiHZM=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=

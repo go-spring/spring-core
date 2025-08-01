@@ -23,9 +23,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
-	"github.com/lvan100/go-assert"
 )
 
 func TestBoot(t *testing.T) {
@@ -36,7 +36,7 @@ func TestBoot(t *testing.T) {
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		err := boot.Run()
-		assert.Nil(t, err)
+		assert.ThatError(t, err).Nil()
 	})
 
 	t.Run("config refresh error", func(t *testing.T) {
@@ -78,6 +78,6 @@ func TestBoot(t *testing.T) {
 		boot.Register(bd)
 		boot.Config().LocalFile.Reset()
 		err := boot.Run()
-		assert.Nil(t, err)
+		assert.ThatError(t, err).Nil()
 	})
 }

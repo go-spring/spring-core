@@ -24,38 +24,38 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/util"
-	"github.com/lvan100/go-assert"
 )
 
 func TestIsErrorType(t *testing.T) {
 	err := fmt.Errorf("error")
-	assert.True(t, util.IsErrorType(reflect.TypeOf(err)))
+	assert.That(t, util.IsErrorType(reflect.TypeOf(err))).True()
 	err = os.ErrClosed
-	assert.True(t, util.IsErrorType(reflect.TypeOf(err)))
-	assert.False(t, util.IsErrorType(reflect.TypeFor[int]()))
+	assert.That(t, util.IsErrorType(reflect.TypeOf(err))).True()
+	assert.That(t, util.IsErrorType(reflect.TypeFor[int]())).False()
 }
 
 func TestReturnNothing(t *testing.T) {
-	assert.True(t, util.ReturnNothing(reflect.TypeOf(func() {})))
-	assert.True(t, util.ReturnNothing(reflect.TypeOf(func(key string) {})))
-	assert.False(t, util.ReturnNothing(reflect.TypeOf(func() string { return "" })))
+	assert.That(t, util.ReturnNothing(reflect.TypeOf(func() {}))).True()
+	assert.That(t, util.ReturnNothing(reflect.TypeOf(func(key string) {}))).True()
+	assert.That(t, util.ReturnNothing(reflect.TypeOf(func() string { return "" }))).False()
 }
 
 func TestReturnOnlyError(t *testing.T) {
-	assert.True(t, util.ReturnOnlyError(reflect.TypeOf(func() error { return nil })))
-	assert.True(t, util.ReturnOnlyError(reflect.TypeOf(func(string) error { return nil })))
-	assert.False(t, util.ReturnOnlyError(reflect.TypeOf(func() (string, error) { return "", nil })))
+	assert.That(t, util.ReturnOnlyError(reflect.TypeOf(func() error { return nil }))).True()
+	assert.That(t, util.ReturnOnlyError(reflect.TypeOf(func(string) error { return nil }))).True()
+	assert.That(t, util.ReturnOnlyError(reflect.TypeOf(func() (string, error) { return "", nil }))).False()
 }
 
 func TestIsConstructor(t *testing.T) {
-	assert.False(t, util.IsConstructor(reflect.TypeFor[int]()))
-	assert.False(t, util.IsConstructor(reflect.TypeOf(func() {})))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() string { return "" })))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *string { return nil })))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() *receiver { return nil })))
-	assert.True(t, util.IsConstructor(reflect.TypeOf(func() (*receiver, error) { return nil, nil })))
-	assert.False(t, util.IsConstructor(reflect.TypeOf(func() (bool, *receiver, error) { return false, nil, nil })))
+	assert.That(t, util.IsConstructor(reflect.TypeFor[int]())).False()
+	assert.That(t, util.IsConstructor(reflect.TypeOf(func() {}))).False()
+	assert.That(t, util.IsConstructor(reflect.TypeOf(func() string { return "" }))).True()
+	assert.That(t, util.IsConstructor(reflect.TypeOf(func() *string { return nil }))).True()
+	assert.That(t, util.IsConstructor(reflect.TypeOf(func() *receiver { return nil }))).True()
+	assert.That(t, util.IsConstructor(reflect.TypeOf(func() (*receiver, error) { return nil, nil }))).True()
+	assert.That(t, util.IsConstructor(reflect.TypeOf(func() (bool, *receiver, error) { return false, nil, nil }))).False()
 }
 
 func TestIsPropBindingTarget(t *testing.T) {
@@ -157,13 +157,13 @@ func TestIsBeanType(t *testing.T) {
 }
 
 func TestIsBeanInjectionTarget(t *testing.T) {
-	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf("abc")))
-	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf(new(string))))
-	assert.True(t, util.IsBeanInjectionTarget(reflect.TypeOf(errors.New("abc"))))
-	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf([]string{})))
-	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf([]*string{})))
-	assert.True(t, util.IsBeanInjectionTarget(reflect.TypeOf([]fmt.Stringer{})))
-	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]string{})))
-	assert.False(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]*string{})))
-	assert.True(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]fmt.Stringer{})))
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf("abc"))).False()
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf(new(string)))).False()
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf(errors.New("abc")))).True()
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf([]string{}))).False()
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf([]*string{}))).False()
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf([]fmt.Stringer{}))).True()
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]string{}))).False()
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]*string{}))).False()
+	assert.That(t, util.IsBeanInjectionTarget(reflect.TypeOf(map[string]fmt.Stringer{}))).True()
 }
