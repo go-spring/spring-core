@@ -48,7 +48,7 @@ func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 	var err error
 	defer func() {
 		if err != nil {
-			log.Errorf(context.Background(), log.TagApp, "app run failed: %v", err)
+			log.Errorf(context.Background(), log.TagAppDef, "app run failed: %v", err)
 		}
 	}()
 	if err = s.initApp(); err != nil {

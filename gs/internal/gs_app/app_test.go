@@ -39,7 +39,7 @@ var logBuf = &bytes.Buffer{}
 
 func init() {
 	goutil.OnPanic = func(ctx context.Context, r any) {
-		log.Panicf(ctx, log.TagDef, "panic: %v\n%s\n", r, debug.Stack())
+		log.Panicf(ctx, log.TagAppDef, "panic: %v\n%s\n", r, debug.Stack())
 	}
 }
 
