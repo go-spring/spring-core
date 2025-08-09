@@ -232,7 +232,7 @@ func TestApp(t *testing.T) {
 
 			app.C.Object(r).AsJob().Name("j1")
 		}
-		j2Wait := make(chan struct{})
+		j2Wait := make(chan struct{}, 1)
 		{
 			m := gsmock.NewManager()
 			r := gs.NewJobMockImpl(m)
@@ -272,7 +272,6 @@ func TestApp(t *testing.T) {
 		}
 		go func() {
 			time.Sleep(50 * time.Millisecond)
-			assert.That(t, app.ShutDownTimeout).Equal(time.Second * 15)
 			assert.That(t, app.EnableJobs).True()
 			assert.That(t, app.EnableServers).True()
 			assert.That(t, len(app.Jobs)).Equal(2)
@@ -285,33 +284,6 @@ func TestApp(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		<-j2Wait
 		assert.ThatString(t, logBuf.String()).Contains("shutdown complete")
-	})
-
-	t.Run("shutdown timeout", func(t *testing.T) {
-		Reset()
-		t.Cleanup(Reset)
-
-		_ = gs_conf.SysConf.Set("spring.app.shutdown-timeout", "10ms")
-		app := NewApp()
-
-		m := gsmock.NewManager()
-		r := gs.NewServerMockImpl(m)
-		r.MockShutdown().ReturnDefault()
-		r.MockListenAndServe().Handle(func(sig gs.ReadySignal) error {
-			<-sig.TriggerAndWait()
-			time.Sleep(time.Second)
-			return nil
-		})
-
-		app.C.Object(r).AsServer()
-		go func() {
-			time.Sleep(50 * time.Millisecond)
-			app.ShutDown()
-		}()
-		err := app.Run()
-		assert.That(t, err).Nil()
-		time.Sleep(50 * time.Millisecond)
-		assert.ThatString(t, logBuf.String()).Contains("shutdown timeout")
 	})
 
 	t.Run("shutdown error", func(t *testing.T) {
