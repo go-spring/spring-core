@@ -25,11 +25,6 @@ import (
 
 type AppStarter struct{}
 
-// Run runs the app and waits for an interrupt signal to exit.
-func (s *AppStarter) Run() {
-	s.RunWith(nil)
-}
-
 // initApp initializes the app.
 func (s *AppStarter) initApp() error {
 	printBanner()
@@ -43,6 +38,11 @@ func (s *AppStarter) initApp() error {
 	return nil
 }
 
+// Run runs the app and waits for an interrupt signal to exit.
+func (s *AppStarter) Run() {
+	s.RunWith(nil)
+}
+
 // RunWith runs the app with a given function and waits for an interrupt signal to exit.
 func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 	var err error
@@ -54,7 +54,10 @@ func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 	if err = s.initApp(); err != nil {
 		return
 	}
-	err = gs_app.GS.RunWith(fn)
+	if err = gs_app.GS.RunWith(fn); err != nil {
+		return
+	}
+	log.Destroy()
 }
 
 // RunAsync runs the app asynchronously and returns a function to stop the app.
@@ -65,5 +68,8 @@ func (s *AppStarter) RunAsync() (func(), error) {
 	if err := gs_app.GS.Start(); err != nil {
 		return nil, err
 	}
-	return func() { gs_app.GS.Stop() }, nil
+	return func() {
+		gs_app.GS.Stop()
+		log.Destroy()
+	}, nil
 }
