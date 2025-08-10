@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Go-Spring Authors.
+ * Copyright 2025 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,22 @@
  * limitations under the License.
  */
 
-package gs_cond
+package util
 
 import (
-	"strconv"
-	"testing"
-
-	"github.com/go-spring/gs-assert/assert"
+	"os"
 )
 
-func TestEvalExpr(t *testing.T) {
-	_, err := EvalExpr("$", "3")
-	assert.ThatError(t, err).Matches("doesn't return bool value")
-
-	ok, err := EvalExpr("int($)==3", "3")
-	assert.That(t, err).Nil()
-	assert.That(t, ok).True()
-
-	RegisterExpressFunc("equal", func(s string, i int) bool {
-		return s == strconv.Itoa(i)
-	})
-	ok, err = EvalExpr("equal($,9)", "9")
-	assert.That(t, err).Nil()
-	assert.That(t, ok).True()
+// PathExists checks whether the specified file or directory exists.
+// Returns true if the path exists, false if it does not exist,
+// and an error if the check fails for another reason (e.g., permission denied).
+func PathExists(file string) (bool, error) {
+	_, err := os.Stat(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

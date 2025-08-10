@@ -20,8 +20,8 @@ import (
 	"container/list"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/util"
-	"github.com/lvan100/go-assert"
 )
 
 func TestTripleSort(t *testing.T) {
@@ -29,7 +29,7 @@ func TestTripleSort(t *testing.T) {
 	t.Run("empty list", func(t *testing.T) {
 		sorting := list.New()
 		sorted, err := TripleSort(sorting, nil)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, sorted.Len()).Equal(0)
 	})
 
@@ -39,7 +39,7 @@ func TestTripleSort(t *testing.T) {
 		}
 		sorting := util.ListOf("A")
 		sorted, err := TripleSort(sorting, getBefore)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, sorted.Len()).Equal(1)
 		assert.That(t, sorted.Front().Value).Equal("A")
 	})
@@ -51,7 +51,7 @@ func TestTripleSort(t *testing.T) {
 		}
 		sorting := util.ListOf("A", "B", "C")
 		sorted, err := TripleSort(sorting, getBefore)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"A", "B", "C"})
 	})
 
@@ -69,7 +69,7 @@ func TestTripleSort(t *testing.T) {
 		}
 		sorting := util.ListOf("A", "B", "C")
 		sorted, err := TripleSort(sorting, getBefore)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
 	})
 
@@ -88,7 +88,7 @@ func TestTripleSort(t *testing.T) {
 		}
 		sorting := util.ListOf("A", "B", "C")
 		sorted, err := TripleSort(sorting, getBefore)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
 	})
 

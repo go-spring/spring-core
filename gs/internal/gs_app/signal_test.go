@@ -20,7 +20,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/lvan100/go-assert"
+	"github.com/go-spring/gs-assert/assert"
 )
 
 func TestReadySignal(t *testing.T) {
@@ -42,7 +42,7 @@ func TestReadySignal(t *testing.T) {
 		}
 
 		signal.Wait()
-		assert.True(t, signal.Intercepted())
+		assert.That(t, signal.Intercepted()).True()
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestReadySignal(t *testing.T) {
 		}
 
 		signal.Wait()
-		assert.False(t, signal.Intercepted())
+		assert.That(t, signal.Intercepted()).False()
 
 		signal.Close()
 	})

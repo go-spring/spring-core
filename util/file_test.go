@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Go-Spring Authors.
+ * Copyright 2025 The Go-Spring Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,21 @@
  * limitations under the License.
  */
 
-package gs_cond
+package util_test
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-core/util"
 )
 
-func TestEvalExpr(t *testing.T) {
-	_, err := EvalExpr("$", "3")
-	assert.ThatError(t, err).Matches("doesn't return bool value")
-
-	ok, err := EvalExpr("int($)==3", "3")
+func TestPathExists(t *testing.T) {
+	exists, err := util.PathExists("file.go")
 	assert.That(t, err).Nil()
-	assert.That(t, ok).True()
+	assert.That(t, exists).True()
 
-	RegisterExpressFunc("equal", func(s string, i int) bool {
-		return s == strconv.Itoa(i)
-	})
-	ok, err = EvalExpr("equal($,9)", "9")
+	exists, err = util.PathExists("file_not_exist.go")
 	assert.That(t, err).Nil()
-	assert.That(t, ok).True()
+	assert.That(t, exists).False()
 }

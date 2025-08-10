@@ -21,9 +21,9 @@ import (
 
 	"bookman/src/dao/book_dao"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/gs"
 	"github.com/go-spring/spring-core/gs/gstest"
-	"github.com/lvan100/go-assert"
 )
 
 func init() {

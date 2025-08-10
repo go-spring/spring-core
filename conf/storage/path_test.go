@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/lvan100/go-assert"
+	"github.com/go-spring/gs-assert/assert"
 )
 
 func TestSplitPath(t *testing.T) {

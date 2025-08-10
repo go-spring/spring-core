@@ -25,7 +25,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 
 	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
@@ -55,8 +54,6 @@ type App struct {
 
 	EnableJobs    bool `value:"${spring.app.enable-jobs:=true}"`
 	EnableServers bool `value:"${spring.app.enable-servers:=true}"`
-
-	ShutDownTimeout time.Duration `value:"${spring.app.shutdown-timeout:=15s}"`
 }
 
 // NewApp creates and initializes a new application instance.
@@ -97,7 +94,7 @@ func (app *App) RunWith(fn func(ctx context.Context) error) error {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		sig := <-ch
-		log.Infof(context.Background(), log.TagApp, "Received signal: %v", sig)
+		log.Infof(context.Background(), log.TagAppDef, "Received signal: %v", sig)
 		app.ShutDown()
 	}()
 
@@ -137,7 +134,9 @@ func (app *App) Start() error {
 	// runs all jobs
 	if app.EnableJobs {
 		for _, job := range app.Jobs {
+			app.wg.Add(1)
 			goutil.GoFunc(func() {
+				defer app.wg.Done()
 				defer func() {
 					if r := recover(); r != nil {
 						app.ShutDown()
@@ -145,7 +144,7 @@ func (app *App) Start() error {
 					}
 				}()
 				if err := job.Run(app.ctx); err != nil {
-					log.Errorf(context.Background(), log.TagApp, "job run error: %v", err)
+					log.Errorf(context.Background(), log.TagAppDef, "job run error: %v", err)
 					app.ShutDown()
 				}
 			})
@@ -169,7 +168,7 @@ func (app *App) Start() error {
 				}()
 				err := svr.ListenAndServe(sig)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.Errorf(context.Background(), log.TagApp, "server serve error: %v", err)
+					log.Errorf(context.Background(), log.TagAppDef, "server serve error: %v", err)
 					sig.Intercept()
 					app.ShutDown()
 				}
@@ -179,7 +178,7 @@ func (app *App) Start() error {
 		if sig.Intercepted() {
 			return nil
 		}
-		log.Infof(context.Background(), log.TagApp, "ready to serve requests")
+		log.Infof(context.Background(), log.TagAppDef, "ready to serve requests")
 		sig.Close()
 	}
 	return nil
@@ -188,29 +187,16 @@ func (app *App) Start() error {
 // Stop gracefully shuts down the application, ensuring all servers and
 // resources are properly closed.
 func (app *App) Stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), app.ShutDownTimeout)
-	defer cancel()
-
-	waitChan := make(chan struct{})
-	goutil.GoFunc(func() {
-		for _, svr := range app.Servers {
-			goutil.GoFunc(func() {
-				if err := svr.Shutdown(ctx); err != nil {
-					log.Errorf(context.Background(), log.TagApp, "shutdown server failed: %v", err)
-				}
-			})
-		}
-		app.wg.Wait()
-		app.C.Close()
-		waitChan <- struct{}{}
-	})
-
-	select {
-	case <-waitChan:
-		log.Infof(context.Background(), log.TagApp, "shutdown complete")
-	case <-ctx.Done():
-		log.Infof(context.Background(), log.TagApp, "shutdown timeout")
+	for _, svr := range app.Servers {
+		goutil.GoFunc(func() {
+			if err := svr.Shutdown(app.ctx); err != nil {
+				log.Errorf(context.Background(), log.TagAppDef, "shutdown server failed: %v", err)
+			}
+		})
 	}
+	app.wg.Wait()
+	app.C.Close()
+	log.Infof(context.Background(), log.TagAppDef, "shutdown complete")
 }
 
 // Exiting returns a boolean indicating whether the application is exiting.

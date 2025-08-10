@@ -20,8 +20,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/util/errutil"
-	"github.com/lvan100/go-assert"
 )
 
 func TestWrapError(t *testing.T) {
@@ -30,13 +30,13 @@ func TestWrapError(t *testing.T) {
 	err = os.ErrNotExist
 	err = errutil.WrapError(err, "open file error: file=%s", "test.php")
 	err = errutil.WrapError(err, "read file error")
-	assert.NotNil(t, err)
+	assert.That(t, err).NotNil()
 	assert.That(t, err.Error()).Equal(`read file error << open file error: file=test.php << file does not exist`)
 
 	errutil.LineBreak = " / "
 	err = os.ErrNotExist
 	err = errutil.WrapError(err, "open file error: file=%s", "test.php")
 	err = errutil.WrapError(err, "read file error")
-	assert.NotNil(t, err)
+	assert.That(t, err).NotNil()
 	assert.That(t, err.Error()).Equal(`read file error / open file error: file=test.php / file does not exist`)
 }

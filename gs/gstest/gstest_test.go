@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/gs/gstest"
 	"github.com/go-spring/spring-core/gs/gstest/testdata/app"
 	"github.com/go-spring/spring-core/gs/gstest/testdata/biz"
-	"github.com/lvan100/go-assert"
 )
 
 func init() {
@@ -54,7 +54,7 @@ func TestGSTest(t *testing.T) {
 		App     *app.App     `autowire:""`
 		Service *biz.Service `autowire:""`
 	}))
-	assert.Nil(t, s.Service.Dao)
+	assert.That(t, s.Service.Dao).Nil()
 	assert.That(t, s.App.Name).Equal("test")
 	assert.That(t, s.Service.Hello("xyz")).Equal("hello xyz")
 }

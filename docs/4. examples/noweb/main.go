@@ -17,20 +17,23 @@
 package main
 
 import (
+	"context"
+	"os"
 	"time"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/util/syslog"
 )
 
 func main() {
 	// Disable the built-in HTTP service.
 	stopApp, err := gs.Web(false).RunAsync()
 	if err != nil {
-		syslog.Errorf("app run failed: %s", err.Error())
+		log.Errorf(context.Background(), log.TagApp, "app run failed: %s", err.Error())
+		os.Exit(1)
 	}
 
-	syslog.Infof("app started")
+	log.Infof(context.Background(), log.TagApp, "app started")
 	time.Sleep(time.Minute)
 
 	stopApp()

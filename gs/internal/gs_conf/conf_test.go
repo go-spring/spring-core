@@ -21,8 +21,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/lvan100/go-assert"
 )
 
 func clean() {
@@ -53,7 +53,7 @@ func TestAppConfig(t *testing.T) {
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-REMOTE_DIR", "./testdata/conf/remote")
 		p, err := NewAppConfig().Refresh()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, p.Data()).Equal(map[string]string{
 			"spring.app.config-local.dir":  "./testdata/conf",
 			"spring.app.config-remote.dir": "./testdata/conf/remote",
@@ -93,7 +93,7 @@ func TestBootConfig(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
 		p, err := NewBootConfig().Refresh()
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, p.Data()).Equal(map[string]string{
 			"spring.app.config-local.dir": "./testdata/conf",
 			"spring.app.name":             "test",
@@ -191,7 +191,7 @@ func TestPropertySources(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		dir, err := ps.getDefaultDir(conf.Map(nil))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, "./conf").Equal(dir)
 	})
 
@@ -199,7 +199,7 @@ func TestPropertySources(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources(ConfigTypeRemote, "app")
 		dir, err := ps.getDefaultDir(conf.Map(nil))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, "./conf/remote").Equal(dir)
 	})
 
@@ -207,7 +207,7 @@ func TestPropertySources(t *testing.T) {
 		t.Cleanup(clean)
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		files, err := ps.getFiles("./conf", conf.Map(nil))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, files).Equal([]string{
 			"./conf/app.properties",
 			"./conf/app.yaml",
@@ -225,7 +225,7 @@ func TestPropertySources(t *testing.T) {
 		})
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		files, err := ps.getFiles("./conf", p)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, files).Equal([]string{
 			"./conf/app.properties",
 			"./conf/app.yaml",
@@ -253,7 +253,7 @@ func TestPropertySources(t *testing.T) {
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		ps.AddFile("./testdata/conf/app.properties")
 		files, err := ps.loadFiles(conf.Map(nil))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, 1).Equal(len(files))
 	})
 

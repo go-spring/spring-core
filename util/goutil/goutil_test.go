@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/util/goutil"
-	"github.com/lvan100/go-assert"
 )
 
 func TestGo(t *testing.T) {
@@ -65,7 +65,7 @@ func TestGoValue(t *testing.T) {
 		return "hello world!", nil
 	}).Wait()
 	assert.That(t, s).Equal("hello world!")
-	assert.Nil(t, err)
+	assert.That(t, err).Nil()
 
 	var arr []*goutil.ValueStatus[int]
 	for i := range 3 {
@@ -78,6 +78,6 @@ func TestGoValue(t *testing.T) {
 	for i, g := range arr {
 		v, err = g.Wait()
 		assert.That(t, v).Equal(i)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 	}
 }

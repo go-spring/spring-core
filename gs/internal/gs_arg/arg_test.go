@@ -25,65 +25,61 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/gs-mock/gsmock"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
-	"github.com/lvan100/go-assert"
-	"go.uber.org/mock/gomock"
 )
 
 func TestTagArg(t *testing.T) {
 
 	t.Run("bind success", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		c := NewMockArgContext(ctrl)
-		c.EXPECT().Bind(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(v reflect.Value, s string) error {
-				v.SetString("3")
-				return nil
-			})
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockBind().Handle(func(v reflect.Value, s string) error {
+			v.SetString("3")
+			return nil
+		})
+
 		tag := Tag("${int:=3}")
 		v, err := tag.GetArgValue(c, reflect.TypeFor[string]())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, v.String()).Equal("3")
 	})
 
 	t.Run("bind error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		c := NewMockArgContext(ctrl)
-		c.EXPECT().Bind(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(v reflect.Value, s string) error {
-				return errors.New("bind error")
-			})
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockBind().Handle(func(v reflect.Value, s string) error {
+			return errors.New("bind error")
+		})
+
 		tag := Tag("${int:=3}")
 		_, err := tag.GetArgValue(c, reflect.TypeFor[string]())
 		assert.ThatError(t, err).Matches("GetArgValue error << bind error")
 	})
 
 	t.Run("wire success", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		c := NewMockArgContext(ctrl)
-		c.EXPECT().Wire(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(v reflect.Value, s string) error {
-				v.Set(reflect.ValueOf(&http.Server{Addr: ":9090"}))
-				return nil
-			})
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockWire().Handle(func(v reflect.Value, s string) error {
+			v.Set(reflect.ValueOf(&http.Server{Addr: ":9090"}))
+			return nil
+		})
+
 		tag := Tag("http-server")
 		v, err := tag.GetArgValue(c, reflect.TypeFor[*http.Server]())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, v.Interface().(*http.Server).Addr).Equal(":9090")
 	})
 
 	t.Run("wire error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		c := NewMockArgContext(ctrl)
-		c.EXPECT().Wire(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(v reflect.Value, s string) error {
-				return errors.New("wire error")
-			})
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockWire().Handle(func(v reflect.Value, s string) error {
+			return errors.New("wire error")
+		})
+
 		tag := Tag("server")
 		_, err := tag.GetArgValue(c, reflect.TypeFor[*bytes.Buffer]())
 		assert.ThatError(t, err).Matches("GetArgValue error << wire error")
@@ -109,14 +105,14 @@ func TestValueArg(t *testing.T) {
 	t.Run("zero", func(t *testing.T) {
 		tag := Value(nil)
 		v, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
-		assert.Nil(t, err)
-		assert.Nil(t, v.Interface())
+		assert.That(t, err).Nil()
+		assert.That(t, v.Interface())
 	})
 
 	t.Run("value", func(t *testing.T) {
 		tag := Value(&http.Server{Addr: ":9090"})
 		v, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, v.Interface().(*http.Server).Addr).Equal(":9090")
 	})
 
@@ -180,8 +176,8 @@ func TestArgList_New(t *testing.T) {
 			Value("test"),
 		}
 		argList, err := NewArgList(fnType, args)
-		assert.Nil(t, err)
-		assert.NotNil(t, argList)
+		assert.That(t, err).Nil()
+		assert.That(t, argList).NotNil()
 		assert.That(t, argList.args).Equal([]gs.Arg{
 			Value(1),
 			Value("test"),
@@ -195,8 +191,8 @@ func TestArgList_New(t *testing.T) {
 			Index(1, Value("test")),
 		}
 		argList, err := NewArgList(fnType, args)
-		assert.Nil(t, err)
-		assert.NotNil(t, argList)
+		assert.That(t, err).Nil()
+		assert.That(t, argList).NotNil()
 		assert.That(t, argList.args).Equal([]gs.Arg{
 			Value(1),
 			Value("test"),
@@ -211,8 +207,8 @@ func TestArgList_New(t *testing.T) {
 			Value("test2"),
 		}
 		argList, err := NewArgList(fnType, args)
-		assert.Nil(t, err)
-		assert.NotNil(t, argList)
+		assert.That(t, err).Nil()
+		assert.That(t, argList).NotNil()
 		assert.That(t, argList.args).Equal([]gs.Arg{
 			Value(1),
 			Value("test1"),
@@ -228,8 +224,8 @@ func TestArgList_New(t *testing.T) {
 			Index(1, Value("test2")),
 		}
 		argList, err := NewArgList(fnType, args)
-		assert.Nil(t, err)
-		assert.NotNil(t, argList)
+		assert.That(t, err).Nil()
+		assert.That(t, argList).NotNil()
 		assert.That(t, argList.args).Equal([]gs.Arg{
 			Value(1),
 			Value("test1"),
@@ -244,8 +240,8 @@ func TestArgList_New(t *testing.T) {
 			Index(1, Value("test2")),
 		}
 		argList, err := NewArgList(fnType, args)
-		assert.Nil(t, err)
-		assert.NotNil(t, argList)
+		assert.That(t, err).Nil()
+		assert.That(t, argList).NotNil()
 		assert.That(t, argList.args).Equal([]gs.Arg{
 			Tag(""),
 			Value("test1"),
@@ -263,11 +259,11 @@ func TestArgList_Get(t *testing.T) {
 			Value("test"),
 		}
 		argList, err := NewArgList(fnType, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		values, err := argList.get(ctx)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, 2).Equal(len(values))
 		assert.That(t, 1).Equal(values[0].Interface().(int))
 		assert.That(t, "test").Equal(values[1].Interface().(string))
@@ -281,11 +277,11 @@ func TestArgList_Get(t *testing.T) {
 			Value("test2"),
 		}
 		argList, err := NewArgList(fnType, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		values, err := argList.get(ctx)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, 3).Equal(len(values))
 		assert.That(t, 1).Equal(values[0].Interface().(int))
 		assert.That(t, "test1").Equal(values[1].Interface().(string))
@@ -299,9 +295,9 @@ func TestArgList_Get(t *testing.T) {
 			Value(2),
 		}
 		argList, err := NewArgList(fnType, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = argList.get(ctx)
 		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:int to type:string")
 	})
@@ -328,9 +324,9 @@ func TestCallable_New(t *testing.T) {
 			Value(2),
 		}
 		callable, err := NewCallable(fn, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = callable.Call(ctx)
 		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:int to type:string")
 	})
@@ -347,9 +343,9 @@ func TestCallable_Call(t *testing.T) {
 			Value(2),
 		}
 		callable, err := NewCallable(fn, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = callable.Call(ctx)
 		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:int to type:string")
 	})
@@ -361,11 +357,11 @@ func TestCallable_Call(t *testing.T) {
 			Value("test"),
 		}
 		callable, err := NewCallable(fn, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		v, err := callable.Call(ctx)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, len(v)).Equal(0)
 	})
 
@@ -378,11 +374,11 @@ func TestCallable_Call(t *testing.T) {
 			Value("test"),
 		}
 		callable, err := NewCallable(fn, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		v, err := callable.Call(ctx)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, 2).Equal(len(v))
 		assert.That(t, "").Equal(v[0].Interface().(string))
 		assert.That(t, "execution error").Equal(v[1].Interface().(error).Error())
@@ -397,11 +393,11 @@ func TestCallable_Call(t *testing.T) {
 			Value("test"),
 		}
 		callable, err := NewCallable(fn, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		v, err := callable.Call(ctx)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, len(v)).Equal(2)
 		assert.That(t, "1-test").Equal(v[0].Interface().(string))
 	})
@@ -415,11 +411,11 @@ func TestCallable_Call(t *testing.T) {
 			Value("test"),
 		}
 		callable, err := NewCallable(fn, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		v, err := callable.Call(ctx)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, len(v)).Equal(1)
 		assert.That(t, "1-test").Equal(v[0].Interface().(string))
 	})
@@ -434,11 +430,11 @@ func TestCallable_Call(t *testing.T) {
 			Value("test2"),
 		}
 		callable, err := NewCallable(fn, args)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		v, err := callable.Call(ctx)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, len(v)).Equal(1)
 		assert.That(t, "1-test1,test2").Equal(v[0].Interface().(string))
 	})
@@ -493,7 +489,7 @@ func TestBindArg_Bind(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		assert.ThatString(t, arg.fileline).Matches("gs/internal/gs_arg/arg_test.go:495")
+		assert.ThatString(t, arg.fileline).Matches("gs/internal/gs_arg/arg_test.go:491")
 	})
 
 	t.Run("success - 2", func(t *testing.T) {
@@ -505,7 +501,7 @@ func TestBindArg_Bind(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		assert.ThatString(t, arg.fileline).Matches("gs/internal/gs_arg/arg_test.go:507")
+		assert.ThatString(t, arg.fileline).Matches("gs/internal/gs_arg/arg_test.go:503")
 	})
 }
 
@@ -520,7 +516,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 			Value(2),
 		}
 		arg := Bind(fn, args...)
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		_, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
 		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:int to type:string")
 	})
@@ -534,9 +530,9 @@ func TestBindArg_GetArgValue(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		v, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, "1-test").Equal(v.Interface().(string))
 	})
 
@@ -549,7 +545,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		_, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
 		assert.ThatError(t, err).Matches("execution error")
 	})
@@ -563,9 +559,9 @@ func TestBindArg_GetArgValue(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		v, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, "1-test").Equal(v.Interface().(string))
 	})
 
@@ -579,15 +575,13 @@ func TestBindArg_GetArgValue(t *testing.T) {
 			Value("test2"),
 		}
 		arg := Bind(fn, args...)
-		ctx := NewMockArgContext(nil)
+		ctx := gs.NewArgContextMockImpl(nil)
 		v, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, "1-test1,test2").Equal(v.Interface().(string))
 	})
 
 	t.Run("error in condition", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 		fn := func(a int, b string) string {
 			return fmt.Sprintf("%d-%s", a, b)
 		}
@@ -599,19 +593,19 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		arg.Condition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
 			return false, errors.New("condition error")
 		}))
-		ctx := NewMockArgContext(ctrl)
-		ctx.EXPECT().Check(gomock.Any()).DoAndReturn(
-			func(c gs.Condition) (bool, error) {
-				ok, err := c.Matches(nil)
-				return ok, err
-			})
-		_, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
+
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockCheck().Handle(func(c gs.Condition) (bool, error) {
+			ok, err := c.Matches(nil)
+			return ok, err
+		})
+
+		_, err := arg.GetArgValue(c, reflect.TypeFor[string]())
 		assert.ThatError(t, err).Matches("condition error")
 	})
 
 	t.Run("condition return false", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 		fn := func(a int, b string) string {
 			return fmt.Sprintf("%d-%s", a, b)
 		}
@@ -623,20 +617,20 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		arg.Condition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
 			return false, nil
 		}))
-		ctx := NewMockArgContext(ctrl)
-		ctx.EXPECT().Check(gomock.Any()).DoAndReturn(
-			func(c gs.Condition) (bool, error) {
-				ok, err := c.Matches(nil)
-				return ok, err
-			})
-		v, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
-		assert.Nil(t, err)
-		assert.False(t, v.IsValid())
+
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockCheck().Handle(func(c gs.Condition) (bool, error) {
+			ok, err := c.Matches(nil)
+			return ok, err
+		})
+
+		v, err := arg.GetArgValue(c, reflect.TypeFor[string]())
+		assert.That(t, err).Nil()
+		assert.That(t, v.IsValid()).False()
 	})
 
 	t.Run("condition return true", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 		fn := func(a int, b string) string {
 			return fmt.Sprintf("%d-%s", a, b)
 		}
@@ -648,14 +642,16 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		arg.Condition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
 			return true, nil
 		}))
-		ctx := NewMockArgContext(ctrl)
-		ctx.EXPECT().Check(gomock.Any()).DoAndReturn(
-			func(c gs.Condition) (bool, error) {
-				ok, err := c.Matches(nil)
-				return ok, err
-			})
-		v, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
-		assert.Nil(t, err)
+
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockCheck().Handle(func(c gs.Condition) (bool, error) {
+			ok, err := c.Matches(nil)
+			return ok, err
+		})
+
+		v, err := arg.GetArgValue(c, reflect.TypeFor[string]())
+		assert.That(t, err).Nil()
 		assert.That(t, "1-test").Equal(v.Interface().(string))
 	})
 }

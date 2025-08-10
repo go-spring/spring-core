@@ -25,8 +25,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/lvan100/go-assert"
 	"github.com/spf13/cast"
 )
 
@@ -71,7 +71,7 @@ func TestConverter(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		err := conf.New().Bind(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.Time).Equal(time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC))
 		assert.That(t, s.Duration).Equal(10 * time.Second)
 	})
@@ -90,7 +90,7 @@ func TestSplitter(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		var points []image.Point
 		err := conf.New().Bind(&points, "${:=(1,2)(3,4)}>>PointSplitter")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, points).Equal([]image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
 	})
 
@@ -111,19 +111,19 @@ func TestParseTag(t *testing.T) {
 
 	t.Run("normal", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a}")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, tag.String()).Equal("${a}")
 	})
 
 	t.Run("default", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a:=123}")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, tag.String()).Equal("${a:=123}")
 	})
 
 	t.Run("splitter", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a:=1,2,3}>>splitter")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, tag.String()).Equal("${a:=1,2,3}>>splitter")
 	})
 
@@ -148,14 +148,14 @@ func TestBindParam(t *testing.T) {
 	t.Run("root", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${ROOT}", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, param).Equal(conf.BindParam{})
 	})
 
 	t.Run("normal", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${a:=1,2,3}>>splitter", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "a",
 			Path: "",
@@ -175,7 +175,7 @@ func TestBindParam(t *testing.T) {
 			Path: "Struct",
 		}
 		err := param.BindTag("${a:=1,2,3}>>splitter", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "s.a",
 			Path: "Struct",
@@ -192,7 +192,7 @@ func TestBindParam(t *testing.T) {
 	t.Run("default", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${:=1,2,3}>>splitter", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "",
 			Path: "",
@@ -276,7 +276,7 @@ func TestProperties_Bind(t *testing.T) {
 	t.Run("unnamed default", func(t *testing.T) {
 		var s UnnamedDefault
 		err := conf.New().Bind(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s).Equal(UnnamedDefault{
 			Strs: []string{"1", "2", "3"},
 			Ints: []int{},
@@ -440,7 +440,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Map(map[string]any{
 			"v": "123",
 		}).Bind(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.int).Equal(0)
 	})
 
@@ -457,14 +457,14 @@ func TestProperties_Bind(t *testing.T) {
 			io.Reader
 		}
 		err := conf.New().Bind(&s)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 	})
 
 	t.Run("reflect.Value", func(t *testing.T) {
 		var i int
 		v := reflect.ValueOf(&i).Elem()
 		err := conf.New().Bind(v, "${:=3}")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, i).Equal(3)
 	})
 
@@ -535,38 +535,38 @@ func TestProperties_Bind(t *testing.T) {
 		}
 
 		p, err := conf.Load("./testdata/config/app.yaml")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		err = p.Set("extra.intsV0", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		err = p.Set("extra.intsV2", "1,2,3")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		err = p.Set("prefix.extra.intsV2", "1,2,3")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		err = p.Set("extra.mapV2.a", "1")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		err = p.Set("extra.mapV2.b", "2")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		err = p.Set("prefix.extra.mapV2.a", "1")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		err = p.Set("prefix.extra.mapV2.b", "2")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		var c DBConfig
 		err = p.Bind(&c)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, c).Equal(expect)
 
 		err = p.Bind(&c, "${prefix}")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, c).Equal(expect)
 	})
 
 	t.Run("filter false", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${ROOT}", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		var s struct {
 			Value int `value:"${v:=3}"`
@@ -577,14 +577,14 @@ func TestProperties_Bind(t *testing.T) {
 			funcFilter(func(i any, param conf.BindParam) (bool, error) {
 				return false, nil
 			}))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.Value).Equal(3)
 	})
 
 	t.Run("filter true", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${ROOT}", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		var s struct {
 			Value int `value:"${v:=3}"`
@@ -595,14 +595,14 @@ func TestProperties_Bind(t *testing.T) {
 			funcFilter(func(i any, param conf.BindParam) (bool, error) {
 				return true, nil
 			}))
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.Value).Equal(0)
 	})
 
 	t.Run("filter error", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${ROOT}", "")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		var s struct {
 			Value int `value:"${v:=3}"`

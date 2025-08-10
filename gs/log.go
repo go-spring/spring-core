@@ -17,6 +17,7 @@
 package gs
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -37,10 +38,28 @@ func initLog() error {
 	if err = p.Bind(&c); err != nil {
 		return err
 	}
-	logFile := "log.xml"
+	var (
+		logFileDefault string
+		logFileProfile string
+	)
+	logFileDefault = filepath.Join(c.LocalDir, "log.xml")
 	if c.Profiles != "" {
 		profile := strings.Split(c.Profiles, ",")[0]
-		logFile = "log-" + profile + ".xml"
+		logFileProfile = filepath.Join(c.LocalDir, "log-"+profile+".xml")
 	}
-	return log.RefreshFile(filepath.Join(c.LocalDir, logFile))
+	var logFile string
+	for _, s := range []string{logFileProfile, logFileDefault} {
+		if _, err = os.Stat(s); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return err
+		}
+		logFile = s
+		break
+	}
+	if logFile == "" { // no log file exists
+		return nil
+	}
+	return log.RefreshFile(logFile)
 }

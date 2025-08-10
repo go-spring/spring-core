@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/gs"
-	"github.com/go-spring/spring-core/util/sysconf"
 )
 
 //go:embed chatAI.html
@@ -31,7 +30,7 @@ var files embed.FS
 
 func main() {
 	// Disable the write timeout for the HTTP server
-	sysconf.Set("http.server.writeTimeout", "0")
+	gs.Property("http.server.writeTimeout", "0")
 
 	// Serve static files from the embedded file system under the "/public/" path
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.FS(files))))

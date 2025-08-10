@@ -20,8 +20,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/lvan100/go-assert"
 )
 
 func TestCommandArgs(t *testing.T) {
@@ -31,8 +31,8 @@ func TestCommandArgs(t *testing.T) {
 
 		props := conf.New()
 		err := NewCommandArgs().CopyTo(props)
-		assert.Nil(t, err)
-		assert.True(t, len(props.Keys()) == 0)
+		assert.That(t, err).Nil()
+		assert.That(t, len(props.Keys()) == 0).True()
 	})
 
 	t.Run("no args - 2", func(t *testing.T) {
@@ -40,8 +40,8 @@ func TestCommandArgs(t *testing.T) {
 
 		props := conf.New()
 		err := NewCommandArgs().CopyTo(props)
-		assert.Nil(t, err)
-		assert.True(t, len(props.Keys()) == 0)
+		assert.That(t, err).Nil()
+		assert.That(t, len(props.Keys()) == 0).True()
 	})
 
 	t.Run("normal", func(t *testing.T) {
@@ -49,7 +49,7 @@ func TestCommandArgs(t *testing.T) {
 
 		p := conf.New()
 		err := NewCommandArgs().CopyTo(p)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, "go-spring").Equal(p.Get("name"))
 		assert.That(t, "true").Equal(p.Get("debug"))
 	})
@@ -81,7 +81,7 @@ func TestCommandArgs(t *testing.T) {
 
 		props := conf.New()
 		err := NewCommandArgs().CopyTo(props)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, "8080").Equal(props.Get("port"))
 	})
 
@@ -90,9 +90,9 @@ func TestCommandArgs(t *testing.T) {
 
 		props := conf.New()
 		err := NewCommandArgs().CopyTo(props)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, "prod").Equal(props.Get("env"))
-		assert.False(t, props.Has("--log-level"))
-		assert.False(t, props.Has("-v"))
+		assert.That(t, props.Has("--log-level")).False()
+		assert.That(t, props.Has("-v")).False()
 	})
 }

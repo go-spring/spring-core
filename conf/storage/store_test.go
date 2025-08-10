@@ -19,7 +19,7 @@ package storage
 import (
 	"testing"
 
-	"github.com/lvan100/go-assert"
+	"github.com/go-spring/gs-assert/assert"
 )
 
 func TestStorage(t *testing.T) {
@@ -29,20 +29,20 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.RawData()).Equal(map[string]string{})
 
 		subKeys, err := s.SubKeys("a")
-		assert.Nil(t, err)
-		assert.Nil(t, subKeys)
+		assert.That(t, err).Nil()
+		assert.That(t, subKeys).Nil()
 
 		subKeys, err = s.SubKeys("a.b")
-		assert.Nil(t, err)
-		assert.Nil(t, subKeys)
+		assert.That(t, err).Nil()
+		assert.That(t, subKeys).Nil()
 
 		subKeys, err = s.SubKeys("a[0]")
-		assert.Nil(t, err)
-		assert.Nil(t, subKeys)
+		assert.That(t, err).Nil()
+		assert.That(t, subKeys).Nil()
 
-		assert.False(t, s.Has("a"))
-		assert.False(t, s.Has("a.b"))
-		assert.False(t, s.Has("a[0]"))
+		assert.That(t, s.Has("a")).False()
+		assert.That(t, s.Has("a.b")).False()
+		assert.That(t, s.Has("a[0]")).False()
 
 		err = s.Set("", "abc")
 		assert.ThatError(t, err).Matches("key is empty")
@@ -52,8 +52,8 @@ func TestStorage(t *testing.T) {
 		s := NewStorage()
 
 		err := s.Set("a", "b")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("a"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("a")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"a": "b",
 		})
@@ -63,13 +63,13 @@ func TestStorage(t *testing.T) {
 		err = s.Set("a[0]", "x")
 		assert.ThatError(t, err).Matches("property conflict at path a\\[0]")
 
-		assert.False(t, s.Has(""))
-		assert.False(t, s.Has("a["))
-		assert.False(t, s.Has("a.y"))
-		assert.False(t, s.Has("a[0]"))
+		assert.That(t, s.Has("")).False()
+		assert.That(t, s.Has("a[")).False()
+		assert.That(t, s.Has("a.y")).False()
+		assert.That(t, s.Has("a[0]")).False()
 
 		subKeys, err := s.SubKeys("")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"a"})
 
 		_, err = s.SubKeys("a")
@@ -78,8 +78,8 @@ func TestStorage(t *testing.T) {
 		assert.ThatError(t, err).Matches("invalid key 'a\\['")
 
 		err = s.Set("a", "c")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("a"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("a")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"a": "c",
 		})
@@ -89,18 +89,18 @@ func TestStorage(t *testing.T) {
 		s := NewStorage()
 
 		err := s.Set("m.x", "y")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("m"))
-		assert.True(t, s.Has("m.x"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("m")).True()
+		assert.That(t, s.Has("m.x")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"m.x": "y",
 		})
 
-		assert.False(t, s.Has(""))
-		assert.False(t, s.Has("m.t"))
-		assert.False(t, s.Has("m.x.y"))
-		assert.False(t, s.Has("m[0]"))
-		assert.False(t, s.Has("m.x[0]"))
+		assert.That(t, s.Has("")).False()
+		assert.That(t, s.Has("m.t")).False()
+		assert.That(t, s.Has("m.x.y")).False()
+		assert.That(t, s.Has("m[0]")).False()
+		assert.That(t, s.Has("m.x[0]")).False()
 
 		err = s.Set("m", "a")
 		assert.ThatError(t, err).Matches("property conflict at path m")
@@ -110,9 +110,9 @@ func TestStorage(t *testing.T) {
 		assert.ThatError(t, err).Matches("property conflict at path m\\[0]")
 
 		_, err = s.SubKeys("m.t")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		subKeys, err := s.SubKeys("m")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"x"})
 
 		_, err = s.SubKeys("m.x")
@@ -121,25 +121,25 @@ func TestStorage(t *testing.T) {
 		assert.ThatError(t, err).Matches("property conflict at path m\\[0]")
 
 		err = s.Set("m.x", "z")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("m"))
-		assert.True(t, s.Has("m.x"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("m")).True()
+		assert.That(t, s.Has("m.x")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"m.x": "z",
 		})
 
 		err = s.Set("m.t", "q")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("m"))
-		assert.True(t, s.Has("m.x"))
-		assert.True(t, s.Has("m.t"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("m")).True()
+		assert.That(t, s.Has("m.x")).True()
+		assert.That(t, s.Has("m.t")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"m.x": "z",
 			"m.t": "q",
 		})
 
 		subKeys, err = s.SubKeys("m")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"t", "x"})
 	})
 
@@ -147,8 +147,8 @@ func TestStorage(t *testing.T) {
 		s := NewStorage()
 
 		err := s.Set("[0]", "p")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("[0]"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("[0]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"[0]": "p",
 		})
@@ -159,25 +159,25 @@ func TestStorage(t *testing.T) {
 		assert.ThatError(t, err).Matches("property conflict at path \\[0].x")
 
 		err = s.Set("[0]", "w")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"[0]": "w",
 		})
 
 		subKeys, err := s.SubKeys("")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"0"})
 
 		err = s.Set("[1]", "p")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("[0]"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("[0]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"[0]": "w",
 			"[1]": "p",
 		})
 
 		subKeys, err = s.SubKeys("")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"0", "1"})
 	})
 
@@ -185,25 +185,25 @@ func TestStorage(t *testing.T) {
 		s := NewStorage()
 
 		err := s.Set("s[0]", "p")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("s"))
-		assert.True(t, s.Has("s[0]"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("s")).True()
+		assert.That(t, s.Has("s[0]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"s[0]": "p",
 		})
 
 		err = s.Set("s[1]", "o")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("s"))
-		assert.True(t, s.Has("s[0]"))
-		assert.True(t, s.Has("s[1]"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("s")).True()
+		assert.That(t, s.Has("s[0]")).True()
+		assert.That(t, s.Has("s[1]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"s[0]": "p",
 			"s[1]": "o",
 		})
 
 		subKeys, err := s.SubKeys("s")
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"0", "1"})
 
 		err = s.Set("s", "w")
@@ -216,22 +216,22 @@ func TestStorage(t *testing.T) {
 		s := NewStorage()
 
 		err := s.Set("a.b[0].c", "123")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("a"))
-		assert.True(t, s.Has("a.b"))
-		assert.True(t, s.Has("a.b[0]"))
-		assert.True(t, s.Has("a.b[0].c"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("a")).True()
+		assert.That(t, s.Has("a.b")).True()
+		assert.That(t, s.Has("a.b[0]")).True()
+		assert.That(t, s.Has("a.b[0].c")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"a.b[0].c": "123",
 		})
 
 		err = s.Set("a.b[0].d[0]", "123")
-		assert.Nil(t, err)
-		assert.True(t, s.Has("a"))
-		assert.True(t, s.Has("a.b"))
-		assert.True(t, s.Has("a.b[0]"))
-		assert.True(t, s.Has("a.b[0].d"))
-		assert.True(t, s.Has("a.b[0].d[0]"))
+		assert.That(t, err).Nil()
+		assert.That(t, s.Has("a")).True()
+		assert.That(t, s.Has("a.b")).True()
+		assert.That(t, s.Has("a.b[0]")).True()
+		assert.That(t, s.Has("a.b[0].d")).True()
+		assert.That(t, s.Has("a.b[0].d[0]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]string{
 			"a.b[0].c":    "123",
 			"a.b[0].d[0]": "123",

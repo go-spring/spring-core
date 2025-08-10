@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	Version = "go-spring@v1.2.0"
+	Version = "go-spring@v1.2.2"
 	Website = "https://go-spring.com/"
 )
 
@@ -173,7 +173,7 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 // Property sets a system property.
 func Property(key string, val string) {
 	if err := gs_conf.SysConf.Set(key, val); err != nil {
-		log.Errorf(context.Background(), log.TagApp, "failed to set property key=%s, err=%v", key, err)
+		log.Errorf(context.Background(), log.TagAppDef, "failed to set property key=%s, err=%v", key, err)
 	}
 }
 

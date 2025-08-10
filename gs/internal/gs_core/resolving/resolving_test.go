@@ -24,12 +24,12 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
-	"github.com/lvan100/go-assert"
 )
 
 type Logger interface {
@@ -85,7 +85,7 @@ func TestResolving(t *testing.T) {
 	t.Run("register error", func(t *testing.T) {
 		r := New()
 		err := r.Refresh(conf.New())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		assert.Panic(t, func() {
 			r.Register(&gs.BeanDefinition{})
 		}, "container is refreshing or already refreshed")
@@ -205,7 +205,7 @@ func TestResolving(t *testing.T) {
 	t.Run("repeat refresh", func(t *testing.T) {
 		r := New()
 		err := r.Refresh(conf.New())
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 		err = r.Refresh(conf.New())
 		assert.ThatError(t, err).Matches("container is already refreshing or refreshed")
 	})
@@ -292,7 +292,7 @@ func TestResolving(t *testing.T) {
 			},
 		})
 		err := r.Refresh(p)
-		assert.Nil(t, err)
+		assert.That(t, err).Nil()
 
 		var names []string
 		for _, b := range r.Beans() {
