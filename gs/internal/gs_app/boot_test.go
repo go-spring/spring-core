@@ -34,7 +34,8 @@ func TestBoot(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		_ = gs_conf.SysConf.Set("a", "123")
+		fileID := gs_conf.SysConf.AddFile("boot_test.go")
+		_ = gs_conf.SysConf.Set("a", "123", fileID)
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		err := boot.Run()
@@ -45,7 +46,8 @@ func TestBoot(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		_ = gs_conf.SysConf.Set("a", "123")
+		fileID := gs_conf.SysConf.AddFile("boot_test.go")
+		_ = gs_conf.SysConf.Set("a", "123", fileID)
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		boot.Object(bytes.NewBuffer(nil))

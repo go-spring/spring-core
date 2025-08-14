@@ -28,13 +28,13 @@ import (
 )
 
 var (
-	trueCond  = OnFunc(func(ctx gs.CondContext) (bool, error) { return true, nil })
-	falseCond = OnFunc(func(ctx gs.CondContext) (bool, error) { return false, nil })
+	trueCond  = OnFunc(func(ctx gs.ConditionContext) (bool, error) { return true, nil })
+	falseCond = OnFunc(func(ctx gs.ConditionContext) (bool, error) { return false, nil })
 )
 
 func TestConditionString(t *testing.T) {
 
-	c := OnFunc(func(ctx gs.CondContext) (bool, error) { return false, nil })
+	c := OnFunc(func(ctx gs.ConditionContext) (bool, error) { return false, nil })
 	assert.That(t, fmt.Sprint(c)).Equal(`OnFunc(fn=gs_cond.TestConditionString.func1)`)
 
 	c = OnProperty("a").HavingValue("123")
@@ -42,9 +42,6 @@ func TestConditionString(t *testing.T) {
 
 	c = OnProperty("a").HavingValue("123").MatchIfMissing()
 	assert.That(t, fmt.Sprint(c)).Equal(`OnProperty(name=a, havingValue=123, matchIfMissing)`)
-
-	c = OnMissingProperty("a")
-	assert.That(t, fmt.Sprint(c)).Equal(`OnMissingProperty(name=a)`)
 
 	c = OnBean[any]("a")
 	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Name:a})`)
@@ -104,7 +101,7 @@ func TestConditionString(t *testing.T) {
 func TestOnFunc(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
-		fn := func(ctx gs.CondContext) (bool, error) { return true, nil }
+		fn := func(ctx gs.ConditionContext) (bool, error) { return true, nil }
 		cond := OnFunc(fn)
 		ok, err := cond.Matches(nil)
 		assert.That(t, ok).True()
@@ -112,7 +109,7 @@ func TestOnFunc(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		fn := func(ctx gs.CondContext) (bool, error) { return false, errors.New("test error") }
+		fn := func(ctx gs.ConditionContext) (bool, error) { return false, errors.New("test error") }
 		cond := OnFunc(fn)
 		_, err := cond.Matches(nil)
 		assert.ThatError(t, err).Matches("test error")
@@ -123,7 +120,7 @@ func TestOnProperty(t *testing.T) {
 
 	t.Run("property exist", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockHas().ReturnValue(true)
 
 		cond := OnProperty("test.prop")
@@ -134,7 +131,7 @@ func TestOnProperty(t *testing.T) {
 
 	t.Run("property exist and match", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockHas().ReturnValue(true)
 		ctx.MockProp().ReturnValue("42")
 
@@ -146,7 +143,7 @@ func TestOnProperty(t *testing.T) {
 
 	t.Run("property exist but not match", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockHas().ReturnValue(true)
 		ctx.MockProp().ReturnValue("42")
 
@@ -157,7 +154,7 @@ func TestOnProperty(t *testing.T) {
 
 	t.Run("property not exist but MatchIfMissing", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockHas().ReturnValue(false)
 
 		cond := OnProperty("missing.prop").MatchIfMissing()
@@ -169,7 +166,7 @@ func TestOnProperty(t *testing.T) {
 
 		t.Run("number expression", func(t *testing.T) {
 			m := gsmock.NewManager()
-			ctx := gs.NewCondContextMockImpl(m)
+			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockHas().ReturnValue(true)
 			ctx.MockProp().ReturnValue("42")
 
@@ -180,7 +177,7 @@ func TestOnProperty(t *testing.T) {
 
 		t.Run("string expression", func(t *testing.T) {
 			m := gsmock.NewManager()
-			ctx := gs.NewCondContextMockImpl(m)
+			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockHas().ReturnValue(true)
 			ctx.MockProp().ReturnValue("42")
 
@@ -191,7 +188,7 @@ func TestOnProperty(t *testing.T) {
 
 		t.Run("invalid expression", func(t *testing.T) {
 			m := gsmock.NewManager()
-			ctx := gs.NewCondContextMockImpl(m)
+			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockHas().ReturnValue(true)
 			ctx.MockProp().ReturnValue("42")
 
@@ -202,35 +199,12 @@ func TestOnProperty(t *testing.T) {
 	})
 }
 
-func TestOnMissingProperty(t *testing.T) {
-
-	t.Run("property exist", func(t *testing.T) {
-		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
-		ctx.MockHas().ReturnValue(true)
-
-		cond := OnMissingProperty("existing")
-		ok, _ := cond.Matches(ctx)
-		assert.That(t, ok).False()
-	})
-
-	t.Run("property not exist", func(t *testing.T) {
-		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
-		ctx.MockHas().ReturnValue(false)
-
-		cond := OnMissingProperty("missing")
-		ok, _ := cond.Matches(ctx)
-		assert.That(t, ok).True()
-	})
-}
-
 func TestOnBean(t *testing.T) {
 
 	t.Run("found bean", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
-		ctx.MockFind().ReturnValue([]gs.CondBean{nil}, nil)
+		ctx := gs.NewConditionContextMockImpl(m)
+		ctx.MockFind().ReturnValue([]gs.ConditionBean{nil}, nil)
 
 		cond := OnBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -240,7 +214,7 @@ func TestOnBean(t *testing.T) {
 
 	t.Run("not found bean", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, nil)
 
 		cond := OnBean[any]("b")
@@ -251,7 +225,7 @@ func TestOnBean(t *testing.T) {
 
 	t.Run("return error", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
 
 		cond := OnBean[any]("b")
@@ -265,7 +239,7 @@ func TestOnMissingBean(t *testing.T) {
 
 	t.Run("not found bean", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, nil)
 
 		cond := OnMissingBean[any]("bean1")
@@ -276,8 +250,8 @@ func TestOnMissingBean(t *testing.T) {
 
 	t.Run("found bean", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
-		ctx.MockFind().ReturnValue([]gs.CondBean{nil}, nil)
+		ctx := gs.NewConditionContextMockImpl(m)
+		ctx.MockFind().ReturnValue([]gs.ConditionBean{nil}, nil)
 
 		cond := OnMissingBean[any]("bean1")
 		ok, err := cond.Matches(ctx)
@@ -287,7 +261,7 @@ func TestOnMissingBean(t *testing.T) {
 
 	t.Run("return error", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
 
 		cond := OnMissingBean[any]("b")
@@ -301,8 +275,8 @@ func TestOnSingleBean(t *testing.T) {
 
 	t.Run("found only one bean", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
-		ctx.MockFind().ReturnValue([]gs.CondBean{nil}, nil)
+		ctx := gs.NewConditionContextMockImpl(m)
+		ctx.MockFind().ReturnValue([]gs.ConditionBean{nil}, nil)
 
 		cond := OnSingleBean[any]("b")
 		ok, _ := cond.Matches(ctx)
@@ -311,8 +285,8 @@ func TestOnSingleBean(t *testing.T) {
 
 	t.Run("found two beans", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
-		ctx.MockFind().ReturnValue([]gs.CondBean{nil, nil}, nil)
+		ctx := gs.NewConditionContextMockImpl(m)
+		ctx.MockFind().ReturnValue([]gs.ConditionBean{nil, nil}, nil)
 
 		cond := OnSingleBean[any]("b")
 		ok, _ := cond.Matches(ctx)
@@ -321,7 +295,7 @@ func TestOnSingleBean(t *testing.T) {
 
 	t.Run("return error", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
 
 		cond := OnSingleBean[any]("b")
@@ -333,7 +307,7 @@ func TestOnSingleBean(t *testing.T) {
 
 func TestOnExpression(t *testing.T) {
 	m := gsmock.NewManager()
-	ctx := gs.NewCondContextMockImpl(m)
+	ctx := gs.NewConditionContextMockImpl(m)
 
 	cond := OnExpression("1+1==2")
 	_, err := cond.Matches(ctx)
@@ -358,7 +332,7 @@ func TestNot(t *testing.T) {
 
 	t.Run("return error", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
 
 		cond := OnSingleBean[any]("b")
@@ -396,7 +370,7 @@ func TestAnd(t *testing.T) {
 
 	t.Run("return error", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
 
 		cond := OnSingleBean[any]("b")
@@ -434,7 +408,7 @@ func TestOr(t *testing.T) {
 
 	t.Run("return error", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
 
 		cond := OnSingleBean[any]("b")
@@ -474,7 +448,7 @@ func TestNone(t *testing.T) {
 
 	t.Run("return error", func(t *testing.T) {
 		m := gsmock.NewManager()
-		ctx := gs.NewCondContextMockImpl(m)
+		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
 
 		cond := OnSingleBean[any]("b")

@@ -57,7 +57,9 @@ func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 	if err = gs_app.GS.RunWith(fn); err != nil {
 		return
 	}
-	log.Destroy()
+	if logRefreshed {
+		log.Destroy()
+	}
 }
 
 // RunAsync runs the app asynchronously and returns a function to stop the app.
@@ -70,6 +72,8 @@ func (s *AppStarter) RunAsync() (func(), error) {
 	}
 	return func() {
 		gs_app.GS.Stop()
-		log.Destroy()
+		if logRefreshed {
+			log.Destroy()
+		}
 	}, nil
 }

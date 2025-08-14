@@ -28,7 +28,6 @@ import (
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 )
 
@@ -89,15 +88,6 @@ func TestResolving(t *testing.T) {
 		assert.Panic(t, func() {
 			r.Register(&gs.BeanDefinition{})
 		}, "container is refreshing or already refreshed")
-	})
-
-	t.Run("group error", func(t *testing.T) {
-		r := New()
-		r.GroupRegister(func(p conf.Properties) ([]*gs.BeanDefinition, error) {
-			return nil, fmt.Errorf("group error")
-		})
-		err := r.Refresh(conf.New())
-		assert.ThatError(t, err).Matches("group error")
 	})
 
 	t.Run("configuration error - 1", func(t *testing.T) {
@@ -164,7 +154,7 @@ func TestResolving(t *testing.T) {
 	t.Run("resolve error - 1", func(t *testing.T) {
 		r := New()
 		r.Object(&TestBean{Value: 1}).Condition(
-			gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+			gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
 				return false, errors.New("condition error")
 			}),
 		)
@@ -178,7 +168,7 @@ func TestResolving(t *testing.T) {
 			gs_cond.OnBean[*TestBean](),
 		)
 		r.Object(&TestBean{Value: 1}).Condition(
-			gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+			gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
 				return false, errors.New("condition error")
 			}),
 		)
@@ -213,19 +203,18 @@ func TestResolving(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		r := New()
 		{
-			r.GroupRegister(func(p conf.Properties) (beans []*gs.BeanDefinition, err error) {
+			r.Module(nil, func(p conf.Properties) error {
 				keys, err := p.SubKeys("logger")
 				if err != nil {
-					return nil, err
+					return err
 				}
 				for _, name := range keys {
 					arg := gs_arg.Tag(fmt.Sprintf("logger.%s", name))
-					l := gs_bean.NewBean(NewZeroLogger, arg).
+					r.Provide(NewZeroLogger, arg).
 						Export(gs.As[Logger](), gs.As[CtxLogger]()).
 						Name(name)
-					beans = append(beans, l)
 				}
-				return
+				return nil
 			})
 			r.Provide(NewLogger, gs_arg.Value("c")).Name("c")
 			r.AddMock(gs.BeanMock{

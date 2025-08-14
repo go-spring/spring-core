@@ -301,7 +301,7 @@ func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error
 	r := New()
 	for i, s := range arrVal {
 		k := fmt.Sprintf("%s[%d]", param.Key, i)
-		_ = r.Set(k, s) // always no error
+		_ = r.Set(k, s, 0) // always no error
 	}
 	return r, nil
 }

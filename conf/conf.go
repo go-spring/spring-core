@@ -121,18 +121,18 @@ package conf
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"time"
 
+	"github.com/go-spring/barky"
 	"github.com/go-spring/spring-core/conf/reader/json"
 	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
-	"github.com/go-spring/spring-core/conf/storage"
 	"github.com/go-spring/spring-core/util"
 	"github.com/spf13/cast"
 )
@@ -222,13 +222,13 @@ var _ Properties = (*MutableProperties)(nil)
 // but it costs more CPU time when getting properties because it reads property node
 // by node. So `conf` uses a tree to strictly verify and a flat map to store.
 type MutableProperties struct {
-	*storage.Storage
+	*barky.Storage
 }
 
 // New creates empty *MutableProperties.
 func New() *MutableProperties {
 	return &MutableProperties{
-		Storage: storage.NewStorage(),
+		Storage: barky.NewStorage(),
 	}
 }
 
@@ -247,20 +247,24 @@ func Load(file string) (*MutableProperties, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Map(m), nil
+	p := New()
+	_ = p.merge(util.FlattenMap(m), file)
+	return p, nil
 }
 
 // Map creates *MutableProperties from map.
 func Map(m map[string]any) *MutableProperties {
 	p := New()
-	_ = p.merge(util.FlattenMap(m))
+	_, file, _, _ := runtime.Caller(1)
+	_ = p.merge(util.FlattenMap(m), file)
 	return p
 }
 
 // merge flattens the map and sets all keys and values.
-func (p *MutableProperties) merge(m map[string]string) error {
+func (p *MutableProperties) merge(m map[string]string, file string) error {
+	fileID := p.AddFile(file)
 	for key, val := range m {
-		if err := p.Set(key, val); err != nil {
+		if err := p.Set(key, val, fileID); err != nil {
 			return err
 		}
 	}
@@ -270,7 +274,9 @@ func (p *MutableProperties) merge(m map[string]string) error {
 // Data returns key-value pairs of the properties.
 func (p *MutableProperties) Data() map[string]string {
 	m := make(map[string]string)
-	maps.Copy(m, p.RawData())
+	for k, v := range p.RawData() {
+		m[k] = v.Value
+	}
 	return m
 }
 
@@ -281,11 +287,11 @@ func (p *MutableProperties) Keys() []string {
 
 // Get returns key's value, using Def to return a default value.
 func (p *MutableProperties) Get(key string, def ...string) string {
-	val, ok := p.RawData()[key]
+	v, ok := p.RawData()[key]
 	if !ok && len(def) > 0 {
 		return def[0]
 	}
-	return val
+	return v.Value
 }
 
 // Resolve resolves string value that contains references to other
@@ -338,5 +344,18 @@ func (p *MutableProperties) Bind(i any, tag ...string) error {
 
 // CopyTo copies properties into another by override.
 func (p *MutableProperties) CopyTo(out *MutableProperties) error {
-	return out.merge(p.RawData())
+	rawFile := p.RawFile()
+	newfile := make(map[string]int8)
+	oldFile := make([]string, len(rawFile))
+	for k, v := range rawFile {
+		oldFile[v] = k
+		newfile[k] = out.AddFile(k)
+	}
+	for key, v := range p.RawData() {
+		fileID := newfile[oldFile[v.File]]
+		if err := out.Set(key, v.Value, fileID); err != nil {
+			return err
+		}
+	}
+	return nil
 }

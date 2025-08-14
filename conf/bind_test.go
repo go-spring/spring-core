@@ -537,20 +537,22 @@ func TestProperties_Bind(t *testing.T) {
 		p, err := conf.Load("./testdata/config/app.yaml")
 		assert.That(t, err).Nil()
 
-		err = p.Set("extra.intsV0", "")
+		fileID := p.AddFile("bind_test.go")
+
+		err = p.Set("extra.intsV0", "", fileID)
 		assert.That(t, err).Nil()
-		err = p.Set("extra.intsV2", "1,2,3")
+		err = p.Set("extra.intsV2", "1,2,3", fileID)
 		assert.That(t, err).Nil()
-		err = p.Set("prefix.extra.intsV2", "1,2,3")
+		err = p.Set("prefix.extra.intsV2", "1,2,3", fileID)
 		assert.That(t, err).Nil()
 
-		err = p.Set("extra.mapV2.a", "1")
+		err = p.Set("extra.mapV2.a", "1", fileID)
 		assert.That(t, err).Nil()
-		err = p.Set("extra.mapV2.b", "2")
+		err = p.Set("extra.mapV2.b", "2", fileID)
 		assert.That(t, err).Nil()
-		err = p.Set("prefix.extra.mapV2.a", "1")
+		err = p.Set("prefix.extra.mapV2.a", "1", fileID)
 		assert.That(t, err).Nil()
-		err = p.Set("prefix.extra.mapV2.b", "2")
+		err = p.Set("prefix.extra.mapV2.b", "2", fileID)
 		assert.That(t, err).Nil()
 
 		var c DBConfig

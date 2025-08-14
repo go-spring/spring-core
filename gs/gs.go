@@ -19,6 +19,7 @@ package gs
 import (
 	"context"
 	"reflect"
+	"runtime"
 
 	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
@@ -72,23 +73,37 @@ func BindArg(fn any, args ...Arg) *gs_arg.BindArg {
 /************************************ cond ***********************************/
 
 type (
-	Condition   = gs.Condition
-	CondContext = gs.CondContext
+	Condition           = gs.Condition
+	ConditionContext    = gs.ConditionContext
+	ConditionOnProperty = gs_cond.ConditionOnProperty
 )
 
+// OnOnce creates a Condition that wraps another Condition and ensures
+// its Matches method is called only once. Subsequent calls will return
+// the same result as the first call without re-evaluating the condition.
+func OnOnce(conditions ...Condition) Condition {
+	var (
+		done   bool
+		result bool
+	)
+	return OnFunc(func(ctx ConditionContext) (_ bool, err error) {
+		if done {
+			return result, nil
+		}
+		done = true
+		result, err = gs_cond.And(conditions...).Matches(ctx)
+		return result, err
+	})
+}
+
 // OnFunc creates a Condition based on the provided function.
-func OnFunc(fn func(ctx CondContext) (bool, error)) Condition {
+func OnFunc(fn func(ctx ConditionContext) (bool, error)) Condition {
 	return gs_cond.OnFunc(fn)
 }
 
 // OnProperty creates a Condition based on a property name and options.
-func OnProperty(name string) gs_cond.OnPropertyInterface {
+func OnProperty(name string) ConditionOnProperty {
 	return gs_cond.OnProperty(name)
-}
-
-// OnMissingProperty creates a Condition that checks for a missing property.
-func OnMissingProperty(name string) Condition {
-	return gs_cond.OnMissingProperty(name)
 }
 
 // OnBean creates a Condition for when a specific bean exists.
@@ -136,6 +151,16 @@ func None(conditions ...Condition) Condition {
 	return gs_cond.None(conditions...)
 }
 
+// OnEnableJobs creates a Condition that checks whether the EnableJobsProp property is true.
+func OnEnableJobs() ConditionOnProperty {
+	return OnProperty(EnableJobsProp).HavingValue("true").MatchIfMissing()
+}
+
+// OnEnableServers creates a Condition that checks whether the EnableServersProp property is true.
+func OnEnableServers() ConditionOnProperty {
+	return OnProperty(EnableServersProp).HavingValue("true").MatchIfMissing()
+}
+
 /************************************ ioc ************************************/
 
 type (
@@ -172,7 +197,9 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 
 // Property sets a system property.
 func Property(key string, val string) {
-	if err := gs_conf.SysConf.Set(key, val); err != nil {
+	_, file, _, _ := runtime.Caller(1)
+	fileID := gs_conf.SysConf.AddFile(file)
+	if err := gs_conf.SysConf.Set(key, val, fileID); err != nil {
 		log.Errorf(context.Background(), log.TagAppDef, "failed to set property key=%s, err=%v", key, err)
 	}
 }
@@ -270,9 +297,9 @@ func Register(b *BeanDefinition) *RegisteredBean {
 	return gs_app.GS.C.Register(b)
 }
 
-// GroupRegister registers a group of bean definitions.
-func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) {
-	gs_app.GS.C.GroupRegister(fn)
+// Module registers a module.
+func Module(conditions []ConditionOnProperty, fn func(p conf.Properties) error) {
+	gs_app.GS.C.Module(conditions, fn)
 }
 
 // RefreshProperties refreshes the app configuration.

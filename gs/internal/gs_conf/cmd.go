@@ -40,10 +40,12 @@ func NewCommandArgs() *CommandArgs {
 // CopyTo processes command-line parameters and sets them as key-value pairs
 // in the provided conf.Properties. Parameters should be passed in the form
 // of `-D key[=value/true]`.
-func (c *CommandArgs) CopyTo(out *conf.MutableProperties) error {
+func (c *CommandArgs) CopyTo(p *conf.MutableProperties) error {
 	if len(os.Args) == 0 {
 		return nil
 	}
+
+	fileID := p.AddFile("Args")
 
 	// Default option prefix is "-D", but it can be overridden by the
 	// environment variable `GS_ARGS_PREFIX`.
@@ -64,7 +66,7 @@ func (c *CommandArgs) CopyTo(out *conf.MutableProperties) error {
 			if len(ss) == 1 {
 				ss = append(ss, "true")
 			}
-			if err := out.Set(ss[0], ss[1]); err != nil {
+			if err := p.Set(ss[0], ss[1], fileID); err != nil {
 				return err
 			}
 		}

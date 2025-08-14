@@ -201,7 +201,7 @@ func TestBeanDefinition(t *testing.T) {
 
 		t.Run("no profile property", func(t *testing.T) {
 			m := gsmock.NewManager()
-			ctx := gs.NewCondContextMockImpl(m)
+			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockProp().ReturnValue("")
 
 			for _, c := range bean.Conditions() {
@@ -213,7 +213,7 @@ func TestBeanDefinition(t *testing.T) {
 
 		t.Run("profile property not match", func(t *testing.T) {
 			m := gsmock.NewManager()
-			ctx := gs.NewCondContextMockImpl(m)
+			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockProp().ReturnValue("prod")
 
 			for _, c := range bean.Conditions() {
@@ -225,7 +225,7 @@ func TestBeanDefinition(t *testing.T) {
 
 		t.Run("profile property is dev", func(t *testing.T) {
 			m := gsmock.NewManager()
-			ctx := gs.NewCondContextMockImpl(m)
+			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockProp().ReturnValue("dev")
 
 			for _, c := range bean.Conditions() {
@@ -237,7 +237,7 @@ func TestBeanDefinition(t *testing.T) {
 
 		t.Run("profile property is test", func(t *testing.T) {
 			m := gsmock.NewManager()
-			ctx := gs.NewCondContextMockImpl(m)
+			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockProp().ReturnValue("test")
 
 			for _, c := range bean.Conditions() {
@@ -249,7 +249,7 @@ func TestBeanDefinition(t *testing.T) {
 
 		t.Run("profile property is dev&test", func(t *testing.T) {
 			m := gsmock.NewManager()
-			ctx := gs.NewCondContextMockImpl(m)
+			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockProp().ReturnValue("dev,test")
 
 			for _, c := range bean.Conditions() {

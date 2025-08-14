@@ -40,7 +40,7 @@ func TestContainer(t *testing.T) {
 	t.Run("resolve error", func(t *testing.T) {
 		c := New()
 		c.Object(&http.Server{}).Condition(
-			gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+			gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
 				return false, errors.New("condition error")
 			}),
 		)

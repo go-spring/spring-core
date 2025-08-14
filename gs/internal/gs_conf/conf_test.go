@@ -73,7 +73,8 @@ func TestAppConfig(t *testing.T) {
 	t.Run("merge error - 2", func(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
-		_ = SysConf.Set("http.server[0].addr", "0.0.0.0:8080")
+		fileID := SysConf.AddFile("conf_test.go")
+		_ = SysConf.Set("http.server[0].addr", "0.0.0.0:8080", fileID)
 		_, err := NewAppConfig().Refresh()
 		assert.ThatError(t, err).Matches("property conflict at path http.server.addr")
 	})
@@ -112,7 +113,8 @@ func TestBootConfig(t *testing.T) {
 	t.Run("merge error - 2", func(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "./testdata/conf")
-		_ = SysConf.Set("http.server[0].addr", "0.0.0.0:8080")
+		fileID := SysConf.AddFile("conf_test.go")
+		_ = SysConf.Set("http.server[0].addr", "0.0.0.0:8080", fileID)
 		_, err := NewBootConfig().Refresh()
 		assert.ThatError(t, err).Matches("property conflict at path http.server.addr")
 	})

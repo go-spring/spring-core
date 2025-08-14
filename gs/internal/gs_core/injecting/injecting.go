@@ -853,9 +853,9 @@ func (a *ArgContext) Prop(key string, def ...string) string {
 }
 
 // Find returns beans satisfying a selector, as conditional beans.
-func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
+func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.ConditionBean, error) {
 	beans := a.c.findBeans(s)
-	var ret []gs.CondBean
+	var ret []gs.ConditionBean
 	for _, bean := range beans {
 		ret = append(ret, bean)
 	}

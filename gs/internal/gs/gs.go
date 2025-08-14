@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//go:generate gs mock -o=gs_mock.go -i=CondContext,ArgContext,Runner,Job,Server
+//go:generate gs mock -o=gs_mock.go -i=ConditionContext,ArgContext,Runner,Job,Server
 
 package gs
 
@@ -89,23 +89,23 @@ func (s BeanSelectorImpl) String() string {
 // when registering beans in the IoC container.
 type Condition interface {
 	// Matches checks whether the condition is satisfied.
-	Matches(ctx CondContext) (bool, error)
+	Matches(ctx ConditionContext) (bool, error)
 }
 
-// CondBean represents a bean with Name and Type.
-type CondBean interface {
+// ConditionBean represents a bean with Name and Type.
+type ConditionBean interface {
 	Name() string       // Name of the bean
 	Type() reflect.Type // Type of the bean
 }
 
-// CondContext defines methods for the IoC container used by conditions.
-type CondContext interface {
+// ConditionContext defines methods for the IoC container used by conditions.
+type ConditionContext interface {
 	// Has checks whether the IoC container has a property with the given key.
 	Has(key string) bool
 	// Prop retrieves the value of a property from the IoC container.
 	Prop(key string, def ...string) string
 	// Find searches for bean definitions matching the given BeanSelector.
-	Find(s BeanSelector) ([]CondBean, error)
+	Find(s BeanSelector) ([]ConditionBean, error)
 }
 
 /************************************* arg ***********************************/

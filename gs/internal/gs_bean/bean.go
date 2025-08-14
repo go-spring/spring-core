@@ -327,7 +327,7 @@ func (d *BeanDefinition) SetExport(exports ...reflect.Type) {
 
 // OnProfiles sets the conditions for the bean based on the active profiles.
 func (d *BeanDefinition) OnProfiles(profiles string) {
-	d.SetCondition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+	d.SetCondition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
 		val := strings.TrimSpace(ctx.Prop("spring.profiles.active"))
 		if val == "" {
 			return false, nil
