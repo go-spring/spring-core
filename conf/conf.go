@@ -133,7 +133,6 @@ import (
 	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/conf/reader/toml"
 	"github.com/go-spring/spring-core/conf/reader/yaml"
-	"github.com/go-spring/spring-core/util"
 	"github.com/spf13/cast"
 )
 
@@ -248,7 +247,7 @@ func Load(file string) (*MutableProperties, error) {
 		return nil, err
 	}
 	p := New()
-	_ = p.merge(util.FlattenMap(m), file)
+	_ = p.merge(barky.FlattenMap(m), file)
 	return p, nil
 }
 
@@ -256,7 +255,7 @@ func Load(file string) (*MutableProperties, error) {
 func Map(m map[string]any) *MutableProperties {
 	p := New()
 	_, file, _, _ := runtime.Caller(1)
-	_ = p.merge(util.FlattenMap(m), file)
+	_ = p.merge(barky.FlattenMap(m), file)
 	return p
 }
 
@@ -269,29 +268,6 @@ func (p *MutableProperties) merge(m map[string]string, file string) error {
 		}
 	}
 	return nil
-}
-
-// Data returns key-value pairs of the properties.
-func (p *MutableProperties) Data() map[string]string {
-	m := make(map[string]string)
-	for k, v := range p.RawData() {
-		m[k] = v.Value
-	}
-	return m
-}
-
-// Keys returns keys of the properties.
-func (p *MutableProperties) Keys() []string {
-	return util.OrderedMapKeys(p.RawData())
-}
-
-// Get returns key's value, using Def to return a default value.
-func (p *MutableProperties) Get(key string, def ...string) string {
-	v, ok := p.RawData()[key]
-	if !ok && len(def) > 0 {
-		return def[0]
-	}
-	return v.Value
 }
 
 // Resolve resolves string value that contains references to other
