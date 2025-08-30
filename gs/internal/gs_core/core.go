@@ -43,7 +43,7 @@ func (c *Container) Refresh(p conf.Properties) error {
 		return err
 	}
 	c.Injecting = injecting.New(p)
-	if err := c.Injecting.Refresh(c.Beans()); err != nil {
+	if err := c.Injecting.Refresh(c.Roots(), c.Beans()); err != nil {
 		return err
 	}
 	c.Resolving = nil

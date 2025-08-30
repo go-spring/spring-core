@@ -80,7 +80,7 @@ func (c *Injecting) RefreshProperties(p conf.Properties) error {
 }
 
 // Refresh loads and wires all provided bean definitions.
-func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
+func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) {
 	allowCircularReferences := cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
 	forceAutowireIsNullable := cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
 
@@ -113,7 +113,7 @@ func (c *Injecting) Refresh(beans []*gs_bean.BeanDefinition) (err error) {
 
 	// Injects all beans
 	r.state = Refreshing
-	for _, b := range beans {
+	for _, b := range roots {
 		if err = r.wireBean(b, stack); err != nil {
 			return err
 		}

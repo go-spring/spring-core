@@ -108,7 +108,7 @@ func (app *App) RunWith(fn func(ctx context.Context) error) error {
 // loading, IoC container refreshing, dependency injection, and runs
 // runners, jobs and servers.
 func (app *App) Start() error {
-	app.C.Object(app)
+	app.C.RootBean(app.C.Object(app))
 
 	// loads the layered app properties
 	var p conf.Properties

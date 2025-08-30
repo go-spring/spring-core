@@ -51,12 +51,18 @@ type Resolving struct {
 	state   RefreshState              // Current refresh state
 	mocks   []gs.BeanMock             // Registered mock beans
 	beans   []*gs_bean.BeanDefinition // Managed bean definitions
+	roots   []*gs_bean.BeanDefinition // Root beans
 	modules []Module
 }
 
 // New creates an empty Resolving instance.
 func New() *Resolving {
 	return &Resolving{}
+}
+
+// Roots returns all root beans.
+func (c *Resolving) Roots() []*gs_bean.BeanDefinition {
+	return c.roots
 }
 
 // Beans returns all active bean definitions, excluding deleted ones.
@@ -110,6 +116,12 @@ func (c *Resolving) Module(conditions []gs_cond.ConditionOnProperty, fn func(p c
 	})
 }
 
+// RootBean adds a root bean to the container.
+func (c *Resolving) RootBean(b *gs.RegisteredBean) {
+	bd := b.BeanRegistration().(*gs_bean.BeanDefinition)
+	c.roots = append(c.roots, bd)
+}
+
 // Refresh performs the full initialization process of the container.
 // It transitions through several phases:
 // - Executes group functions to register additional beans.
@@ -143,6 +155,15 @@ func (c *Resolving) Refresh(p conf.Properties) error {
 
 	if err := c.checkDuplicateBeans(); err != nil {
 		return err
+	}
+
+	for _, b := range c.roots {
+		if b.Status() == gs_bean.StatusDeleted {
+			continue
+		}
+		if b.Status() != gs_bean.StatusResolved {
+			return fmt.Errorf("bean %q status is invalid for wiring", b)
+		}
 	}
 
 	c.state = Refreshed

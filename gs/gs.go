@@ -280,6 +280,11 @@ func Component[T any](i T) T {
 	return i
 }
 
+// RootBean registers a root bean definition.
+func RootBean(b *RegisteredBean) {
+	gs_app.GS.C.RootBean(b)
+}
+
 // Object registers a bean definition for a given object.
 func Object(i any) *RegisteredBean {
 	b := gs_bean.NewBean(reflect.ValueOf(i))

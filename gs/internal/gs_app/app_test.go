@@ -91,9 +91,9 @@ func TestApp(t *testing.T) {
 		t.Cleanup(Reset)
 
 		app := NewApp()
-		app.C.Provide(func() (*http.Server, error) {
+		app.C.RootBean(app.C.Provide(func() (*http.Server, error) {
 			return nil, errors.New("fail to create bean")
-		})
+		}))
 		err := app.Run()
 		assert.ThatError(t, err).Matches("fail to create bean")
 	})

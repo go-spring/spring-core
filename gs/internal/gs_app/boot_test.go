@@ -60,9 +60,9 @@ func TestBoot(t *testing.T) {
 		t.Cleanup(Reset)
 
 		boot := NewBoot().(*BootImpl)
-		boot.Provide(func() (*bytes.Buffer, error) {
+		boot.RootBean(boot.Provide(func() (*bytes.Buffer, error) {
 			return nil, errors.New("fail to create bean")
-		})
+		}))
 		err := boot.Run()
 		assert.ThatError(t, err).Matches("fail to create bean")
 	})

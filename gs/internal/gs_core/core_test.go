@@ -50,7 +50,7 @@ func TestContainer(t *testing.T) {
 
 	t.Run("inject error", func(t *testing.T) {
 		c := New()
-		c.Provide(func(addr string) *http.Server { return nil })
+		c.RootBean(c.Provide(func(addr string) *http.Server { return nil }))
 		err := c.Refresh(conf.New())
 		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
 	})
