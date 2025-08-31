@@ -307,6 +307,22 @@ func Module(conditions []ConditionOnProperty, fn func(p conf.Properties) error) 
 	gs_app.GS.C.Module(conditions, fn)
 }
 
+// Group registers a module for a group of beans.
+func Group[T any, R any](key string, fn func(c T) (R, error)) {
+	gs_app.GS.C.Module([]ConditionOnProperty{
+		OnProperty(key),
+	}, func(p conf.Properties) error {
+		var m map[string]T
+		if err := p.Bind(&m, "${"+key+"}"); err != nil {
+			return err
+		}
+		for name, c := range m {
+			Provide(fn, ValueArg(c)).Name(name)
+		}
+		return nil
+	})
+}
+
 // RefreshProperties refreshes the app configuration.
 func RefreshProperties() error {
 	p, err := gs_app.GS.P.Refresh()

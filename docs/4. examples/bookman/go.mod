@@ -10,6 +10,7 @@ require (
 
 require (
 	github.com/expr-lang/expr v1.17.5 // indirect
+	github.com/go-spring/barky v1.0.3 // indirect
 	github.com/go-spring/gs-mock v0.0.4 // indirect
 	github.com/go-spring/log v0.0.5 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
