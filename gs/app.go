@@ -54,12 +54,10 @@ func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 	if err = s.initApp(); err != nil {
 		return
 	}
-	if err = gs_app.GS.RunWith(fn); err != nil {
+	if err = app.RunWith(fn); err != nil {
 		return
 	}
-	if logRefreshed {
-		log.Destroy()
-	}
+	log.Destroy()
 }
 
 // RunAsync runs the app asynchronously and returns a function to stop the app.
@@ -67,13 +65,11 @@ func (s *AppStarter) RunAsync() (func(), error) {
 	if err := s.initApp(); err != nil {
 		return nil, err
 	}
-	if err := gs_app.GS.Start(); err != nil {
+	if err := app.Start(); err != nil {
 		return nil, err
 	}
 	return func() {
-		gs_app.GS.Stop()
-		if logRefreshed {
-			log.Destroy()
-		}
+		app.Stop()
+		log.Destroy()
 	}, nil
 }

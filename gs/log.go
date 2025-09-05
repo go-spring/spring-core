@@ -25,8 +25,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 )
 
-var logRefreshed bool
-
 // initLog initializes the log system.
 func initLog() error {
 	p, err := new(gs_conf.SysConfig).Refresh()
@@ -66,6 +64,5 @@ func initLog() error {
 	if err = log.RefreshFile(logFile); err != nil {
 		return err
 	}
-	logRefreshed = true
 	return nil
 }

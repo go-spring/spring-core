@@ -317,6 +317,7 @@ func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 }
 
 // BeanDefinition represents a bean that has not yet been registered.
+// todo 等 Group 函数确定下来之后，BD 定义应该就不需要了。
 type BeanDefinition struct {
 	beanBuilder[BeanDefinition]
 }

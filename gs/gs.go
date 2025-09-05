@@ -164,8 +164,7 @@ func OnEnableServers() ConditionOnProperty {
 /************************************ ioc ************************************/
 
 type (
-	BeanID   = gs.BeanID
-	BeanMock = gs.BeanMock
+	BeanID = gs.BeanID
 )
 
 type (
@@ -212,6 +211,7 @@ type (
 )
 
 var B = gs_app.NewBoot()
+var app = gs_app.NewApp()
 
 // funcRunner is a function type that implements the Runner interface.
 type funcRunner func() error
@@ -260,56 +260,56 @@ func RunAsync() (func(), error) {
 
 // Exiting returns a boolean indicating whether the application is exiting.
 func Exiting() bool {
-	return gs_app.GS.Exiting()
+	return app.Exiting()
 }
 
 // ShutDown shuts down the app with an optional message.
 func ShutDown() {
-	gs_app.GS.ShutDown()
+	app.ShutDown()
 }
 
 // Config returns the app configuration.
 func Config() *gs_conf.AppConfig {
-	return gs_app.GS.P
+	return app.P
 }
 
 // Component registers a bean definition for a given object.
 func Component[T any](i T) T {
 	b := gs_bean.NewBean(reflect.ValueOf(i))
-	gs_app.GS.C.Register(b).Caller(1)
+	app.C.Register(b).Caller(1)
 	return i
 }
 
 // RootBean registers a root bean definition.
 func RootBean(b *RegisteredBean) {
-	gs_app.GS.C.RootBean(b)
+	app.C.RootBean(b)
 }
 
 // Object registers a bean definition for a given object.
 func Object(i any) *RegisteredBean {
 	b := gs_bean.NewBean(reflect.ValueOf(i))
-	return gs_app.GS.C.Register(b).Caller(1)
+	return app.C.Register(b).Caller(1)
 }
 
 // Provide registers a bean definition for a given constructor.
 func Provide(ctor any, args ...Arg) *RegisteredBean {
 	b := gs_bean.NewBean(ctor, args...)
-	return gs_app.GS.C.Register(b).Caller(1)
+	return app.C.Register(b).Caller(1)
 }
 
 // Register registers a bean definition.
 func Register(b *BeanDefinition) *RegisteredBean {
-	return gs_app.GS.C.Register(b)
+	return app.C.Register(b)
 }
 
 // Module registers a module.
 func Module(conditions []ConditionOnProperty, fn func(p conf.Properties) error) {
-	gs_app.GS.C.Module(conditions, fn)
+	app.C.Module(conditions, fn)
 }
 
 // Group registers a module for a group of beans.
-func Group[T any, R any](key string, fn func(c T) (R, error)) {
-	gs_app.GS.C.Module([]ConditionOnProperty{
+func Group[T any, R any](key string, fn func(c T) (R, error), d func(R) error) {
+	app.C.Module([]ConditionOnProperty{
 		OnProperty(key),
 	}, func(p conf.Properties) error {
 		var m map[string]T
@@ -317,7 +317,10 @@ func Group[T any, R any](key string, fn func(c T) (R, error)) {
 			return err
 		}
 		for name, c := range m {
-			Provide(fn, ValueArg(c)).Name(name)
+			b := Provide(fn, ValueArg(c)).Name(name)
+			if d != nil {
+				b.Destroy(d)
+			}
 		}
 		return nil
 	})
@@ -325,9 +328,9 @@ func Group[T any, R any](key string, fn func(c T) (R, error)) {
 
 // RefreshProperties refreshes the app configuration.
 func RefreshProperties() error {
-	p, err := gs_app.GS.P.Refresh()
+	p, err := app.P.Refresh()
 	if err != nil {
 		return err
 	}
-	return gs_app.GS.C.RefreshProperties(p)
+	return app.C.RefreshProperties(p)
 }

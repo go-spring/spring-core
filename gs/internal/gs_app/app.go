@@ -34,9 +34,6 @@ import (
 	"github.com/go-spring/spring-core/util/goutil"
 )
 
-// GS is the global application instance.
-var GS = NewApp()
-
 // App represents the core application, managing its lifecycle,
 // configuration, and dependency injection.
 type App struct {

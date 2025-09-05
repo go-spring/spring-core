@@ -22,19 +22,13 @@ import (
 )
 
 func init() {
-
-	// Condition of pprof module
-	conditionOfPProfModule := OnOnce(
-		OnEnableServers(),
-		OnProperty(EnableSimplePProfServerProp).HavingValue("true").MatchIfMissing(),
-	)
-
 	// Registers a SimplePProfServer object to the container.
 	Provide(
 		NewSimplePProfServer,
 		TagArg("${pprof.server.addr:=0.0.0.0:9981}"),
 	).Condition(
-		conditionOfPProfModule,
+		OnEnableServers(),
+		OnProperty(EnableSimplePProfServerProp).HavingValue("true").MatchIfMissing(),
 	).AsServer()
 }
 

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 )
 
 func init() {
@@ -34,8 +35,8 @@ func init() {
 		func(p conf.Properties) error {
 
 			// Register the default ServeMux as a bean if no other ServeMux instance exists
-			Object(http.DefaultServeMux).Condition(
-				OnMissingBean[*http.ServeMux](),
+			Object(http.DefaultServeMux).Export(gs.As[http.Handler]()).Condition(
+				OnMissingBean[http.Handler](),
 			)
 
 			// Provide a new SimpleHttpServer instance with configuration bindings.
@@ -105,7 +106,7 @@ type SimpleHttpServer struct {
 }
 
 // NewSimpleHttpServer creates a new instance of SimpleHttpServer.
-func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHttpServer {
+func NewSimpleHttpServer(h http.Handler, opts ...HttpServerOption) *SimpleHttpServer {
 	arg := &HttpServerConfig{
 		Address:       "0.0.0.0:9090",
 		ReadTimeout:   time.Second * 5,
@@ -118,7 +119,7 @@ func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHt
 	}
 	return &SimpleHttpServer{svr: &http.Server{
 		Addr:         arg.Address,
-		Handler:      mux,
+		Handler:      h,
 		ReadTimeout:  arg.ReadTimeout,
 		WriteTimeout: arg.WriteTimeout,
 	}}
