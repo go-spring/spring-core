@@ -23,7 +23,9 @@ func Read(b []byte) (map[string]any, error) {
 
 	p := properties.NewProperties()
 	p.DisableExpansion = true
-	_ = p.Load(b, properties.UTF8) // always no error
+	if err := p.Load(b, properties.UTF8); err != nil {
+		return nil, err
+	}
 
 	ret := make(map[string]any)
 	for k, v := range p.Map() {

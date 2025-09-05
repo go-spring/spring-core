@@ -34,9 +34,6 @@ import (
 	"github.com/go-spring/spring-core/util/goutil"
 )
 
-// GS is the global application instance.
-var GS = NewApp()
-
 // App represents the core application, managing its lifecycle,
 // configuration, and dependency injection.
 type App struct {
@@ -108,7 +105,7 @@ func (app *App) RunWith(fn func(ctx context.Context) error) error {
 // loading, IoC container refreshing, dependency injection, and runs
 // runners, jobs and servers.
 func (app *App) Start() error {
-	app.C.Object(app)
+	app.C.RootBean(app.C.Object(app))
 
 	// loads the layered app properties
 	var p conf.Properties

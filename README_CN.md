@@ -189,7 +189,6 @@ Go-Spring 提供多种方式注册 Bean：
 - **`gs.Object(obj)`** - 将已有对象注册为 Bean
 - **`gs.Provide(ctor, args...)`** - 使用构造函数生成并注册 Bean
 - **`gs.Register(bd)`** - 注册完整 Bean 定义（适合底层封装或高级用法）
-- **`gs.GroupRegister(fn)`** - 批量注册多个 Bean（常用于模块初始化等场景）
 
 示例:
 
@@ -198,14 +197,6 @@ gs.Object(&Service{})  // 注册结构体实例
 gs.Provide(NewService) // 使用构造函数注册
 gs.Provide(NewRepo, gs.ValueArg("db")) // 构造函数带参数
 gs.Register(gs.NewBean(NewService))    // 完整定义注册
-
-// 批量注册多个 Bean
-gs.GroupRegister(func (p conf.Properties) []*gs.BeanDefinition {
-    return []*gs.BeanDefinition{
-        gs.NewBean(NewUserService),
-        gs.NewBean(NewOrderService),
-    }
-})
 ```
 
 ### 2️⃣ 注入方式
@@ -291,11 +282,10 @@ Go-Spring 借鉴 Spring 的 `@Conditional` 思想，实现了灵活强大的条�
 ### 🎯 常用条件类型
 
 - **`OnProperty("key")`**：当指定配置 key 存在时激活
-- **`OnMissingProperty("key")`**：当指定配置 key 不存在时激活
 - **`OnBean[Type]("name")`**：当指定类型/名称的 Bean 存在时激活
 - **`OnMissingBean[Type]("name")`**：当指定类型/名称的 Bean 不存在时激活
 - **`OnSingleBean[Type]("name")`**：当指定类型/名称的 Bean 是唯一实例时激活
-- **`OnFunc(func(ctx CondContext) bool)`**：使用自定义条件逻辑判断是否激活
+- **`OnFunc(func(ctx ConditionContext) bool)`**：使用自定义条件逻辑判断是否激活
 
 示例：
 

@@ -14,16 +14,33 @@
  * limitations under the License.
  */
 
-package app
+package gs_test
 
 import (
+	"fmt"
+	"testing"
+
 	"github.com/go-spring/spring-core/gs"
 )
 
-func init() {
-	gs.Object(&App{})
+func TestMain(m *testing.M) {
+	gs.AddTester(&Tester{})
+	gs.Object(&Dep{})
+	gs.TestMain(m)
 }
 
-type App struct {
-	Name string `value:"${spring.app.name}"`
+func TestAA(t *testing.T) {
+
+}
+
+type Dep struct {
+	Name string `value:"${name:=TestAA}"`
+}
+
+type Tester struct {
+	Dep *Dep `autowire:""`
+}
+
+func (o *Tester) TestAA(t *testing.T) {
+	fmt.Println(o.Dep.Name)
 }

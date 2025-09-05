@@ -60,7 +60,7 @@ offering runtime decision-making through various condition types.
 4. Custom Conditions
 
   - Functional condition:
-    cond := OnFunc(func(ctx gs.CondContext) (bool, error) {
+    cond := OnFunc(func(ctx gs.ConditionContext) (bool, error) {
     return time.Now().Hour() > 9, nil
     })
 
@@ -83,16 +83,16 @@ import (
 // onFunc is an implementation of [gs.Condition] that wraps a function.
 // It allows a condition to be evaluated based on the result of a function.
 type onFunc struct {
-	fn func(ctx gs.CondContext) (bool, error)
+	fn func(ctx gs.ConditionContext) (bool, error)
 }
 
 // OnFunc creates a Conditional that evaluates using a custom function.
-func OnFunc(fn func(ctx gs.CondContext) (bool, error)) gs.Condition {
+func OnFunc(fn func(ctx gs.ConditionContext) (bool, error)) gs.Condition {
 	return &onFunc{fn: fn}
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onFunc) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onFunc) Matches(ctx gs.ConditionContext) (bool, error) {
 	ok, err := c.fn(ctx)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
@@ -107,12 +107,12 @@ func (c *onFunc) String() string {
 
 /******************************* OnProperty **********************************/
 
-// OnPropertyInterface defines the methods for evaluating a condition based on a property.
+// ConditionOnProperty defines the methods for evaluating a condition based on a property.
 // This interface provides flexibility for matching missing properties and checking their values.
-type OnPropertyInterface interface {
+type ConditionOnProperty interface {
 	gs.Condition
-	MatchIfMissing() OnPropertyInterface
-	HavingValue(s string) OnPropertyInterface
+	MatchIfMissing() ConditionOnProperty
+	HavingValue(s string) ConditionOnProperty
 }
 
 // onProperty evaluates a condition based on the existence and value of a property
@@ -125,24 +125,24 @@ type onProperty struct {
 }
 
 // OnProperty creates a condition based on the presence and value of a specified property.
-func OnProperty(name string) OnPropertyInterface {
+func OnProperty(name string) ConditionOnProperty {
 	return &onProperty{name: name}
 }
 
 // MatchIfMissing sets the condition to match if the property is missing.
-func (c *onProperty) MatchIfMissing() OnPropertyInterface {
+func (c *onProperty) MatchIfMissing() ConditionOnProperty {
 	c.matchIfMissing = true
 	return c
 }
 
 // HavingValue sets the expected value or expression to match.
-func (c *onProperty) HavingValue(s string) OnPropertyInterface {
+func (c *onProperty) HavingValue(s string) ConditionOnProperty {
 	c.havingValue = s
 	return c
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onProperty) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onProperty) Matches(ctx gs.ConditionContext) (bool, error) {
 
 	// If the context doesn't have the property, handle accordingly.
 	if !ctx.Has(c.name) {
@@ -185,28 +185,6 @@ func (c *onProperty) String() string {
 	return sb.String()
 }
 
-/*************************** OnMissingProperty *******************************/
-
-// onMissingProperty is a condition that matches when a specified property is
-// absent from the context.
-type onMissingProperty struct {
-	name string // The name of the property to check for absence.
-}
-
-// OnMissingProperty creates a condition that matches if the specified property is missing.
-func OnMissingProperty(name string) gs.Condition {
-	return &onMissingProperty{name: name}
-}
-
-// Matches checks if the condition is met according to the provided context.
-func (c *onMissingProperty) Matches(ctx gs.CondContext) (bool, error) {
-	return !ctx.Has(c.name), nil
-}
-
-func (c *onMissingProperty) String() string {
-	return fmt.Sprintf("OnMissingProperty(name=%s)", c.name)
-}
-
 /********************************* OnBean ************************************/
 
 // onBean checks for the existence of beans that match a selector.
@@ -228,7 +206,7 @@ func OnBeanSelector(s gs.BeanSelector) gs.Condition {
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onBean) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
@@ -261,7 +239,7 @@ func OnMissingBeanSelector(s gs.BeanSelector) gs.Condition {
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onMissingBean) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onMissingBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
@@ -294,7 +272,7 @@ func OnSingleBeanSelector(s gs.BeanSelector) gs.Condition {
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onSingleBean) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onSingleBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
@@ -321,7 +299,7 @@ func OnExpression(expression string) gs.Condition {
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onExpression) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onExpression) Matches(ctx gs.ConditionContext) (bool, error) {
 	err := util.ErrUnimplementedMethod
 	return false, errutil.WrapError(err, "condition matches error: %s", c)
 }
@@ -344,7 +322,7 @@ func Not(c gs.Condition) gs.Condition {
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (c *onNot) Matches(ctx gs.CondContext) (bool, error) {
+func (c *onNot) Matches(ctx gs.ConditionContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	if err != nil {
 		return false, errutil.WrapError(err, "condition matches error: %s", c)
@@ -376,7 +354,7 @@ func Or(conditions ...gs.Condition) gs.Condition {
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (g *onOr) Matches(ctx gs.CondContext) (bool, error) {
+func (g *onOr) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
 			return false, errutil.WrapError(err, "condition matches error: %s", g)
@@ -411,7 +389,7 @@ func And(conditions ...gs.Condition) gs.Condition {
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (g *onAnd) Matches(ctx gs.CondContext) (bool, error) {
+func (g *onAnd) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		ok, err := c.Matches(ctx)
 		if err != nil {
@@ -447,7 +425,7 @@ func None(conditions ...gs.Condition) gs.Condition {
 }
 
 // Matches checks if the condition is met according to the provided context.
-func (g *onNone) Matches(ctx gs.CondContext) (bool, error) {
+func (g *onNone) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
 			return false, errutil.WrapError(err, "condition matches error: %s", g)

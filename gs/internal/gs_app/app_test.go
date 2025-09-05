@@ -78,7 +78,8 @@ func TestApp(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		_ = gs_conf.SysConf.Set("a", "123")
+		fileID := gs_conf.SysConf.AddFile("app_test.go")
+		_ = gs_conf.SysConf.Set("a", "123", fileID)
 		_ = os.Setenv("GS_A_B", "456")
 		app := NewApp()
 		err := app.Run()
@@ -90,9 +91,9 @@ func TestApp(t *testing.T) {
 		t.Cleanup(Reset)
 
 		app := NewApp()
-		app.C.Provide(func() (*http.Server, error) {
+		app.C.RootBean(app.C.Provide(func() (*http.Server, error) {
 			return nil, errors.New("fail to create bean")
-		})
+		}))
 		err := app.Run()
 		assert.ThatError(t, err).Matches("fail to create bean")
 	})
@@ -115,8 +116,9 @@ func TestApp(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		_ = gs_conf.SysConf.Set("spring.app.enable-jobs", "false")
-		_ = gs_conf.SysConf.Set("spring.app.enable-servers", "false")
+		fileID := gs_conf.SysConf.AddFile("app_test.go")
+		_ = gs_conf.SysConf.Set("spring.app.enable-jobs", "false", fileID)
+		_ = gs_conf.SysConf.Set("spring.app.enable-servers", "false", fileID)
 		app := NewApp()
 		go func() {
 			time.Sleep(50 * time.Millisecond)

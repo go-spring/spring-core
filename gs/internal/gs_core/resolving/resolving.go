@@ -35,25 +35,34 @@ type RefreshState int
 
 const (
 	RefreshDefault = RefreshState(iota)
+	RefreshPrepare
 	Refreshing
 	Refreshed
 )
 
-// BeanGroupFunc defines a function that dynamically registers beans
-// based on configuration properties.
-type BeanGroupFunc func(p conf.Properties) ([]*gs.BeanDefinition, error)
+// Module represents a module registered in the container.
+type Module struct {
+	f func(p conf.Properties) error
+	c gs.Condition
+}
 
 // Resolving manages bean definitions, mocks, and dynamic bean registration functions.
 type Resolving struct {
-	state RefreshState              // Current refresh state
-	mocks []gs.BeanMock             // Registered mock beans
-	beans []*gs_bean.BeanDefinition // Managed bean definitions
-	funcs []BeanGroupFunc           // Dynamic bean registration functions
+	state   RefreshState              // Current refresh state
+	mocks   []gs.BeanMock             // Registered mock beans
+	beans   []*gs_bean.BeanDefinition // Managed bean definitions
+	roots   []*gs_bean.BeanDefinition // Root beans
+	modules []Module
 }
 
 // New creates an empty Resolving instance.
 func New() *Resolving {
 	return &Resolving{}
+}
+
+// Roots returns all root beans.
+func (c *Resolving) Roots() []*gs_bean.BeanDefinition {
+	return c.roots
 }
 
 // Beans returns all active bean definitions, excluding deleted ones.
@@ -95,9 +104,22 @@ func (c *Resolving) Register(b *gs.BeanDefinition) *gs.RegisteredBean {
 	return gs.NewRegisteredBean(bd)
 }
 
-// GroupRegister adds a function to dynamically register beans.
-func (c *Resolving) GroupRegister(fn BeanGroupFunc) {
-	c.funcs = append(c.funcs, fn)
+// Module registers a module into the container.
+func (c *Resolving) Module(conditions []gs_cond.ConditionOnProperty, fn func(p conf.Properties) error) {
+	var arr []gs.Condition
+	for _, cond := range conditions {
+		arr = append(arr, cond)
+	}
+	c.modules = append(c.modules, Module{
+		f: fn,
+		c: gs_cond.And(arr...),
+	})
+}
+
+// RootBean adds a root bean to the container.
+func (c *Resolving) RootBean(b *gs.RegisteredBean) {
+	bd := b.BeanRegistration().(*gs_bean.BeanDefinition)
+	c.roots = append(c.roots, bd)
 }
 
 // Refresh performs the full initialization process of the container.
@@ -111,11 +133,13 @@ func (c *Resolving) Refresh(p conf.Properties) error {
 	if c.state != RefreshDefault {
 		return errors.New("container is already refreshing or refreshed")
 	}
-	c.state = Refreshing
+	c.state = RefreshPrepare
 
-	if err := c.applyGroupFuncs(p); err != nil {
+	if err := c.applyModules(p); err != nil {
 		return err
 	}
+
+	c.state = Refreshing
 
 	if err := c.scanConfigurations(); err != nil {
 		return err
@@ -133,20 +157,32 @@ func (c *Resolving) Refresh(p conf.Properties) error {
 		return err
 	}
 
+	for _, b := range c.roots {
+		if b.Status() == gs_bean.StatusDeleted {
+			continue
+		}
+		if b.Status() != gs_bean.StatusResolved {
+			return fmt.Errorf("bean %q status is invalid for wiring", b)
+		}
+	}
+
 	c.state = Refreshed
 	return nil
 }
 
-// applyGroupFuncs executes registered group functions to add dynamic beans.
-func (c *Resolving) applyGroupFuncs(p conf.Properties) error {
-	for _, fn := range c.funcs {
-		beans, err := fn(p)
-		if err != nil {
-			return err
+// applyModules executes registered modules to add beans.
+func (c *Resolving) applyModules(p conf.Properties) error {
+	ctx := &ConditionContext{p: p, c: c}
+	for _, m := range c.modules {
+		if m.c != nil {
+			if ok, err := m.c.Matches(ctx); err != nil {
+				return err
+			} else if !ok {
+				continue
+			}
 		}
-		for _, b := range beans {
-			d := b.BeanRegistration().(*gs_bean.BeanDefinition)
-			c.beans = append(c.beans, d)
+		if err := m.f(p); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -305,7 +341,7 @@ func (c *Resolving) applyMock(mock gs.BeanMock) error {
 
 // resolveBeans evaluates conditions for all beans and marks inactive ones.
 func (c *Resolving) resolveBeans(p conf.Properties) error {
-	ctx := &CondContext{p: p, c: c}
+	ctx := &ConditionContext{p: p, c: c}
 	for _, b := range c.beans {
 		if err := ctx.resolveBean(b); err != nil {
 			return err
@@ -332,15 +368,15 @@ func (c *Resolving) checkDuplicateBeans() error {
 	return nil
 }
 
-// CondContext provides condition evaluation context during resolution.
-type CondContext struct {
+// ConditionContext provides condition evaluation context during resolution.
+type ConditionContext struct {
 	c *Resolving
 	p conf.Properties
 }
 
 // resolveBean evaluates a bean's conditions, updating its status accordingly.
 // If any condition fails, the bean is marked as deleted.
-func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error {
+func (c *ConditionContext) resolveBean(b *gs_bean.BeanDefinition) error {
 	if b.Status() >= gs_bean.StatusResolving {
 		return nil
 	}
@@ -358,18 +394,18 @@ func (c *CondContext) resolveBean(b *gs_bean.BeanDefinition) error {
 }
 
 // Has checks if a configuration property exists.
-func (c *CondContext) Has(key string) bool {
+func (c *ConditionContext) Has(key string) bool {
 	return c.p.Has(key)
 }
 
 // Prop retrieves a configuration property with optional default value.
-func (c *CondContext) Prop(key string, def ...string) string {
+func (c *ConditionContext) Prop(key string, def ...string) string {
 	return c.p.Get(key, def...)
 }
 
 // Find returns beans matching the selector after resolving their conditions.
-func (c *CondContext) Find(s gs.BeanSelector) ([]gs.CondBean, error) {
-	var found []gs.CondBean
+func (c *ConditionContext) Find(s gs.BeanSelector) ([]gs.ConditionBean, error) {
+	var found []gs.ConditionBean
 	t, name := s.TypeAndName()
 	for _, b := range c.c.beans {
 		if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted {

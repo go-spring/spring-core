@@ -590,7 +590,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		arg.Condition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+		arg.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
 			return false, errors.New("condition error")
 		}))
 
@@ -614,7 +614,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		arg.Condition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+		arg.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
 			return false, nil
 		}))
 
@@ -639,7 +639,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		arg.Condition(gs_cond.OnFunc(func(ctx gs.CondContext) (bool, error) {
+		arg.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
 			return true, nil
 		}))
 

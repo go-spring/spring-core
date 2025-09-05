@@ -26,10 +26,7 @@ import (
 )
 
 func init() {
-	// Register a group of Bean definitions during application initialization.
-	// GroupRegister dynamically creates multiple Beans based on the configuration (conf.Properties),
-	// making it ideal for scenarios like setting up multiple loggers, clients, or resources from config.
-	gs.GroupRegister(func(p conf.Properties) ([]*gs.BeanDefinition, error) {
+	gs.Module(nil, func(p conf.Properties) error {
 
 		var loggers map[string]struct {
 			Name string `value:"${name}"` // Log file name
@@ -39,10 +36,9 @@ func init() {
 		// Bind configuration from the "${log}" node into the 'loggers' map.
 		err := p.Bind(&loggers, "${log}")
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		var ret []*gs.BeanDefinition
 		for k, l := range loggers {
 			var (
 				f    *os.File
@@ -52,19 +48,17 @@ func init() {
 			// Open (or create) the log file
 			f, err = os.OpenFile(filepath.Join(l.Dir, l.Name), flag, os.ModePerm)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			// Create a new slog.Logger instance with a text handler writing to the file
 			o := slog.New(slog.NewTextHandler(f, nil))
 
 			// Wrap the logger into a Bean with a destroy hook to close the file
-			b := gs.NewBean(o).Name(k).Destroy(func(_ *slog.Logger) {
+			gs.Object(o).Name(k).Destroy(func(_ *slog.Logger) {
 				_ = f.Close()
 			})
-
-			ret = append(ret, b)
 		}
-		return ret, nil
+		return nil
 	})
 }

@@ -198,12 +198,12 @@ func provideBean(ctor any, args ...gs.Arg) *gs.BeanDefinition {
 	return gs_bean.NewBean(ctor, args...)
 }
 
-func extractBeans(beans []*gs.BeanDefinition) []*gs_bean.BeanDefinition {
+func extractBeans(beans []*gs.BeanDefinition) (_, _ []*gs_bean.BeanDefinition) {
 	var ret []*gs_bean.BeanDefinition
 	for _, b := range beans {
 		ret = append(ret, b.BeanRegistration().(*gs_bean.BeanDefinition))
 	}
-	return ret
+	return ret, ret
 }
 
 type LazyA struct {

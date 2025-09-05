@@ -19,6 +19,7 @@ package gs
 import (
 	"context"
 	"reflect"
+	"runtime"
 
 	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
@@ -72,23 +73,37 @@ func BindArg(fn any, args ...Arg) *gs_arg.BindArg {
 /************************************ cond ***********************************/
 
 type (
-	Condition   = gs.Condition
-	CondContext = gs.CondContext
+	Condition           = gs.Condition
+	ConditionContext    = gs.ConditionContext
+	ConditionOnProperty = gs_cond.ConditionOnProperty
 )
 
+// OnOnce creates a Condition that wraps another Condition and ensures
+// its Matches method is called only once. Subsequent calls will return
+// the same result as the first call without re-evaluating the condition.
+func OnOnce(conditions ...Condition) Condition {
+	var (
+		done   bool
+		result bool
+	)
+	return OnFunc(func(ctx ConditionContext) (_ bool, err error) {
+		if done {
+			return result, nil
+		}
+		done = true
+		result, err = gs_cond.And(conditions...).Matches(ctx)
+		return result, err
+	})
+}
+
 // OnFunc creates a Condition based on the provided function.
-func OnFunc(fn func(ctx CondContext) (bool, error)) Condition {
+func OnFunc(fn func(ctx ConditionContext) (bool, error)) Condition {
 	return gs_cond.OnFunc(fn)
 }
 
 // OnProperty creates a Condition based on a property name and options.
-func OnProperty(name string) gs_cond.OnPropertyInterface {
+func OnProperty(name string) ConditionOnProperty {
 	return gs_cond.OnProperty(name)
-}
-
-// OnMissingProperty creates a Condition that checks for a missing property.
-func OnMissingProperty(name string) Condition {
-	return gs_cond.OnMissingProperty(name)
 }
 
 // OnBean creates a Condition for when a specific bean exists.
@@ -136,11 +151,20 @@ func None(conditions ...Condition) Condition {
 	return gs_cond.None(conditions...)
 }
 
+// OnEnableJobs creates a Condition that checks whether the EnableJobsProp property is true.
+func OnEnableJobs() ConditionOnProperty {
+	return OnProperty(EnableJobsProp).HavingValue("true").MatchIfMissing()
+}
+
+// OnEnableServers creates a Condition that checks whether the EnableServersProp property is true.
+func OnEnableServers() ConditionOnProperty {
+	return OnProperty(EnableServersProp).HavingValue("true").MatchIfMissing()
+}
+
 /************************************ ioc ************************************/
 
 type (
-	BeanID   = gs.BeanID
-	BeanMock = gs.BeanMock
+	BeanID = gs.BeanID
 )
 
 type (
@@ -172,7 +196,9 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 
 // Property sets a system property.
 func Property(key string, val string) {
-	if err := gs_conf.SysConf.Set(key, val); err != nil {
+	_, file, _, _ := runtime.Caller(1)
+	fileID := gs_conf.SysConf.AddFile(file)
+	if err := gs_conf.SysConf.Set(key, val, fileID); err != nil {
 		log.Errorf(context.Background(), log.TagAppDef, "failed to set property key=%s, err=%v", key, err)
 	}
 }
@@ -185,6 +211,7 @@ type (
 )
 
 var B = gs_app.NewBoot()
+var app = gs_app.NewApp()
 
 // funcRunner is a function type that implements the Runner interface.
 type funcRunner func() error
@@ -233,53 +260,77 @@ func RunAsync() (func(), error) {
 
 // Exiting returns a boolean indicating whether the application is exiting.
 func Exiting() bool {
-	return gs_app.GS.Exiting()
+	return app.Exiting()
 }
 
 // ShutDown shuts down the app with an optional message.
 func ShutDown() {
-	gs_app.GS.ShutDown()
+	app.ShutDown()
 }
 
 // Config returns the app configuration.
 func Config() *gs_conf.AppConfig {
-	return gs_app.GS.P
+	return app.P
 }
 
 // Component registers a bean definition for a given object.
 func Component[T any](i T) T {
 	b := gs_bean.NewBean(reflect.ValueOf(i))
-	gs_app.GS.C.Register(b).Caller(1)
+	app.C.Register(b).Caller(1)
 	return i
+}
+
+// RootBean registers a root bean definition.
+func RootBean(b *RegisteredBean) {
+	app.C.RootBean(b)
 }
 
 // Object registers a bean definition for a given object.
 func Object(i any) *RegisteredBean {
 	b := gs_bean.NewBean(reflect.ValueOf(i))
-	return gs_app.GS.C.Register(b).Caller(1)
+	return app.C.Register(b).Caller(1)
 }
 
 // Provide registers a bean definition for a given constructor.
 func Provide(ctor any, args ...Arg) *RegisteredBean {
 	b := gs_bean.NewBean(ctor, args...)
-	return gs_app.GS.C.Register(b).Caller(1)
+	return app.C.Register(b).Caller(1)
 }
 
 // Register registers a bean definition.
 func Register(b *BeanDefinition) *RegisteredBean {
-	return gs_app.GS.C.Register(b)
+	return app.C.Register(b)
 }
 
-// GroupRegister registers a group of bean definitions.
-func GroupRegister(fn func(p conf.Properties) ([]*BeanDefinition, error)) {
-	gs_app.GS.C.GroupRegister(fn)
+// Module registers a module.
+func Module(conditions []ConditionOnProperty, fn func(p conf.Properties) error) {
+	app.C.Module(conditions, fn)
+}
+
+// Group registers a module for a group of beans.
+func Group[T any, R any](key string, fn func(c T) (R, error), d func(R) error) {
+	app.C.Module([]ConditionOnProperty{
+		OnProperty(key),
+	}, func(p conf.Properties) error {
+		var m map[string]T
+		if err := p.Bind(&m, "${"+key+"}"); err != nil {
+			return err
+		}
+		for name, c := range m {
+			b := Provide(fn, ValueArg(c)).Name(name)
+			if d != nil {
+				b.Destroy(d)
+			}
+		}
+		return nil
+	})
 }
 
 // RefreshProperties refreshes the app configuration.
 func RefreshProperties() error {
-	p, err := gs_app.GS.P.Refresh()
+	p, err := app.P.Refresh()
 	if err != nil {
 		return err
 	}
-	return gs_app.GS.C.RefreshProperties(p)
+	return app.C.RefreshProperties(p)
 }

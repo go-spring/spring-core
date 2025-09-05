@@ -54,7 +54,7 @@ func (s *AppStarter) RunWith(fn func(ctx context.Context) error) {
 	if err = s.initApp(); err != nil {
 		return
 	}
-	if err = gs_app.GS.RunWith(fn); err != nil {
+	if err = app.RunWith(fn); err != nil {
 		return
 	}
 	log.Destroy()
@@ -65,11 +65,11 @@ func (s *AppStarter) RunAsync() (func(), error) {
 	if err := s.initApp(); err != nil {
 		return nil, err
 	}
-	if err := gs_app.GS.Start(); err != nil {
+	if err := app.Start(); err != nil {
 		return nil, err
 	}
 	return func() {
-		gs_app.GS.Stop()
+		app.Stop()
 		log.Destroy()
 	}, nil
 }

@@ -211,8 +211,6 @@ Go-Spring provides multiple ways to register Beans:
 - **`gs.Object(obj)`** - Registers an existing object as a Bean
 - **`gs.Provide(ctor, args...)`** - Uses a constructor to generate and register a Bean
 - **`gs.Register(bd)`** - Registers a complete Bean definition (suitable for low-level encapsulation or advanced usage)
-- **`gs.GroupRegister(fn)`** - Batch registers multiple Beans (commonly used for module initialization and other
-  scenarios)
 
 Example:
 
@@ -221,14 +219,6 @@ gs.Object(&Service{})  // Register a struct instance
 gs.Provide(NewService) // Register using a constructor
 gs.Provide(NewRepo, gs.ValueArg("db")) // Constructor with parameters
 gs.Register(gs.NewBean(NewService)) // Complete definition registration
-
-// Batch register multiple Beans
-gs.GroupRegister(func (p conf.Properties) []*gs.BeanDefinition {
-   return []*gs.BeanDefinition{
-      gs.NewBean(NewUserService),
-      gs.NewBean(NewOrderService),
-   }
-})
 ```
 
 ### 2️⃣ Injection Methods
@@ -317,11 +307,10 @@ feature toggles, and gray release scenarios.
 ### 🎯 Common Condition Types
 
 - **`OnProperty("key")`**: Activates when the specified configuration key exists
-- **`OnMissingProperty("key")`**: Activates when the specified configuration key does not exist
 - **`OnBean[Type]("name")`**: Activates when a Bean of the specified type/name exists
 - **`OnMissingBean[Type]("name")`**: Activates when a Bean of the specified type/name does not exist
 - **`OnSingleBean[Type]("name")`**: Activates when a Bean of the specified type/name is the only instance
-- **`OnFunc(func(ctx CondContext) bool)`**: Uses custom condition logic to determine activation
+- **`OnFunc(func(ctx ConditionContext) bool)`**: Uses custom condition logic to determine activation
 
 Example:
 

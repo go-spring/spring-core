@@ -37,7 +37,7 @@ func main() {
 	// - Dependency Injection: Wires beans automatically.
 	// - Dynamic Refresh: Updates configs at runtime without restart.
 	gs.RunWith(func(ctx context.Context) error {
-		log.Infof(ctx, log.TagApp, "app started")
+		log.Infof(ctx, log.TagAppDef, "app started")
 		return nil
 	})
 }

@@ -61,5 +61,8 @@ func initLog() error {
 	if logFile == "" { // no log file exists
 		return nil
 	}
-	return log.RefreshFile(logFile)
+	if err = log.RefreshFile(logFile); err != nil {
+		return err
+	}
+	return nil
 }

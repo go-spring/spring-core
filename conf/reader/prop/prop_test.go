@@ -24,6 +24,11 @@ import (
 
 func TestRead(t *testing.T) {
 
+	t.Run("error", func(t *testing.T) {
+		_, err := Read([]byte(`=1`))
+		assert.ThatError(t, err).Matches(`properties: Line 1: "1"`)
+	})
+
 	t.Run("basic type", func(t *testing.T) {
 		r, err := Read([]byte(`
 			empty=

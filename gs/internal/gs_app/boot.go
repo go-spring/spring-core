@@ -71,6 +71,11 @@ func (b *BootImpl) Config() *gs_conf.BootConfig {
 	return b.p
 }
 
+// RootBean registers a root bean definition.
+func (b *BootImpl) RootBean(x *gs.RegisteredBean) {
+	b.c.RootBean(x)
+}
+
 // Object registers an object bean.
 func (b *BootImpl) Object(i any) *gs.RegisteredBean {
 	b.flag = true
@@ -103,7 +108,7 @@ func (b *BootImpl) Run() error {
 	if !b.flag {
 		return nil
 	}
-	b.c.Object(b)
+	b.c.RootBean(b.c.Object(b))
 
 	var p conf.Properties
 

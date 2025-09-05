@@ -27,7 +27,7 @@ func init() {
 		NewSimplePProfServer,
 		TagArg("${pprof.server.addr:=0.0.0.0:9981}"),
 	).Condition(
-		OnProperty(EnableServersProp).HavingValue("true").MatchIfMissing(),
+		OnEnableServers(),
 		OnProperty(EnableSimplePProfServerProp).HavingValue("true").MatchIfMissing(),
 	).AsServer()
 }

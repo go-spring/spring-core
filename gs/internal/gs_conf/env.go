@@ -39,6 +39,7 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		return nil
 	}
 	const prefix = "GS_"
+	fileID := p.AddFile("Environment")
 	for _, env := range environ {
 		ss := strings.SplitN(env, "=", 2)
 		k, v := ss[0], ""
@@ -56,7 +57,7 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		} else {
 			propKey = k
 		}
-		if err := p.Set(propKey, v); err != nil {
+		if err := p.Set(propKey, v, fileID); err != nil {
 			return err
 		}
 	}

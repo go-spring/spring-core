@@ -21,28 +21,36 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 )
 
 func init() {
-	// Register the default ServeMux as a bean if no other ServeMux instance exists
-	Object(http.DefaultServeMux).Condition(
-		OnMissingBean[*http.ServeMux](),
-		OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
-	)
+	Module(
+		[]ConditionOnProperty{
+			OnEnableServers(),
+			OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
+		},
+		func(p conf.Properties) error {
 
-	// Provide a new SimpleHttpServer instance with configuration bindings.
-	Provide(
-		NewSimpleHttpServer,
-		IndexArg(1, BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}"))),
-		IndexArg(1, BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}"))),
-		IndexArg(1, BindArg(SetHttpServerHeaderTimeout, TagArg("${http.server.headerTimeout:=1s}"))),
-		IndexArg(1, BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}"))),
-		IndexArg(1, BindArg(SetHttpServerIdleTimeout, TagArg("${http.server.idleTimeout:=60s}"))),
-	).Condition(
-		OnBean[*http.ServeMux](),
-		OnProperty(EnableServersProp).HavingValue("true").MatchIfMissing(),
-		OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
-	).AsServer()
+			// Register the default ServeMux as a bean if no other ServeMux instance exists
+			Object(http.DefaultServeMux).Export(gs.As[http.Handler]()).Condition(
+				OnMissingBean[http.Handler](),
+			)
+
+			// Provide a new SimpleHttpServer instance with configuration bindings.
+			Provide(
+				NewSimpleHttpServer,
+				IndexArg(1, BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}"))),
+				IndexArg(1, BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}"))),
+				IndexArg(1, BindArg(SetHttpServerHeaderTimeout, TagArg("${http.server.headerTimeout:=1s}"))),
+				IndexArg(1, BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}"))),
+				IndexArg(1, BindArg(SetHttpServerIdleTimeout, TagArg("${http.server.idleTimeout:=60s}"))),
+			).AsServer()
+
+			return nil
+		})
 }
 
 // HttpServerConfig holds configuration options for the HTTP server.
@@ -98,7 +106,7 @@ type SimpleHttpServer struct {
 }
 
 // NewSimpleHttpServer creates a new instance of SimpleHttpServer.
-func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHttpServer {
+func NewSimpleHttpServer(h http.Handler, opts ...HttpServerOption) *SimpleHttpServer {
 	arg := &HttpServerConfig{
 		Address:       "0.0.0.0:9090",
 		ReadTimeout:   time.Second * 5,
@@ -111,7 +119,7 @@ func NewSimpleHttpServer(mux *http.ServeMux, opts ...HttpServerOption) *SimpleHt
 	}
 	return &SimpleHttpServer{svr: &http.Server{
 		Addr:         arg.Address,
-		Handler:      mux,
+		Handler:      h,
 		ReadTimeout:  arg.ReadTimeout,
 		WriteTimeout: arg.WriteTimeout,
 	}}
