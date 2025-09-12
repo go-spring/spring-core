@@ -25,19 +25,20 @@ import (
 	"github.com/go-spring/spring-core/util"
 )
 
-// BeanMock is a mock for bean.
+// BeanMock represents a mock bean for testing.
 type BeanMock[T any] struct {
 	selector gs.BeanSelector
 }
 
-// MockFor creates a mock for bean.
+// MockFor creates a BeanMock for the given type and optional bean name.
 func MockFor[T any](name ...string) BeanMock[T] {
 	return BeanMock[T]{
 		selector: gs.BeanSelectorFor[T](name...),
 	}
 }
 
-// With registers a mock bean.
+// With registers a mock instance into the IoC container,
+// replacing the target bean defined by the selector.
 func (m BeanMock[T]) With(obj T) {
 	app.C.AddMock(gs.BeanMock{
 		Object: obj,
@@ -47,23 +48,29 @@ func (m BeanMock[T]) With(obj T) {
 
 var testers []any
 
-// AddTester adds a tester to the test suite.
+// AddTester registers a tester instance into the test suite.
+// The tester will be scanned for methods prefixed with 'Test'
+// and automatically added as Go test functions.
 func AddTester(t any) {
 	testers = append(testers, t)
 	app.C.RootBean(app.C.Object(t))
 }
 
-// TestMain is the entry point for testing.
+// TestMain is the custom entry point for the Go test framework.
+// It patches the internal 'tests' slice of testing.M to include
+// methods defined in registered testers, then runs the app and tests.
 func TestMain(m *testing.M) {
 
-	// patch m.tests
+	// Patch m.tests using reflection (non-standard hack).
 	mValue := util.PatchValue(reflect.ValueOf(m))
 	fValue := util.PatchValue(mValue.Elem().FieldByName("tests"))
 	tests := fValue.Interface().([]testing.InternalTest)
+
+	// Scan all registered testers for methods starting with 'Test'.
 	for _, tester := range testers {
 		tt := reflect.TypeOf(tester)
 		typeName := tt.Elem().String()
-		for i := range tt.NumMethod() {
+		for i := 0; i < tt.NumMethod(); i++ {
 			methodType := tt.Method(i)
 			if strings.HasPrefix(methodType.Name, "Test") {
 				tests = append(tests, testing.InternalTest{
@@ -78,15 +85,15 @@ func TestMain(m *testing.M) {
 	}
 	fValue.Set(reflect.ValueOf(tests))
 
-	// run app
+	// Run the application asynchronously.
 	stop, err := RunAsync()
 	if err != nil {
 		panic(err)
 	}
 
-	// run test
+	// Run the tests.
 	m.Run()
 
-	// stop app
+	// Stop the application gracefully after tests complete.
 	stop()
 }

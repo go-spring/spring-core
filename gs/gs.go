@@ -20,6 +20,7 @@ import (
 	"context"
 	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
@@ -189,7 +190,7 @@ func Property(key string, val string) {
 	_, file, _, _ := runtime.Caller(1)
 	fileID := gs_conf.SysConf.AddFile(file)
 	if err := gs_conf.SysConf.Set(key, val, fileID); err != nil {
-		log.Errorf(context.Background(), log.TagAppDef, "failed to set property key=%s, err=%v", key, err)
+		log.Errorf(context.Background(), log.TagAppDef, "failed to set property key=%s err=%v", key, err)
 	}
 }
 
@@ -223,7 +224,8 @@ func Module(conditions []ConditionOnProperty, fn func(p conf.Properties) error) 
 }
 
 // Group registers beans in a group based on configuration properties.
-func Group[T any, R any](key string, fn func(c T) (R, error), d func(R) error) {
+func Group[T any, R any](tag string, fn func(c T) (R, error), d func(R) error) {
+	key := strings.TrimSuffix(strings.TrimPrefix(tag, "${"), "}")
 	app.C.Module([]ConditionOnProperty{
 		OnProperty(key),
 	}, func(p conf.Properties) error {
