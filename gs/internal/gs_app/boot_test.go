@@ -20,11 +20,9 @@ import (
 	"bytes"
 	"errors"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/go-spring/gs-assert/assert"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 )
 
@@ -72,7 +70,7 @@ func TestBoot(t *testing.T) {
 		t.Cleanup(Reset)
 
 		boot := NewBoot().(*BootImpl)
-		boot.FuncRunner(func() error {
+		boot.Runner(func() error {
 			return errors.New("runner return error")
 		})
 		err := boot.Run()
@@ -84,10 +82,7 @@ func TestBoot(t *testing.T) {
 		t.Cleanup(Reset)
 
 		boot := NewBoot().(*BootImpl)
-		bd := gs_bean.NewBean(reflect.ValueOf(funcRunner(func() error {
-			return nil
-		}))).AsRunner().Caller(1)
-		boot.Register(bd)
+		boot.Runner(func() error { return nil })
 		boot.Config().LocalFile.Reset()
 		err := boot.Run()
 		assert.ThatError(t, err).Nil()

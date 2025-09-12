@@ -210,7 +210,6 @@ Go-Spring provides multiple ways to register Beans:
 
 - **`gs.Object(obj)`** - Registers an existing object as a Bean
 - **`gs.Provide(ctor, args...)`** - Uses a constructor to generate and register a Bean
-- **`gs.Register(bd)`** - Registers a complete Bean definition (suitable for low-level encapsulation or advanced usage)
 
 Example:
 
@@ -218,7 +217,6 @@ Example:
 gs.Object(&Service{})  // Register a struct instance
 gs.Provide(NewService) // Register using a constructor
 gs.Provide(NewRepo, gs.ValueArg("db")) // Constructor with parameters
-gs.Register(gs.NewBean(NewService)) // Complete definition registration
 ```
 
 ### 2️⃣ Injection Methods

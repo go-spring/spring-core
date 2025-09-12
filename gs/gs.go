@@ -26,7 +26,6 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
@@ -34,10 +33,21 @@ import (
 
 const (
 	Version = "go-spring@v1.2.3"
-	Website = "https://go-spring.com/"
+	Website = "https://github.com/go-spring/"
 )
 
-// As returns the [reflect.Type] of the given interface type.
+// Dync is a generic alias for dynamic configuration values.
+type Dync[T any] = gs_dync.Value[T]
+
+// BeanSelector is an alias for gs.BeanSelector used to locate beans.
+type BeanSelector = gs.BeanSelector
+
+// BeanSelectorFor creates a BeanSelector for the given type and optional name.
+func BeanSelectorFor[T any](name ...string) BeanSelector {
+	return gs.BeanSelectorFor[T](name...)
+}
+
+// As returns the [reflect.Type] for the given generic type.
 func As[T any]() reflect.Type {
 	return gs.As[T]()
 }
@@ -46,26 +56,22 @@ func As[T any]() reflect.Type {
 
 type Arg = gs.Arg
 
-// TagArg returns a TagArg with the specified tag.
-// Used for property binding or object injection when providing constructor parameters.
+// TagArg creates an argument that injects a property or object by tag.
 func TagArg(tag string) Arg {
 	return gs_arg.Tag(tag)
 }
 
-// ValueArg returns a ValueArg with the specified value.
-// Used to provide specific values for constructor parameters.
+// ValueArg creates an argument with a fixed value.
 func ValueArg(v any) Arg {
 	return gs_arg.Value(v)
 }
 
-// IndexArg returns an IndexArg with the specified index and argument.
-// When most constructor parameters can use default values, IndexArg helps reduce configuration effort.
+// IndexArg creates an argument for a specific constructor parameter index.
 func IndexArg(n int, arg Arg) Arg {
 	return gs_arg.Index(n, arg)
 }
 
-// BindArg returns a BindArg for the specified function and arguments.
-// Used to provide argument binding for option-style constructor parameters.
+// BindArg binds arguments dynamically to an option-style constructor.
 func BindArg(fn any, args ...Arg) *gs_arg.BindArg {
 	return gs_arg.Bind(fn, args...)
 }
@@ -78,9 +84,7 @@ type (
 	ConditionOnProperty = gs_cond.ConditionOnProperty
 )
 
-// OnOnce creates a Condition that wraps another Condition and ensures
-// its Matches method is called only once. Subsequent calls will return
-// the same result as the first call without re-evaluating the condition.
+// OnOnce wraps a condition so it is evaluated only once.
 func OnOnce(conditions ...Condition) Condition {
 	var (
 		done   bool
@@ -96,103 +100,89 @@ func OnOnce(conditions ...Condition) Condition {
 	})
 }
 
-// OnFunc creates a Condition based on the provided function.
+// OnFunc creates a condition from a function.
 func OnFunc(fn func(ctx ConditionContext) (bool, error)) Condition {
 	return gs_cond.OnFunc(fn)
 }
 
-// OnProperty creates a Condition based on a property name and options.
+// OnProperty creates a property-based condition.
 func OnProperty(name string) ConditionOnProperty {
 	return gs_cond.OnProperty(name)
 }
 
-// OnBean creates a Condition for when a specific bean exists.
+// OnBean requires a bean to exist.
 func OnBean[T any](name ...string) Condition {
 	return gs_cond.OnBean[T](name...)
 }
 
-// OnMissingBean creates a Condition for when a specific bean is missing.
+// OnMissingBean requires a bean to be missing.
 func OnMissingBean[T any](name ...string) Condition {
 	return gs_cond.OnMissingBean[T](name...)
 }
 
-// OnSingleBean creates a Condition for when only one instance of a bean exists.
+// OnSingleBean requires only one instance of a bean.
 func OnSingleBean[T any](name ...string) Condition {
 	return gs_cond.OnSingleBean[T](name...)
 }
 
-// RegisterExpressFunc registers a custom expression function.
+// RegisterExpressFunc registers a custom expression function for conditions.
 func RegisterExpressFunc(name string, fn any) {
 	gs_cond.RegisterExpressFunc(name, fn)
 }
 
-// OnExpression creates a Condition based on a custom expression.
+// OnExpression creates a condition from an expression.
 func OnExpression(expression string) Condition {
 	return gs_cond.OnExpression(expression)
 }
 
-// Not creates a Condition that negates the given Condition.
+// Not negates a condition.
 func Not(c Condition) Condition {
 	return gs_cond.Not(c)
 }
 
-// Or creates a Condition that is true if any of the given Conditions are true.
+// Or combines conditions using logical OR.
 func Or(conditions ...Condition) Condition {
 	return gs_cond.Or(conditions...)
 }
 
-// And creates a Condition that is true if all the given Conditions are true.
+// And combines conditions using logical AND.
 func And(conditions ...Condition) Condition {
 	return gs_cond.And(conditions...)
 }
 
-// None creates a Condition that is true if none of the given Conditions are true.
+// None creates a condition that is true if all given conditions are false.
 func None(conditions ...Condition) Condition {
 	return gs_cond.None(conditions...)
 }
 
-// OnEnableJobs creates a Condition that checks whether the EnableJobsProp property is true.
+// OnEnableJobs checks if job execution is enabled.
 func OnEnableJobs() ConditionOnProperty {
 	return OnProperty(EnableJobsProp).HavingValue("true").MatchIfMissing()
 }
 
-// OnEnableServers creates a Condition that checks whether the EnableServersProp property is true.
+// OnEnableServers checks if servers are enabled.
 func OnEnableServers() ConditionOnProperty {
 	return OnProperty(EnableServersProp).HavingValue("true").MatchIfMissing()
 }
 
-/************************************ ioc ************************************/
-
-type (
-	BeanID = gs.BeanID
-)
-
-type (
-	Dync[T any] = gs_dync.Value[T]
-)
-
-type (
-	RegisteredBean = gs.RegisteredBean
-	BeanDefinition = gs.BeanDefinition
-)
-
-type (
-	BeanSelector    = gs.BeanSelector
-	BeanInitFunc    = gs.BeanInitFunc
-	BeanDestroyFunc = gs.BeanDestroyFunc
-)
-
-// NewBean creates a new BeanDefinition.
-func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *gs.BeanDefinition {
-	return gs_bean.NewBean(objOrCtor, ctorArgs...).Caller(1)
-}
-
-// BeanSelectorFor returns a BeanSelector for the given type.
-func BeanSelectorFor[T any](name ...string) BeanSelector {
-	return gs.BeanSelectorFor[T](name...)
-}
-
 /*********************************** app *************************************/
+
+type (
+	Server      = gs.Server
+	ReadySignal = gs.ReadySignal
+)
+
+var (
+	// B is the bootstrapper.
+	B = gs_app.NewBoot()
+	// app is the application.
+	app = gs_app.NewApp()
+)
+
+// Config returns the application configuration.
+func Config() *gs_conf.AppConfig {
+	return app.P
+}
 
 // Property sets a system property.
 func Property(key string, val string) {
@@ -203,111 +193,36 @@ func Property(key string, val string) {
 	}
 }
 
-type (
-	Runner      = gs.Runner
-	Job         = gs.Job
-	Server      = gs.Server
-	ReadySignal = gs.ReadySignal
-)
-
-var B = gs_app.NewBoot()
-var app = gs_app.NewApp()
-
-// funcRunner is a function type that implements the Runner interface.
-type funcRunner func() error
-
-func (f funcRunner) Run() error {
-	return f()
+// RefreshProperties reloads application properties.
+func RefreshProperties() error {
+	p, err := app.P.Refresh()
+	if err != nil {
+		return err
+	}
+	return app.C.RefreshProperties(p)
 }
 
-// FuncRunner creates a Runner from a function.
-func FuncRunner(fn func() error) *RegisteredBean {
-	return Object(funcRunner(fn)).AsRunner().Caller(1)
-}
-
-// funcJob is a function type that implements the Job interface.
-type funcJob func(ctx context.Context) error
-
-func (f funcJob) Run(ctx context.Context) error {
-	return f(ctx)
-}
-
-// FuncJob creates a Job from a function.
-func FuncJob(fn func(ctx context.Context) error) *RegisteredBean {
-	return Object(funcJob(fn)).AsJob().Caller(1)
-}
-
-// Web enables or disables the built-in web server.
-func Web(enable bool) *AppStarter {
-	EnableSimpleHttpServer(enable)
-	return &AppStarter{}
-}
-
-// Run runs the app and waits for an interrupt signal to exit.
-func Run() {
-	new(AppStarter).Run()
-}
-
-// RunWith runs the app with a given function and waits for an interrupt signal to exit.
-func RunWith(fn func(ctx context.Context) error) {
-	new(AppStarter).RunWith(fn)
-}
-
-// RunAsync runs the app asynchronously and returns a function to stop the app.
-func RunAsync() (func(), error) {
-	return new(AppStarter).RunAsync()
-}
-
-// Exiting returns a boolean indicating whether the application is exiting.
-func Exiting() bool {
-	return app.Exiting()
-}
-
-// ShutDown shuts down the app with an optional message.
-func ShutDown() {
-	app.ShutDown()
-}
-
-// Config returns the app configuration.
-func Config() *gs_conf.AppConfig {
-	return app.P
-}
-
-// Component registers a bean definition for a given object.
-func Component[T any](i T) T {
-	b := gs_bean.NewBean(reflect.ValueOf(i))
-	app.C.Register(b).Caller(1)
-	return i
-}
-
-// RootBean registers a root bean definition.
-func RootBean(b *RegisteredBean) {
+// RootBean registers a root bean.
+func RootBean(b *gs.RegisteredBean) {
 	app.C.RootBean(b)
 }
 
 // Object registers a bean definition for a given object.
-func Object(i any) *RegisteredBean {
-	b := gs_bean.NewBean(reflect.ValueOf(i))
-	return app.C.Register(b).Caller(1)
+func Object(i any) *gs.RegisteredBean {
+	return app.C.Object(i).Caller(1)
 }
 
-// Provide registers a bean definition for a given constructor.
-func Provide(ctor any, args ...Arg) *RegisteredBean {
-	b := gs_bean.NewBean(ctor, args...)
-	return app.C.Register(b).Caller(1)
+// Provide registers a bean definition from a constructor.
+func Provide(ctor any, args ...Arg) *gs.RegisteredBean {
+	return app.C.Provide(ctor, args...).Caller(1)
 }
 
-// Register registers a bean definition.
-func Register(b *BeanDefinition) *RegisteredBean {
-	return app.C.Register(b)
-}
-
-// Module registers a module.
+// Module registers a module with property-based conditions.
 func Module(conditions []ConditionOnProperty, fn func(p conf.Properties) error) {
 	app.C.Module(conditions, fn)
 }
 
-// Group registers a module for a group of beans.
+// Group registers beans in a group based on configuration properties.
 func Group[T any, R any](key string, fn func(c T) (R, error), d func(R) error) {
 	app.C.Module([]ConditionOnProperty{
 		OnProperty(key),
@@ -326,11 +241,43 @@ func Group[T any, R any](key string, fn func(c T) (R, error), d func(R) error) {
 	})
 }
 
-// RefreshProperties refreshes the app configuration.
-func RefreshProperties() error {
-	p, err := app.P.Refresh()
-	if err != nil {
-		return err
-	}
-	return app.C.RefreshProperties(p)
+// Runner registers a function as a runner bean.
+func Runner(fn func() error) *gs.RegisteredBean {
+	return Object(gs.FuncRunner(fn)).AsRunner().Caller(1)
+}
+
+// Job registers a function as a job bean.
+func Job(fn func(ctx context.Context) error) *gs.RegisteredBean {
+	return Object(gs.FuncJob(fn)).AsJob().Caller(1)
+}
+
+// Web enables or disables the built-in HTTP server.
+func Web(enable bool) *AppStarter {
+	EnableSimpleHttpServer(enable)
+	return &AppStarter{}
+}
+
+// Run starts the application and waits for exit.
+func Run() {
+	new(AppStarter).Run()
+}
+
+// RunWith starts the application with a custom run function.
+func RunWith(fn func(ctx context.Context) error) {
+	new(AppStarter).RunWith(fn)
+}
+
+// RunAsync starts the application asynchronously.
+func RunAsync() (func(), error) {
+	return new(AppStarter).RunAsync()
+}
+
+// Exiting returns true if the application is shutting down.
+func Exiting() bool {
+	return app.Exiting()
+}
+
+// ShutDown gracefully stops the application.
+func ShutDown() {
+	app.ShutDown()
 }

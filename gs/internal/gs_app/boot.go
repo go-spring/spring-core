@@ -17,21 +17,11 @@
 package gs_app
 
 import (
-	"reflect"
-
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 )
-
-// funcRunner is a function type that implements the Runner interface.
-type funcRunner func() error
-
-func (f funcRunner) Run() error {
-	return f()
-}
 
 // Boot defines the interface for application bootstrapping.
 type Boot interface {
@@ -41,10 +31,8 @@ type Boot interface {
 	Object(i any) *gs.RegisteredBean
 	// Provide registers a bean using a constructor function.
 	Provide(ctor any, args ...gs.Arg) *gs.RegisteredBean
-	// Register registers a BeanDefinition instance.
-	Register(bd *gs.BeanDefinition) *gs.RegisteredBean
-	// FuncRunner creates a Runner from a function.
-	FuncRunner(fn func() error) *gs.RegisteredBean
+	// Runner creates a Runner from a function.
+	Runner(fn func() error) *gs.RegisteredBean
 }
 
 // BootImpl is the bootstrapper of the application.
@@ -79,28 +67,20 @@ func (b *BootImpl) RootBean(x *gs.RegisteredBean) {
 // Object registers an object bean.
 func (b *BootImpl) Object(i any) *gs.RegisteredBean {
 	b.flag = true
-	bd := gs_bean.NewBean(reflect.ValueOf(i))
-	return b.c.Register(bd).Caller(1)
+	return b.c.Object(i).Caller(1)
 }
 
 // Provide registers a bean using a constructor function.
 func (b *BootImpl) Provide(ctor any, args ...gs.Arg) *gs.RegisteredBean {
 	b.flag = true
-	bd := gs_bean.NewBean(ctor, args...)
-	return b.c.Register(bd).Caller(1)
+	return b.c.Provide(ctor, args...).Caller(1)
 }
 
-// Register registers a BeanDefinition instance.
-func (b *BootImpl) Register(bd *gs.BeanDefinition) *gs.RegisteredBean {
+// Runner creates a Runner from a function.
+func (b *BootImpl) Runner(fn func() error) *gs.RegisteredBean {
 	b.flag = true
-	return b.c.Register(bd)
-}
-
-// FuncRunner creates a Runner from a function.
-func (b *BootImpl) FuncRunner(fn func() error) *gs.RegisteredBean {
-	b.flag = true
-	bd := gs_bean.NewBean(reflect.ValueOf(funcRunner(fn)))
-	return b.c.Register(bd).AsRunner().Caller(1)
+	i := gs.FuncRunner(fn)
+	return b.c.Object(i).AsRunner().Caller(1)
 }
 
 // Run executes the application's boot process.

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//go:generate gs mock -o=gs_mock.go -i=ConditionContext,ArgContext,Runner,Job,Server
+//go:generate gs mock -o=gs_mock.go -i=ConditionContext,ArgContext,Server
 
 package gs
 
@@ -134,10 +134,24 @@ type Runner interface {
 	Run() error
 }
 
+// FuncRunner is a function type that implements the Runner interface.
+type FuncRunner func() error
+
+func (f FuncRunner) Run() error {
+	return f()
+}
+
 // Job defines an interface for components that run tasks with a given context
 // after all beans are injected but before the application servers start.
 type Job interface {
 	Run(ctx context.Context) error
+}
+
+// FuncJob is a function type that implements the Job interface.
+type FuncJob func(ctx context.Context) error
+
+func (f FuncJob) Run(ctx context.Context) error {
+	return f(ctx)
 }
 
 // ReadySignal defines an interface for components that can trigger a signal
@@ -317,7 +331,6 @@ func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
 }
 
 // BeanDefinition represents a bean that has not yet been registered.
-// todo 等 Group 函数确定下来之后，BD 定义应该就不需要了。
 type BeanDefinition struct {
 	beanBuilder[BeanDefinition]
 }

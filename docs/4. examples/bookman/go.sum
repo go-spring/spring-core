@@ -10,6 +10,7 @@ github.com/go-spring/gs-mock v0.0.4 h1:f34YN+ntXflfn13aLa3ZVCB78IG7wWZGK4y5tB+OG
 github.com/go-spring/gs-mock v0.0.4/go.mod h1:QK0PqZ+Vu9F+BU97zl8fip5XKibvDSoN+ofky413Z6Q=
 github.com/go-spring/log v0.0.5 h1:a8yiGmZTS7MPYvYvePXtc0hIdaQ76pLdsXt8iJwgQBQ=
 github.com/go-spring/log v0.0.5/go.mod h1:9SWgPEVWSGgloRTGR7niBliqfwC5UCjPUOl2jyJOimM=
+github.com/go-spring/log v0.0.6/go.mod h1:WrLbwbjmU8Vk5ampzBXjG4rTv+BoxmmTXxX82L2hugg=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=

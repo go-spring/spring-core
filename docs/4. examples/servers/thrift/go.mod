@@ -8,13 +8,13 @@ require (
 )
 
 require (
-	github.com/expr-lang/expr v1.17.4 // indirect
+	github.com/expr-lang/expr v1.17.5 // indirect
 	github.com/go-spring/gs-mock v0.0.4 // indirect
-	github.com/go-spring/log v0.0.3 // indirect
+	github.com/go-spring/log v0.0.6 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
-	github.com/spf13/cast v1.8.0 // indirect
+	github.com/spf13/cast v1.9.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 

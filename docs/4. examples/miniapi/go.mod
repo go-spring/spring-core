@@ -3,7 +3,7 @@ module miniapi
 go 1.24
 
 require (
-	github.com/go-spring/log v0.0.5
+	github.com/go-spring/log v0.0.6
 	github.com/go-spring/spring-core v0.0.0
 )
 

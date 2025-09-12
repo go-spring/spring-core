@@ -102,9 +102,9 @@ func TestApp(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		m := gsmock.NewManager()
-		r := gs.NewRunnerMockImpl(m)
-		r.MockRun().ReturnValue(errors.New("runner return error"))
+		r := gs.FuncRunner(func() error {
+			return errors.New("runner return error")
+		})
 
 		app := NewApp()
 		app.C.Object(r).AsRunner()
@@ -139,9 +139,9 @@ func TestApp(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		m := gsmock.NewManager()
-		r := gs.NewJobMockImpl(m)
-		r.MockRun().ReturnValue(errors.New("job return error"))
+		r := gs.FuncJob(func(ctx context.Context) error {
+			return errors.New("job return error")
+		})
 
 		app := NewApp()
 		app.C.Object(r).AsJob()
@@ -155,9 +155,7 @@ func TestApp(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		m := gsmock.NewManager()
-		r := gs.NewJobMockImpl(m)
-		r.MockRun().Handle(func(ctx context.Context) error {
+		r := gs.FuncJob(func(ctx context.Context) error {
 			panic("job panic")
 		})
 
@@ -211,34 +209,27 @@ func TestApp(t *testing.T) {
 
 		app := NewApp()
 		{
-			m := gsmock.NewManager()
-			r := gs.NewRunnerMockImpl(m)
-			r.MockRun().ReturnDefault()
-
+			r := gs.FuncRunner(func() error {
+				return nil
+			})
 			app.C.Object(r).AsRunner().Name("r1")
 		}
 		{
-			m := gsmock.NewManager()
-			r := gs.NewRunnerMockImpl(m)
-			r.MockRun().ReturnDefault()
-
+			r := gs.FuncRunner(func() error {
+				return nil
+			})
 			app.C.Object(r).AsRunner().Name("r2")
 		}
 		{
-			m := gsmock.NewManager()
-			r := gs.NewJobMockImpl(m)
-			r.MockRun().Handle(func(ctx context.Context) error {
+			r := gs.FuncJob(func(ctx context.Context) error {
 				<-ctx.Done()
 				return nil
 			})
-
 			app.C.Object(r).AsJob().Name("j1")
 		}
 		j2Wait := make(chan struct{}, 1)
 		{
-			m := gsmock.NewManager()
-			r := gs.NewJobMockImpl(m)
-			r.MockRun().Handle(func(ctx context.Context) error {
+			r := gs.FuncJob(func(ctx context.Context) error {
 				for {
 					time.Sleep(time.Millisecond)
 					if app.Exiting() {
@@ -247,7 +238,6 @@ func TestApp(t *testing.T) {
 					}
 				}
 			})
-
 			app.C.Object(r).AsJob().Name("j2")
 		}
 		{
