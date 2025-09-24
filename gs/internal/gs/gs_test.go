@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 )
 
 func TestAs(t *testing.T) {

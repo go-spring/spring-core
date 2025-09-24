@@ -67,7 +67,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/go-spring/barky"
+	"github.com/go-spring/spring-base/barky"
 	"github.com/go-spring/spring-core/conf"
 )
 

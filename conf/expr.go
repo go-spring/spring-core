@@ -21,6 +21,7 @@ import (
 	"maps"
 
 	"github.com/expr-lang/expr"
+	"github.com/go-spring/log"
 )
 
 // ValidateFunc defines a type for validation functions, which accept
@@ -44,7 +45,7 @@ func validateField(tag string, i any) error {
 	maps.Copy(env, validateFuncs)
 	r, err := expr.Eval(tag, env)
 	if err != nil {
-		return fmt.Errorf("eval %q returns error, %w", tag, err)
+		return log.FormatError(err, "eval %q returns error", tag)
 	}
 	ret, ok := r.(bool)
 	if !ok {

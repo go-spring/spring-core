@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
@@ -603,7 +603,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("property config.int not exist")
+		assert.ThatError(t, err).Matches("property \"config.int\" not exist")
 	})
 
 	t.Run("wire error - 25", func(t *testing.T) {
@@ -614,7 +614,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("property svr.config.int not exist")
+		assert.ThatError(t, err).Matches("property \"svr.config.int\" not exist")
 	})
 
 	t.Run("wire error - 26", func(t *testing.T) {

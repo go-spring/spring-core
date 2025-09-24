@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -38,14 +38,14 @@ func TestAppConfig(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "${a}")
 		_, err := NewAppConfig().Refresh()
-		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property a not exist`)
+		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property \"a\" not exist`)
 	})
 
 	t.Run("resolve error - 2", func(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-REMOTE_DIR", "${a}")
 		_, err := NewAppConfig().Refresh()
-		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property a not exist`)
+		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property \"a\" not exist`)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -87,7 +87,7 @@ func TestBootConfig(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG-LOCAL_DIR", "${a}")
 		_, err := NewBootConfig().Refresh()
-		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property a not exist`)
+		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property \"a\" not exist`)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -273,7 +273,7 @@ func TestPropertySources(t *testing.T) {
 		})
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		_, err := ps.loadFiles(p)
-		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property a not exist`)
+		assert.ThatError(t, err).Matches(`resolve string "\${a}" error << property \"a\" not exist`)
 	})
 
 	t.Run("loadFiles - resolve error", func(t *testing.T) {
@@ -281,7 +281,7 @@ func TestPropertySources(t *testing.T) {
 		ps := NewPropertySources(ConfigTypeLocal, "app")
 		ps.AddFile("./testdata/conf/app-${a}.properties")
 		_, err := ps.loadFiles(conf.Map(nil))
-		assert.ThatError(t, err).Matches("property a not exist")
+		assert.ThatError(t, err).Matches("property \"a\" not exist")
 	})
 
 	t.Run("loadFiles - confLoad error", func(t *testing.T) {

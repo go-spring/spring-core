@@ -26,9 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-spring/gs-assert/assert"
 	"github.com/go-spring/gs-mock/gsmock"
 	"github.com/go-spring/log"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"

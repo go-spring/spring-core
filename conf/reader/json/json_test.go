@@ -19,7 +19,7 @@ package json
 import (
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 )
 
 func TestRead(t *testing.T) {
@@ -49,5 +49,53 @@ func TestRead(t *testing.T) {
 			"date":   "2018-02-17",
 			"time":   "2018-02-17T15:02:31+08:00",
 		})
+	})
+
+	t.Run("nested objects", func(t *testing.T) {
+		r, err := Read([]byte(`{
+			"user": {
+				"name": "Alice",
+				"age": 30
+			},
+			"active": true
+		}`))
+		assert.That(t, err).Nil()
+		assert.That(t, r).Equal(map[string]any{
+			"user": map[string]any{
+				"name": "Alice",
+				"age":  float64(30),
+			},
+			"active": true,
+		})
+	})
+
+	t.Run("arrays", func(t *testing.T) {
+		r, err := Read([]byte(`{
+			"tags": ["go", "spring"],
+			"numbers": [1, 2]
+		}`))
+		assert.That(t, err).Nil()
+		assert.That(t, r).Equal(map[string]any{
+			"tags":    []any{"go", "spring"},
+			"numbers": []any{float64(1), float64(2)},
+		})
+	})
+
+	t.Run("null values", func(t *testing.T) {
+		r, err := Read([]byte(`{
+			"value": null,
+			"name": "test"
+		}`))
+		assert.That(t, err).Nil()
+		assert.That(t, r).Equal(map[string]any{
+			"value": nil,
+			"name":  "test",
+		})
+	})
+
+	t.Run("empty object", func(t *testing.T) {
+		r, err := Read([]byte(`{}`))
+		assert.That(t, err).Nil()
+		assert.That(t, r).Equal(map[string]any{})
 	})
 }

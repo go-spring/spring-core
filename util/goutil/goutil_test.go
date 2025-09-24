@@ -18,10 +18,10 @@ package goutil_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/util/goutil"
 )
 
@@ -59,7 +59,7 @@ func TestGoValue(t *testing.T) {
 		panic("something is wrong")
 	}).Wait()
 	assert.That(t, s).Equal("")
-	assert.That(t, err).Equal(fmt.Errorf("panic occurred"))
+	assert.That(t, err).Equal(errors.New("panic occurred"))
 
 	s, err = goutil.GoValue(t.Context(), func(ctx context.Context) (string, error) {
 		return "hello world!", nil

@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -59,7 +59,7 @@ func TestValue(t *testing.T) {
 			"value": "42",
 		},
 	}))
-	assert.ThatError(t, err).Matches("bind path= type=int error << property key isn't simple value")
+	assert.ThatError(t, err).Matches("bind path= type=int error << property \"key\" isn't simple value")
 
 	var wg sync.WaitGroup
 	for i := range 5 {

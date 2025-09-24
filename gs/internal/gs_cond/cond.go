@@ -73,9 +73,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
-	"github.com/go-spring/spring-core/util/errutil"
 )
 
 /********************************* OnFunc ************************************/
@@ -95,7 +95,7 @@ func OnFunc(fn func(ctx gs.ConditionContext) (bool, error)) gs.Condition {
 func (c *onFunc) Matches(ctx gs.ConditionContext) (bool, error) {
 	ok, err := c.fn(ctx)
 	if err != nil {
-		return false, errutil.WrapError(err, "condition matches error: %s", c)
+		return false, log.WrapError(err, "condition matches error: %s", c)
 	}
 	return ok, nil
 }
@@ -165,7 +165,7 @@ func (c *onProperty) Matches(ctx gs.ConditionContext) (bool, error) {
 	// Evaluate the expression and return the result.
 	ok, err := EvalExpr(havingValue[5:], val)
 	if err != nil {
-		return false, errutil.WrapError(err, "condition matches error: %s", c)
+		return false, log.WrapError(err, "condition matches error: %s", c)
 	}
 	return ok, nil
 }
@@ -209,7 +209,7 @@ func OnBeanSelector(s gs.BeanSelector) gs.Condition {
 func (c *onBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
-		return false, errutil.WrapError(err, "condition matches error: %s", c)
+		return false, log.WrapError(err, "condition matches error: %s", c)
 	}
 	return len(beans) > 0, nil
 }
@@ -242,7 +242,7 @@ func OnMissingBeanSelector(s gs.BeanSelector) gs.Condition {
 func (c *onMissingBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
-		return false, errutil.WrapError(err, "condition matches error: %s", c)
+		return false, log.WrapError(err, "condition matches error: %s", c)
 	}
 	return len(beans) == 0, nil
 }
@@ -275,7 +275,7 @@ func OnSingleBeanSelector(s gs.BeanSelector) gs.Condition {
 func (c *onSingleBean) Matches(ctx gs.ConditionContext) (bool, error) {
 	beans, err := ctx.Find(c.s)
 	if err != nil {
-		return false, errutil.WrapError(err, "condition matches error: %s", c)
+		return false, log.WrapError(err, "condition matches error: %s", c)
 	}
 	return len(beans) == 1, nil
 }
@@ -301,7 +301,7 @@ func OnExpression(expression string) gs.Condition {
 // Matches checks if the condition is met according to the provided context.
 func (c *onExpression) Matches(ctx gs.ConditionContext) (bool, error) {
 	err := util.ErrUnimplementedMethod
-	return false, errutil.WrapError(err, "condition matches error: %s", c)
+	return false, log.WrapError(err, "condition matches error: %s", c)
 }
 
 func (c *onExpression) String() string {
@@ -325,7 +325,7 @@ func Not(c gs.Condition) gs.Condition {
 func (c *onNot) Matches(ctx gs.ConditionContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	if err != nil {
-		return false, errutil.WrapError(err, "condition matches error: %s", c)
+		return false, log.WrapError(err, "condition matches error: %s", c)
 	}
 	return !ok, nil
 }
@@ -357,7 +357,7 @@ func Or(conditions ...gs.Condition) gs.Condition {
 func (g *onOr) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
-			return false, errutil.WrapError(err, "condition matches error: %s", g)
+			return false, log.WrapError(err, "condition matches error: %s", g)
 		} else if ok {
 			return true, nil
 		}
@@ -393,7 +393,7 @@ func (g *onAnd) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		ok, err := c.Matches(ctx)
 		if err != nil {
-			return false, errutil.WrapError(err, "condition matches error: %s", g)
+			return false, log.WrapError(err, "condition matches error: %s", g)
 		} else if !ok {
 			return false, nil
 		}
@@ -428,7 +428,7 @@ func None(conditions ...gs.Condition) gs.Condition {
 func (g *onNone) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
-			return false, errutil.WrapError(err, "condition matches error: %s", g)
+			return false, log.WrapError(err, "condition matches error: %s", g)
 		} else if ok {
 			return false, nil
 		}

@@ -19,7 +19,7 @@ package conf_test
 import (
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -28,7 +28,7 @@ func TestExpr(t *testing.T) {
 		return i < 5
 	})
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("basic function validation", func(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"checkInt($)"`
 		}
@@ -40,7 +40,43 @@ func TestExpr(t *testing.T) {
 		assert.That(t, 4).Equal(v.A)
 	})
 
-	t.Run("return false", func(t *testing.T) {
+	t.Run("multiple expressions", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"checkInt($)" expr:"$ > 0"`
+		}
+		p := conf.Map(map[string]any{
+			"a": 3,
+		})
+		err := p.Bind(&v)
+		assert.That(t, err).Nil()
+		assert.That(t, 3).Equal(v.A)
+	})
+
+	t.Run("constant expression", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"$ < 10"`
+		}
+		p := conf.Map(map[string]any{
+			"a": 5,
+		})
+		err := p.Bind(&v)
+		assert.That(t, err).Nil()
+		assert.That(t, 5).Equal(v.A)
+	})
+
+	t.Run("complex expression", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"$ >= 1 && $ <= 3"`
+		}
+		p := conf.Map(map[string]any{
+			"a": 2,
+		})
+		err := p.Bind(&v)
+		assert.That(t, err).Nil()
+		assert.That(t, 2).Equal(v.A)
+	})
+
+	t.Run("validation failure", func(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"checkInt($)"`
 		}
@@ -71,5 +107,28 @@ func TestExpr(t *testing.T) {
 		})
 		err := p.Bind(&v)
 		assert.ThatError(t, err).Matches("eval .* doesn't return bool value")
+	})
+
+	t.Run("unregistered function", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:"unknownFunc($)"`
+		}
+		p := conf.Map(map[string]any{
+			"a": 5,
+		})
+		err := p.Bind(&v)
+		assert.ThatError(t, err).Matches("eval .* returns error")
+	})
+
+	t.Run("empty expression", func(t *testing.T) {
+		var v struct {
+			A int `value:"${a}" expr:""`
+		}
+		p := conf.Map(map[string]any{
+			"a": 5,
+		})
+		err := p.Bind(&v)
+		assert.That(t, err).Nil()
+		assert.That(t, 5).Equal(v.A)
 	})
 }

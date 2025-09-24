@@ -19,7 +19,7 @@ package prop
 import (
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 )
 
 func TestRead(t *testing.T) {
@@ -92,7 +92,6 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("map with struct", func(t *testing.T) {
-
 		r, err := Read([]byte(`
 			map.k1.bool=false
 			map.k1.int=3
@@ -113,6 +112,34 @@ func TestRead(t *testing.T) {
 			"map.k2.int":    "20",
 			"map.k2.float":  "0.2",
 			"map.k2.string": "hello",
+		})
+	})
+
+	t.Run("escape sequences", func(t *testing.T) {
+		r, err := Read([]byte(`
+			key1=value\nwith\nnewlines
+			key2=value\twith\ttabs
+			key3=unicode\u0041
+		`))
+		assert.That(t, err).Nil()
+		assert.That(t, r).Equal(map[string]any{
+			"key1": "value\nwith\nnewlines",
+			"key2": "value\twith\ttabs",
+			"key3": "unicodeA",
+		})
+	})
+
+	t.Run("special characters", func(t *testing.T) {
+		r, err := Read([]byte(`
+			key.with.dots=value
+			key-with-dashes=value
+			unicode_key=值
+		`))
+		assert.That(t, err).Nil()
+		assert.That(t, r).Equal(map[string]any{
+			"key.with.dots":   "value",
+			"key-with-dashes": "value",
+			"unicode_key":     "值",
 		})
 	})
 }

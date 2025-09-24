@@ -49,13 +49,10 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 		if k == "" { // e.g., =::=::
 			continue
 		}
-		var propKey string
-		if strings.HasPrefix(k, prefix) {
-			propKey = strings.TrimPrefix(k, prefix)
-			propKey = strings.ReplaceAll(propKey, "_", ".")
+		propKey := k
+		if s, ok := strings.CutPrefix(k, prefix); ok {
+			propKey = strings.ReplaceAll(s, "_", ".")
 			propKey = strings.ToLower(propKey)
-		} else {
-			propKey = k
 		}
 		if err := p.Set(propKey, v, fileID); err != nil {
 			return err

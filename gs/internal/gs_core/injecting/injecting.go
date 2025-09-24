@@ -660,7 +660,7 @@ func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPara
 				stack.lazyFields = append(stack.lazyFields, f)
 			} else {
 				if err := c.autowire(fv, tag, stack); err != nil {
-					return fmt.Errorf("%q wired error: %w", fieldPath, err)
+					return log.FormatError(err, "%q wired error", fieldPath)
 				}
 			}
 			continue

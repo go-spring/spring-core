@@ -22,7 +22,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 )
 

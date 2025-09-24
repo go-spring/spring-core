@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -62,6 +62,7 @@ func TestProperties_Resolve(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
+
 		s, err := p.Resolve("${a.b.c[0]}")
 		assert.That(t, err).Nil()
 		assert.That(t, s).Equal("3")
@@ -86,7 +87,7 @@ func TestProperties_Resolve(t *testing.T) {
 	t.Run("key not exist", func(t *testing.T) {
 		p := conf.New()
 		_, err := p.Resolve("${a.b.c}")
-		assert.ThatError(t, err).Matches("property a.b.c not exist")
+		assert.ThatError(t, err).Matches("property \"a.b.c\" not exist")
 	})
 
 	t.Run("syntax error - 1", func(t *testing.T) {
@@ -94,7 +95,7 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c}")
-		assert.ThatError(t, err).Matches("property a.b.c isn't simple value")
+		assert.ThatError(t, err).Matches("property \"a.b.c\" isn't simple value")
 	})
 
 	t.Run("syntax error - 2", func(t *testing.T) {
@@ -110,12 +111,11 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c[0]}==${a.b.c}")
-		assert.ThatError(t, err).Matches("property a.b.c isn't simple value")
+		assert.ThatError(t, err).Matches("property \"a.b.c\" isn't simple value")
 	})
 }
 
 func TestProperties_CopyTo(t *testing.T) {
-
 	t.Run("success", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},

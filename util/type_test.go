@@ -24,12 +24,12 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/util"
 )
 
 func TestIsErrorType(t *testing.T) {
-	err := fmt.Errorf("error")
+	err := errors.New("error")
 	assert.That(t, util.IsErrorType(reflect.TypeOf(err))).True()
 	err = os.ErrClosed
 	assert.That(t, util.IsErrorType(reflect.TypeOf(err))).True()

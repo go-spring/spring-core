@@ -32,9 +32,9 @@ import (
 	"reflect"
 	"runtime"
 
+	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/util"
-	"github.com/go-spring/spring-core/util/errutil"
 )
 
 // TagArg represents an argument resolved using a tag for property binding or dependency injection.
@@ -57,7 +57,7 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 	if util.IsPropBindingTarget(t) {
 		v := reflect.New(t).Elem()
 		if err := ctx.Bind(v, arg.Tag); err != nil {
-			return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
+			return reflect.Value{}, log.WrapError(err, "TagArg::GetArgValue error")
 		}
 		return v, nil
 	}
@@ -66,13 +66,13 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 	if util.IsBeanInjectionTarget(t) {
 		v := reflect.New(t).Elem()
 		if err := ctx.Wire(v, arg.Tag); err != nil {
-			return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
+			return reflect.Value{}, log.WrapError(err, "TagArg::GetArgValue error")
 		}
 		return v, nil
 	}
 
 	err := fmt.Errorf("unsupported argument type: %s", t.String())
-	return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
+	return reflect.Value{}, log.WrapError(err, "TagArg::GetArgValue error")
 }
 
 // IndexArg represents an argument with an explicit positional index in the function signature.
@@ -110,7 +110,7 @@ func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 	v := reflect.ValueOf(arg.v)
 	if !v.Type().AssignableTo(t) {
 		err := fmt.Errorf("cannot assign type:%T to type:%s", arg.v, t.String())
-		return reflect.Value{}, errutil.WrapError(err, "ValueArg::GetArgValue error")
+		return reflect.Value{}, log.WrapError(err, "ValueArg::GetArgValue error")
 	}
 	return v, nil
 }
@@ -126,7 +126,7 @@ type ArgList struct {
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	if fnType.Kind() != reflect.Func {
 		err := fmt.Errorf("invalid function type:%s", fnType.String())
-		return nil, errutil.WrapError(err, "NewArgList error")
+		return nil, log.WrapError(err, "NewArgList error")
 	}
 
 	// Calculates the number of fixed arguments in the function.
@@ -151,11 +151,11 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 			useIdx = true
 			if notIdx {
 				err := errors.New("arguments must be all indexed or non-indexed")
-				return nil, errutil.WrapError(err, "NewArgList error")
+				return nil, log.WrapError(err, "NewArgList error")
 			}
 			if arg.Idx < 0 || arg.Idx >= fnType.NumIn() {
 				err := fmt.Errorf("invalid argument index %d", arg.Idx)
-				return nil, errutil.WrapError(err, "NewArgList error")
+				return nil, log.WrapError(err, "NewArgList error")
 			}
 			if arg.Idx < fixedArgCount {
 				fnArgs[arg.Idx] = arg.Arg
@@ -166,7 +166,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 			notIdx = true
 			if useIdx {
 				err := errors.New("arguments must be all indexed or non-indexed")
-				return nil, errutil.WrapError(err, "NewArgList error")
+				return nil, log.WrapError(err, "NewArgList error")
 			}
 			if i < fixedArgCount {
 				fnArgs[i] = arg
