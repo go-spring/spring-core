@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -31,31 +32,41 @@ func NewEnvironment() *Environment {
 	return &Environment{}
 }
 
-// CopyTo add environment variables that matches IncludeEnvPatterns and
-// exclude environment variables that matches ExcludeEnvPatterns.
+// CopyTo adds environment variables.
+// Variables with the prefix "GS_" are transformed:
+//   - Prefix "GS_" is removed.
+//   - Remaining underscores '_' are replaced by dots '.'.
+//   - Keys are converted to lowercase.
+//
+// All other variables are stored as-is.
 func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 	environ := os.Environ()
 	if len(environ) == 0 {
 		return nil
 	}
+
 	const prefix = "GS_"
 	fileID := p.AddFile("Environment")
+
 	for _, env := range environ {
 		ss := strings.SplitN(env, "=", 2)
+		if len(ss[0]) == 0 {
+			continue // Skip malformed env vars like "=::=:"
+		}
+
 		k, v := ss[0], ""
 		if len(ss) > 1 {
 			v = ss[1]
 		}
-		if k == "" { // e.g., =::=::
-			continue
-		}
+
 		propKey := k
 		if s, ok := strings.CutPrefix(k, prefix); ok {
 			propKey = strings.ReplaceAll(s, "_", ".")
 			propKey = strings.ToLower(propKey)
 		}
+
 		if err := p.Set(propKey, v, fileID); err != nil {
-			return err
+			return util.FormatError(err, "set env %s error", env)
 		}
 	}
 	return nil

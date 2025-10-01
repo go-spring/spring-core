@@ -21,8 +21,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/util"
 )
 
 // BeanMock represents a mock bean for testing.
@@ -31,6 +31,7 @@ type BeanMock[T any] struct {
 }
 
 // MockFor creates a BeanMock for the given type and optional bean name.
+// It allows you to specify which bean in the IoC container should be mocked.
 func MockFor[T any](name ...string) BeanMock[T] {
 	return BeanMock[T]{
 		selector: gs.BeanSelectorFor[T](name...),
@@ -38,7 +39,8 @@ func MockFor[T any](name ...string) BeanMock[T] {
 }
 
 // With registers a mock instance into the IoC container,
-// replacing the target bean defined by the selector.
+// replacing the original bean defined by the selector.
+// This allows tests to use mocked dependencies.
 func (m BeanMock[T]) With(obj T) {
 	app.C.AddMock(gs.BeanMock{
 		Object: obj,
@@ -46,36 +48,40 @@ func (m BeanMock[T]) With(obj T) {
 	})
 }
 
+// testers stores all registered tester instances.
+// Each tester can contain multiple test methods.
 var testers []any
 
 // AddTester registers a tester instance into the test suite.
-// The tester will be scanned for methods prefixed with 'Test'
-// and automatically added as Go test functions.
+// The tester will be scanned for methods prefixed with "Test",
+// which will be automatically added to the Go test framework.
 func AddTester(t any) {
 	testers = append(testers, t)
-	app.C.RootBean(app.C.Object(t))
+	app.C.Root(app.C.Object(t))
 }
 
 // TestMain is the custom entry point for the Go test framework.
-// It patches the internal 'tests' slice of testing.M to include
-// methods defined in registered testers, then runs the app and tests.
+// It injects test methods defined in registered testers into the
+// internal 'tests' slice of testing.M, then starts the app and tests.
 func TestMain(m *testing.M) {
 
-	// Patch m.tests using reflection (non-standard hack).
+	// Patch m.tests using reflection (a non-standard hack).
+	// This allows dynamically adding test cases at runtime.
 	mValue := util.PatchValue(reflect.ValueOf(m))
 	fValue := util.PatchValue(mValue.Elem().FieldByName("tests"))
 	tests := fValue.Interface().([]testing.InternalTest)
 
-	// Scan all registered testers for methods starting with 'Test'.
+	// Scan all registered testers for methods starting with "Test".
 	for _, tester := range testers {
 		tt := reflect.TypeOf(tester)
 		typeName := tt.Elem().String()
 		for i := 0; i < tt.NumMethod(); i++ {
 			methodType := tt.Method(i)
+			// Only consider methods whose names start with "Test"
 			if strings.HasPrefix(methodType.Name, "Test") {
 				tests = append(tests, testing.InternalTest{
-					Name: typeName + "." + methodType.Name,
-					F: func(t *testing.T) {
+					Name: typeName + "." + methodType.Name, // Full test name
+					F: func(t *testing.T) { // Test function to execute
 						testMethod := reflect.ValueOf(tester).Method(i)
 						testMethod.Call([]reflect.Value{reflect.ValueOf(t)})
 					},
@@ -91,9 +97,9 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	// Run the tests.
+	// Run all collected tests.
 	m.Run()
 
-	// Stop the application gracefully after tests complete.
+	// Stop the application gracefully after all tests complete.
 	stop()
 }

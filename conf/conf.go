@@ -119,8 +119,6 @@ Validation:
 package conf
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -129,6 +127,7 @@ import (
 	"time"
 
 	"github.com/go-spring/spring-base/barky"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf/reader/json"
 	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/conf/reader/toml"
@@ -152,12 +151,20 @@ func init() {
 
 	// time.Time
 	RegisterConverter(func(s string) (time.Time, error) {
-		return cast.ToTimeE(strings.TrimSpace(s))
+		v, err := cast.ToTimeE(strings.TrimSpace(s))
+		if err != nil {
+			return time.Time{}, util.FormatError(err, "invalid time format: %s", s)
+		}
+		return v, nil
 	})
 
 	// time.Duration
 	RegisterConverter(func(s string) (time.Duration, error) {
-		return time.ParseDuration(strings.TrimSpace(s))
+		v, err := time.ParseDuration(strings.TrimSpace(s))
+		if err != nil {
+			return time.Duration(0), util.FormatError(err, "invalid duration format: %s", s)
+		}
+		return v, nil
 	})
 }
 
@@ -241,16 +248,17 @@ func New() *MutableProperties {
 func Load(file string) (*MutableProperties, error) {
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return nil, util.FormatError(err, "read file %s error", file)
 	}
 	ext := filepath.Ext(file)
 	r, ok := readers[ext]
 	if !ok {
-		return nil, fmt.Errorf("unsupported file type %s", ext)
+		err = util.FormatError(nil, "unsupported file type %s", ext)
+		return nil, util.FormatError(err, "read file %s error", file)
 	}
 	m, err := r(b)
 	if err != nil {
-		return nil, err
+		return nil, util.FormatError(err, "read file %s error", file)
 	}
 	p := New()
 	_ = p.merge(barky.FlattenMap(m), file)
@@ -301,7 +309,7 @@ func (p *MutableProperties) Bind(i any, tag ...string) error {
 		default:
 			v = reflect.ValueOf(i)
 			if v.Kind() != reflect.Ptr {
-				return errors.New("should be a ptr")
+				return util.FormatError(nil, "should be a pointer but %T", i)
 			}
 			v = v.Elem()
 		}
@@ -314,14 +322,14 @@ func (p *MutableProperties) Bind(i any, tag ...string) error {
 	}
 
 	s := "${ROOT}"
-	if len(tag) > 0 {
+	if len(tag) > 0 && tag[0] != "" {
 		s = tag[0]
 	}
 
 	var param BindParam
 	err := param.BindTag(s, "")
 	if err != nil {
-		return err
+		return util.FormatError(err, "bind tag '%s' error", s)
 	}
 	param.Path = typeName
 	return BindValue(p, v, t, param, nil)

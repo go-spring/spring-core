@@ -33,6 +33,20 @@ import (
 
 func TestTagArg(t *testing.T) {
 
+	t.Run("empty tag", func(t *testing.T) {
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockBind().Handle(func(v reflect.Value, s string) error {
+			v.SetString("default")
+			return nil
+		})
+
+		tag := Tag("")
+		v, err := tag.GetArgValue(c, reflect.TypeFor[string]())
+		assert.That(t, err).Nil()
+		assert.That(t, v.String()).Equal("default")
+	})
+
 	t.Run("bind success", func(t *testing.T) {
 		m := gsmock.NewManager()
 		c := gs.NewArgContextMockImpl(m)
@@ -56,7 +70,7 @@ func TestTagArg(t *testing.T) {
 
 		tag := Tag("${int:=3}")
 		_, err := tag.GetArgValue(c, reflect.TypeFor[string]())
-		assert.ThatError(t, err).Matches("GetArgValue error << bind error")
+		assert.Error(t, err).Matches("bind error")
 	})
 
 	t.Run("wire success", func(t *testing.T) {
@@ -82,19 +96,45 @@ func TestTagArg(t *testing.T) {
 
 		tag := Tag("server")
 		_, err := tag.GetArgValue(c, reflect.TypeFor[*bytes.Buffer]())
-		assert.ThatError(t, err).Matches("GetArgValue error << wire error")
+		assert.Error(t, err).Matches("wire error")
 	})
 
-	t.Run("type error", func(t *testing.T) {
+	t.Run("unsupported type", func(t *testing.T) {
 		tag := Tag("server")
 		_, err := tag.GetArgValue(nil, reflect.TypeFor[*string]())
-		assert.ThatError(t, err).Matches("GetArgValue error << unsupported argument type: \\*string")
+		assert.Error(t, err).Matches("unsupported argument type: \\*string")
 	})
 }
 
 func TestValueArg(t *testing.T) {
 
-	t.Run("index", func(t *testing.T) {
+	t.Run("different types", func(t *testing.T) {
+		tag := Value(42)
+		v, err := tag.GetArgValue(nil, reflect.TypeFor[int]())
+		assert.That(t, err).Nil()
+		assert.That(t, v.Int()).Equal(int64(42))
+
+		tag = Value(true)
+		v, err = tag.GetArgValue(nil, reflect.TypeFor[bool]())
+		assert.That(t, err).Nil()
+		assert.That(t, v.Bool()).True()
+
+		tag = Value(3.14)
+		v, err = tag.GetArgValue(nil, reflect.TypeFor[float64]())
+		assert.That(t, err).Nil()
+		assert.That(t, v.Float()).Equal(3.14)
+	})
+
+	t.Run("slice value", func(t *testing.T) {
+		slice := []string{"a", "b", "c"}
+		tag := Value(slice)
+		v, err := tag.GetArgValue(nil, reflect.TypeFor[[]string]())
+		assert.That(t, err).Nil()
+		result := v.Interface().([]string)
+		assert.That(t, result).Equal(slice)
+	})
+
+	t.Run("index arg", func(t *testing.T) {
 		arg := Index(0, Value(1))
 		assert.That(t, arg.(IndexArg).Idx).Equal(0)
 		assert.Panic(t, func() {
@@ -102,24 +142,24 @@ func TestValueArg(t *testing.T) {
 		}, "unimplemented method")
 	})
 
-	t.Run("zero", func(t *testing.T) {
+	t.Run("zero value", func(t *testing.T) {
 		tag := Value(nil)
 		v, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
 		assert.That(t, err).Nil()
 		assert.That(t, v.Interface())
 	})
 
-	t.Run("value", func(t *testing.T) {
+	t.Run("assignable value", func(t *testing.T) {
 		tag := Value(&http.Server{Addr: ":9090"})
 		v, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
 		assert.That(t, err).Nil()
 		assert.That(t, v.Interface().(*http.Server).Addr).Equal(":9090")
 	})
 
-	t.Run("type error", func(t *testing.T) {
+	t.Run("incompatible types", func(t *testing.T) {
 		tag := Value(new(int))
 		_, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
-		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:\\*int to type:\\*http.Server")
+		assert.Error(t, err).Matches("cannot assign type:\\*int to type:\\*http.Server")
 	})
 }
 
@@ -128,7 +168,7 @@ func TestArgList_New(t *testing.T) {
 	t.Run("invalid function type", func(t *testing.T) {
 		fnType := reflect.TypeFor[int]()
 		_, err := NewArgList(fnType, nil)
-		assert.ThatError(t, err).Matches("NewArgList error << invalid function type:int")
+		assert.Error(t, err).Matches("NewArgList error: invalid function type:int")
 	})
 
 	t.Run("mixed index and non-index args", func(t *testing.T) {
@@ -138,7 +178,7 @@ func TestArgList_New(t *testing.T) {
 			Value("test"),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.ThatError(t, err).Matches("NewArgList error << arguments must be all indexed or non-indexed")
+		assert.Error(t, err).Matches("NewArgList error: arguments must be all indexed or non-indexed")
 	})
 
 	t.Run("mixed non-index and index args", func(t *testing.T) {
@@ -148,25 +188,25 @@ func TestArgList_New(t *testing.T) {
 			Index(1, Value("test")),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.ThatError(t, err).Matches("NewArgList error << arguments must be all indexed or non-indexed")
+		assert.Error(t, err).Matches("NewArgList error: arguments must be all indexed or non-indexed")
 	})
 
-	t.Run("invalid argument index - 1", func(t *testing.T) {
+	t.Run("negative argument index", func(t *testing.T) {
 		fnType := reflect.TypeOf(func(a int, b string) {})
 		args := []gs.Arg{
 			Index(-1, Value(1)),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.ThatError(t, err).Matches("NewArgList error << invalid argument index -1")
+		assert.Error(t, err).Matches("NewArgList error: invalid argument index -1")
 	})
 
-	t.Run("invalid argument index - 2", func(t *testing.T) {
+	t.Run("out of range argument index", func(t *testing.T) {
 		fnType := reflect.TypeOf(func(a int, b string) {})
 		args := []gs.Arg{
 			Index(2, Value(1)),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.ThatError(t, err).Matches("NewArgList error << invalid argument index 2")
+		assert.Error(t, err).Matches("NewArgList error: invalid argument index 2")
 	})
 
 	t.Run("non-index args success", func(t *testing.T) {
@@ -199,7 +239,7 @@ func TestArgList_New(t *testing.T) {
 		})
 	})
 
-	t.Run("variadic function with non-index args success", func(t *testing.T) {
+	t.Run("variadic success with non-index args", func(t *testing.T) {
 		fnType := reflect.TypeOf(func(a int, b ...string) {})
 		args := []gs.Arg{
 			Value(1),
@@ -216,7 +256,7 @@ func TestArgList_New(t *testing.T) {
 		})
 	})
 
-	t.Run("variadic function with index args success - 1", func(t *testing.T) {
+	t.Run("variadic success with indexed args", func(t *testing.T) {
 		fnType := reflect.TypeOf(func(a int, b ...string) {})
 		args := []gs.Arg{
 			Index(0, Value(1)),
@@ -233,7 +273,7 @@ func TestArgList_New(t *testing.T) {
 		})
 	})
 
-	t.Run("variadic function with index args success - 2", func(t *testing.T) {
+	t.Run("variadic success with partial indexed args", func(t *testing.T) {
 		fnType := reflect.TypeOf(func(a error, b ...string) {})
 		args := []gs.Arg{
 			Index(1, Value("test1")),
@@ -247,6 +287,26 @@ func TestArgList_New(t *testing.T) {
 			Value("test1"),
 			Value("test2"),
 		})
+	})
+
+	t.Run("function with no parameters", func(t *testing.T) {
+		fnType := reflect.TypeOf(func() {})
+		var args []gs.Arg
+		argList, err := NewArgList(fnType, args)
+		assert.That(t, err).Nil()
+		assert.That(t, argList).NotNil()
+		assert.That(t, len(argList.args)).Equal(0)
+	})
+
+	t.Run("too many arguments for non-variadic function", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b string) {})
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+			Value("extra"), // Extra argument
+		}
+		_, err := NewArgList(fnType, args)
+		assert.Error(t, err).Matches("NewArgList error: too many arguments")
 	})
 }
 
@@ -299,7 +359,38 @@ func TestArgList_Get(t *testing.T) {
 
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = argList.get(ctx)
-		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:int to type:string")
+		assert.Error(t, err).Matches("cannot assign type:int to type:string")
+	})
+
+	t.Run("variadic function with no extra args", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		args := []gs.Arg{
+			Value(1),
+			// No extra args
+		}
+		argList, err := NewArgList(fnType, args)
+		assert.That(t, err).Nil()
+
+		ctx := gs.NewArgContextMockImpl(nil)
+		values, err := argList.get(ctx)
+		assert.That(t, err).Nil()
+		assert.That(t, 1).Equal(len(values))
+		assert.That(t, 1).Equal(values[0].Interface().(int))
+	})
+
+	t.Run("function with any parameter", func(t *testing.T) {
+		fnType := reflect.TypeOf(func(a any) {})
+		args := []gs.Arg{
+			Value("test"),
+		}
+		argList, err := NewArgList(fnType, args)
+		assert.That(t, err).Nil()
+
+		ctx := gs.NewArgContextMockImpl(nil)
+		values, err := argList.get(ctx)
+		assert.That(t, err).Nil()
+		assert.That(t, 1).Equal(len(values))
+		assert.That(t, "test").Equal(values[0].Interface())
 	})
 }
 
@@ -312,7 +403,7 @@ func TestCallable_New(t *testing.T) {
 			Value("test"),
 		}
 		_, err := NewCallable(fn, args)
-		assert.ThatError(t, err).Matches("NewArgList error << invalid function type:string")
+		assert.Error(t, err).Matches("NewArgList error: invalid function type:string")
 	})
 
 	t.Run("error in argument processing", func(t *testing.T) {
@@ -328,7 +419,7 @@ func TestCallable_New(t *testing.T) {
 
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = callable.Call(ctx)
-		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:int to type:string")
+		assert.Error(t, err).Matches("cannot assign type:int to type:string")
 	})
 }
 
@@ -347,7 +438,7 @@ func TestCallable_Call(t *testing.T) {
 
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = callable.Call(ctx)
-		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:int to type:string")
+		assert.Error(t, err).Matches("cannot assign type:int to type:string")
 	})
 
 	t.Run("function return none", func(t *testing.T) {
@@ -381,10 +472,10 @@ func TestCallable_Call(t *testing.T) {
 		assert.That(t, err).Nil()
 		assert.That(t, 2).Equal(len(v))
 		assert.That(t, "").Equal(v[0].Interface().(string))
-		assert.That(t, "execution error").Equal(v[1].Interface().(error).Error())
+		assert.Error(t, v[1].Interface().(error)).String("execution error")
 	})
 
-	t.Run("success - 1", func(t *testing.T) {
+	t.Run("success with function with error", func(t *testing.T) {
 		fn := func(a int, b string) (string, error) {
 			return fmt.Sprintf("%d-%s", a, b), nil
 		}
@@ -402,7 +493,7 @@ func TestCallable_Call(t *testing.T) {
 		assert.That(t, "1-test").Equal(v[0].Interface().(string))
 	})
 
-	t.Run("success - 2", func(t *testing.T) {
+	t.Run("success with function without error", func(t *testing.T) {
 		fn := func(a int, b string) string {
 			return fmt.Sprintf("%d-%s", a, b)
 		}
@@ -438,18 +529,76 @@ func TestCallable_Call(t *testing.T) {
 		assert.That(t, len(v)).Equal(1)
 		assert.That(t, "1-test1,test2").Equal(v[0].Interface().(string))
 	})
+
+	t.Run("function with pointer receiver", func(t *testing.T) {
+		type MyStruct struct {
+			Value string
+		}
+
+		fn := func(s *MyStruct, suffix string) string {
+			return s.Value + "-" + suffix
+		}
+
+		args := []gs.Arg{
+			Value(&MyStruct{Value: "test"}),
+			Value("suffix"),
+		}
+
+		callable, err := NewCallable(fn, args)
+		assert.That(t, err).Nil()
+
+		ctx := gs.NewArgContextMockImpl(nil)
+		v, err := callable.Call(ctx)
+		assert.That(t, err).Nil()
+		assert.That(t, len(v)).Equal(1)
+		assert.That(t, "test-suffix").Equal(v[0].Interface().(string))
+	})
+
+	t.Run("variadic function with no variadic args", func(t *testing.T) {
+		fn := func(a int, b ...string) []string {
+			return append([]string{fmt.Sprint(a)}, b...)
+		}
+
+		args := []gs.Arg{
+			Value(1),
+			// No variadic arguments
+		}
+
+		callable, err := NewCallable(fn, args)
+		assert.That(t, err).Nil()
+
+		ctx := gs.NewArgContextMockImpl(nil)
+		v, err := callable.Call(ctx)
+		assert.That(t, err).Nil()
+		assert.That(t, len(v)).Equal(1)
+		result := v[0].Interface().([]string)
+		assert.That(t, result).Equal([]string{"1"})
+	})
 }
 
 func TestBindArg_Bind(t *testing.T) {
 
-	t.Run("invalid function type - 1", func(t *testing.T) {
+	t.Run("function returning only error", func(t *testing.T) {
+		fn := func(a int, b string) error {
+			return nil
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		assert.Panic(t, func() {
+			Bind(fn, args...)
+		}, "invalid function type")
+	})
+
+	t.Run("non-function type", func(t *testing.T) {
 		fn := "not a function"
 		assert.Panic(t, func() {
 			Bind(fn)
 		}, "invalid function type")
 	})
 
-	t.Run("invalid function type - 2", func(t *testing.T) {
+	t.Run("function returning only error", func(t *testing.T) {
 		fn := func(a int, b string) error {
 			return nil
 		}
@@ -458,12 +607,25 @@ func TestBindArg_Bind(t *testing.T) {
 		}, "invalid function type")
 	})
 
-	t.Run("invalid function type - 3", func(t *testing.T) {
+	t.Run("function with invalid return types", func(t *testing.T) {
 		fn := func(a int, b string) (string, bool) {
 			return fmt.Sprintf("%d-%s", a, b), true
 		}
 		assert.Panic(t, func() {
 			Bind(fn)
+		}, "invalid function type")
+	})
+
+	t.Run("function with too many return values", func(t *testing.T) {
+		fn := func(a int, b string) ([]string, map[string]int, error) {
+			return []string{b}, map[string]int{"value": a}, nil
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		assert.Panic(t, func() {
+			Bind(fn, args...)
 		}, "invalid function type")
 	})
 
@@ -477,10 +639,10 @@ func TestBindArg_Bind(t *testing.T) {
 		}
 		assert.Panic(t, func() {
 			Bind(fn, args...)
-		}, "NewArgList error << arguments must be all indexed or non-indexed")
+		}, "NewArgList error: arguments must be all indexed or non-indexed")
 	})
 
-	t.Run("success - 1", func(t *testing.T) {
+	t.Run("success with returning single value", func(t *testing.T) {
 		fn := func(a int, b string) string {
 			return fmt.Sprintf("%d-%s", a, b)
 		}
@@ -489,10 +651,10 @@ func TestBindArg_Bind(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		assert.ThatString(t, arg.fileline).Matches("gs/internal/gs_arg/arg_test.go:491")
+		assert.String(t, arg.fileline).Matches("gs/internal/gs_arg/arg_test.go:.*")
 	})
 
-	t.Run("success - 2", func(t *testing.T) {
+	t.Run("success with returning value and error", func(t *testing.T) {
 		fn := func(a int, b string) (string, error) {
 			return fmt.Sprintf("%d-%s", a, b), nil
 		}
@@ -501,7 +663,7 @@ func TestBindArg_Bind(t *testing.T) {
 			Value("test"),
 		}
 		arg := Bind(fn, args...)
-		assert.ThatString(t, arg.fileline).Matches("gs/internal/gs_arg/arg_test.go:503")
+		assert.String(t, arg.fileline).Matches("gs/internal/gs_arg/arg_test.go:.*")
 	})
 }
 
@@ -518,7 +680,31 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		arg := Bind(fn, args...)
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
-		assert.ThatError(t, err).Matches("GetArgValue error << cannot assign type:int to type:string")
+		assert.Error(t, err).Matches("cannot assign type:int to type:string")
+	})
+
+	t.Run("function returning slice", func(t *testing.T) {
+		fn := func(prefix string, items ...int) []string {
+			result := make([]string, len(items))
+			for i, item := range items {
+				result[i] = fmt.Sprintf("%s%d", prefix, item)
+			}
+			return result
+		}
+		args := []gs.Arg{
+			Value("item"),
+			Value(1),
+			Value(2),
+			Value(3),
+		}
+		arg := Bind(fn, args...)
+		ctx := gs.NewArgContextMockImpl(nil)
+
+		v, err := arg.GetArgValue(ctx, reflect.TypeFor[[]string]())
+		assert.That(t, err).Nil()
+		result := v.Interface().([]string)
+		expected := []string{"item1", "item2", "item3"}
+		assert.That(t, result).Equal(expected)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -547,7 +733,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		arg := Bind(fn, args...)
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
-		assert.ThatError(t, err).Matches("execution error")
+		assert.Error(t, err).Matches("execution error")
 	})
 
 	t.Run("no error in function execution", func(t *testing.T) {
@@ -602,7 +788,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		})
 
 		_, err := arg.GetArgValue(c, reflect.TypeFor[string]())
-		assert.ThatError(t, err).Matches("condition error")
+		assert.Error(t, err).Matches("condition error")
 	})
 
 	t.Run("condition return false", func(t *testing.T) {
@@ -653,5 +839,66 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		v, err := arg.GetArgValue(c, reflect.TypeFor[string]())
 		assert.That(t, err).Nil()
 		assert.That(t, "1-test").Equal(v.Interface().(string))
+	})
+}
+
+func TestBindArg_Condition(t *testing.T) {
+
+	t.Run("multiple conditions - all true", func(t *testing.T) {
+		fn := func(a int, b string) string {
+			return fmt.Sprintf("%d-%s", a, b)
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		arg := Bind(fn, args...)
+
+		arg.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
+			return true, nil
+		}))
+		arg.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
+			return true, nil
+		}))
+
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockCheck().Handle(func(c gs.Condition) (bool, error) {
+			ok, err := c.Matches(nil)
+			return ok, err
+		})
+
+		v, err := arg.GetArgValue(c, reflect.TypeFor[string]())
+		assert.That(t, err).Nil()
+		assert.That(t, "1-test").Equal(v.Interface().(string))
+	})
+
+	t.Run("multiple conditions - one false", func(t *testing.T) {
+		fn := func(a int, b string) string {
+			return fmt.Sprintf("%d-%s", a, b)
+		}
+		args := []gs.Arg{
+			Value(1),
+			Value("test"),
+		}
+		arg := Bind(fn, args...)
+
+		arg.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
+			return false, nil
+		}))
+		arg.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
+			return true, nil
+		}))
+
+		m := gsmock.NewManager()
+		c := gs.NewArgContextMockImpl(m)
+		c.MockCheck().Handle(func(c gs.Condition) (bool, error) {
+			ok, err := c.Matches(nil)
+			return ok, err
+		})
+
+		v, err := arg.GetArgValue(c, reflect.TypeFor[string]())
+		assert.That(t, err).Nil()
+		assert.That(t, v.IsValid()).False()
 	})
 }

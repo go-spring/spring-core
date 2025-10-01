@@ -31,37 +31,37 @@ new features. Please follow the guidelines below to contribute.
 
 2. **Maintain consistent coding style**
 
-   * Follow Go’s official style guidelines (`gofmt`, `golint`, `go vet`).
-   * Recommended: [`golangci-lint`](https://github.com/golangci/golangci-lint) for local linting.
+    * Follow Go’s official style guidelines (`gofmt`, `golint`, `go vet`).
+    * Recommended: [`golangci-lint`](https://github.com/golangci/golangci-lint) for local linting.
 
 3. **Write tests**
 
-   * All new features or bug fixes must include unit tests.
-   * Use Go’s `testing` package; test files should be named `xxx_test.go`.
-   * Example:
+    * All new features or bug fixes must include unit tests.
+    * Use Go’s `testing` package; test files should be named `xxx_test.go`.
+    * Example:
 
-     ```go
-     func TestAdd(t *testing.T) {
-         result := Add(1, 2)
-         if result != 3 {
-             t.Errorf("expected 3, got %d", result)
-         }
-     }
-     ```
+      ```go
+      func TestAdd(t *testing.T) {
+          result := Add(1, 2)
+          if result != 3 {
+              t.Errorf("expected 3, got %d", result)
+          }
+      }
+      ```
 
 4. **Update documentation**
 
-   * If your changes affect usage or APIs, update README or code comments.
+    * If your changes affect usage or APIs, update README or code comments.
 
 5. **Submit and create a Pull Request**
 
-   * Clearly describe:
+    * Clearly describe:
 
-      * **What**: What changes are made
-      * **Why**: Why the changes are needed
-      * **How**: How it was implemented
-      * **Testing**: How it was tested
-   * Link related issues if applicable.
+        * **What**: What changes are made
+        * **Why**: Why the changes are needed
+        * **How**: How it was implemented
+        * **Testing**: How it was tested
+    * Link related issues if applicable.
 
 ## Branch Naming Guidelines
 
@@ -126,37 +126,37 @@ Thank you for contributing to Go-Spring!
 
 2. **保持一致的代码风格**
 
-   * 遵循 Go 官方代码规范（使用 `gofmt`、`golint`、`go vet`）。
-   * 推荐使用 [`golangci-lint`](https://github.com/golangci/golangci-lint) 进行本地检查。
+    * 遵循 Go 官方代码规范（使用 `gofmt`、`golint`、`go vet`）。
+    * 推荐使用 [`golangci-lint`](https://github.com/golangci/golangci-lint) 进行本地检查。
 
 3. **编写测试用例**
 
-   * 所有新功能或 Bug 修复必须配备单元测试。
-   * 使用 Go 内置 `testing` 包，测试文件命名为 `xxx_test.go`。
-   * 示例：
+    * 所有新功能或 Bug 修复必须配备单元测试。
+    * 使用 Go 内置 `testing` 包，测试文件命名为 `xxx_test.go`。
+    * 示例：
 
-     ```go
-     func TestAdd(t *testing.T) {
-         result := Add(1, 2)
-         if result != 3 {
-             t.Errorf("expected 3, got %d", result)
-         }
-     }
-     ```
+      ```go
+      func TestAdd(t *testing.T) {
+          result := Add(1, 2)
+          if result != 3 {
+              t.Errorf("expected 3, got %d", result)
+          }
+      }
+      ```
 
 4. **更新文档**
 
-   * 如果变更影响使用或接口，请同步更新 README 或代码注释。
+    * 如果变更影响使用或接口，请同步更新 README 或代码注释。
 
 5. **提交并创建 Pull Request**
 
-   * 清晰说明：
+    * 清晰说明：
 
-      * **What**：本次修改的内容
-      * **Why**：修改原因
-      * **How**：实现方式
-      * **Testing**：测试情况
-   * 关联相关 Issue（如有）。
+        * **What**：本次修改的内容
+        * **Why**：修改原因
+        * **How**：实现方式
+        * **Testing**：测试情况
+    * 关联相关 Issue（如有）。
 
 ## 分支命名规范
 

@@ -25,6 +25,12 @@ import (
 
 func TestReadySignal(t *testing.T) {
 
+	t.Run("zero workers", func(t *testing.T) {
+		signal := NewReadySignal()
+		signal.Wait()
+		assert.That(t, signal.Intercepted()).False()
+	})
+
 	t.Run("intercept", func(t *testing.T) {
 		const workers = 3
 
@@ -39,6 +45,25 @@ func TestReadySignal(t *testing.T) {
 					<-signal.TriggerAndWait()
 				}
 			}()
+		}
+
+		signal.Wait()
+		assert.That(t, signal.Intercepted()).True()
+	})
+
+	t.Run("multiple intercept", func(t *testing.T) {
+		const workers = 3
+
+		signal := NewReadySignal()
+		for i := range workers {
+			signal.Add()
+			go func(num int) {
+				if num < 2 {
+					signal.Intercept()
+				} else {
+					<-signal.TriggerAndWait()
+				}
+			}(i)
 		}
 
 		signal.Wait()

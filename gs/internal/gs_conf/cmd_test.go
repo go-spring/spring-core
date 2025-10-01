@@ -26,7 +26,7 @@ import (
 
 func TestCommandArgs(t *testing.T) {
 
-	t.Run("no args - 1", func(t *testing.T) {
+	t.Run("no args - empty", func(t *testing.T) {
 		os.Args = nil
 
 		props := conf.New()
@@ -35,7 +35,7 @@ func TestCommandArgs(t *testing.T) {
 		assert.That(t, len(props.Keys()) == 0).True()
 	})
 
-	t.Run("no args - 2", func(t *testing.T) {
+	t.Run("no args - only executable", func(t *testing.T) {
 		os.Args = []string{"test"}
 
 		props := conf.New()
@@ -59,17 +59,17 @@ func TestCommandArgs(t *testing.T) {
 
 		props := conf.New()
 		err := NewCommandArgs().CopyTo(props)
-		assert.ThatError(t, err).Matches("cmd option -D needs arg")
+		assert.Error(t, err).Matches("cmd option -D: needs arg")
 	})
 
-	t.Run("set return error", func(t *testing.T) {
+	t.Run("property conflict", func(t *testing.T) {
 		os.Args = []string{"test", "-D", "name=go-spring", "-D", "debug"}
 
 		p := conf.Map(map[string]any{
 			"debug": []string{"true"},
 		})
 		err := NewCommandArgs().CopyTo(p)
-		assert.ThatError(t, err).Matches("property conflict at path debug")
+		assert.Error(t, err).Matches("property conflict at path debug")
 	})
 
 	t.Run("custom prefix", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestCommandArgs(t *testing.T) {
 		assert.That(t, "8080").Equal(props.Get("port"))
 	})
 
-	t.Run("ignore other args", func(t *testing.T) {
+	t.Run("ignore args", func(t *testing.T) {
 		os.Args = []string{"test", "-v", "-D", "env=prod", "--log-level=info"}
 
 		props := conf.New()
@@ -94,5 +94,34 @@ func TestCommandArgs(t *testing.T) {
 		assert.That(t, "prod").Equal(props.Get("env"))
 		assert.That(t, props.Has("--log-level")).False()
 		assert.That(t, props.Has("-v")).False()
+	})
+
+	t.Run("empty value assignment", func(t *testing.T) {
+		os.Args = []string{"test", "-D", "name="}
+
+		props := conf.New()
+		err := NewCommandArgs().CopyTo(props)
+		assert.That(t, err).Nil()
+		assert.That(t, "").Equal(props.Get("name"))
+	})
+
+	t.Run("multiple equal signs", func(t *testing.T) {
+		os.Args = []string{"test", "-D", "database.url=localhost:3306"}
+
+		props := conf.New()
+		err := NewCommandArgs().CopyTo(props)
+		assert.That(t, err).Nil()
+		assert.That(t, "localhost:3306").Equal(props.Get("database.url"))
+	})
+
+	t.Run("mixed args", func(t *testing.T) {
+		os.Args = []string{"test", "-D", "valid=key", "-x", "-D", "another=value"}
+
+		props := conf.New()
+		err := NewCommandArgs().CopyTo(props)
+		assert.That(t, err).Nil()
+		assert.That(t, "key").Equal(props.Get("valid"))
+		assert.That(t, "value").Equal(props.Get("another"))
+		assert.That(t, props.Has("-x")).False()
 	})
 }

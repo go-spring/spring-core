@@ -48,7 +48,7 @@ func TestEnvironment(t *testing.T) {
 		assert.That(t, props.Get("API_KEY")).Equal("key123")
 	})
 
-	t.Run("set return error", func(t *testing.T) {
+	t.Run("property conflict", func(t *testing.T) {
 		_ = os.Setenv("GS_DB_HOST", "db1")
 		defer func() {
 			_ = os.Unsetenv("GS_DB_HOST")
@@ -57,6 +57,18 @@ func TestEnvironment(t *testing.T) {
 			"db": []string{"db2"},
 		})
 		err := NewEnvironment().CopyTo(props)
-		assert.ThatError(t, err).Matches("property conflict at path db.host")
+		assert.Error(t, err).Matches("property conflict at path db.host")
+	})
+
+	t.Run("nested property conflict", func(t *testing.T) {
+		_ = os.Setenv("GS_DB_HOST", "db1")
+		defer func() {
+			_ = os.Unsetenv("GS_DB_HOST")
+		}()
+		props := conf.Map(map[string]any{
+			"db": "123",
+		})
+		err := NewEnvironment().CopyTo(props)
+		assert.Error(t, err).Matches("property conflict at path db.host")
 	})
 }

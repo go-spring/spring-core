@@ -24,12 +24,12 @@ import (
 
 func TestRead(t *testing.T) {
 
-	t.Run("error", func(t *testing.T) {
+	t.Run("invalid json format", func(t *testing.T) {
 		_, err := Read([]byte(`{`))
-		assert.ThatError(t, err).Matches("unexpected end of JSON input")
+		assert.Error(t, err).Matches("unexpected end of JSON input")
 	})
 
-	t.Run("basic type", func(t *testing.T) {
+	t.Run("basic data types", func(t *testing.T) {
 		r, err := Read([]byte(`{
 			"empty": "",
 			"bool": false,

@@ -69,41 +69,41 @@ func TestConverter(t *testing.T) {
 		Duration time.Duration `value:"${duration:=10s}"`
 	}
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("built-in types", func(t *testing.T) {
 		err := conf.New().Bind(&s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Time).Equal(time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC))
 		assert.That(t, s.Duration).Equal(10 * time.Second)
 	})
 
-	t.Run("error", func(t *testing.T) {
+	t.Run("invalid time format", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"time": "2025-02-01M00:00:00",
 		})
 		err := p.Bind(&s)
-		assert.ThatError(t, err).Matches("unable to parse date: 2025-02-01M00:00:00")
+		assert.Error(t, err).Matches("unable to parse date: 2025-02-01M00:00:00")
 	})
 }
 
 func TestSplitter(t *testing.T) {
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("split points success", func(t *testing.T) {
 		var points []image.Point
 		err := conf.New().Bind(&points, "${:=(1,2)(3,4)}>>PointSplitter")
 		assert.That(t, err).Nil()
 		assert.That(t, points).Equal([]image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
 	})
 
-	t.Run("split error", func(t *testing.T) {
+	t.Run("split points error", func(t *testing.T) {
 		var points []image.Point
 		err := conf.New().Bind(&points, "${:=(1}>>PointSplitter")
-		assert.ThatError(t, err).Matches("split error")
+		assert.Error(t, err).Matches("split error")
 	})
 
 	t.Run("unknown splitter", func(t *testing.T) {
 		var points []image.Point
 		err := conf.New().Bind(&points, "${:=(1}>>UnknownSplitter")
-		assert.ThatError(t, err).Matches("unknown splitter 'UnknownSplitter'")
+		assert.Error(t, err).Matches("unknown splitter 'UnknownSplitter'")
 	})
 }
 
@@ -115,43 +115,43 @@ func TestSplitterError(t *testing.T) {
 	t.Run("splitter returns error", func(t *testing.T) {
 		var strs []string
 		err := conf.New().Bind(&strs, "${strs:=a,b,c}>>ErrorSplitter")
-		assert.ThatError(t, err).Matches("splitter error")
+		assert.Error(t, err).Matches("splitter error")
 	})
 }
 
 func TestParseTag(t *testing.T) {
 
-	t.Run("normal", func(t *testing.T) {
+	t.Run("simple tag", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a}")
 		assert.That(t, err).Nil()
 		assert.That(t, tag.String()).Equal("${a}")
 	})
 
-	t.Run("default", func(t *testing.T) {
+	t.Run("with default", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a:=123}")
 		assert.That(t, err).Nil()
 		assert.That(t, tag.String()).Equal("${a:=123}")
 	})
 
-	t.Run("splitter", func(t *testing.T) {
+	t.Run("with splitter", func(t *testing.T) {
 		tag, err := conf.ParseTag("${a:=1,2,3}>>splitter")
 		assert.That(t, err).Nil()
 		assert.That(t, tag.String()).Equal("${a:=1,2,3}>>splitter")
 	})
 
-	t.Run("error - 1", func(t *testing.T) {
+	t.Run("missing dollar brace", func(t *testing.T) {
 		_, err := conf.ParseTag(">>splitter")
-		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
-	t.Run("error - 2", func(t *testing.T) {
+	t.Run("unmatched braces", func(t *testing.T) {
 		_, err := conf.ParseTag("${a:=1,2,3")
-		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
-	t.Run("error - 3", func(t *testing.T) {
+	t.Run("missing dollar sign", func(t *testing.T) {
 		_, err := conf.ParseTag("{a:=1,2,3}")
-		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
 	t.Run("empty key with default", func(t *testing.T) {
@@ -238,22 +238,22 @@ func TestBindParam(t *testing.T) {
 		})
 	})
 
-	t.Run("error - 1", func(t *testing.T) {
+	t.Run("invalid format", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("a:=123", "")
-		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
-	t.Run("error - 2", func(t *testing.T) {
+	t.Run("empty tag", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${}", "")
-		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
-	t.Run("empty tag with no default", func(t *testing.T) {
+	t.Run("empty tag with default", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${:=}", "")
-		assert.ThatError(t, err).Nil()
+		assert.Error(t, err).Nil()
 	})
 
 	t.Run("nested key", func(t *testing.T) {
@@ -345,20 +345,20 @@ func TestProperties_Bind(t *testing.T) {
 		})
 	})
 
-	t.Run("BindTag error", func(t *testing.T) {
+	t.Run("invalid tag", func(t *testing.T) {
 		var i int
 		err := conf.New().Bind(&i, "$")
-		assert.ThatError(t, err).Matches("parse tag '\\$' error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag '\\$' error: invalid syntax")
 	})
 
-	t.Run("target error - 1", func(t *testing.T) {
+	t.Run("non pointer target", func(t *testing.T) {
 		err := conf.New().Bind(5)
-		assert.ThatError(t, err).Matches("should be a ptr")
+		assert.Error(t, err).Matches("should be a pointer but int")
 	})
 
-	t.Run("target error - 2", func(t *testing.T) {
+	t.Run("pointer to pointer target", func(t *testing.T) {
 		err := conf.New().Bind(new(*int))
-		assert.ThatError(t, err).Matches("target should be value type")
+		assert.Error(t, err).Matches("target should be value type")
 	})
 
 	t.Run("validate error", func(t *testing.T) {
@@ -368,57 +368,57 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Map(map[string]any{
 			"v": "1",
 		}).Bind(&s)
-		assert.ThatError(t, err).Matches("validate failed on .* for value 1")
+		assert.Error(t, err).Matches("validate failed on .* for value 1")
 	})
 
 	t.Run("array error", func(t *testing.T) {
 		err := conf.New().Bind(new(struct {
 			Arr [3]string `value:"${arr:=1,2,3}"`
 		}))
-		assert.ThatError(t, err).Matches("use slice instead of array")
+		assert.Error(t, err).Matches("use slice instead of array")
 	})
 
-	t.Run("type error - 1", func(t *testing.T) {
+	t.Run("string to int error", func(t *testing.T) {
 		var s struct {
 			Value int `value:"${v}"`
 		}
 		err := conf.Map(map[string]any{
 			"v": "abc",
 		}).Bind(&s)
-		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
 	})
 
-	t.Run("type error - 2", func(t *testing.T) {
+	t.Run("string to uint error", func(t *testing.T) {
 		var s struct {
 			Value uint `value:"${v}"`
 		}
 		err := conf.Map(map[string]any{
 			"v": "abc",
 		}).Bind(&s)
-		assert.ThatError(t, err).Matches("strconv.ParseUint: parsing .*: invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseUint: parsing .*: invalid syntax")
 	})
 
-	t.Run("type error - 3", func(t *testing.T) {
+	t.Run("string to float error", func(t *testing.T) {
 		var s struct {
 			Value float32 `value:"${v}"`
 		}
 		err := conf.Map(map[string]any{
 			"v": "abc",
 		}).Bind(&s)
-		assert.ThatError(t, err).Matches("strconv.ParseFloat: parsing .*: invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseFloat: parsing .*: invalid syntax")
 	})
 
-	t.Run("type error - 4", func(t *testing.T) {
+	t.Run("string to bool error", func(t *testing.T) {
 		var s struct {
 			Value bool `value:"${v}"`
 		}
 		err := conf.Map(map[string]any{
 			"v": "abc",
 		}).Bind(&s)
-		assert.ThatError(t, err).Matches("strconv.ParseBool: parsing .*: invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseBool: parsing .*: invalid syntax")
 	})
 
-	t.Run("slice error - 1", func(t *testing.T) {
+	t.Run("slice error", func(t *testing.T) {
 		var s struct {
 			Value []int `value:"${v}"`
 		}
@@ -427,34 +427,34 @@ func TestProperties_Bind(t *testing.T) {
 				"1", "2", "a",
 			},
 		}).Bind(&s)
-		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
 	})
 
-	t.Run("slice error - 2", func(t *testing.T) {
+	t.Run("missing slice property", func(t *testing.T) {
 		var s struct {
 			Value []int `value:"${v}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.ThatError(t, err).Matches("property \"v\" not exist")
+		assert.Error(t, err).Matches("property \"v\" not exist")
 	})
 
-	t.Run("slice error - 3", func(t *testing.T) {
+	t.Run("missing converter for slice", func(t *testing.T) {
 		var s struct {
 			Value []image.Rectangle `value:"${v:={(1,2)(3,4)}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.ThatError(t, err).Matches("can't find converter for image.Rectangle")
+		assert.Error(t, err).Matches("can't find converter for image.Rectangle")
 	})
 
-	t.Run("map error - 1", func(t *testing.T) {
+	t.Run("map non empty default", func(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v:=a:b,1:2}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.ThatError(t, err).Matches("map can't have a non-empty default value")
+		assert.Error(t, err).Matches("map can't have a non-empty default value")
 	})
 
-	t.Run("map error - 2", func(t *testing.T) {
+	t.Run("map from slice", func(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
@@ -463,38 +463,38 @@ func TestProperties_Bind(t *testing.T) {
 				"1", "2", "3",
 			},
 		}).Bind(&s)
-		assert.ThatError(t, err).Matches("property \"v.0\" not exist")
+		assert.Error(t, err).Matches("property \"v.0\" not exist")
 	})
 
-	t.Run("map error - 3", func(t *testing.T) {
+	t.Run("map type conflict", func(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
 		err := conf.Map(map[string]any{
 			"v": "a:b,1:2",
 		}).Bind(&s)
-		assert.ThatError(t, err).Matches("property conflict at path v")
+		assert.Error(t, err).Matches("property conflict at path v")
 	})
 
-	t.Run("map error - 4", func(t *testing.T) {
+	t.Run("missing map property", func(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.ThatError(t, err).Matches("property \"v\" not exist")
+		assert.Error(t, err).Matches("property \"v\" not exist")
 	})
 
-	t.Run("struct error - 1", func(t *testing.T) {
+	t.Run("struct non empty default", func(t *testing.T) {
 		var s struct {
 			Value struct {
 				Int int
 			} `value:"${v:={123}}"`
 		}
 		err := conf.New().Bind(&s)
-		assert.ThatError(t, err).Matches("struct can't have a non-empty default value")
+		assert.Error(t, err).Matches("struct can't have a non-empty default value")
 	})
 
-	t.Run("struct error - 2", func(t *testing.T) {
+	t.Run("unexported field", func(t *testing.T) {
 		var s struct {
 			int `value:"${v}"`
 		}
@@ -505,15 +505,15 @@ func TestProperties_Bind(t *testing.T) {
 		assert.That(t, s.int).Equal(0)
 	})
 
-	t.Run("struct error - 3", func(t *testing.T) {
+	t.Run("invalid struct tag", func(t *testing.T) {
 		var s struct {
 			Value int `value:"v"`
 		}
 		err := conf.New().Bind(&s)
-		assert.ThatError(t, err).Matches("parse tag 'v' error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag 'v' error: invalid syntax")
 	})
 
-	t.Run("struct error - 4", func(t *testing.T) {
+	t.Run("embedded interface", func(t *testing.T) {
 		var s struct {
 			io.Reader
 		}
@@ -678,7 +678,7 @@ func TestProperties_Bind(t *testing.T) {
 		assert.That(t, s.EmptyMap).Equal(map[string]int{})
 	})
 
-	t.Run("filter false", func(t *testing.T) {
+	t.Run("filter returns false", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${ROOT}", "")
 		assert.That(t, err).Nil()
@@ -696,7 +696,7 @@ func TestProperties_Bind(t *testing.T) {
 		assert.That(t, s.Value).Equal(3)
 	})
 
-	t.Run("filter true", func(t *testing.T) {
+	t.Run("filter returns true", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${ROOT}", "")
 		assert.That(t, err).Nil()
@@ -714,7 +714,7 @@ func TestProperties_Bind(t *testing.T) {
 		assert.That(t, s.Value).Equal(0)
 	})
 
-	t.Run("filter error", func(t *testing.T) {
+	t.Run("filter returns error", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${ROOT}", "")
 		assert.That(t, err).Nil()
@@ -728,7 +728,7 @@ func TestProperties_Bind(t *testing.T) {
 			funcFilter(func(i any, param conf.BindParam) (bool, error) {
 				return false, errors.New("filter error")
 			}))
-		assert.ThatError(t, err).Matches("filter error")
+		assert.Error(t, err).Matches("filter error")
 		assert.That(t, s.Value).Equal(0)
 	})
 
@@ -770,7 +770,7 @@ func TestProperties_Bind(t *testing.T) {
 func TestResolveString(t *testing.T) {
 	t.Run("unbalanced braces", func(t *testing.T) {
 		_, err := conf.ParseTag("${key")
-		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
 	t.Run("missing property", func(t *testing.T) {
@@ -781,7 +781,7 @@ func TestResolveString(t *testing.T) {
 		}
 
 		err := p.Bind(&s)
-		assert.ThatError(t, err).Matches("property \"missing\" not exist")
+		assert.Error(t, err).Matches("property \"missing\" not exist")
 	})
 
 	t.Run("missing property with default", func(t *testing.T) {
@@ -798,7 +798,7 @@ func TestResolveString(t *testing.T) {
 }
 
 func TestMapBinding(t *testing.T) {
-	t.Run("map with string keys and int values", func(t *testing.T) {
+	t.Run("map success", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"config": map[string]any{
 				"a": 1,

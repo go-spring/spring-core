@@ -53,28 +53,7 @@ func Reset() {
 
 func TestApp(t *testing.T) {
 
-	t.Run("os signals", func(t *testing.T) {
-		t.Skip()
-
-		Reset()
-		t.Cleanup(Reset)
-
-		app := NewApp()
-		go func() {
-			time.Sleep(50 * time.Millisecond)
-			p, err := os.FindProcess(os.Getpid())
-			assert.That(t, err).Nil()
-			err = p.Signal(os.Interrupt)
-			assert.That(t, err).Nil()
-			time.Sleep(50 * time.Millisecond)
-		}()
-		err := app.Run()
-		assert.That(t, err).Nil()
-		time.Sleep(50 * time.Millisecond)
-		assert.ThatString(t, logBuf.String()).Contains("Received signal: interrupt")
-	})
-
-	t.Run("config refresh error", func(t *testing.T) {
+	t.Run("property conflict", func(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
@@ -82,20 +61,36 @@ func TestApp(t *testing.T) {
 		_ = gs_conf.SysConf.Set("a", "123", fileID)
 		_ = os.Setenv("GS_A_B", "456")
 		app := NewApp()
-		err := app.Run()
-		assert.ThatError(t, err).Matches("property conflict at path a.b")
+		err := app.Start()
+		assert.Error(t, err).Matches("property conflict at path a.b")
 	})
 
-	t.Run("container refresh error", func(t *testing.T) {
+	t.Run("bean creation failure", func(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
 		app := NewApp()
-		app.C.RootBean(app.C.Provide(func() (*http.Server, error) {
+		app.C.Root(app.C.Provide(func() (*http.Server, error) {
 			return nil, errors.New("fail to create bean")
 		}))
-		err := app.Run()
-		assert.ThatError(t, err).Matches("fail to create bean")
+		err := app.Start()
+		assert.Error(t, err).Matches("fail to create bean")
+	})
+
+	t.Run("runner panic", func(t *testing.T) {
+		Reset()
+		t.Cleanup(Reset)
+
+		r := gs.FuncRunner(func() error {
+			panic("runner panic")
+		})
+
+		app := NewApp()
+		app.C.Object(r).AsRunner()
+
+		assert.Panic(t, func() {
+			_ = app.Start()
+		}, "runner panic")
 	})
 
 	t.Run("runner return error", func(t *testing.T) {
@@ -108,8 +103,30 @@ func TestApp(t *testing.T) {
 
 		app := NewApp()
 		app.C.Object(r).AsRunner()
-		err := app.Run()
-		assert.ThatError(t, err).Matches("runner return error")
+		err := app.Start()
+		assert.Error(t, err).Matches("runner return error")
+	})
+
+	t.Run("multiple runners with error", func(t *testing.T) {
+		Reset()
+		t.Cleanup(Reset)
+
+		app := NewApp()
+
+		// success
+		r1 := gs.FuncRunner(func() error {
+			return nil
+		})
+		app.C.Object(r1).AsRunner().Name("r1")
+
+		// error
+		r2 := gs.FuncRunner(func() error {
+			return errors.New("runner error")
+		})
+		app.C.Object(r2).AsRunner().Name("r2")
+
+		err := app.Start()
+		assert.Error(t, err).Matches("runner error")
 	})
 
 	t.Run("disable jobs & servers", func(t *testing.T) {
@@ -129,26 +146,11 @@ func TestApp(t *testing.T) {
 			assert.That(t, len(app.Runners)).Equal(0)
 			app.ShutDown()
 		}()
-		err := app.Run()
+		err := app.Start()
 		assert.That(t, err).Nil()
+		app.WaitForShutdown()
 		time.Sleep(50 * time.Millisecond)
-		assert.ThatString(t, logBuf.String()).Contains("shutdown complete")
-	})
-
-	t.Run("job return error", func(t *testing.T) {
-		Reset()
-		t.Cleanup(Reset)
-
-		r := gs.FuncJob(func(ctx context.Context) error {
-			return errors.New("job return error")
-		})
-
-		app := NewApp()
-		app.C.Object(r).AsJob()
-		err := app.Run()
-		assert.That(t, err).Nil()
-		time.Sleep(50 * time.Millisecond)
-		assert.ThatString(t, logBuf.String()).Contains("job run error: job return error")
+		assert.String(t, logBuf.String()).Contains("shutdown complete")
 	})
 
 	t.Run("job panic", func(t *testing.T) {
@@ -161,10 +163,52 @@ func TestApp(t *testing.T) {
 
 		app := NewApp()
 		app.C.Object(r).AsJob()
-		err := app.Run()
+		err := app.Start()
 		assert.That(t, err).Nil()
 		time.Sleep(50 * time.Millisecond)
-		assert.ThatString(t, logBuf.String()).Contains("panic: job panic")
+		assert.String(t, logBuf.String()).Contains("panic: job panic")
+	})
+
+	t.Run("job return error", func(t *testing.T) {
+		Reset()
+		t.Cleanup(Reset)
+
+		r := gs.FuncJob(func(ctx context.Context) error {
+			return errors.New("job return error")
+		})
+
+		app := NewApp()
+		app.C.Object(r).AsJob()
+		err := app.Start()
+		assert.That(t, err).Nil()
+		time.Sleep(50 * time.Millisecond)
+		assert.String(t, logBuf.String()).Contains("job run error: job return error")
+	})
+
+	t.Run("job context cancel", func(t *testing.T) {
+		Reset()
+		t.Cleanup(Reset)
+
+		jobFinished := make(chan bool, 1)
+		r := gs.FuncJob(func(ctx context.Context) error {
+			<-ctx.Done()
+			jobFinished <- true
+			return ctx.Err()
+		})
+
+		app := NewApp()
+		app.C.Object(r).AsJob()
+
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			app.ShutDown()
+		}()
+
+		err := app.Start()
+		assert.That(t, err).Nil()
+		app.WaitForShutdown()
+		<-jobFinished
+		assert.String(t, logBuf.String()).Contains("job run error: context canceled")
 	})
 
 	t.Run("server return error", func(t *testing.T) {
@@ -178,10 +222,10 @@ func TestApp(t *testing.T) {
 
 		app := NewApp()
 		app.C.Object(r).AsServer()
-		err := app.Run()
-		assert.That(t, err).Nil()
+		err := app.Start()
+		assert.Error(t, err).String("server intercepted")
 		time.Sleep(50 * time.Millisecond)
-		assert.ThatString(t, logBuf.String()).Contains("server serve error: server return error")
+		assert.String(t, logBuf.String()).Contains("server serve error: server return error")
 	})
 
 	t.Run("server panic", func(t *testing.T) {
@@ -197,10 +241,10 @@ func TestApp(t *testing.T) {
 
 		app := NewApp()
 		app.C.Object(r).AsServer()
-		err := app.Run()
-		assert.That(t, err).Nil()
+		err := app.Start()
+		assert.Error(t, err).String("server intercepted")
 		time.Sleep(50 * time.Millisecond)
-		assert.ThatString(t, logBuf.String()).Contains("panic: server panic")
+		assert.String(t, logBuf.String()).Contains("panic: server panic")
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -271,11 +315,12 @@ func TestApp(t *testing.T) {
 			assert.That(t, len(app.Runners)).Equal(2)
 			app.ShutDown()
 		}()
-		err := app.Run()
+		err := app.Start()
 		assert.That(t, err).Nil()
+		app.WaitForShutdown()
 		time.Sleep(50 * time.Millisecond)
 		<-j2Wait
-		assert.ThatString(t, logBuf.String()).Contains("shutdown complete")
+		assert.String(t, logBuf.String()).Contains("shutdown complete")
 	})
 
 	t.Run("shutdown error", func(t *testing.T) {
@@ -299,9 +344,10 @@ func TestApp(t *testing.T) {
 			time.Sleep(50 * time.Millisecond)
 			app.ShutDown()
 		}()
-		err := app.Run()
+		err := app.Start()
 		assert.That(t, err).Nil()
+		app.WaitForShutdown()
 		time.Sleep(50 * time.Millisecond)
-		assert.ThatString(t, logBuf.String()).Contains("shutdown server failed: server shutdown error")
+		assert.String(t, logBuf.String()).Contains("shutdown server failed: server shutdown error")
 	})
 }

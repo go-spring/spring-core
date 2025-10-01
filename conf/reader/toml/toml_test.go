@@ -24,9 +24,9 @@ import (
 
 func TestRead(t *testing.T) {
 
-	t.Run("error", func(t *testing.T) {
+	t.Run("invalid toml format", func(t *testing.T) {
 		_, err := Read([]byte(`{`))
-		assert.ThatError(t, err).Matches("parsing error: keys cannot contain { character")
+		assert.Error(t, err).Matches("parsing error: keys cannot contain { character")
 	})
 
 	t.Run("basic type", func(t *testing.T) {

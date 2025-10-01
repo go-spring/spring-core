@@ -25,9 +25,9 @@ import (
 
 	"github.com/go-spring/gs-mock/gsmock"
 	"github.com/go-spring/spring-base/testing/assert"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
-	"github.com/go-spring/spring-core/util"
 )
 
 func TestBeanStatus(t *testing.T) {
@@ -77,7 +77,7 @@ func TestBeanDefinition(t *testing.T) {
 		assert.That(t, StatusCreated).Equal(bean.Status())
 
 		bean.SetCaller(1)
-		assert.ThatString(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:79")
+		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:79")
 
 		bean.SetName("test-1")
 		assert.That(t, bean.Name()).Equal("test-1")
@@ -85,7 +85,7 @@ func TestBeanDefinition(t *testing.T) {
 		beanType, beanName := bean.TypeAndName()
 		assert.That(t, beanType).Equal(reflect.TypeFor[*TestBean]())
 		assert.That(t, beanName).Equal("test-1")
-		assert.ThatString(t, bean.String()).Matches(`name=test-1 .*/gs/internal/gs_bean/bean_test.go:79`)
+		assert.String(t, bean.String()).Matches(`name=test-1 .*/gs/internal/gs_bean/bean_test.go:79`)
 
 		assert.That(t, bean.BeanRuntime.Callable()).Nil()
 		assert.That(t, bean.BeanRuntime.Status()).Equal(StatusWired)
@@ -288,7 +288,7 @@ func TestBeanDefinition(t *testing.T) {
 
 func TestNewBean(t *testing.T) {
 
-	t.Run("type error", func(t *testing.T) {
+	t.Run("invalid bean type", func(t *testing.T) {
 
 		assert.Panic(t, func() {
 			NewBean(new(int))
@@ -300,7 +300,7 @@ func TestNewBean(t *testing.T) {
 		}, "bean must be ref type")
 	})
 
-	t.Run("value error", func(t *testing.T) {
+	t.Run("nil bean value", func(t *testing.T) {
 		assert.Panic(t, func() {
 			NewBean((*TestBean)(nil))
 		}, "bean can't be nil")
@@ -313,14 +313,14 @@ func TestNewBean(t *testing.T) {
 		assert.That(t, beanX.Type()).Equal(reflect.TypeFor[*TestBean]())
 	})
 
-	t.Run("object - reflect.Value", func(t *testing.T) {
+	t.Run("object by reflect.Value", func(t *testing.T) {
 		bean := NewBean(reflect.ValueOf(&TestBean{}))
 		beanX := bean.BeanRegistration().(*BeanDefinition)
 		assert.That(t, beanX.Name()).Equal("TestBean")
 		assert.That(t, beanX.Type()).Equal(reflect.TypeFor[*TestBean]())
 	})
 
-	t.Run("function - reflect.Value", func(t *testing.T) {
+	t.Run("function by reflect.Value", func(t *testing.T) {
 		fn := func(int, int) string { return "" }
 		bean := NewBean(reflect.ValueOf(fn)).Name("TestFunc")
 		beanX := bean.BeanRegistration().(*BeanDefinition)
@@ -344,14 +344,14 @@ func TestNewBean(t *testing.T) {
 				gs_arg.Tag("${v:=3}"),
 				gs_arg.Index(1, gs_arg.Tag("${v:=3}")),
 			)
-		}, "NewArgList error << arguments must be all indexed or non-indexed")
+		}, "NewArgList error: arguments must be all indexed or non-indexed")
 
 		assert.Panic(t, func() {
 			NewBean(func() int { return 0 })
 		}, "bean must be ref type")
 	})
 
-	t.Run("constructor", func(t *testing.T) {
+	t.Run("constructor success", func(t *testing.T) {
 		fn := func(int, int) *TestBean { return nil }
 		bean := NewBean(fn).Name("NewTestBean")
 		beanX := bean.BeanRegistration().(*BeanDefinition)

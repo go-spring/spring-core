@@ -17,52 +17,65 @@
 package gs
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/go-spring/log"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 )
 
-// initLog initializes the log system.
+// initLog initializes the application's logging system.
 func initLog() error {
+
+	// Refresh the global system configuration.
 	p, err := new(gs_conf.SysConfig).Refresh()
 	if err != nil {
-		return err
+		return util.FormatError(err, "refresh error in source sys")
 	}
+
 	var c struct {
+		// LocalDir is the directory that contains configuration files.
+		// Defaults to "./conf" if not provided.
 		LocalDir string `value:"${spring.app.config-local.dir:=./conf}"`
+
+		// Profiles specifies the active application profile(s),
+		// such as "dev" or "prod".
 		Profiles string `value:"${spring.profiles.active:=}"`
 	}
 	if err = p.Bind(&c); err != nil {
-		return err
+		return util.FormatError(err, "bind error in source sys")
 	}
+
 	var (
-		logFileDefault string
+		logFileDefault = filepath.Join(c.LocalDir, "log.xml")
 		logFileProfile string
 	)
-	logFileDefault = filepath.Join(c.LocalDir, "log.xml")
+
+	// If one or more profiles are set, use the first profile to look
+	// for a profile-specific log configuration file.
 	if c.Profiles != "" {
 		profile := strings.Split(c.Profiles, ",")[0]
 		logFileProfile = filepath.Join(c.LocalDir, "log-"+profile+".xml")
 	}
+
+	// Determine which log configuration file to use.
 	var logFile string
 	for _, s := range []string{logFileProfile, logFileDefault} {
-		if _, err = os.Stat(s); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
+		if ok, err := util.PathExists(s); err != nil {
 			return err
+		} else if !ok {
+			continue
 		}
 		logFile = s
 		break
 	}
-	if logFile == "" { // no log file exists
+
+	// If no configuration file exists, leave the logger as default.
+	if logFile == "" {
 		return nil
 	}
-	if err = log.RefreshFile(logFile); err != nil {
-		return err
-	}
-	return nil
+
+	// Refresh the logger configuration from the selected file.
+	return log.RefreshFile(logFile)
 }

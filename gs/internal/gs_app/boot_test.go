@@ -37,10 +37,10 @@ func TestBoot(t *testing.T) {
 		_ = os.Setenv("GS_A_B", "456")
 		boot := NewBoot().(*BootImpl)
 		err := boot.Run()
-		assert.ThatError(t, err).Nil()
+		assert.Error(t, err).Nil()
 	})
 
-	t.Run("config refresh error", func(t *testing.T) {
+	t.Run("config refresh fails", func(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
@@ -50,19 +50,19 @@ func TestBoot(t *testing.T) {
 		boot := NewBoot().(*BootImpl)
 		boot.Object(bytes.NewBuffer(nil))
 		err := boot.Run()
-		assert.ThatError(t, err).Matches("property conflict at path a.b")
+		assert.Error(t, err).Matches("property conflict at path a.b")
 	})
 
-	t.Run("container refresh error", func(t *testing.T) {
+	t.Run("container refresh fails", func(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
 		boot := NewBoot().(*BootImpl)
-		boot.RootBean(boot.Provide(func() (*bytes.Buffer, error) {
+		boot.Root(boot.Provide(func() (*bytes.Buffer, error) {
 			return nil, errors.New("fail to create bean")
 		}))
 		err := boot.Run()
-		assert.ThatError(t, err).Matches("fail to create bean")
+		assert.Error(t, err).Matches("fail to create bean")
 	})
 
 	t.Run("runner return error", func(t *testing.T) {
@@ -74,7 +74,7 @@ func TestBoot(t *testing.T) {
 			return errors.New("runner return error")
 		})
 		err := boot.Run()
-		assert.ThatError(t, err).Matches("runner return error")
+		assert.Error(t, err).Matches("runner return error")
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -85,6 +85,47 @@ func TestBoot(t *testing.T) {
 		boot.Runner(func() error { return nil })
 		boot.Config().LocalFile.Reset()
 		err := boot.Run()
-		assert.ThatError(t, err).Nil()
+		assert.Error(t, err).Nil()
+	})
+
+	t.Run("multiple runners", func(t *testing.T) {
+		Reset()
+		t.Cleanup(Reset)
+
+		boot := NewBoot().(*BootImpl)
+		var results []string
+
+		// success
+		boot.Runner(func() error {
+			results = append(results, "runner1")
+			return nil
+		}).Name("runner1")
+
+		// success
+		boot.Runner(func() error {
+			results = append(results, "runner2")
+			return nil
+		}).Name("runner2")
+
+		err := boot.Run()
+		assert.Error(t, err).Nil()
+		assert.That(t, len(results)).Equal(2)
+		assert.That(t, results[0]).Equal("runner1")
+		assert.That(t, results[1]).Equal("runner2")
+	})
+
+	t.Run("object conflict", func(t *testing.T) {
+		Reset()
+		t.Cleanup(Reset)
+
+		boot := NewBoot().(*BootImpl)
+		buf := bytes.NewBuffer(nil)
+
+		// duplicate registration
+		boot.Object(buf)
+		boot.Object(buf)
+
+		err := boot.Run()
+		assert.Error(t, err).NotNil()
 	})
 }

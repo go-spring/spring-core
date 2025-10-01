@@ -4,10 +4,10 @@ github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHk
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/go-spring/gs-mock v0.0.5 h1:OGC+Lx1XgOoaKfmiN6mLasASQUtbhgVVoDZOhR4d+GA=
 github.com/go-spring/gs-mock v0.0.5/go.mod h1:QK0PqZ+Vu9F+BU97zl8fip5XKibvDSoN+ofky413Z6Q=
-github.com/go-spring/log v0.0.10 h1:G2e74+m+PhxJgRS/Fg2BB8uyd4MqHFpv0Fe4R8u3HuA=
-github.com/go-spring/log v0.0.10/go.mod h1:D97vFWSS4g2LmCcK06+OE4zRz0egE7DKelOhcRZL1L0=
-github.com/go-spring/spring-base v1.2.1 h1:MV6VssXxtlb4YUPb1C42p6qTdGYlcbVEbDQQReYC0II=
-github.com/go-spring/spring-base v1.2.1/go.mod h1:cttEYIxm48cEBcaMmZqXmDoYhiX7MgaCHWuL4AhG32U=
+github.com/go-spring/log v0.0.12 h1:q7we9bk+rZ/1r1HwiEMj5k6v9c4j790VdboYlB6+4/0=
+github.com/go-spring/log v0.0.12/go.mod h1:l2L8e4cpQYZETRV2wHPII7CZTAnn2SUBrZnaiTR3QH4=
+github.com/go-spring/spring-base v1.2.4 h1:z113Werjmcvoo/78Wp8/QEmxpfga+UpBrVcp9xffShU=
+github.com/go-spring/spring-base v1.2.4/go.mod h1:IZDihx2XI4IpAdY3mkKOOHhU3nQbg5xLpi/06EqTvHU=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=

@@ -217,7 +217,7 @@ type LazyB struct {
 
 func TestInjecting(t *testing.T) {
 
-	t.Run("lazy error - 1", func(t *testing.T) {
+	t.Run("lazy error - missing bean", func(t *testing.T) {
 		r := New(conf.Map(map[string]any{
 			"spring": map[string]any{
 				"allow-circular-references": true,
@@ -228,17 +228,36 @@ func TestInjecting(t *testing.T) {
 			objectBean(&LazyB{}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("can't find bean")
+		assert.Error(t, err).Matches("can't find bean")
 	})
 
-	t.Run("lazy error - 2", func(t *testing.T) {
+	t.Run("lazy error - circular reference", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(&LazyA{}),
 			objectBean(&LazyB{}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("found circular autowire")
+		assert.Error(t, err).Matches("found circular autowire")
+	})
+
+	t.Run("lazy success", func(t *testing.T) {
+		r := New(conf.Map(map[string]any{
+			"spring": map[string]any{
+				"allow-circular-references": true,
+			},
+		}))
+		beans := []*gs.BeanDefinition{
+			objectBean(&LazyA{}),
+			objectBean(&LazyB{}).Name("b"),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.That(t, err).Nil()
+
+		var a LazyA
+		err = r.Wire(&a)
+		assert.That(t, err).Nil()
+		assert.That(t, a.LazyB).NotNil()
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -369,7 +388,7 @@ func TestInjecting(t *testing.T) {
 		assert.That(t, s.Service.Status).Equal(0)
 	})
 
-	t.Run("wire error - 2", func(t *testing.T) {
+	t.Run("wire error - primitive type", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -377,10 +396,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("int is not a valid receiver type")
+		assert.Error(t, err).Matches("int is not a valid receiver type")
 	})
 
-	t.Run("wire error - 3", func(t *testing.T) {
+	t.Run("wire error - ambiguous bean for single value", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -390,10 +409,10 @@ func TestInjecting(t *testing.T) {
 			objectBean(&SimpleLogger{}).Name("b").Export(gs.As[Logger]()),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("found 2 beans")
+		assert.Error(t, err).Matches("found 2 beans")
 	})
 
-	t.Run("wire error - 4", func(t *testing.T) {
+	t.Run("wire error - slice", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -401,10 +420,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("\\[]int is not a valid receiver type")
+		assert.Error(t, err).Matches("\\[]int is not a valid receiver type")
 	})
 
-	t.Run("wire error - 5", func(t *testing.T) {
+	t.Run("wire error - invalid collection pattern", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -412,10 +431,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("more than one \\* in collection")
+		assert.Error(t, err).Matches("more than one \\* in collection")
 	})
 
-	t.Run("wire error - 6", func(t *testing.T) {
+	t.Run("wire error - ambiguous bean for collection", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -425,10 +444,10 @@ func TestInjecting(t *testing.T) {
 			objectBean(&SimpleLogger{}).Name("biz").Export(gs.As[Logger]()),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("found 2 beans")
+		assert.Error(t, err).Matches("found 2 beans")
 	})
 
-	t.Run("wire error - 7", func(t *testing.T) {
+	t.Run("wire error - no matching beans", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -436,10 +455,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("no beans collected")
+		assert.Error(t, err).Matches("no beans collected")
 	})
 
-	t.Run("wire error - 8", func(t *testing.T) {
+	t.Run("wire error - bean not found", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -447,10 +466,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("can't find bean")
+		assert.Error(t, err).Matches("can't find bean")
 	})
 
-	t.Run("wire error - 9", func(t *testing.T) {
+	t.Run("wire error - init failure", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -461,10 +480,10 @@ func TestInjecting(t *testing.T) {
 			}).Export(gs.As[Logger]()).Name("sys"),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("init error")
+		assert.Error(t, err).Matches("init error")
 	})
 
-	t.Run("wire error - 10", func(t *testing.T) {
+	t.Run("wire error - invalid tag", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -472,10 +491,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("resolve string .* error: invalid syntax")
+		assert.Error(t, err).Matches("resolve string .* error: invalid syntax")
 	})
 
-	t.Run("wire error - 11", func(t *testing.T) {
+	t.Run("wire error - invalid collection tag", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -483,10 +502,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("resolve string .* error: invalid syntax")
+		assert.Error(t, err).Matches("resolve string .* error: invalid syntax")
 	})
 
-	t.Run("wire error - 12", func(t *testing.T) {
+	t.Run("wire error - collection with no matches", func(t *testing.T) {
 		r := New(conf.New())
 		s := new(struct {
 			Loggers [3]Logger `autowire:"*?"`
@@ -500,7 +519,7 @@ func TestInjecting(t *testing.T) {
 		assert.That(t, s.Loggers).Equal([3]Logger{nil, nil, nil})
 	})
 
-	t.Run("wire error - 13", func(t *testing.T) {
+	t.Run("wire error - missing property", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(&SimpleLogger{}).DependsOn(
@@ -509,10 +528,10 @@ func TestInjecting(t *testing.T) {
 			provideBean(NewZeroLogger),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("parse tag '' error: invalid syntax")
+		assert.Error(t, err).Matches("property \"\" not exist")
 	})
 
-	t.Run("wire error - 14", func(t *testing.T) {
+	t.Run("wire error - missing required dependencies", func(t *testing.T) {
 		r := New(conf.Map(map[string]any{
 			"spring": map[string]any{
 				"force-autowire-is-nullable": true,
@@ -530,7 +549,7 @@ func TestInjecting(t *testing.T) {
 		assert.That(t, s.Logger).Equal((*ZeroLogger)(nil))
 	})
 
-	t.Run("wire error - 15", func(t *testing.T) {
+	t.Run("wire error - provider returning error - 1", func(t *testing.T) {
 		r := New(conf.New())
 		s := struct {
 			Logger *ZeroLogger `inject:""`
@@ -542,10 +561,10 @@ func TestInjecting(t *testing.T) {
 			}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("init error")
+		assert.Error(t, err).Matches("init error")
 	})
 
-	t.Run("wire error - 16", func(t *testing.T) {
+	t.Run("wire error - provider returning error - 2", func(t *testing.T) {
 		r := New(conf.Map(map[string]any{
 			"spring": map[string]any{
 				"force-autowire-is-nullable": true,
@@ -565,7 +584,7 @@ func TestInjecting(t *testing.T) {
 		assert.That(t, s.Logger).Equal((*ZeroLogger)(nil))
 	})
 
-	t.Run("wire error - 17", func(t *testing.T) {
+	t.Run("wire error - provider returning error - 3", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			provideBean(func() (*ZeroLogger, error) {
@@ -573,10 +592,10 @@ func TestInjecting(t *testing.T) {
 			}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("name=.*  return nil")
+		assert.Error(t, err).Matches("name=.*  return nil")
 	})
 
-	t.Run("wire error - 22", func(t *testing.T) {
+	t.Run("wire error - primitive type", func(t *testing.T) {
 		r := New(conf.New())
 		err := r.Refresh(extractBeans(nil))
 		assert.That(t, err).Nil()
@@ -584,7 +603,7 @@ func TestInjecting(t *testing.T) {
 		assert.That(t, err).Nil()
 	})
 
-	t.Run("wire error - 23", func(t *testing.T) {
+	t.Run("wire error - malformed tag", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -592,10 +611,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
-	t.Run("wire error - 24", func(t *testing.T) {
+	t.Run("wire error - struct - missing properties", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -603,10 +622,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("property \"config.int\" not exist")
+		assert.Error(t, err).Matches("property \"config.int\" not exist")
 	})
 
-	t.Run("wire error - 25", func(t *testing.T) {
+	t.Run("wire error - struct - missing prefixed properties", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(new(struct {
@@ -614,10 +633,10 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("property \"svr.config.int\" not exist")
+		assert.Error(t, err).Matches("property \"svr.config.int\" not exist")
 	})
 
-	t.Run("wire error - 26", func(t *testing.T) {
+	t.Run("wire error - destruction failure", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(&SimpleLogger{}).Destroy(func(l *SimpleLogger) error {
@@ -628,11 +647,24 @@ func TestInjecting(t *testing.T) {
 		assert.That(t, err).Nil()
 		r.Close()
 	})
+
+	t.Run("map injection", func(t *testing.T) {
+		r := New(conf.New())
+		beans := []*gs.BeanDefinition{
+			objectBean(&ZeroLogger{}).Name("logger1").Export(gs.As[CtxLogger]()),
+			objectBean(&ZeroLogger{}).Name("logger2").Export(gs.As[CtxLogger]()),
+			objectBean(new(struct {
+				Loggers map[string]CtxLogger `inject:"*"`
+			})),
+		}
+		err := r.Refresh(extractBeans(beans))
+		assert.That(t, err).Nil()
+	})
 }
 
 func TestWireTag(t *testing.T) {
 
-	t.Run("empty str", func(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
 		tag := parseWireTag("")
 		assert.That(t, tag).Equal(WireTag{})
 		assert.That(t, tag.String()).Equal("")
@@ -656,14 +688,14 @@ func TestWireTag(t *testing.T) {
 		assert.That(t, tag.String()).Equal("a?")
 	})
 
-	t.Run("tags - 1", func(t *testing.T) {
+	t.Run("tags - single", func(t *testing.T) {
 		tags := []WireTag{
 			{"a", true},
 		}
 		assert.That(t, toWireString(tags)).Equal("a?")
 	})
 
-	t.Run("tags - 2", func(t *testing.T) {
+	t.Run("tags - multiple", func(t *testing.T) {
 		tags := []WireTag{
 			{"a", true},
 			{"b", false},
@@ -671,7 +703,7 @@ func TestWireTag(t *testing.T) {
 		assert.That(t, toWireString(tags)).Equal("a?,b")
 	})
 
-	t.Run("tags - 3", func(t *testing.T) {
+	t.Run("tags - mixed nullable", func(t *testing.T) {
 		tags := []WireTag{
 			{"a", true},
 			{"b", false},
@@ -741,7 +773,7 @@ func NewJ() *J {
 
 func TestCircularBean(t *testing.T) {
 
-	t.Run("not truly circular - 1", func(t *testing.T) {
+	t.Run("not truly circular - object", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(&A{}),
@@ -762,7 +794,7 @@ func TestCircularBean(t *testing.T) {
 		assert.That(t, s.C.A).Equal(s.A)
 	})
 
-	t.Run("not truly circular - 2", func(t *testing.T) {
+	t.Run("not truly circular - constructor", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			objectBean(&C{}),
@@ -783,7 +815,7 @@ func TestCircularBean(t *testing.T) {
 		assert.That(t, s.E.c).Equal(s.C)
 	})
 
-	t.Run("found circular - 1", func(t *testing.T) {
+	t.Run("found circular - direct", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			provideBean(NewE, gs_arg.Tag("?")),
@@ -791,10 +823,10 @@ func TestCircularBean(t *testing.T) {
 			provideBean(NewG),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("found circular autowire")
+		assert.Error(t, err).Matches("found circular autowire")
 	})
 
-	t.Run("found circular - 2", func(t *testing.T) {
+	t.Run("found circular - indirect", func(t *testing.T) {
 		r := New(conf.New())
 		beans := []*gs.BeanDefinition{
 			provideBean(NewH),
@@ -802,10 +834,10 @@ func TestCircularBean(t *testing.T) {
 			provideBean(NewJ),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.ThatError(t, err).Matches("found circular autowire")
+		assert.Error(t, err).Matches("found circular autowire")
 	})
 
-	t.Run("found circular - 3", func(t *testing.T) {
+	t.Run("found circular - lazy", func(t *testing.T) {
 		r := New(conf.Map(map[string]any{
 			"spring": map[string]any{
 				"allow-circular-references": true,
@@ -928,7 +960,7 @@ type DyncValue struct {
 
 func TestForceClean(t *testing.T) {
 
-	t.Run("no dync value", func(t *testing.T) {
+	t.Run("without dync value", func(t *testing.T) {
 		release := make(map[string]struct{})
 
 		r := New(conf.Map(map[string]any{
@@ -962,7 +994,7 @@ func TestForceClean(t *testing.T) {
 		})
 	})
 
-	t.Run("has dync value", func(t *testing.T) {
+	t.Run("with dync value", func(t *testing.T) {
 		r := New(conf.Map(map[string]any{
 			"spring": map[string]any{
 				"force-clean": true,

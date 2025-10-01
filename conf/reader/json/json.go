@@ -18,14 +18,15 @@ package json
 
 import (
 	"encoding/json"
+
+	"github.com/go-spring/spring-base/util"
 )
 
 // Read parses []byte in the json format into map.
 func Read(b []byte) (map[string]any, error) {
 	var ret map[string]any
-	err := json.Unmarshal(b, &ret)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(b, &ret); err != nil {
+		return nil, util.FormatError(err, "read json error")
 	}
 	return ret, nil
 }
