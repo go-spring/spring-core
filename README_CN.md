@@ -12,6 +12,8 @@
 
 [English](README.md) | [中文](README_CN.md)
 
+> 该项目已经正式发布，欢迎使用！
+
 **Go-Spring 是一个面向现代 Go 应用开发的高性能框架，灵感源自 Java 社区的 Spring / Spring Boot。**
 它的设计理念深度融合 Go 语言的特性，既保留了 Spring 世界中成熟的开发范式，如依赖注入（DI）、自动配置和生命周期管理，
 又避免了传统框架可能带来的繁复和性能开销。
@@ -96,8 +98,8 @@ func init() {
       return http.DefaultServeMux
    })
    
-   sysconf.Set("start-time", time.Now().Format(timeLayout))
-   sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+   gs.Property("start-time", time.Now().Format(timeLayout))
+   gs.Property("refresh-time", time.Now().Format(timeLayout))
 }
 ```
 
@@ -117,7 +119,7 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
-   sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+   gs.Property("refresh-time", time.Now().Format(timeLayout))
    gs.RefreshProperties()
    w.Write([]byte("OK!"))
 }
@@ -358,7 +360,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func RefreshVersion(w http.ResponseWriter, r *http.Request) {
-    sysconf.Set(versionKey, "v2.0.1")
+    gs.Property(versionKey, "v2.0.1")
     gs.RefreshProperties()
     fmt.Fprintln(w, "Version updated!")
 }
@@ -527,46 +529,7 @@ func init() {
 
 ## ⏳ Mock 与单元测试
 
-Go-Spring 提供了与标准 `go test` 无缝集成的单元测试框架，让依赖注入和模拟测试变得简单高效。
-
-### 1. 模拟对象注入
-
-使用 `gstest.MockFor[T]().With(obj)` 可以在运行时轻松替换任何 bean：
-
-```go
-gstest.MockFor[*book_dao.BookDao]().With(&book_dao.BookDao{
-   Store: map[string]book_dao.Book{
-      "978-0132350884": {
-         Title:     "Clean Code",
-         Author:    "Robert C. Martin",
-         ISBN:      "978-0132350884",
-         Publisher: "Prentice Hall",
-      },
-   },
-})
-```
-
-### 2. 获取测试对象
-
-有两种方式获取被测试对象：
-
-**直接获取实例**：
-
-```go
-o := gstest.Get[*BookDao](t)
-assert.NotNil(t, o)
-```
-
-**结构化注入**：
-
-```go
-s := gstest.Wire(t, new(struct {
-   SvrAddr string            `value:"${server.addr}"`
-   Service *BookService      `autowire:""`
-   BookDao *book_dao.BookDao `autowire:""`
-}))
-assert.That(t, s.SvrAddr).Equal("0.0.0.0:9090")
-```
+...
 
 ## 📚 与其他框架的对比
 
