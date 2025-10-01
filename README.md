@@ -12,6 +12,8 @@
 
 [English](README.md) | [中文](README_CN.md)
 
+> The project has been officially released, welcome to use!
+
 **Go-Spring is a high-performance framework for modern Go application development, inspired by the Spring / Spring Boot
 ecosystem in the Java community.**
 Its design philosophy deeply integrates the characteristics of the Go language, retaining mature development paradigms
@@ -105,8 +107,8 @@ func init() {
       return http.DefaultServeMux
    })
    
-   sysconf.Set("start-time", time.Now().Format(timeLayout))
-   sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+   gs.Property("start-time", time.Now().Format(timeLayout))
+   gs.Property("refresh-time", time.Now().Format(timeLayout))
 }
 ```
 
@@ -126,7 +128,7 @@ func (s *Service) Echo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {
-   sysconf.Set("refresh-time", time.Now().Format(timeLayout))
+   gs.Property("refresh-time", time.Now().Format(timeLayout))
    gs.RefreshProperties()
    w.Write([]byte("OK!"))
 }
@@ -387,7 +389,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func RefreshVersion(w http.ResponseWriter, r *http.Request) {
-   sysconf.Set(versionKey, "v2.0.1")
+   gs.Property(versionKey, "v2.0.1")
    gs.RefreshProperties()
    fmt.Fprintln(w, "Version updated!")
 }
@@ -563,47 +565,7 @@ func init() {
 
 ## ⏳ Mock and Unit Testing
 
-Go-Spring provides a unit testing framework that seamlessly integrates with the standard `go test`, making dependency
-injection and mock testing simple and efficient.
-
-### 1. Mock Object Injection
-
-Use `gstest.MockFor[T]().With(obj)` to easily replace any bean at runtime:
-
-```go
-gstest.MockFor[*book_dao.BookDao]().With(&book_dao.BookDao{
-   Store: map[string]book_dao.Book{
-      "978-0132350884": {
-         Title:     "Clean Code",
-         Author:    "Robert C. Martin",
-         ISBN:      "978-0132350884",
-         Publisher: "Prentice Hall",
-      },
-   },
-})
-```
-
-### 2. Obtain Test Objects
-
-There are two ways to obtain the object under test:
-
-**Directly Get Instance**:
-
-```go
-o := gstest.Get[*BookDao](t)
-assert.NotNil(t, o)
-```
-
-**Structured Injection**:
-
-```go
-s := gstest.Wire(t, new(struct {
-   SvrAddr string            `value:"${server.addr}"`
-   Service *BookService      `autowire:""`
-   BookDao *book_dao.BookDao `autowire:""`
-}))
-assert.That(t, s.SvrAddr).Equal("0.0.0.0:9090")
-```
+...
 
 ## 📚 Comparison with Other Frameworks
 
