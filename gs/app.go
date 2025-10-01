@@ -65,7 +65,7 @@ func (s *AppStarter) stopApp() {
 
 // Run starts the application, optionally runs a user-defined callback,
 // and waits for termination signals (e.g., SIGTERM, Ctrl+C) to trigger graceful shutdown.
-func (s *AppStarter) Run(fn ...func(ctx context.Context) error) {
+func (s *AppStarter) Run(fn ...func() error) {
 
 	// Start application
 	if err := s.startApp(); err != nil {
@@ -76,7 +76,7 @@ func (s *AppStarter) Run(fn ...func(ctx context.Context) error) {
 
 	// Execute user-provided callback after app starts
 	if len(fn) > 0 && fn[0] != nil {
-		if err := fn[0](app.Ctx); err != nil {
+		if err := fn[0](); err != nil {
 			err = util.WrapError(err, "start app failed")
 			log.Errorf(context.Background(), log.TagAppDef, "%s", err)
 			return

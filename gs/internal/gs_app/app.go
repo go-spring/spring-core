@@ -39,7 +39,7 @@ type App struct {
 	P *gs_conf.AppConfig // Application configuration
 
 	exiting atomic.Bool        // Indicates whether the application is shutting down
-	Ctx     context.Context    // Root context for managing cancellation
+	ctx     context.Context    // Root context for managing cancellation
 	cancel  context.CancelFunc // Function to cancel the root context
 	wg      sync.WaitGroup     // WaitGroup to track running jobs and servers
 
@@ -57,7 +57,7 @@ func NewApp() *App {
 	return &App{
 		C:      gs_core.New(),
 		P:      gs_conf.NewAppConfig(),
-		Ctx:    ctx,
+		ctx:    ctx,
 		cancel: cancel,
 	}
 }
@@ -98,7 +98,7 @@ func (app *App) Start() error {
 	if app.EnableJobs {
 		for _, job := range app.Jobs {
 			app.wg.Add(1)
-			goutil.GoFunc(func() {
+			goutil.Go(app.ctx, func(ctx context.Context) {
 				defer app.wg.Done()
 				defer func() {
 					// Handle unexpected panics by shutting down the app
@@ -107,8 +107,8 @@ func (app *App) Start() error {
 						panic(r)
 					}
 				}()
-				if err := job.Run(app.Ctx); err != nil {
-					log.Errorf(context.Background(), log.TagAppDef, "job run error: %v", err)
+				if err := job.Run(ctx); err != nil {
+					log.Errorf(ctx, log.TagAppDef, "job run error: %v", err)
 					app.ShutDown()
 				}
 			})
@@ -121,7 +121,7 @@ func (app *App) Start() error {
 		for _, svr := range app.Servers {
 			sig.Add()
 			app.wg.Add(1)
-			goutil.GoFunc(func() {
+			goutil.Go(app.ctx, func(ctx context.Context) {
 				defer app.wg.Done()
 				defer func() {
 					// Handle server panics by intercepting readiness and shutting down
@@ -133,11 +133,11 @@ func (app *App) Start() error {
 				}()
 				err := svr.ListenAndServe(sig)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.Errorf(context.Background(), log.TagAppDef, "server serve error: %v", err)
+					log.Errorf(ctx, log.TagAppDef, "server serve error: %v", err)
 					sig.Intercept()
 					app.ShutDown()
 				} else {
-					log.Infof(context.Background(), log.TagAppDef, "server closed")
+					log.Infof(ctx, log.TagAppDef, "server closed")
 				}
 			})
 		}
@@ -145,10 +145,10 @@ func (app *App) Start() error {
 		// Wait for all servers to be ready
 		sig.Wait()
 		if sig.Intercepted() {
-			log.Infof(context.Background(), log.TagAppDef, "server intercepted")
+			log.Infof(app.ctx, log.TagAppDef, "server intercepted")
 			return util.FormatError(nil, "server intercepted")
 		}
-		log.Infof(context.Background(), log.TagAppDef, "ready to serve requests")
+		log.Infof(app.ctx, log.TagAppDef, "ready to serve requests")
 		sig.Close()
 	}
 	return nil
@@ -158,19 +158,19 @@ func (app *App) Start() error {
 // and then gracefully stops all servers and jobs.
 func (app *App) WaitForShutdown() {
 	// Wait until the application context is cancelled (triggered by ShutDown)
-	<-app.Ctx.Done()
+	<-app.ctx.Done()
 
 	// Gracefully shut down all running servers
 	for _, svr := range app.Servers {
-		goutil.GoFunc(func() {
-			if err := svr.Shutdown(app.Ctx); err != nil {
-				log.Errorf(context.Background(), log.TagAppDef, "shutdown server failed: %v", err)
+		goutil.Go(app.ctx, func(ctx context.Context) {
+			if err := svr.Shutdown(context.Background()); err != nil {
+				log.Errorf(ctx, log.TagAppDef, "shutdown server failed: %v", err)
 			}
 		})
 	}
 	app.wg.Wait()
 	app.C.Close()
-	log.Infof(context.Background(), log.TagAppDef, "shutdown complete")
+	log.Infof(app.ctx, log.TagAppDef, "shutdown complete")
 }
 
 // Exiting returns whether the application is currently in the process of shutting down.
@@ -182,7 +182,7 @@ func (app *App) Exiting() bool {
 // setting the exiting flag and cancelling the root context.
 func (app *App) ShutDown() {
 	if app.exiting.CompareAndSwap(false, true) {
-		log.Infof(context.Background(), log.TagAppDef, "shutting down")
+		log.Infof(app.ctx, log.TagAppDef, "shutting down")
 		app.cancel()
 	}
 }

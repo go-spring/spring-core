@@ -27,8 +27,8 @@ import (
 )
 
 var (
-	ErrNotExist      = errors.New("not exist")
-	ErrInvalidSyntax = errors.New("invalid syntax")
+	ErrNotExist      = util.FormatError(nil, "not exist")
+	ErrInvalidSyntax = util.FormatError(nil, "invalid syntax")
 )
 
 // ParsedTag represents a parsed configuration tag that encodes

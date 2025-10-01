@@ -280,7 +280,7 @@ func Web(enable bool) *AppStarter {
 }
 
 // Run starts the application with a custom run function.
-func Run(fn ...func(ctx context.Context) error) {
+func Run(fn ...func() error) {
 	new(AppStarter).Run(fn...)
 }
 

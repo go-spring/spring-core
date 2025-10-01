@@ -28,54 +28,62 @@ import (
 // initLog initializes the application's logging system.
 func initLog() error {
 
-	// Refresh the global system configuration.
+	// Step 1: Refresh the global system configuration.
 	p, err := new(gs_conf.SysConfig).Refresh()
 	if err != nil {
 		return util.FormatError(err, "refresh error in source sys")
 	}
 
+	// Step 2: Load logging-related configuration parameters.
 	var c struct {
 		// LocalDir is the directory that contains configuration files.
 		// Defaults to "./conf" if not provided.
 		LocalDir string `value:"${spring.app.config-local.dir:=./conf}"`
 
 		// Profiles specifies the active application profile(s),
-		// such as "dev" or "prod".
+		// such as "dev", "prod", etc.
+		// Multiple profiles can be provided as a comma-separated list.
 		Profiles string `value:"${spring.profiles.active:=}"`
 	}
 	if err = p.Bind(&c); err != nil {
 		return util.FormatError(err, "bind error in source sys")
 	}
 
-	var (
-		logFileDefault = filepath.Join(c.LocalDir, "log.xml")
-		logFileProfile string
-	)
+	extensions := []string{".properties", ".yaml", ".yml", ".xml", ".json"}
 
-	// If one or more profiles are set, use the first profile to look
-	// for a profile-specific log configuration file.
-	if c.Profiles != "" {
-		profile := strings.Split(c.Profiles, ",")[0]
-		logFileProfile = filepath.Join(c.LocalDir, "log-"+profile+".xml")
+	// Step 3: Build a list of candidate configuration files.
+	var files []string
+	if profiles := strings.TrimSpace(c.Profiles); profiles != "" {
+		for s := range strings.SplitSeq(profiles, ",") { // NOTE: range returns index
+			if s = strings.TrimSpace(s); s != "" {
+				for _, ext := range extensions {
+					files = append(files, filepath.Join(c.LocalDir, "log-"+s+ext))
+				}
+			}
+		}
+	}
+	for _, ext := range extensions {
+		files = append(files, filepath.Join(c.LocalDir, "log"+ext))
 	}
 
-	// Determine which log configuration file to use.
-	var logFile string
-	for _, s := range []string{logFileProfile, logFileDefault} {
+	// Step 4: Detect existing configuration files.
+	var logFiles []string
+	for _, s := range files {
 		if ok, err := util.PathExists(s); err != nil {
 			return err
-		} else if !ok {
-			continue
+		} else if ok {
+			logFiles = append(logFiles, s)
 		}
-		logFile = s
-		break
 	}
 
-	// If no configuration file exists, leave the logger as default.
-	if logFile == "" {
+	// Step 5: Apply logging configuration or fall back to defaults.
+	switch n := len(logFiles); {
+	case n == 0:
+		log.Infof(nil, log.TagAppDef, "no log configuration file found, using default logger")
 		return nil
+	case n > 1:
+		return util.FormatError(nil, "multiple log files found: %s", logFiles)
+	default:
+		return log.RefreshFile(logFiles[0])
 	}
-
-	// Refresh the logger configuration from the selected file.
-	return log.RefreshFile(logFile)
 }
