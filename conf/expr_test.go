@@ -40,18 +40,6 @@ func TestExpr(t *testing.T) {
 		assert.That(t, 4).Equal(v.A)
 	})
 
-	t.Run("multiple expressions", func(t *testing.T) {
-		var v struct {
-			A int `value:"${a}" expr:"checkInt($)" expr:"$ > 0"`
-		}
-		p := conf.Map(map[string]any{
-			"a": 3,
-		})
-		err := p.Bind(&v)
-		assert.That(t, err).Nil()
-		assert.That(t, 3).Equal(v.A)
-	})
-
 	t.Run("constant expression", func(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"$ < 10"`

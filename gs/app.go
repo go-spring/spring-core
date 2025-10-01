@@ -96,7 +96,6 @@ func (s *AppStarter) Run(fn ...func() error) {
 
 	// Wait until shutdown completes
 	s.stopApp()
-	return
 }
 
 // RunAsync starts the application asynchronously and returns a function

@@ -17,6 +17,7 @@
 package gs
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -79,7 +80,7 @@ func initLog() error {
 	// Step 5: Apply logging configuration or fall back to defaults.
 	switch n := len(logFiles); {
 	case n == 0:
-		log.Infof(nil, log.TagAppDef, "no log configuration file found, using default logger")
+		log.Infof(context.Background(), log.TagAppDef, "no log configuration file found, using default logger")
 		return nil
 	case n > 1:
 		return util.FormatError(nil, "multiple log files found: %s", logFiles)
