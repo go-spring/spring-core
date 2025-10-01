@@ -22,14 +22,21 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 )
 
 func TestAs(t *testing.T) {
-	As[io.Reader]()
-	assert.Panic(t, func() {
-		As[int]()
-	}, "T must be interface")
+
+	t.Run("interface type", func(t *testing.T) {
+		s := As[io.Reader]()
+		assert.That(t, s.String()).Equal("io.Reader")
+	})
+
+	t.Run("non-interface type", func(t *testing.T) {
+		assert.Panic(t, func() {
+			As[int]()
+		}, "T must be interface")
+	})
 }
 
 func TestBeanSelector(t *testing.T) {

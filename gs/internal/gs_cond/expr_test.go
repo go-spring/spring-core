@@ -18,23 +18,62 @@ package gs_cond
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 )
 
 func TestEvalExpr(t *testing.T) {
-	_, err := EvalExpr("$", "3")
-	assert.ThatError(t, err).Matches("doesn't return bool value")
-
-	ok, err := EvalExpr("int($)==3", "3")
-	assert.That(t, err).Nil()
-	assert.That(t, ok).True()
-
-	RegisterExpressFunc("equal", func(s string, i int) bool {
-		return s == strconv.Itoa(i)
+	t.Run("doesn't return bool", func(t *testing.T) {
+		_, err := EvalExpr("$", "3")
+		assert.Error(t, err).Matches("doesn't return bool value")
 	})
-	ok, err = EvalExpr("equal($,9)", "9")
-	assert.That(t, err).Nil()
-	assert.That(t, ok).True()
+
+	t.Run("simple integer comparison", func(t *testing.T) {
+		ok, err := EvalExpr("int($)==3", "3")
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
+	})
+
+	t.Run("custom function", func(t *testing.T) {
+		RegisterExpressFunc("equal", func(s string, i int) bool {
+			return s == strconv.Itoa(i)
+		})
+		ok, err := EvalExpr("equal($,9)", "9")
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
+	})
+
+	t.Run("complex boolean expression", func(t *testing.T) {
+		ok, err := EvalExpr("int($)>0 && int($)<10", "5")
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
+	})
+
+	t.Run("boundary value testing", func(t *testing.T) {
+		ok, err := EvalExpr("int($)==0", "0")
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
+	})
+
+	t.Run("string operations", func(t *testing.T) {
+		RegisterExpressFunc("string_contains", func(s, substr string) bool {
+			return len(s) >= len(substr) && strings.Contains(s, substr)
+		})
+		ok, err := EvalExpr("string_contains($, \"test\")", "this is a test")
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
+	})
+
+	t.Run("unregistered function call", func(t *testing.T) {
+		_, err := EvalExpr("unknownFunc($)", "3")
+		assert.That(t, err).NotNil()
+	})
+
+	t.Run("empty string input", func(t *testing.T) {
+		ok, err := EvalExpr("len($)==0", "")
+		assert.That(t, err).Nil()
+		assert.That(t, ok).True()
+	})
 }

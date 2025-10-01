@@ -188,7 +188,6 @@ Go-Spring 提供多种方式注册 Bean：
 
 - **`gs.Object(obj)`** - 将已有对象注册为 Bean
 - **`gs.Provide(ctor, args...)`** - 使用构造函数生成并注册 Bean
-- **`gs.Register(bd)`** - 注册完整 Bean 定义（适合底层封装或高级用法）
 
 示例:
 
@@ -196,7 +195,6 @@ Go-Spring 提供多种方式注册 Bean：
 gs.Object(&Service{})  // 注册结构体实例
 gs.Provide(NewService) // 使用构造函数注册
 gs.Provide(NewRepo, gs.ValueArg("db")) // 构造函数带参数
-gs.Register(gs.NewBean(NewService))    // 完整定义注册
 ```
 
 ### 2️⃣ 注入方式

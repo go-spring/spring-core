@@ -20,14 +20,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 )
 
 func TestRead(t *testing.T) {
 
-	t.Run("error", func(t *testing.T) {
+	t.Run("invalid yaml format", func(t *testing.T) {
 		_, err := Read([]byte(`{`))
-		assert.ThatError(t, err).Matches("did not find expected node content")
+		assert.Error(t, err).Matches("did not find expected node content")
 	})
 
 	t.Run("basic type", func(t *testing.T) {

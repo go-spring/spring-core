@@ -119,8 +119,6 @@ Validation:
 package conf
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -128,7 +126,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-spring/barky"
+	"github.com/go-spring/spring-base/barky"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf/reader/json"
 	"github.com/go-spring/spring-core/conf/reader/prop"
 	"github.com/go-spring/spring-core/conf/reader/toml"
@@ -144,21 +143,32 @@ var (
 
 func init() {
 
+	// built-in readers
 	RegisterReader(json.Read, ".json")
 	RegisterReader(prop.Read, ".properties")
 	RegisterReader(yaml.Read, ".yaml", ".yml")
 	RegisterReader(toml.Read, ".toml", ".tml")
 
+	// time.Time
 	RegisterConverter(func(s string) (time.Time, error) {
-		return cast.ToTimeE(strings.TrimSpace(s))
+		v, err := cast.ToTimeE(strings.TrimSpace(s))
+		if err != nil {
+			return time.Time{}, util.FormatError(err, "invalid time format: %s", s)
+		}
+		return v, nil
 	})
 
+	// time.Duration
 	RegisterConverter(func(s string) (time.Duration, error) {
-		return time.ParseDuration(strings.TrimSpace(s))
+		v, err := time.ParseDuration(strings.TrimSpace(s))
+		if err != nil {
+			return time.Duration(0), util.FormatError(err, "invalid duration format: %s", s)
+		}
+		return v, nil
 	})
 }
 
-// Reader parses []byte into nested map[string]any.
+// Reader parses raw bytes into a nested map[string]any.
 type Reader func(b []byte) (map[string]any, error)
 
 // RegisterReader registers its Reader for some kind of file extension.
@@ -168,10 +178,10 @@ func RegisterReader(r Reader, ext ...string) {
 	}
 }
 
-// Splitter splits string into []string by some characters.
+// Splitter splits a string into a slice of strings using custom logic.
 type Splitter func(string) ([]string, error)
 
-// RegisterSplitter registers a Splitter and named it.
+// RegisterSplitter registers a Splitter with a given name.
 func RegisterSplitter(name string, fn Splitter) {
 	splitters[name] = fn
 }
@@ -179,30 +189,30 @@ func RegisterSplitter(name string, fn Splitter) {
 // Converter converts a string to a target type T.
 type Converter[T any] func(string) (T, error)
 
-// RegisterConverter registers its converter for non-primitive type such as
-// time.Time, time.Duration, or other user-defined value type.
+// RegisterConverter registers a Converter for a non-primitive type such as
+// time.Time, time.Duration, or other user-defined value types.
 func RegisterConverter[T any](fn Converter[T]) {
 	t := reflect.TypeFor[T]()
 	converters[t] = fn
 }
 
-// Properties is the interface for read-only properties.
+// Properties defines the read-only interface for accessing configuration data.
 type Properties interface {
-	// Data returns key-value pairs of the properties.
+	// Data returns all key-value pairs as a flat map.
 	Data() map[string]string
-	// Keys returns keys of the properties.
+	// Keys returns all keys.
 	Keys() []string
-	// SubKeys returns the sorted sub keys of the key.
+	// SubKeys returns the sorted sub-keys of a given key.
 	SubKeys(key string) ([]string, error)
-	// Has returns whether the key exists.
+	// Has checks whether a key exists.
 	Has(key string) bool
-	// Get returns key's value.
+	// Get returns the value for a given key, with an optional default.
 	Get(key string, def ...string) string
-	// Resolve resolves string that contains references.
+	// Resolve resolves placeholders inside a string (e.g. ${key:=default}).
 	Resolve(s string) (string, error)
-	// Bind binds properties into a value.
+	// Bind binds property values into a target object (struct, map, slice, or primitive).
 	Bind(i any, tag ...string) error
-	// CopyTo copies properties into another by override.
+	// CopyTo copies properties into another instance, overriding existing values.
 	CopyTo(out *MutableProperties) error
 }
 
@@ -210,11 +220,13 @@ var _ Properties = (*MutableProperties)(nil)
 
 // MutableProperties stores the data with map[string]string and the keys are case-sensitive,
 // you can get one of them by its key, or bind some of them to a value.
+//
 // There are too many formats of configuration files, and too many conflicts between
 // them. Each format of configuration file provides its special characteristics, but
 // usually they are not all necessary, and complementary. For example, `conf` disabled
 // Java properties' expansion when reading file, but also provides similar function
 // when getting or binding properties.
+//
 // A good rule of thumb is that treating application configuration as a tree, but not
 // all formats of configuration files designed as a tree or not ideal, for instance
 // Java properties isn't strictly verified. Although configuration can store as a tree,
@@ -224,38 +236,40 @@ type MutableProperties struct {
 	*barky.Storage
 }
 
-// New creates empty *MutableProperties.
+// New creates a new empty MutableProperties instance.
 func New() *MutableProperties {
 	return &MutableProperties{
 		Storage: barky.NewStorage(),
 	}
 }
 
-// Load creates *MutableProperties from file.
+// Load creates a MutableProperties instance from a configuration file.
+// Returns an error if the file type is not supported or parsing fails.
 func Load(file string) (*MutableProperties, error) {
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return nil, util.FormatError(err, "read file %s error", file)
 	}
 	ext := filepath.Ext(file)
 	r, ok := readers[ext]
 	if !ok {
-		return nil, fmt.Errorf("unsupported file type %s", ext)
+		err = util.FormatError(nil, "unsupported file type %s", ext)
+		return nil, util.FormatError(err, "read file %s error", file)
 	}
 	m, err := r(b)
 	if err != nil {
-		return nil, err
+		return nil, util.FormatError(err, "read file %s error", file)
 	}
 	p := New()
 	_ = p.merge(barky.FlattenMap(m), file)
 	return p, nil
 }
 
-// Map creates *MutableProperties from map.
-func Map(m map[string]any) *MutableProperties {
+// Map creates a MutableProperties instance directly from a map.
+func Map(data map[string]any) *MutableProperties {
 	p := New()
 	_, file, _, _ := runtime.Caller(1)
-	_ = p.merge(barky.FlattenMap(m), file)
+	_ = p.merge(barky.FlattenMap(data), file)
 	return p
 }
 
@@ -270,29 +284,32 @@ func (p *MutableProperties) merge(m map[string]string, file string) error {
 	return nil
 }
 
-// Resolve resolves string value that contains references to other
-// properties, the references are defined by ${key:=def}.
+// Resolve resolves placeholders in a string, replacing references like
+// ${key:=default} with their actual values from the properties.
 func (p *MutableProperties) Resolve(s string) (string, error) {
 	return resolveString(p, s)
 }
 
-// Bind binds properties to a value, the bind value can be primitive type,
-// map, slice, struct. When binding to struct, the tag 'value' indicates
-// which properties should be bind. The 'value' tag are defined by
-// value:"${a:=b}>>splitter", 'a' is the key, 'b' is the default value,
-// 'splitter' is the Splitter's name when you want split string value
-// into []string value.
+// Bind maps property values into the provided target object.
+// Supported targets: primitive values, maps, slices, and structs.
+// Struct binding uses the `value` tag in the form:
+//
+//	value:"${key:=default}>>splitter"
+//
+// - key: property key
+// - default: default value if key is missing
+// - splitter: registered splitter name for splitting into []string
 func (p *MutableProperties) Bind(i any, tag ...string) error {
 
 	var v reflect.Value
 	{
-		switch e := i.(type) {
+		switch refVal := i.(type) {
 		case reflect.Value:
-			v = e
+			v = refVal
 		default:
 			v = reflect.ValueOf(i)
 			if v.Kind() != reflect.Ptr {
-				return errors.New("should be a ptr")
+				return util.FormatError(nil, "should be a pointer but %T", i)
 			}
 			v = v.Elem()
 		}
@@ -300,25 +317,26 @@ func (p *MutableProperties) Bind(i any, tag ...string) error {
 
 	t := v.Type()
 	typeName := t.Name()
-	if typeName == "" { // primitive type has no name
+	if typeName == "" { // primitive types have no name
 		typeName = t.String()
 	}
 
 	s := "${ROOT}"
-	if len(tag) > 0 {
+	if len(tag) > 0 && tag[0] != "" {
 		s = tag[0]
 	}
 
 	var param BindParam
 	err := param.BindTag(s, "")
 	if err != nil {
-		return err
+		return util.FormatError(err, "bind tag '%s' error", s)
 	}
 	param.Path = typeName
 	return BindValue(p, v, t, param, nil)
 }
 
-// CopyTo copies properties into another by override.
+// CopyTo copies all properties into another MutableProperties instance,
+// overriding values if keys already exist.
 func (p *MutableProperties) CopyTo(out *MutableProperties) error {
 	rawFile := p.RawFile()
 	newfile := make(map[string]int8)

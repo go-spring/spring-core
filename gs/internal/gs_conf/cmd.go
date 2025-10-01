@@ -17,10 +17,10 @@
 package gs_conf
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -37,38 +37,54 @@ func NewCommandArgs() *CommandArgs {
 	return &CommandArgs{}
 }
 
-// CopyTo processes command-line parameters and sets them as key-value pairs
-// in the provided conf.Properties. Parameters should be passed in the form
-// of `-D key[=value/true]`.
+// CopyTo extracts command-line parameters and stores them as key-value pairs.
+// Supported formats include:
+//
+//   - <prefix> key=value
+//   - <prefix> key        (defaults to "true")
+//   - <prefix>key=value   (inline form)
+//
+// The default prefix is "-D", which can be overridden by the environment
+// variable `GS_ARGS_PREFIX`.
 func (c *CommandArgs) CopyTo(p *conf.MutableProperties) error {
-	if len(os.Args) == 0 {
+	if len(os.Args) <= 1 {
 		return nil
 	}
 
 	fileID := p.AddFile("Args")
 
-	// Default option prefix is "-D", but it can be overridden by the
-	// environment variable `GS_ARGS_PREFIX`.
+	// Determine the option prefix.
 	option := "-D"
 	if s := strings.TrimSpace(os.Getenv(CommandArgsPrefix)); s != "" {
 		option = s
 	}
 
 	cmdArgs := os.Args[1:]
-	n := len(cmdArgs)
-	for i := range n {
+	for i := 0; i < len(cmdArgs); i++ {
+		var str string
 		if cmdArgs[i] == option {
-			if i+1 >= n {
-				return fmt.Errorf("cmd option %s needs arg", option)
+			// separated form: <prefix> key=value
+			if i+1 >= len(cmdArgs) {
+				return util.FormatError(nil, "cmd option %s: needs arg", option)
 			}
-			next := cmdArgs[i+1]
-			ss := strings.SplitN(next, "=", 2)
-			if len(ss) == 1 {
-				ss = append(ss, "true")
-			}
-			if err := p.Set(ss[0], ss[1], fileID); err != nil {
-				return err
-			}
+			i++
+			str = cmdArgs[i]
+		} else if s, ok := strings.CutPrefix(cmdArgs[i], option); ok {
+			// inline form: <prefix>key=value
+			str = s
+		} else {
+			// not a Go-Spring command-line option
+			continue
+		}
+		if str = strings.TrimSpace(str); str == "" {
+			return util.FormatError(nil, "cmd option %s: needs arg", option)
+		}
+		ss := strings.SplitN(str, "=", 2)
+		if len(ss) == 1 {
+			ss = append(ss, "true")
+		}
+		if err := p.Set(ss[0], ss[1], fileID); err != nil {
+			return util.FormatError(err, "set cmd option %s error", str)
 		}
 	}
 	return nil

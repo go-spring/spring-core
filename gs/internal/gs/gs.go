@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//go:generate gs mock -o=gs_mock.go -i=ConditionContext,ArgContext,Runner,Job,Server
+//go:generate gs mock -o=gs_mock.go -i=ConditionContext,ArgContext,Server
 
 package gs
 
@@ -28,9 +28,8 @@ import (
 // anyType is the [reflect.Type] of the [any] type.
 var anyType = reflect.TypeFor[any]()
 
-// As returns the [reflect.Type] of the given interface type.
-// It ensures that the provided generic type parameter T is an interface.
-// If T is not an interface, the function panics.
+// As returns the [reflect.Type] of the given generic interface type T.
+// It ensures that T is an interface type; otherwise, it panics.
 func As[T any]() reflect.Type {
 	t := reflect.TypeFor[T]()
 	if t.Kind() != reflect.Interface {
@@ -39,20 +38,22 @@ func As[T any]() reflect.Type {
 	return t
 }
 
-// BeanSelector is an interface for selecting beans.
+// BeanSelector is an abstraction that represents a way to select beans
+// within the IoC container. It identifies a bean by its type and optionally its name.
 type BeanSelector interface {
-	// TypeAndName returns the type and name of the bean.
+	// TypeAndName returns the [reflect.Type] and name that uniquely identify the bean.
 	TypeAndName() (reflect.Type, string)
 }
 
-// BeanSelectorImpl is an implementation of BeanSelector.
+// BeanSelectorImpl is a concrete implementation of BeanSelector.
 type BeanSelectorImpl struct {
-	Type reflect.Type // The type of the bean
-	Name string       // The name of the bean
+	Type reflect.Type // The [reflect.Type] of the bean
+	Name string       // The optional name of the bean
 }
 
-// BeanSelectorFor returns a BeanSelectorImpl for the given type.
-// If a name is provided, it is set; otherwise, only the type is used.
+// BeanSelectorFor creates a BeanSelector for a specific type T.
+// If a name is provided, it will be associated with the selector;
+// otherwise, only the type is used to identify the bean.
 func BeanSelectorFor[T any](name ...string) BeanSelector {
 	if len(name) == 0 {
 		return BeanSelectorImpl{Type: reflect.TypeFor[T]()}
@@ -60,11 +61,13 @@ func BeanSelectorFor[T any](name ...string) BeanSelector {
 	return BeanSelectorImpl{Type: reflect.TypeFor[T](), Name: name[0]}
 }
 
-// TypeAndName returns the type and name of the bean.
+// TypeAndName returns the type and name of the bean selector.
 func (s BeanSelectorImpl) TypeAndName() (reflect.Type, string) {
 	return s.Type, s.Name
 }
 
+// String returns a human-readable string representation of the selector.
+// Example: "{Type:*mypkg.MyBean,Name:myBeanInstance}"
 func (s BeanSelectorImpl) String() string {
 	var sb strings.Builder
 	sb.WriteString("{")
@@ -85,70 +88,89 @@ func (s BeanSelectorImpl) String() string {
 
 /************************************ cond ***********************************/
 
-// Condition is an interface used for defining conditional logic
-// when registering beans in the IoC container.
+// Condition defines a contract for conditional bean registration.
+// A Condition can decide at runtime whether a particular bean should be registered.
 type Condition interface {
-	// Matches checks whether the condition is satisfied.
+	// Matches evaluates the condition against the given ConditionContext.
+	// It returns true if the condition is satisfied.
 	Matches(ctx ConditionContext) (bool, error)
 }
 
-// ConditionBean represents a bean with Name and Type.
+// ConditionBean represents a bean in the IoC container that can be queried by conditions.
 type ConditionBean interface {
-	Name() string       // Name of the bean
-	Type() reflect.Type // Type of the bean
+	Name() string       // Returns the bean's name
+	Type() reflect.Type // Returns the bean's type
 }
 
-// ConditionContext defines methods for the IoC container used by conditions.
+// ConditionContext provides access to the IoC container for conditions.
+// Conditions can query properties or find beans in the container.
 type ConditionContext interface {
-	// Has checks whether the IoC container has a property with the given key.
+	// Has checks if a property with the given key exists in the IoC container.
 	Has(key string) bool
-	// Prop retrieves the value of a property from the IoC container.
+	// Prop retrieves a property value from the IoC container with an optional default.
 	Prop(key string, def ...string) string
-	// Find searches for bean definitions matching the given BeanSelector.
+	// Find searches for beans that match the given BeanSelector.
 	Find(s BeanSelector) ([]ConditionBean, error)
 }
 
 /************************************* arg ***********************************/
 
-// Arg is an interface for retrieving argument values in function parameter binding.
+// Arg defines an interface for resolving arguments used in dependency injection.
+// It determines how to obtain values for function or method parameters.
 type Arg interface {
-	// GetArgValue retrieves the argument value based on the type.
+	// GetArgValue retrieves the argument value for the given type
+	// using the provided ArgContext.
 	GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error)
 }
 
-// ArgContext defines methods for the IoC container used by Arg types.
+// ArgContext provides the runtime context for resolving arguments.
+// It allows checking conditions, binding properties, and wiring dependencies.
 type ArgContext interface {
-	// Check checks if the given condition is met.
+	// Check evaluates whether a given condition is satisfied.
 	Check(c Condition) (bool, error)
-	// Bind binds property values to the provided [reflect.Value].
+	// Bind binds configuration or property values into the provided [reflect.Value].
 	Bind(v reflect.Value, tag string) error
-	// Wire wires dependent beans to the provided [reflect.Value].
+	// Wire injects dependencies (beans) into the provided [reflect.Value].
 	Wire(v reflect.Value, tag string) error
 }
 
 /*********************************** app ************************************/
 
-// Runner defines an interface for components that should run after
-// all beans are injected but before the application servers start.
+// Runner is an interface for components that need to run
+// after all beans have been injected but before the application’s servers start.
 type Runner interface {
 	Run() error
 }
 
-// Job defines an interface for components that run tasks with a given context
-// after all beans are injected but before the application servers start.
+// FuncRunner is a function type adapter that allows ordinary functions
+// to be used as Runner components.
+type FuncRunner func() error
+
+func (f FuncRunner) Run() error {
+	return f()
+}
+
+// Job is similar to Runner but allows passing a context to the task.
+// It is typically used for background tasks or setup work that may be cancellable.
 type Job interface {
 	Run(ctx context.Context) error
 }
 
-// ReadySignal defines an interface for components that can trigger a signal
-// when the application is ready to serve requests.
+// FuncJob is a function type adapter for the Job interface.
+type FuncJob func(ctx context.Context) error
+
+func (f FuncJob) Run(ctx context.Context) error {
+	return f(ctx)
+}
+
+// ReadySignal represents a synchronization mechanism that signals
+// when the application is ready to accept requests.
 type ReadySignal interface {
 	TriggerAndWait() <-chan struct{}
 }
 
-// Server defines an interface for managing the lifecycle of application servers,
-// such as HTTP, gRPC, Thrift, or MQ servers. It includes methods for starting
-// and shutting down the server gracefully.
+// Server defines the lifecycle of application servers (e.g., HTTP, gRPC).
+// It provides methods for starting and gracefully shutting down the server.
 type Server interface {
 	ListenAndServe(sig ReadySignal) error
 	Shutdown(ctx context.Context) error
@@ -156,33 +178,35 @@ type Server interface {
 
 /*********************************** bean ************************************/
 
-// BeanMock defines a mock object and its target bean selector for overriding.
+// BeanMock represents a mocked bean instance that can replace a real bean
+// for testing purposes.
 type BeanMock struct {
-	Object any          // Mock instance to replace the target bean
-	Target BeanSelector // Selector to identify the target bean
+	Object any          // The mock instance
+	Target BeanSelector // The selector identifying the bean to replace
 }
 
-// BeanID represents the unique identifier for a bean.
+// BeanID uniquely identifies a bean in the IoC container by type and name.
 type BeanID struct {
-	Type reflect.Type // Type of the bean
-	Name string       // Name of the bean
+	Type reflect.Type // The bean's type
+	Name string       // The bean's name
 }
 
-// BeanInitFunc defines the prototype for initialization functions.
-// Examples: `func(bean)` or `func(bean) error`.
+// BeanInitFunc defines the type for bean initialization functions.
+// Example: `func(bean)` or `func(bean) error`.
 type BeanInitFunc = any
 
-// BeanDestroyFunc defines the prototype for destruction functions.
-// Examples: `func(bean)` or `func(bean) error`.
+// BeanDestroyFunc defines the type for bean destruction (cleanup) functions.
+// Example: `func(bean)` or `func(bean) error`.
 type BeanDestroyFunc = any
 
-// Configuration holds parameters for bean setup configuration.
+// Configuration specifies parameters for configuring beans during registration.
 type Configuration struct {
 	Includes []string // Methods to include
 	Excludes []string // Methods to exclude
 }
 
-// BeanRegistration provides methods for configuring and registering bean metadata.
+// BeanRegistration defines the API for configuring and registering a bean’s metadata
+// in the IoC container.
 type BeanRegistration interface {
 	Name() string
 	Type() reflect.Type
@@ -200,17 +224,17 @@ type BeanRegistration interface {
 	OnProfiles(profiles string)
 }
 
-// beanBuilder helps configure a bean during its creation.
+// beanBuilder is a generic helper for configuring beans during their creation.
 type beanBuilder[T any] struct {
 	b BeanRegistration
 }
 
-// TypeAndName returns the type and name of the bean.
+// TypeAndName returns the bean’s type and name.
 func (d *beanBuilder[T]) TypeAndName() (reflect.Type, string) {
 	return d.b.Type(), d.b.Name()
 }
 
-// GetArgValue returns the value of the bean.
+// GetArgValue returns the bean’s value for argument injection.
 func (d *beanBuilder[T]) GetArgValue(ctx ArgContext, t reflect.Type) (reflect.Value, error) {
 	return d.b.Value(), nil
 }
@@ -304,27 +328,26 @@ func (d *beanBuilder[T]) OnProfiles(profiles string) *T {
 	return *(**T)(unsafe.Pointer(&d))
 }
 
-// RegisteredBean represents a bean that has been registered in the IoC container.
-type RegisteredBean struct {
-	beanBuilder[RegisteredBean]
-}
-
-// NewRegisteredBean creates a new RegisteredBean instance.
-func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
-	return &RegisteredBean{
-		beanBuilder: beanBuilder[RegisteredBean]{d},
-	}
-}
-
-// BeanDefinition represents a bean that has not yet been registered.
-// todo 等 Group 函数确定下来之后，BD 定义应该就不需要了。
+// BeanDefinition represents a bean that is defined but not yet registered in the IoC container.
 type BeanDefinition struct {
 	beanBuilder[BeanDefinition]
 }
 
-// NewBeanDefinition creates a new BeanDefinition instance.
+// NewBeanDefinition creates a new BeanDefinition with the provided BeanRegistration.
 func NewBeanDefinition(d BeanRegistration) *BeanDefinition {
 	return &BeanDefinition{
 		beanBuilder: beanBuilder[BeanDefinition]{d},
+	}
+}
+
+// RegisteredBean represents a bean that has already been registered in the IoC container.
+type RegisteredBean struct {
+	beanBuilder[RegisteredBean]
+}
+
+// NewRegisteredBean creates a new RegisteredBean with the provided BeanRegistration.
+func NewRegisteredBean(d BeanRegistration) *RegisteredBean {
+	return &RegisteredBean{
+		beanBuilder: beanBuilder[RegisteredBean]{d},
 	}
 }

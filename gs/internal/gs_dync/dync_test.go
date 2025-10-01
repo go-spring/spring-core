@@ -19,12 +19,13 @@ package gs_dync
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -59,7 +60,7 @@ func TestValue(t *testing.T) {
 			"value": "42",
 		},
 	}))
-	assert.ThatError(t, err).Matches("bind path= type=int error << property key isn't simple value")
+	assert.Error(t, err).Matches("bind path= type=int error: property \"key\" isn't simple value")
 
 	var wg sync.WaitGroup
 	for i := range 5 {
@@ -86,10 +87,160 @@ func TestValue(t *testing.T) {
 
 	b, err := json.Marshal(map[string]any{"key": &v})
 	assert.That(t, err).Nil()
-	assert.ThatString(t, string(b)).JSONEqual(`{"key":59}`)
+	assert.String(t, string(b)).JSONEqual(`{"key":59}`)
+}
+
+func TestValue_DifferentTypes(t *testing.T) {
+
+	t.Run("string", func(t *testing.T) {
+		var v Value[string]
+		err := v.onRefresh(
+			conf.Map(map[string]any{"key": "hello"}),
+			conf.BindParam{Key: "key"},
+		)
+		assert.That(t, err).Nil()
+		assert.That(t, v.Value()).Equal("hello")
+	})
+
+	t.Run("bool", func(t *testing.T) {
+		var v Value[bool]
+		err := v.onRefresh(
+			conf.Map(map[string]any{"key": "true"}),
+			conf.BindParam{Key: "key"},
+		)
+		assert.That(t, err).Nil()
+		assert.That(t, v.Value()).Equal(true)
+	})
+
+	t.Run("float64", func(t *testing.T) {
+		var v Value[float64]
+		err := v.onRefresh(
+			conf.Map(map[string]any{"key": "3.14"}),
+			conf.BindParam{Key: "key"},
+		)
+		assert.That(t, err).Nil()
+		assert.That(t, v.Value()).Equal(3.14)
+	})
+
+	t.Run("slice", func(t *testing.T) {
+		var v Value[[]int]
+		err := v.onRefresh(
+			conf.Map(map[string]any{"key": []any{1, 2, 3}}),
+			conf.BindParam{Key: "key"},
+		)
+		assert.That(t, err).Nil()
+		assert.That(t, v.Value()).Equal([]int{1, 2, 3})
+	})
+}
+
+func TestValue_ConcurrentAccess(t *testing.T) {
+	var v Value[int]
+
+	err := v.onRefresh(
+		conf.Map(map[string]any{"key": "100"}),
+		conf.BindParam{Key: "key"},
+	)
+	assert.That(t, err).Nil()
+	assert.That(t, v.Value()).Equal(100)
+
+	var wg sync.WaitGroup
+	const goroutines = 100
+
+	for range goroutines {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			val := v.Value()
+			assert.Number(t, val).Between(0, 100)
+		}()
+	}
+
+	for i := range goroutines {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			err := v.onRefresh(
+				conf.Map(map[string]any{"key": fmt.Sprintf("%d", idx)}),
+				conf.BindParam{Key: "key"},
+			)
+			assert.That(t, err).Nil()
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+func TestValue_Listener(t *testing.T) {
+	var v Value[int]
+
+	listeners := make([]*Listener, 5)
+	for i := range listeners {
+		listeners[i] = v.NewListener()
+	}
+
+	go func() {
+		err := v.onRefresh(
+			conf.Map(map[string]any{"key": "42"}),
+			conf.BindParam{Key: "key"},
+		)
+		assert.That(t, err).Nil()
+	}()
+
+	var wg sync.WaitGroup
+	for _, l := range listeners {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			select {
+			case <-l.C:
+				assert.That(t, v.Value()).Equal(42)
+			case <-time.After(time.Second):
+				t.Errorf("timeout")
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func TestDync(t *testing.T) {
+
+	t.Run("invalid property format", func(t *testing.T) {
+		p := New(conf.New())
+
+		var v Value[int]
+		err := p.RefreshField(
+			reflect.ValueOf(&v),
+			conf.BindParam{Key: "${invalid..key}"},
+		)
+		assert.That(t, err).NotNil()
+	})
+
+	t.Run("missing required property", func(t *testing.T) {
+		p := New(conf.New())
+
+		var cfg struct {
+			Value Value[int] `value:"${required.property}"`
+		}
+
+		err := p.RefreshField(
+			reflect.ValueOf(&cfg),
+			conf.BindParam{Key: "config"},
+		)
+		assert.That(t, err).NotNil()
+	})
+
+	t.Run("type mismatch error", func(t *testing.T) {
+		p := New(conf.Map(map[string]any{
+			"config.value": "not_a_number",
+		}))
+
+		var v Value[int]
+		err := p.RefreshField(
+			reflect.ValueOf(&v),
+			conf.BindParam{Key: "config.value"},
+		)
+		assert.Error(t, err).Matches("strconv.ParseInt: parsing.*invalid syntax")
+	})
 
 	t.Run("refresh panic", func(t *testing.T) {
 		p := New(conf.New())
@@ -169,8 +320,8 @@ func TestDync(t *testing.T) {
 			"config.s3.value": "xyz",
 		})
 		err = p.Refresh(prop)
-		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \"xyz\": invalid syntax")
-		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \"abc\": invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseInt: parsing \"xyz\": invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseInt: parsing \"abc\": invalid syntax")
 
 		s1 := &Value[string]{}
 		err = p.RefreshField(reflect.ValueOf(s1), conf.BindParam{Key: "config.s3.value"})
@@ -180,7 +331,7 @@ func TestDync(t *testing.T) {
 
 		s2 := &Value[int]{}
 		err = p.RefreshField(reflect.ValueOf(s2), conf.BindParam{Key: "config.s3.value"})
-		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \\\"xyz\\\": invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseInt: parsing \\\"xyz\\\": invalid syntax")
 		assert.That(t, p.ObjectsCount()).Equal(4)
 	})
 
@@ -206,12 +357,38 @@ func TestDync(t *testing.T) {
 		err = p.Refresh(conf.Map(map[string]any{
 			"config.s1.value": "xyz",
 		}))
-		assert.ThatError(t, err).Matches("strconv.ParseInt: parsing \"xyz\": invalid syntax")
+		assert.Error(t, err).Matches("strconv.ParseInt: parsing \"xyz\": invalid syntax")
 
 		err = p.Refresh(conf.Map(map[string]any{
 			"config.s1.value": "10",
 		}))
 		assert.That(t, err).Nil()
 		assert.That(t, v.Value().S1.Value).Equal(10)
+	})
+
+	t.Run("with default value", func(t *testing.T) {
+		p := New(conf.New())
+
+		var cfg struct {
+			Value Value[int] `value:"${property:=42}"`
+		}
+
+		err := p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"})
+		assert.That(t, err).Nil()
+		assert.That(t, cfg.Value.Value()).Equal(42)
+	})
+
+	t.Run("override default value", func(t *testing.T) {
+		p := New(conf.Map(map[string]any{
+			"config.property": "100",
+		}))
+
+		var cfg struct {
+			Value Value[int] `value:"${property:=42}"`
+		}
+
+		err := p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"})
+		assert.That(t, err).Nil()
+		assert.That(t, cfg.Value.Value()).Equal(100)
 	})
 }

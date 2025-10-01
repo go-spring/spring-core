@@ -17,6 +17,7 @@
 package toml
 
 import (
+	"github.com/go-spring/spring-base/util"
 	"github.com/pelletier/go-toml"
 )
 
@@ -24,7 +25,7 @@ import (
 func Read(b []byte) (map[string]any, error) {
 	tree, err := toml.LoadBytes(b)
 	if err != nil {
-		return nil, err
+		return nil, util.FormatError(err, "read toml error")
 	}
 	return tree.ToMap(), nil
 }

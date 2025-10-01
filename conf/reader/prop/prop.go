@@ -16,7 +16,10 @@
 
 package prop
 
-import "github.com/magiconair/properties"
+import (
+	"github.com/go-spring/spring-base/util"
+	"github.com/magiconair/properties"
+)
 
 // Read parses []byte in the properties format into map.
 func Read(b []byte) (map[string]any, error) {
@@ -24,7 +27,7 @@ func Read(b []byte) (map[string]any, error) {
 	p := properties.NewProperties()
 	p.DisableExpansion = true
 	if err := p.Load(b, properties.UTF8); err != nil {
-		return nil, err
+		return nil, util.FormatError(err, "read properties error")
 	}
 
 	ret := make(map[string]any)

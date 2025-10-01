@@ -18,124 +18,91 @@ package gs
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/spring-core/gs/internal/gs"
 )
 
 func init() {
-	Module(
-		[]ConditionOnProperty{
-			OnEnableServers(),
-			OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
-		},
-		func(p conf.Properties) error {
+	Module([]ConditionOnProperty{
+		OnEnableServers(),
+		OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
+	}, func(p conf.Properties) error {
 
-			// Register the default ServeMux as a bean if no other ServeMux instance exists
-			Object(http.DefaultServeMux).Export(gs.As[http.Handler]()).Condition(
-				OnMissingBean[http.Handler](),
-			)
+		// Register the default HTTP multiplexer as a bean
+		// if no other http.Handler bean has been defined.
+		Provide(http.DefaultServeMux).
+			Export(As[http.Handler]()).
+			Condition(OnMissingBean[http.Handler]())
 
-			// Provide a new SimpleHttpServer instance with configuration bindings.
-			Provide(
-				NewSimpleHttpServer,
-				IndexArg(1, BindArg(SetHttpServerAddr, TagArg("${http.server.addr:=0.0.0.0:9090}"))),
-				IndexArg(1, BindArg(SetHttpServerReadTimeout, TagArg("${http.server.readTimeout:=5s}"))),
-				IndexArg(1, BindArg(SetHttpServerHeaderTimeout, TagArg("${http.server.headerTimeout:=1s}"))),
-				IndexArg(1, BindArg(SetHttpServerWriteTimeout, TagArg("${http.server.writeTimeout:=5s}"))),
-				IndexArg(1, BindArg(SetHttpServerIdleTimeout, TagArg("${http.server.idleTimeout:=60s}"))),
-			).AsServer()
+		// Provide a new SimpleHttpServer instance with
+		// http.Handler injection and configuration binding.
+		Provide(NewSimpleHttpServer).AsServer()
 
-			return nil
-		})
+		return nil
+	})
 }
 
-// HttpServerConfig holds configuration options for the HTTP server.
-type HttpServerConfig struct {
-	Address       string        // The address to bind the server to.
-	ReadTimeout   time.Duration // The read timeout duration.
-	HeaderTimeout time.Duration // The header timeout duration.
-	WriteTimeout  time.Duration // The write timeout duration.
-	IdleTimeout   time.Duration // The idle timeout duration.
+// SimpleHttpServerConfig holds configuration for the SimpleHttpServer.
+type SimpleHttpServerConfig struct {
+	// Address specifies the TCP address the server listens on.
+	// Example: ":9090" (listen on all interfaces, port 9090).
+	Address string `value:"${http.server.addr:=:9090}"`
+
+	// ReadTimeout is the maximum duration for reading the entire
+	// request, including the body.
+	ReadTimeout time.Duration `value:"${http.server.readTimeout:=5s}"`
+
+	// HeaderTimeout is the maximum duration for reading request headers.
+	HeaderTimeout time.Duration `value:"${http.server.headerTimeout:=1s}"`
+
+	// WriteTimeout is the maximum duration before timing out
+	// a response write.
+	WriteTimeout time.Duration `value:"${http.server.writeTimeout:=5s}"`
+
+	// IdleTimeout is the maximum amount of time to wait for
+	// the next request when keep-alive connections are enabled.
+	IdleTimeout time.Duration `value:"${http.server.idleTimeout:=60s}"`
 }
 
-// HttpServerOption is a function type for setting options on HttpServerConfig.
-type HttpServerOption func(arg *HttpServerConfig)
-
-// SetHttpServerAddr sets the address of the HTTP server.
-func SetHttpServerAddr(addr string) HttpServerOption {
-	return func(arg *HttpServerConfig) {
-		arg.Address = addr
-	}
-}
-
-// SetHttpServerReadTimeout sets the read timeout for the HTTP server.
-func SetHttpServerReadTimeout(timeout time.Duration) HttpServerOption {
-	return func(arg *HttpServerConfig) {
-		arg.ReadTimeout = timeout
-	}
-}
-
-// SetHttpServerHeaderTimeout sets the header timeout for the HTTP server.
-func SetHttpServerHeaderTimeout(timeout time.Duration) HttpServerOption {
-	return func(arg *HttpServerConfig) {
-		arg.HeaderTimeout = timeout
-	}
-}
-
-// SetHttpServerWriteTimeout sets the write timeout for the HTTP server.
-func SetHttpServerWriteTimeout(timeout time.Duration) HttpServerOption {
-	return func(arg *HttpServerConfig) {
-		arg.WriteTimeout = timeout
-	}
-}
-
-// SetHttpServerIdleTimeout sets the idle timeout for the HTTP server.
-func SetHttpServerIdleTimeout(timeout time.Duration) HttpServerOption {
-	return func(arg *HttpServerConfig) {
-		arg.IdleTimeout = timeout
-	}
-}
-
-// SimpleHttpServer wraps a [http.Server] instance.
+// SimpleHttpServer wraps a standard [http.Server] to integrate
+// it into the Go-Spring application lifecycle.
 type SimpleHttpServer struct {
 	svr *http.Server // The HTTP server instance.
 }
 
-// NewSimpleHttpServer creates a new instance of SimpleHttpServer.
-func NewSimpleHttpServer(h http.Handler, opts ...HttpServerOption) *SimpleHttpServer {
-	arg := &HttpServerConfig{
-		Address:       "0.0.0.0:9090",
-		ReadTimeout:   time.Second * 5,
-		HeaderTimeout: time.Second,
-		WriteTimeout:  time.Second * 5,
-		IdleTimeout:   time.Second * 60,
-	}
-	for _, opt := range opts {
-		opt(arg)
-	}
+// NewSimpleHttpServer constructs a new SimpleHttpServer using
+// the provided HTTP handler and configuration.
+func NewSimpleHttpServer(h http.Handler, cfg SimpleHttpServerConfig) *SimpleHttpServer {
 	return &SimpleHttpServer{svr: &http.Server{
-		Addr:         arg.Address,
+		Addr:         cfg.Address,
 		Handler:      h,
-		ReadTimeout:  arg.ReadTimeout,
-		WriteTimeout: arg.WriteTimeout,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
 	}}
 }
 
-// ListenAndServe starts the HTTP server and listens for incoming connections.
+// ListenAndServe starts the HTTP server and blocks until it is stopped.
+// It waits for the given ReadySignal to be triggered before accepting traffic.
 func (s *SimpleHttpServer) ListenAndServe(sig ReadySignal) error {
 	ln, err := net.Listen("tcp", s.svr.Addr)
 	if err != nil {
-		return err
+		return util.FormatError(err, "failed to listen on %s", s.svr.Addr)
 	}
 	<-sig.TriggerAndWait()
-	return s.svr.Serve(ln)
+	err = s.svr.Serve(ln)
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return util.FormatError(err, "failed to serve on %s", s.svr.Addr)
 }
 
-// Shutdown gracefully shuts down the HTTP server with the given context.
+// Shutdown gracefully stops the HTTP server using the provided context,
+// allowing in-flight requests to complete before closing.
 func (s *SimpleHttpServer) Shutdown(ctx context.Context) error {
 	return s.svr.Shutdown(ctx)
 }

@@ -25,27 +25,37 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_core/resolving"
 )
 
+// Container represents the core IoC container of the Go-Spring framework.
+// It orchestrates two major phases:
+//  1. Resolving: Registers, filters, and activates bean definitions.
+//  2. Injecting: Performs dependency injection and final wiring of active beans.
 type Container struct {
 	*resolving.Resolving
 	*injecting.Injecting
 }
 
-// New creates a IoC container.
+// New creates and returns a new IoC container instance.
 func New() *Container {
 	return &Container{
 		Resolving: resolving.New(),
 	}
 }
 
-// Refresh initializes and wires all beans in the container.
+// Refresh performs the full lifecycle initialization of the container.
 func (c *Container) Refresh(p conf.Properties) error {
+
+	// Step 1: Resolve and prepare all bean definitions.
 	if err := c.Resolving.Refresh(p); err != nil {
 		return err
 	}
+
+	// Step 2: Run the injecting phase and perform dependency wiring.
 	c.Injecting = injecting.New(p)
 	if err := c.Injecting.Refresh(c.Roots(), c.Beans()); err != nil {
 		return err
 	}
+
+	// Clear the resolving phase reference to free resources.
 	c.Resolving = nil
 	return nil
 }

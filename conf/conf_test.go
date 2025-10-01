@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
+	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -42,32 +42,33 @@ func TestProperties_Load(t *testing.T) {
 
 	t.Run("file not exist", func(t *testing.T) {
 		_, err := conf.Load("./testdata/config/app.tcl")
-		assert.ThatError(t, err).Matches("no such file or directory")
+		assert.Error(t, err).Matches("no such file or directory")
 	})
 
 	t.Run("unsupported ext", func(t *testing.T) {
 		_, err := conf.Load("./testdata/config/app.unknown")
-		assert.ThatError(t, err).Matches("unsupported file type .unknown")
+		assert.Error(t, err).Matches("unsupported file type .unknown")
 	})
 
 	t.Run("syntax error", func(t *testing.T) {
 		_, err := conf.Load("./testdata/config/err.yaml")
-		assert.ThatError(t, err).Matches("did not find expected node content")
+		assert.Error(t, err).Matches("did not find expected node content")
 	})
 }
 
 func TestProperties_Resolve(t *testing.T) {
 
-	t.Run("success - 1", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
+
 		s, err := p.Resolve("${a.b.c[0]}")
 		assert.That(t, err).Nil()
 		assert.That(t, s).Equal("3")
 	})
 
-	t.Run("success - 2", func(t *testing.T) {
+	t.Run("success with default", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
@@ -76,7 +77,7 @@ func TestProperties_Resolve(t *testing.T) {
 		assert.That(t, s).Equal("3")
 	})
 
-	t.Run("default", func(t *testing.T) {
+	t.Run("key with default", func(t *testing.T) {
 		p := conf.New()
 		s, err := p.Resolve("${a.b.c:=123}")
 		assert.That(t, err).Nil()
@@ -86,36 +87,35 @@ func TestProperties_Resolve(t *testing.T) {
 	t.Run("key not exist", func(t *testing.T) {
 		p := conf.New()
 		_, err := p.Resolve("${a.b.c}")
-		assert.ThatError(t, err).Matches("property a.b.c not exist")
+		assert.Error(t, err).Matches("property \"a.b.c\" not exist")
 	})
 
-	t.Run("syntax error - 1", func(t *testing.T) {
+	t.Run("array property as string", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c}")
-		assert.ThatError(t, err).Matches("property a.b.c isn't simple value")
+		assert.Error(t, err).Matches("property \"a.b.c\" isn't simple value")
 	})
 
-	t.Run("syntax error - 2", func(t *testing.T) {
+	t.Run("missing bracket", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c")
-		assert.ThatError(t, err).Matches("resolve string .* error: invalid syntax")
+		assert.Error(t, err).Matches("resolve string .* error: invalid syntax")
 	})
 
-	t.Run("syntax error - 3", func(t *testing.T) {
+	t.Run("invalid expression", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
 		_, err := p.Resolve("${a.b.c[0]}==${a.b.c}")
-		assert.ThatError(t, err).Matches("property a.b.c isn't simple value")
+		assert.Error(t, err).Matches("property \"a.b.c\" isn't simple value")
 	})
 }
 
 func TestProperties_CopyTo(t *testing.T) {
-
 	t.Run("success", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
@@ -155,7 +155,7 @@ func TestProperties_CopyTo(t *testing.T) {
 		})
 	})
 
-	t.Run("error", func(t *testing.T) {
+	t.Run("type conflict", func(t *testing.T) {
 		p := conf.Map(map[string]any{
 			"a.b.c": []string{"3"},
 		})
@@ -169,7 +169,7 @@ func TestProperties_CopyTo(t *testing.T) {
 		assert.That(t, s.Get("a.b.c")).Equal("3")
 
 		err := p.CopyTo(s)
-		assert.ThatError(t, err).Matches("property conflict at path a.b.c\\[0]")
+		assert.Error(t, err).Matches("property conflict at path a.b.c\\[0]")
 	})
 }
 

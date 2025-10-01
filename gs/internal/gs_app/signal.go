@@ -21,14 +21,15 @@ import (
 	"sync/atomic"
 )
 
-// ReadySignal is used to notify that the application is ready to serve requests.
+// ReadySignal is a synchronization helper used to indicate
+// when an application is ready to serve requests.
 type ReadySignal struct {
 	wg sync.WaitGroup
 	ch chan struct{}
 	b  atomic.Bool
 }
 
-// NewReadySignal creates a new ReadySignal instance.
+// NewReadySignal creates and returns a new ReadySignal instance.
 func NewReadySignal() *ReadySignal {
 	return &ReadySignal{
 		ch: make(chan struct{}),
@@ -40,8 +41,8 @@ func (s *ReadySignal) Add() {
 	s.wg.Add(1)
 }
 
-// TriggerAndWait marks an operation as done by decrementing the WaitGroup counter,
-// and then returns the readiness signal channel for waiting.
+// TriggerAndWait marks an operation as done by decrementing the WaitGroup
+// counter, and then returns the readiness signal channel for waiting.
 func (s *ReadySignal) TriggerAndWait() <-chan struct{} {
 	s.wg.Done()
 	return s.ch

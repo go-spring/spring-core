@@ -20,8 +20,8 @@ import (
 	"container/list"
 	"testing"
 
-	"github.com/go-spring/gs-assert/assert"
-	"github.com/go-spring/spring-core/util"
+	"github.com/go-spring/spring-base/testing/assert"
+	"github.com/go-spring/spring-base/util"
 )
 
 func TestTripleSort(t *testing.T) {
@@ -108,6 +108,6 @@ func TestTripleSort(t *testing.T) {
 		}
 		sorting := util.ListOf("A", "B", "C")
 		_, err := TripleSort(sorting, getBefore)
-		assert.ThatError(t, err).Matches("found sorting cycle")
+		assert.Error(t, err).Matches("found sorting cycle")
 	})
 }

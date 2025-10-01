@@ -17,10 +17,10 @@
 package gs_cond
 
 import (
-	"fmt"
 	"maps"
 
 	"github.com/expr-lang/expr"
+	"github.com/go-spring/spring-base/util"
 )
 
 // funcMap stores registered functions that can be referenced in expressions.
@@ -35,18 +35,18 @@ func RegisterExpressFunc(name string, fn any) {
 }
 
 // EvalExpr evaluates a boolean expression using the provided value as the "$" variable.
-// `input` is a boolean expression string to evaluate, it must return a boolean result.
-// `val` is a string value accessible as "$" within the expression context.
+// - `input` is a boolean expression string to evaluate, it must return a boolean result.
+// - `val` is a string value accessible as "$" within the expression context.
 func EvalExpr(input string, val string) (bool, error) {
 	env := map[string]any{"$": val}
 	maps.Copy(env, funcMap)
 	r, err := expr.Eval(input, env)
 	if err != nil {
-		return false, fmt.Errorf("eval %q returns error, %w", input, err)
+		return false, util.FormatError(err, "eval %q returns error", input)
 	}
 	ret, ok := r.(bool)
 	if !ok {
-		return false, fmt.Errorf("eval %q doesn't return bool value", input)
+		return false, util.FormatError(nil, "eval %q doesn't return bool value", input)
 	}
 	return ret, nil
 }

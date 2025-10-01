@@ -22,30 +22,35 @@ import (
 )
 
 func init() {
-	// Registers a SimplePProfServer object to the container.
+	// Registers a SimplePProfServer bean in the IoC container.
 	Provide(
 		NewSimplePProfServer,
-		TagArg("${pprof.server.addr:=0.0.0.0:9981}"),
+		TagArg("${pprof.server.addr:=:9981}"),
 	).Condition(
 		OnEnableServers(),
 		OnProperty(EnableSimplePProfServerProp).HavingValue("true").MatchIfMissing(),
 	).AsServer()
 }
 
-// SimplePProfServer is a simple pprof server.
+// SimplePProfServer is a simple HTTP server that exposes pprof endpoints.
 type SimplePProfServer struct {
 	*SimpleHttpServer
 }
 
-// NewSimplePProfServer creates a new SimplePProfServer.
+// NewSimplePProfServer creates a new SimplePProfServer at the given address.
+// It registers the standard pprof handlers for runtime profiling and debugging.
 func NewSimplePProfServer(addr string) *SimplePProfServer {
 	mux := http.NewServeMux()
+
+	// Register pprof handlers
 	mux.HandleFunc("GET /debug/pprof/", pprof.Index)
 	mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
 	mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
+
+	cfg := SimpleHttpServerConfig{Address: addr}
 	return &SimplePProfServer{
-		SimpleHttpServer: NewSimpleHttpServer(mux, SetHttpServerAddr(addr)),
+		SimpleHttpServer: NewSimpleHttpServer(mux, cfg),
 	}
 }

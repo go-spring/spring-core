@@ -21,46 +21,71 @@ import (
 )
 
 const (
+	// AllowCircularReferencesProp controls whether the container
+	// allows circular dependencies between beans.
 	AllowCircularReferencesProp = "spring.allow-circular-references"
+
+	// ForceAutowireIsNullableProp forces autowired dependencies
+	// to be treated as nullable (i.e. allowed to be nil).
 	ForceAutowireIsNullableProp = "spring.force-autowire-is-nullable"
-	ActiveProfilesProp          = "spring.profiles.active"
-	EnableJobsProp              = "spring.app.enable-jobs"
-	EnableServersProp           = "spring.app.enable-servers"
-	EnableSimpleHttpServerProp  = "spring.enable.simple-http-server"
+
+	// ActiveProfilesProp defines the active application profiles
+	// (e.g. "dev", "test", "prod").
+	ActiveProfilesProp = "spring.profiles.active"
+
+	// EnableJobsProp enables or disables scheduled job execution.
+	EnableJobsProp = "spring.app.enable-jobs"
+
+	// EnableServersProp enables or disables all server components.
+	EnableServersProp = "spring.app.enable-servers"
+
+	// EnableSimpleHttpServerProp enables or disables the built-in
+	// lightweight HTTP server.
+	EnableSimpleHttpServerProp = "spring.enable.simple-http-server"
+
+	// EnableSimplePProfServerProp enables or disables the built-in
+	// lightweight pprof server.
 	EnableSimplePProfServerProp = "spring.enable.simple-pprof-server"
 )
 
-// AllowCircularReferences enables or disables circular references between beans.
+// AllowCircularReferences sets whether circular references between beans
+// are permitted during dependency injection. Default is usually false.
 func AllowCircularReferences(enable bool) {
 	Property(AllowCircularReferencesProp, strconv.FormatBool(enable))
 }
 
-// ForceAutowireIsNullable forces autowire to be nullable.
+// ForceAutowireIsNullable forces autowired dependencies to be treated as
+// optional (nullable). This allows injection of nil when no candidate bean
+// is available. Default is usually false.
 func ForceAutowireIsNullable(enable bool) {
 	Property(ForceAutowireIsNullableProp, strconv.FormatBool(enable))
 }
 
-// SetActiveProfiles sets the active profiles for the app.
+// SetActiveProfiles sets the active application profiles (e.g. "dev", "prod").
+// This influences which configuration files and conditional beans are loaded.
 func SetActiveProfiles(profiles string) {
 	Property(ActiveProfilesProp, profiles)
 }
 
-// EnableJobs enables or disables the app jobs.
+// EnableJobs enables or disables the execution of scheduled jobs.
 func EnableJobs(enable bool) {
 	Property(EnableJobsProp, strconv.FormatBool(enable))
 }
 
-// EnableServers enables or disables the app servers.
+// EnableServers enables or disables all server components in the application
+// (e.g. HTTP servers, gRPC servers).
 func EnableServers(enable bool) {
 	Property(EnableServersProp, strconv.FormatBool(enable))
 }
 
-// EnableSimpleHttpServer enables or disables the simple HTTP server.
+// EnableSimpleHttpServer enables or disables the built-in lightweight
+// HTTP server provided by the framework.
 func EnableSimpleHttpServer(enable bool) {
 	Property(EnableSimpleHttpServerProp, strconv.FormatBool(enable))
 }
 
-// EnableSimplePProfServer enables or disables the simple pprof server.
+// EnableSimplePProfServer enables or disables the built-in lightweight
+// pprof server for performance profiling.
 func EnableSimplePProfServer(enable bool) {
 	Property(EnableSimplePProfServerProp, strconv.FormatBool(enable))
 }

@@ -47,9 +47,9 @@ func printBanner() {
 
 	maxLength := 0
 	for s := range strings.SplitSeq(appBanner, "\n") {
-		sb.WriteString("\x1b[36m")
+		sb.WriteString("\x1b[36m") // ANSI code for cyan color
 		sb.WriteString(s)
-		sb.WriteString("\x1b[0m\n")
+		sb.WriteString("\x1b[0m\n") // ANSI code to reset color
 		if len(s) > maxLength {
 			maxLength = len(s)
 		}
@@ -59,14 +59,18 @@ func printBanner() {
 		sb.WriteString("\n")
 	}
 
+	// print version and website
+	const info = Version + "  " + Website
+
 	var padding []byte
-	if n := (maxLength - len(Version)) / 2; n > 0 {
+	if n := (maxLength - len(info)) / 2; n > 0 {
 		padding = make([]byte, n)
 		for i := range padding {
 			padding[i] = ' '
 		}
 	}
 	sb.WriteString(string(padding))
-	sb.WriteString(Version)
+	sb.WriteString(info)
+	sb.WriteString("\n")
 	fmt.Println(sb.String())
 }

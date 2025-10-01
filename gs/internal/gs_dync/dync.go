@@ -14,50 +14,23 @@
  * limitations under the License.
  */
 
-/*
-Package gs_dync provides dynamic configuration binding and refresh capabilities for Go applications.
-
-This package is built on thread-safe atomic.Value storage with automatic type conversion and supports change listeners,
-making it suitable for components or services that need to react to configuration updates at runtime.
-
-Key Features:
-  - Type-safe and thread-safe encapsulation of configuration values
-  - Change notification mechanism using channels
-  - Hierarchical key resolution for nested structs and map keys
-  - Fine-grained refresh logic that only updates affected objects
-  - JSON serialization support for value persistence and transmission
-
-Examples:
-
-Basic value binding:
-
-	var v Value[int]
-	_ = v.onRefresh(conf.Map(map[string]any{"key": 42}), conf.BindParam{Key: "key"})
-	fmt.Print(v.Value()) // Output: 42
-
-Binding nested structs:
-
-	type Config struct {
-		Server struct {
-			Port Value[int] `value:"${port}"`
-		} `value:"${server}"`
-	}
-
-	var cfg Config
-	_ = p.RefreshField(reflect.ValueOf(&cfg), conf.BindParam{Key: "config"})
-
-Change notification:
-
-	listener := v.NewListener()
-	go func() {
-		<-listener.C
-		fmt.Print("value changed!")
-	}()
-	_ = v.onRefresh(conf.Map(map[string]any{"key": 100}), conf.BindParam{Key: "key"})
-
-This package is ideal for use cases that require hot-reloading of configuration, have complex config structures,
-or demand reactive behavior to configuration changes.
-*/
+// Package gs_dync provides dynamic configuration binding and refresh
+// capabilities for Go-Spring applications.
+//
+// It allows application components to register themselves as refreshable
+// objects that automatically update their internal state whenever the
+// underlying configuration changes.
+//
+// Key components:
+//   - Properties: holds the current configuration and manages all
+//     registered `refreshable` objects.
+//   - Value[T]: a type-safe container for dynamic configuration values.
+//   - Listener: allows components to receive change notifications.
+//   - `refreshable`: interface that application components can implement
+//     to react to configuration updates.
+//
+// This package is designed to be thread-safe and suitable for hot-reload
+// scenarios in long-running applications.
 package gs_dync
 
 import (
@@ -67,7 +40,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/go-spring/barky"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
 )
 
@@ -91,7 +64,7 @@ type listeners struct {
 func (r *listeners) NewListener() *Listener {
 	r.m.Lock()
 	defer r.m.Unlock()
-	l := &Listener{C: make(chan struct{})}
+	l := &Listener{C: make(chan struct{}, 1)}
 	r.a = append(r.a, l)
 	return l
 }
@@ -209,7 +182,7 @@ func (p *Properties) Refresh(prop conf.Properties) (err error) {
 		changes[k] = struct{}{}
 	}
 
-	keys := barky.OrderedMapKeys(changes)
+	keys := util.OrderedMapKeys(changes)
 	return p.refreshKeys(keys)
 }
 
@@ -233,7 +206,7 @@ func (p *Properties) refreshKeys(keys []string) (err error) {
 	// Sort and collect objects that need updating.
 	updateObjects := make([]*refreshObject, 0, len(updateIndexes))
 	{
-		ints := barky.OrderedMapKeys(updateIndexes)
+		ints := util.OrderedMapKeys(updateIndexes)
 		for _, k := range ints {
 			updateObjects = append(updateObjects, updateIndexes[k])
 		}
@@ -295,7 +268,7 @@ type filter struct {
 // Do attempts to refresh a single object if it implements the [refreshable] interface.
 func (f *filter) Do(i any, param conf.BindParam) (bool, error) {
 	v, ok := i.(refreshable)
-	if !ok {
+	if !ok || v == nil {
 		return false, nil
 	}
 	f.objects = append(f.objects, &refreshObject{

@@ -20,13 +20,11 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"os"
-	"os/signal"
 	"sync"
 	"sync/atomic"
-	"syscall"
 
 	"github.com/go-spring/log"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
@@ -37,13 +35,13 @@ import (
 // App represents the core application, managing its lifecycle,
 // configuration, and dependency injection.
 type App struct {
-	C *gs_core.Container
-	P *gs_conf.AppConfig
+	C *gs_core.Container // IoC container
+	P *gs_conf.AppConfig // Application configuration
 
-	exiting atomic.Bool
-	ctx     context.Context
-	cancel  context.CancelFunc
-	wg      sync.WaitGroup
+	exiting atomic.Bool        // Indicates whether the application is shutting down
+	ctx     context.Context    // Root context for managing cancellation
+	cancel  context.CancelFunc // Function to cancel the root context
+	wg      sync.WaitGroup     // WaitGroup to track running jobs and servers
 
 	Runners []gs.Runner `autowire:"${spring.app.runners:=?}"`
 	Jobs    []gs.Job    `autowire:"${spring.app.jobs:=?}"`
@@ -64,50 +62,18 @@ func NewApp() *App {
 	}
 }
 
-// Run starts the application and listens for termination signals
-// (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
-// a graceful shutdown.
-func (app *App) Run() error {
-	return app.RunWith(nil)
-}
-
-// RunWith starts the application and listens for termination signals
-// (e.g., SIGINT, SIGTERM). Upon receiving a signal, it initiates
-// a graceful shutdown.
-func (app *App) RunWith(fn func(ctx context.Context) error) error {
-	if err := app.Start(); err != nil {
-		return err
-	}
-
-	// runs the user-defined function
-	if fn != nil {
-		if err := fn(app.ctx); err != nil {
-			return err
-		}
-	}
-
-	// listens for OS termination signals
-	go func() {
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-		sig := <-ch
-		log.Infof(context.Background(), log.TagAppDef, "Received signal: %v", sig)
-		app.ShutDown()
-	}()
-
-	// waits for the shutdown signal
-	<-app.ctx.Done()
-	app.Stop()
-	return nil
-}
-
-// Start initializes and starts the application. It performs configuration
-// loading, IoC container refreshing, dependency injection, and runs
-// runners, jobs and servers.
+// Start initializes and launches the application. It performs the following steps:
+// 1. Registers the App itself as a root bean.
+// 2. Loads application configuration.
+// 3. Refreshes the IoC container to initialize and wire beans.
+// 4. Runs all registered Runners.
+// 5. Launches Jobs (if enabled) as background goroutines.
+// 6. Starts all Servers (if enabled) and waits for readiness.
 func (app *App) Start() error {
-	app.C.RootBean(app.C.Object(app))
+	// Register App as a root bean in the container
+	app.C.Root(app.C.Object(app))
 
-	// loads the layered app properties
+	// Load layered application properties
 	var p conf.Properties
 	{
 		var err error
@@ -116,47 +82,49 @@ func (app *App) Start() error {
 		}
 	}
 
-	// refreshes the container
+	// Refresh the container to wire all beans
 	if err := app.C.Refresh(p); err != nil {
 		return err
 	}
 
-	// runs all runners
+	// Run all registered Runners
 	for _, r := range app.Runners {
 		if err := r.Run(); err != nil {
 			return err
 		}
 	}
 
-	// runs all jobs
+	// Launch all Jobs (if enabled) as background tasks
 	if app.EnableJobs {
 		for _, job := range app.Jobs {
 			app.wg.Add(1)
-			goutil.GoFunc(func() {
+			goutil.Go(app.ctx, func(ctx context.Context) {
 				defer app.wg.Done()
 				defer func() {
+					// Handle unexpected panics by shutting down the app
 					if r := recover(); r != nil {
 						app.ShutDown()
 						panic(r)
 					}
 				}()
-				if err := job.Run(app.ctx); err != nil {
-					log.Errorf(context.Background(), log.TagAppDef, "job run error: %v", err)
+				if err := job.Run(ctx); err != nil {
+					log.Errorf(ctx, log.TagAppDef, "job run error: %v", err)
 					app.ShutDown()
 				}
 			})
 		}
 	}
 
-	// starts all servers
+	// Start all Servers (if enabled)
 	if app.EnableServers {
-		sig := NewReadySignal()
+		sig := NewReadySignal() // Used to coordinate readiness among servers
 		for _, svr := range app.Servers {
 			sig.Add()
 			app.wg.Add(1)
-			goutil.GoFunc(func() {
+			goutil.Go(app.ctx, func(ctx context.Context) {
 				defer app.wg.Done()
 				defer func() {
+					// Handle server panics by intercepting readiness and shutting down
 					if r := recover(); r != nil {
 						sig.Intercept()
 						app.ShutDown()
@@ -165,45 +133,56 @@ func (app *App) Start() error {
 				}()
 				err := svr.ListenAndServe(sig)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.Errorf(context.Background(), log.TagAppDef, "server serve error: %v", err)
+					log.Errorf(ctx, log.TagAppDef, "server serve error: %v", err)
 					sig.Intercept()
 					app.ShutDown()
+				} else {
+					log.Infof(ctx, log.TagAppDef, "server closed")
 				}
 			})
 		}
+
+		// Wait for all servers to be ready
 		sig.Wait()
 		if sig.Intercepted() {
-			return nil
+			log.Infof(app.ctx, log.TagAppDef, "server intercepted")
+			return util.FormatError(nil, "server intercepted")
 		}
-		log.Infof(context.Background(), log.TagAppDef, "ready to serve requests")
+		log.Infof(app.ctx, log.TagAppDef, "ready to serve requests")
 		sig.Close()
 	}
 	return nil
 }
 
-// Stop gracefully shuts down the application, ensuring all servers and
-// resources are properly closed.
-func (app *App) Stop() {
+// WaitForShutdown waits for the application to be signaled to shut down
+// and then gracefully stops all servers and jobs.
+func (app *App) WaitForShutdown() {
+	// Wait until the application context is cancelled (triggered by ShutDown)
+	<-app.ctx.Done()
+
+	// Gracefully shut down all running servers
 	for _, svr := range app.Servers {
-		goutil.GoFunc(func() {
-			if err := svr.Shutdown(app.ctx); err != nil {
-				log.Errorf(context.Background(), log.TagAppDef, "shutdown server failed: %v", err)
+		goutil.Go(app.ctx, func(ctx context.Context) {
+			if err := svr.Shutdown(context.Background()); err != nil {
+				log.Errorf(ctx, log.TagAppDef, "shutdown server failed: %v", err)
 			}
 		})
 	}
 	app.wg.Wait()
 	app.C.Close()
-	log.Infof(context.Background(), log.TagAppDef, "shutdown complete")
+	log.Infof(app.ctx, log.TagAppDef, "shutdown complete")
 }
 
-// Exiting returns a boolean indicating whether the application is exiting.
+// Exiting returns whether the application is currently in the process of shutting down.
 func (app *App) Exiting() bool {
 	return app.exiting.Load()
 }
 
-// ShutDown gracefully terminates the application. This method should
-// be called to trigger a proper shutdown process.
+// ShutDown initiates a graceful shutdown of the application by
+// setting the exiting flag and cancelling the root context.
 func (app *App) ShutDown() {
-	app.exiting.Store(true)
-	app.cancel()
+	if app.exiting.CompareAndSwap(false, true) {
+		log.Infof(app.ctx, log.TagAppDef, "shutting down")
+		app.cancel()
+	}
 }

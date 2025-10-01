@@ -17,15 +17,15 @@
 package yaml
 
 import (
+	"github.com/go-spring/spring-base/util"
 	"gopkg.in/yaml.v2"
 )
 
 // Read parses []byte in the yaml format into map.
 func Read(b []byte) (map[string]any, error) {
 	ret := make(map[string]any)
-	err := yaml.Unmarshal(b, &ret)
-	if err != nil {
-		return nil, err
+	if err := yaml.Unmarshal(b, &ret); err != nil {
+		return nil, util.FormatError(err, "read yaml error")
 	}
 	return ret, nil
 }

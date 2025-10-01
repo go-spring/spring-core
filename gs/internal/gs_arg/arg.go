@@ -14,68 +14,67 @@
  * limitations under the License.
  */
 
-/*
-Package gs_arg provides implementation for function argument resolution and binding
-
-Key Features:
-  - Configuration property binding and dependency injection via struct tags
-  - Precise positional binding through index-based arguments
-  - Direct injection of fixed value arguments
-  - Full support for variadic function parameters
-  - Conditional execution with runtime evaluation
-*/
+// Package gs_arg provides implementations for argument resolution and binding
+// used by the Go-Spring framework.
+//
+// Key Features:
+//   - Configuration property binding and dependency injection via struct tags.
+//   - Precise positional binding through index-based arguments.
+//   - Direct injection of fixed value arguments.
+//   - Full support for variadic function parameters.
+//   - Conditional execution with runtime evaluation.
 package gs_arg
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
 
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/util"
-	"github.com/go-spring/spring-core/util/errutil"
 )
 
-// TagArg represents an argument resolved using a tag for property binding or dependency injection.
+// TagArg represents an argument resolved using a tag for property binding
+// or dependency injection.
 type TagArg struct {
 	Tag string
 }
 
-// Tag creates a TagArg with the given tag.
+// Tag creates a TagArg with the given tag string.
 func Tag(tag string) gs.Arg {
 	return TagArg{Tag: tag}
 }
 
 // GetArgValue resolves the tag to a value based on the target type.
-// For primitive types (int, string), it binds from configuration.
-// For structs/interfaces, it wires dependencies from the container.
+// - For primitive types (int, string), it binds from configuration.
+// - For structs/interfaces, it wires dependencies from the container.
 // It returns an error if the type is neither bindable nor injectable.
 func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 
-	// Binds property values based on the argument type.
+	// Bind property values based on the argument type.
 	if util.IsPropBindingTarget(t) {
 		v := reflect.New(t).Elem()
 		if err := ctx.Bind(v, arg.Tag); err != nil {
-			return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
+			return reflect.Value{}, err
 		}
 		return v, nil
 	}
 
-	// Wires dependent beans based on the argument type.
+	// Wire dependencies based on the argument type.
 	if util.IsBeanInjectionTarget(t) {
 		v := reflect.New(t).Elem()
 		if err := ctx.Wire(v, arg.Tag); err != nil {
-			return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
+			return reflect.Value{}, err
 		}
 		return v, nil
 	}
 
-	err := fmt.Errorf("unsupported argument type: %s", t.String())
-	return reflect.Value{}, errutil.WrapError(err, "TagArg::GetArgValue error")
+	err := util.FormatError(nil, "unsupported argument type: %s", t.String())
+	return reflect.Value{}, err
 }
 
-// IndexArg represents an argument with an explicit positional index in the function signature.
+// IndexArg represents an argument that is bound by its explicit position
+// (index) in the target function’s parameter list.
 type IndexArg struct {
 	Idx int    //The positional index (0-based).
 	Arg gs.Arg //The wrapped argument value.
@@ -86,55 +85,72 @@ func Index(n int, arg gs.Arg) gs.Arg {
 	return IndexArg{Idx: n, Arg: arg}
 }
 
-// GetArgValue panics if called directly. IndexArg must be processed by ArgList.
+// GetArgValue for IndexArg should never be called directly.
+// IndexArg is resolved by ArgList when assembling the function’s
+// argument list. If called, it panics to indicate incorrect usage.
 func (arg IndexArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 	panic(util.ErrUnimplementedMethod)
 }
 
-// ValueArg represents a fixed-value argument.
+// ValueArg represents a constant (fixed) value argument that does not need
+// any resolution or injection.
 type ValueArg struct {
 	v any
 }
 
-// Value creates a fixed-value argument.
+// Value creates a ValueArg from a fixed constant value.
 func Value(v any) gs.Arg {
 	return ValueArg{v: v}
 }
 
-// GetArgValue returns the fixed value and validates type compatibility.
-// It returns an error if the value type is incompatible with the target type.
+// GetArgValue returns the fixed value wrapped by ValueArg.
+// If the value is nil, it returns the zero value of the target type.
+// If the value’s type is not assignable to the target type, it returns an error.
 func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 	if arg.v == nil {
 		return reflect.Zero(t), nil
 	}
 	v := reflect.ValueOf(arg.v)
 	if !v.Type().AssignableTo(t) {
-		err := fmt.Errorf("cannot assign type:%T to type:%s", arg.v, t.String())
-		return reflect.Value{}, errutil.WrapError(err, "ValueArg::GetArgValue error")
+		err := util.FormatError(nil, "cannot assign type:%T to type:%s", arg.v, t.String())
+		return reflect.Value{}, err
 	}
 	return v, nil
 }
 
-// ArgList manages arguments for a function, supporting both fixed and variadic parameters.
+// ArgList manages a collection of arguments for a target function,
+// including both fixed and variadic parameters.
+//
+// It supports two modes:
+//   - Indexed mode: all arguments are provided with explicit positions (IndexArg).
+//   - Sequential mode: arguments are provided in order (no explicit indices).
 type ArgList struct {
 	fnType reflect.Type // The reflected type of the target function.
 	args   []gs.Arg     // The argument list (indexed or non-indexed).
 }
 
-// NewArgList validates and creates an ArgList for a function. It returns errors
-// for invalid function types, mixed indexed/non-indexed args, or out-of-bounds indexes.
+// NewArgList validates and constructs an ArgList for the given function type.
+//
+// Validation checks:
+//   - fnType must be a function type.
+//   - Cannot mix indexed and non-indexed arguments.
+//   - Index values must be within valid parameter bounds.
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	if fnType.Kind() != reflect.Func {
-		err := fmt.Errorf("invalid function type:%s", fnType.String())
-		return nil, errutil.WrapError(err, "NewArgList error")
+		err := util.FormatError(nil, "invalid function type:%s", fnType.String())
+		return nil, util.FormatError(err, "NewArgList error")
 	}
 
-	// Calculates the number of fixed arguments in the function.
+	// Determine number of fixed arguments.
 	fixedArgCount := fnType.NumIn()
 	if fnType.IsVariadic() {
 		fixedArgCount--
+	} else if len(args) > fixedArgCount {
+		err := util.FormatError(nil, "too many arguments for function:%s", fnType.String())
+		return nil, util.FormatError(err, "NewArgList error")
 	}
 
+	// Initialize argument list with empty Tag() placeholders.
 	fnArgs := make([]gs.Arg, fixedArgCount)
 	for i := range fnArgs {
 		fnArgs[i] = Tag("")
@@ -145,17 +161,18 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		notIdx bool
 	)
 
+	// Process each provided argument.
 	for i := range args {
 		switch arg := args[i].(type) {
 		case IndexArg:
 			useIdx = true
 			if notIdx {
-				err := errors.New("arguments must be all indexed or non-indexed")
-				return nil, errutil.WrapError(err, "NewArgList error")
+				err := util.FormatError(nil, "arguments must be all indexed or non-indexed")
+				return nil, util.FormatError(err, "NewArgList error")
 			}
 			if arg.Idx < 0 || arg.Idx >= fnType.NumIn() {
-				err := fmt.Errorf("invalid argument index %d", arg.Idx)
-				return nil, errutil.WrapError(err, "NewArgList error")
+				err := util.FormatError(nil, "invalid argument index %d", arg.Idx)
+				return nil, util.FormatError(err, "NewArgList error")
 			}
 			if arg.Idx < fixedArgCount {
 				fnArgs[arg.Idx] = arg.Arg
@@ -165,8 +182,8 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		default:
 			notIdx = true
 			if useIdx {
-				err := errors.New("arguments must be all indexed or non-indexed")
-				return nil, errutil.WrapError(err, "NewArgList error")
+				err := util.FormatError(nil, "arguments must be all indexed or non-indexed")
+				return nil, util.FormatError(err, "NewArgList error")
 			}
 			if i < fixedArgCount {
 				fnArgs[i] = arg
@@ -179,7 +196,8 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	return &ArgList{fnType: fnType, args: fnArgs}, nil
 }
 
-// get resolves all arguments and returns their reflected values.
+// get resolves all arguments in the ArgList using the provided ArgContext.
+// It returns a slice of reflect.Value ready for invocation of the target function.
 func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 
 	fnType := r.fnType
@@ -192,6 +210,7 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 
 		var t reflect.Type
 		if variadic && idx >= numIn-1 {
+			// For variadic parameters, use element type of the variadic slice.
 			t = fnType.In(numIn - 1).Elem()
 		} else {
 			t = fnType.In(idx)
@@ -208,17 +227,17 @@ func (r *ArgList) get(ctx gs.ArgContext) ([]reflect.Value, error) {
 	return result, nil
 }
 
-// CallableFunc is a function that can be called.
+// CallableFunc is an alias for any callable function.
 type CallableFunc = any
 
-// Callable wraps a function and its bound arguments for invocation.
+// Callable wraps a target function together with its resolved ArgList.
+// It can be invoked at runtime with the correct arguments.
 type Callable struct {
 	fn      CallableFunc
 	argList *ArgList
 }
 
-// NewCallable binds arguments to a function and creates a Callable. It
-// returns errors for invalid function types or argument validation failures.
+// NewCallable creates a Callable by binding the given arguments to the function.
 func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) {
 	fnType := reflect.TypeOf(fn)
 	argList, err := NewArgList(fnType, args)
@@ -228,7 +247,7 @@ func NewCallable(fn CallableFunc, args []gs.Arg) (*Callable, error) {
 	return &Callable{fn: fn, argList: argList}, nil
 }
 
-// Call invokes the function with resolved arguments.
+// Call resolves all arguments and invokes the underlying function.
 func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 	ret, err := r.argList.get(ctx)
 	if err != nil {
@@ -237,37 +256,33 @@ func (r *Callable) Call(ctx gs.ArgContext) ([]reflect.Value, error) {
 	return reflect.ValueOf(r.fn).Call(ret), nil
 }
 
-// BindArg represents a bound function with conditions for conditional execution.
+// BindArg represents a bound function ready to be executed conditionally.
 type BindArg struct {
-	r          *Callable      // The wrapped Callable.
-	fileline   string         // Source location of the Bind call (for debugging).
-	conditions []gs.Condition // Conditions that must be met to execute the function.
+	r          *Callable      // Wrapped Callable
+	fileline   string         // File:line info for debugging
+	conditions []gs.Condition // Conditions for conditional execution
 }
 
-// validBindFunc validates if a function is a valid binding target.
-// Valid signatures:
-//   - func(...) error
-//   - func(...) (T, error)
+// validBindFunc validates that a function is a proper bind target.
 func validBindFunc(fn CallableFunc) error {
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func {
-		return errors.New("invalid function type")
+		return util.FormatError(nil, "invalid function type")
 	}
-	if numOut := t.NumOut(); numOut == 1 {
+	if numOut := t.NumOut(); numOut == 1 { // func(...) error
 		if o := t.Out(0); !util.IsErrorType(o) {
 			return nil
 		}
-	} else if numOut == 2 {
+	} else if numOut == 2 { // func(...) (T, error)
 		if o := t.Out(t.NumOut() - 1); util.IsErrorType(o) {
 			return nil
 		}
 	}
-	return errors.New("invalid function type")
+	return util.FormatError(nil, "invalid function type")
 }
 
-// Bind creates a binding for an option function. It panics on validation errors.
-// `fn` is The target function (must return error or (T, error)). `args` is the
-// bound arguments (indexed or non-indexed).
+// Bind creates a BindArg for a given function and its arguments.
+// The function must have a valid bindable signature.
 func Bind(fn CallableFunc, args ...gs.Arg) *BindArg {
 	if err := validBindFunc(fn); err != nil {
 		panic(err)
@@ -282,12 +297,12 @@ func Bind(fn CallableFunc, args ...gs.Arg) *BindArg {
 	return arg
 }
 
-// SetFileLine sets the source location of the Bind call.
+// SetFileLine records the source location of the Bind() call.
 func (arg *BindArg) SetFileLine(file string, line int) {
 	arg.fileline = fmt.Sprintf("%s:%d", file, line)
 }
 
-// Condition adds pre-execution conditions to the binding.
+// Condition appends runtime conditions that must be satisfied before execution.
 func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg {
 	arg.conditions = append(arg.conditions, conditions...)
 	return arg
@@ -298,7 +313,7 @@ func (arg *BindArg) Condition(conditions ...gs.Condition) *BindArg {
 // errors from the function or condition checks.
 func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
 
-	// Checks if the condition is met.
+	// Evaluate all conditions.
 	for _, c := range arg.conditions {
 		ok, err := ctx.Check(c)
 		if err != nil {
@@ -308,14 +323,14 @@ func (arg *BindArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 		}
 	}
 
-	// Calls the function and returns its result.
+	// Execute the function.
 	out, err := arg.r.Call(ctx)
 	if err != nil {
 		return reflect.Value{}, err
 	}
-	if len(out) == 1 {
+	if len(out) == 1 { // func(...) error
 		return out[0], nil
 	}
 	err, _ = out[1].Interface().(error)
-	return out[0], err
+	return out[0], err // func(...) (T, error)
 }
