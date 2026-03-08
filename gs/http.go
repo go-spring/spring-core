@@ -23,86 +23,94 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-spring/spring-base/util"
-	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 func init() {
-	Module([]ConditionOnProperty{
-		OnEnableServers(),
-		OnProperty(EnableSimpleHttpServerProp).HavingValue("true").MatchIfMissing(),
-	}, func(p conf.Properties) error {
+	// Register a module for HTTP server.
+	enableHttpServer := OnProperty("http.server.enable").HavingValue("true").MatchIfMissing()
+	Module(enableHttpServer, func(r BeanProvider, p flatten.Storage) error {
 
-		// Register the default HTTP multiplexer as a bean
-		// if no other http.Handler bean has been defined.
-		Provide(http.DefaultServeMux).
-			Export(As[http.Handler]()).
-			Condition(OnMissingBean[http.Handler]())
+		// Register the default HTTP multiplexer (http.ServeMux) as a bean
+		// only when no user-defined *HttpServeMux is present.
+		r.Provide(&HttpServeMux{http.DefaultServeMux}).
+			Condition(OnMissingBean[*HttpServeMux]())
 
 		// Provide a new SimpleHttpServer instance with
-		// http.Handler injection and configuration binding.
-		Provide(NewSimpleHttpServer).AsServer()
+		// HTTP handler injection and configuration binding.
+		r.Provide(NewSimpleHttpServer).Export(As[Server]())
 
 		return nil
 	})
 }
 
-// SimpleHttpServerConfig holds configuration for the SimpleHttpServer.
+// HttpServeMux is a lightweight wrapper around an http.Handler,
+// allowing the default http.ServeMux or a custom handler
+// to be injected into the HTTP server.
+type HttpServeMux struct {
+	http.Handler
+}
+
+// SimpleHttpServerConfig holds configuration for SimpleHttpServer.
 type SimpleHttpServerConfig struct {
 	// Address specifies the TCP address the server listens on.
 	// Example: ":9090" (listen on all interfaces, port 9090).
 	Address string `value:"${http.server.addr:=:9090}"`
 
 	// ReadTimeout is the maximum duration for reading the entire
-	// request, including the body.
+	// HTTP request, including the body.
 	ReadTimeout time.Duration `value:"${http.server.readTimeout:=5s}"`
 
 	// HeaderTimeout is the maximum duration for reading request headers.
 	HeaderTimeout time.Duration `value:"${http.server.headerTimeout:=1s}"`
 
 	// WriteTimeout is the maximum duration before timing out
-	// a response write.
+	// an HTTP response write.
 	WriteTimeout time.Duration `value:"${http.server.writeTimeout:=5s}"`
 
-	// IdleTimeout is the maximum amount of time to wait for
-	// the next request when keep-alive connections are enabled.
+	// IdleTimeout is the maximum time to wait for the next request
+	// when keep-alive connections are enabled.
 	IdleTimeout time.Duration `value:"${http.server.idleTimeout:=60s}"`
 }
 
-// SimpleHttpServer wraps a standard [http.Server] to integrate
-// it into the Go-Spring application lifecycle.
+// SimpleHttpServer wraps a standard http.Server to integrate it
+// into the Go-Spring application lifecycle.
 type SimpleHttpServer struct {
-	svr *http.Server // The HTTP server instance.
+	svr *http.Server // Underlying HTTP server instance.
 }
 
 // NewSimpleHttpServer constructs a new SimpleHttpServer using
 // the provided HTTP handler and configuration.
-func NewSimpleHttpServer(h http.Handler, cfg SimpleHttpServerConfig) *SimpleHttpServer {
+func NewSimpleHttpServer(h *HttpServeMux, cfg SimpleHttpServerConfig) *SimpleHttpServer {
 	return &SimpleHttpServer{svr: &http.Server{
-		Addr:         cfg.Address,
-		Handler:      h,
-		ReadTimeout:  cfg.ReadTimeout,
-		WriteTimeout: cfg.WriteTimeout,
+		Addr:              cfg.Address,
+		Handler:           h.Handler,
+		ReadTimeout:       cfg.ReadTimeout,
+		ReadHeaderTimeout: cfg.HeaderTimeout,
+		WriteTimeout:      cfg.WriteTimeout,
+		IdleTimeout:       cfg.IdleTimeout,
 	}}
 }
 
-// ListenAndServe starts the HTTP server and blocks until it is stopped.
-// It waits for the given ReadySignal to be triggered before accepting traffic.
-func (s *SimpleHttpServer) ListenAndServe(sig ReadySignal) error {
+// Run starts the HTTP server and blocks until it is stopped.
+// It listens on the configured address immediately, but waits
+// for the given ReadySignal before accepting traffic.
+func (s *SimpleHttpServer) Run(ctx context.Context, sig ReadySignal) error {
 	ln, err := net.Listen("tcp", s.svr.Addr)
 	if err != nil {
-		return util.FormatError(err, "failed to listen on %s", s.svr.Addr)
+		return errutil.Explain(err, "failed to listen on %s", s.svr.Addr)
 	}
 	<-sig.TriggerAndWait()
 	err = s.svr.Serve(ln)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
-	return util.FormatError(err, "failed to serve on %s", s.svr.Addr)
+	return errutil.Explain(err, "failed to serve on %s", s.svr.Addr)
 }
 
-// Shutdown gracefully stops the HTTP server using the provided context,
-// allowing in-flight requests to complete before closing.
-func (s *SimpleHttpServer) Shutdown(ctx context.Context) error {
-	return s.svr.Shutdown(ctx)
+// Stop gracefully stops the HTTP server, allowing in-flight requests
+// to complete.
+func (s *SimpleHttpServer) Stop() error {
+	return s.svr.Shutdown(context.Background())
 }

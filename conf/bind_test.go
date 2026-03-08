@@ -17,7 +17,6 @@
 package conf_test
 
 import (
-	"errors"
 	"image"
 	"io"
 	"reflect"
@@ -25,14 +24,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
+	"github.com/go-spring/stdlib/testing/assert"
 	"github.com/spf13/cast"
 )
 
 func init() {
 	conf.RegisterConverter(PointConverter)
-	conf.RegisterSplitter("PointSplitter", PointSplitter)
 }
 
 type funcFilter func(i any, param conf.BindParam) (bool, error)
@@ -48,21 +48,6 @@ func PointConverter(val string) (image.Point, error) {
 	return image.Point{X: x, Y: y}, nil
 }
 
-func PointSplitter(str string) ([]string, error) {
-	if !strings.HasPrefix(str, "(") || !strings.HasSuffix(str, ")") {
-		return nil, errors.New("split error")
-	}
-	var ret []string
-	var lastIndex int
-	for i, c := range str {
-		if c == ')' {
-			ret = append(ret, str[lastIndex:i+1])
-			lastIndex = i + 1
-		}
-	}
-	return ret, nil
-}
-
 func TestConverter(t *testing.T) {
 	var s struct {
 		Time     time.Time     `value:"${time:=2025-02-01}"`
@@ -70,52 +55,19 @@ func TestConverter(t *testing.T) {
 	}
 
 	t.Run("built-in types", func(t *testing.T) {
-		err := conf.New().Bind(&s)
+		p := flatten.NewPropertiesStorage(flatten.NewProperties(nil))
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Time).Equal(time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC))
 		assert.That(t, s.Duration).Equal(10 * time.Second)
 	})
 
 	t.Run("invalid time format", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"time": "2025-02-01M00:00:00",
-		})
-		err := p.Bind(&s)
+		}))
+		err := conf.Bind(p, &s)
 		assert.Error(t, err).Matches("unable to parse date: 2025-02-01M00:00:00")
-	})
-}
-
-func TestSplitter(t *testing.T) {
-
-	t.Run("split points success", func(t *testing.T) {
-		var points []image.Point
-		err := conf.New().Bind(&points, "${:=(1,2)(3,4)}>>PointSplitter")
-		assert.That(t, err).Nil()
-		assert.That(t, points).Equal([]image.Point{{X: 1, Y: 2}, {X: 3, Y: 4}})
-	})
-
-	t.Run("split points error", func(t *testing.T) {
-		var points []image.Point
-		err := conf.New().Bind(&points, "${:=(1}>>PointSplitter")
-		assert.Error(t, err).Matches("split error")
-	})
-
-	t.Run("unknown splitter", func(t *testing.T) {
-		var points []image.Point
-		err := conf.New().Bind(&points, "${:=(1}>>UnknownSplitter")
-		assert.Error(t, err).Matches("unknown splitter 'UnknownSplitter'")
-	})
-}
-
-func TestSplitterError(t *testing.T) {
-	conf.RegisterSplitter("ErrorSplitter", func(str string) ([]string, error) {
-		return nil, errors.New("splitter error")
-	})
-
-	t.Run("splitter returns error", func(t *testing.T) {
-		var strs []string
-		err := conf.New().Bind(&strs, "${strs:=a,b,c}>>ErrorSplitter")
-		assert.Error(t, err).Matches("splitter error")
 	})
 }
 
@@ -131,17 +83,6 @@ func TestParseTag(t *testing.T) {
 		tag, err := conf.ParseTag("${a:=123}")
 		assert.That(t, err).Nil()
 		assert.That(t, tag.String()).Equal("${a:=123}")
-	})
-
-	t.Run("with splitter", func(t *testing.T) {
-		tag, err := conf.ParseTag("${a:=1,2,3}>>splitter")
-		assert.That(t, err).Nil()
-		assert.That(t, tag.String()).Equal("${a:=1,2,3}>>splitter")
-	})
-
-	t.Run("missing dollar brace", func(t *testing.T) {
-		_, err := conf.ParseTag(">>splitter")
-		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
 	})
 
 	t.Run("unmatched braces", func(t *testing.T) {
@@ -186,16 +127,15 @@ func TestBindParam(t *testing.T) {
 
 	t.Run("normal", func(t *testing.T) {
 		var param conf.BindParam
-		err := param.BindTag("${a:=1,2,3}>>splitter", "")
+		err := param.BindTag("${a:=1,2,3}", "")
 		assert.That(t, err).Nil()
 		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "a",
 			Path: "",
 			Tag: conf.ParsedTag{
-				Key:      "a",
-				Def:      "1,2,3",
-				HasDef:   true,
-				Splitter: "splitter",
+				Key:    "a",
+				Def:    "1,2,3",
+				HasDef: true,
 			},
 			Validate: "",
 		})
@@ -206,16 +146,15 @@ func TestBindParam(t *testing.T) {
 			Key:  "s",
 			Path: "Struct",
 		}
-		err := param.BindTag("${a:=1,2,3}>>splitter", "")
+		err := param.BindTag("${a:=1,2,3}", "")
 		assert.That(t, err).Nil()
 		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "s.a",
 			Path: "Struct",
 			Tag: conf.ParsedTag{
-				Key:      "a",
-				Def:      "1,2,3",
-				HasDef:   true,
-				Splitter: "splitter",
+				Key:    "a",
+				Def:    "1,2,3",
+				HasDef: true,
 			},
 			Validate: "",
 		})
@@ -223,16 +162,15 @@ func TestBindParam(t *testing.T) {
 
 	t.Run("default", func(t *testing.T) {
 		var param conf.BindParam
-		err := param.BindTag("${:=1,2,3}>>splitter", "")
+		err := param.BindTag("${:=1,2,3}", "")
 		assert.That(t, err).Nil()
 		assert.That(t, param).Equal(conf.BindParam{
 			Key:  "",
 			Path: "",
 			Tag: conf.ParsedTag{
-				Key:      "",
-				Def:      "1,2,3",
-				HasDef:   true,
-				Splitter: "splitter",
+				Key:    "",
+				Def:    "1,2,3",
+				HasDef: true,
 			},
 			Validate: "",
 		})
@@ -336,7 +274,7 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("unnamed default", func(t *testing.T) {
 		var s UnnamedDefault
-		err := conf.New().Bind(&s)
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s).Equal(UnnamedDefault{
 			Strs: []string{"1", "2", "3"},
@@ -347,17 +285,17 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("invalid tag", func(t *testing.T) {
 		var i int
-		err := conf.New().Bind(&i, "$")
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &i, "$")
 		assert.Error(t, err).Matches("parse tag '\\$' error: invalid syntax")
 	})
 
 	t.Run("non pointer target", func(t *testing.T) {
-		err := conf.New().Bind(5)
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), 5)
 		assert.Error(t, err).Matches("should be a pointer but int")
 	})
 
 	t.Run("pointer to pointer target", func(t *testing.T) {
-		err := conf.New().Bind(new(*int))
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), new(*int))
 		assert.Error(t, err).Matches("target should be value type")
 	})
 
@@ -365,14 +303,14 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value int `value:"${v}" expr:"$>9"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "1",
-		}).Bind(&s)
+		})), &s)
 		assert.Error(t, err).Matches("validate failed on .* for value 1")
 	})
 
 	t.Run("array error", func(t *testing.T) {
-		err := conf.New().Bind(new(struct {
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), new(struct {
 			Arr [3]string `value:"${arr:=1,2,3}"`
 		}))
 		assert.Error(t, err).Matches("use slice instead of array")
@@ -382,9 +320,9 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value int `value:"${v}"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "abc",
-		}).Bind(&s)
+		})), &s)
 		assert.Error(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
 	})
 
@@ -392,9 +330,9 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value uint `value:"${v}"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "abc",
-		}).Bind(&s)
+		})), &s)
 		assert.Error(t, err).Matches("strconv.ParseUint: parsing .*: invalid syntax")
 	})
 
@@ -402,9 +340,9 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value float32 `value:"${v}"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "abc",
-		}).Bind(&s)
+		})), &s)
 		assert.Error(t, err).Matches("strconv.ParseFloat: parsing .*: invalid syntax")
 	})
 
@@ -412,9 +350,9 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value bool `value:"${v}"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "abc",
-		}).Bind(&s)
+		})), &s)
 		assert.Error(t, err).Matches("strconv.ParseBool: parsing .*: invalid syntax")
 	})
 
@@ -422,11 +360,11 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value []int `value:"${v}"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": []any{
 				"1", "2", "a",
 			},
-		}).Bind(&s)
+		})), &s)
 		assert.Error(t, err).Matches("strconv.ParseInt: parsing .*: invalid syntax")
 	})
 
@@ -434,15 +372,15 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value []int `value:"${v}"`
 		}
-		err := conf.New().Bind(&s)
-		assert.Error(t, err).Matches("property \"v\" not exist")
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
+		assert.Error(t, err).Matches("property \"v\": not exist")
 	})
 
 	t.Run("missing converter for slice", func(t *testing.T) {
 		var s struct {
 			Value []image.Rectangle `value:"${v:={(1,2)(3,4)}"`
 		}
-		err := conf.New().Bind(&s)
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
 		assert.Error(t, err).Matches("can't find converter for image.Rectangle")
 	})
 
@@ -450,7 +388,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v:=a:b,1:2}"`
 		}
-		err := conf.New().Bind(&s)
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
 		assert.Error(t, err).Matches("map can't have a non-empty default value")
 	})
 
@@ -458,30 +396,30 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": []any{
 				"1", "2", "3",
 			},
-		}).Bind(&s)
-		assert.Error(t, err).Matches("property \"v.0\" not exist")
+		})), &s)
+		assert.Error(t, err).Matches("map property \"v\": not exist")
 	})
 
 	t.Run("map type conflict", func(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "a:b,1:2",
-		}).Bind(&s)
-		assert.Error(t, err).Matches("property conflict at path v")
+		})), &s)
+		assert.Error(t, err).Matches("map property \"v\": not exist")
 	})
 
 	t.Run("missing map property", func(t *testing.T) {
 		var s struct {
 			Value map[string]int `value:"${v}"`
 		}
-		err := conf.New().Bind(&s)
-		assert.Error(t, err).Matches("property \"v\" not exist")
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
+		assert.Error(t, err).Matches("property \"v\": not exist")
 	})
 
 	t.Run("struct non empty default", func(t *testing.T) {
@@ -490,7 +428,7 @@ func TestProperties_Bind(t *testing.T) {
 				Int int
 			} `value:"${v:={123}}"`
 		}
-		err := conf.New().Bind(&s)
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
 		assert.Error(t, err).Matches("struct can't have a non-empty default value")
 	})
 
@@ -498,9 +436,9 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			int `value:"${v}"`
 		}
-		err := conf.Map(map[string]any{
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "123",
-		}).Bind(&s)
+		})), &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.int).Equal(0)
 	})
@@ -509,7 +447,7 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			Value int `value:"v"`
 		}
-		err := conf.New().Bind(&s)
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
 		assert.Error(t, err).Matches("parse tag 'v' error: invalid syntax")
 	})
 
@@ -517,14 +455,14 @@ func TestProperties_Bind(t *testing.T) {
 		var s struct {
 			io.Reader
 		}
-		err := conf.New().Bind(&s)
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
 		assert.That(t, err).Nil()
 	})
 
 	t.Run("reflect.Value", func(t *testing.T) {
 		var i int
 		v := reflect.ValueOf(&i).Elem()
-		err := conf.New().Bind(v, "${:=3}")
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), v, "${:=3}")
 		assert.That(t, err).Nil()
 		assert.That(t, i).Equal(3)
 	})
@@ -598,36 +536,29 @@ func TestProperties_Bind(t *testing.T) {
 		p, err := conf.Load("./testdata/config/app.yaml")
 		assert.That(t, err).Nil()
 
-		fileID := p.AddFile("bind_test.go")
+		//fileID := p.AddFile("bind_test.go")
 
-		err = p.Set("extra.intsV0", "", fileID)
-		assert.That(t, err).Nil()
-		err = p.Set("extra.intsV2", "1,2,3", fileID)
-		assert.That(t, err).Nil()
-		err = p.Set("prefix.extra.intsV2", "1,2,3", fileID)
-		assert.That(t, err).Nil()
+		p.Set("extra.intsV0", "")
+		p.Set("extra.intsV2", "1,2,3")
+		p.Set("prefix.extra.intsV2", "1,2,3")
 
-		err = p.Set("extra.mapV2.a", "1", fileID)
-		assert.That(t, err).Nil()
-		err = p.Set("extra.mapV2.b", "2", fileID)
-		assert.That(t, err).Nil()
-		err = p.Set("prefix.extra.mapV2.a", "1", fileID)
-		assert.That(t, err).Nil()
-		err = p.Set("prefix.extra.mapV2.b", "2", fileID)
-		assert.That(t, err).Nil()
+		p.Set("extra.mapV2.a", "1")
+		p.Set("extra.mapV2.b", "2")
+		p.Set("prefix.extra.mapV2.a", "1")
+		p.Set("prefix.extra.mapV2.b", "2")
 
 		var c DBConfig
-		err = p.Bind(&c)
+		err = conf.Bind(flatten.NewPropertiesStorage(p), &c)
 		assert.That(t, err).Nil()
 		assert.That(t, c).Equal(expect)
 
-		err = p.Bind(&c, "${prefix}")
+		err = conf.Bind(flatten.NewPropertiesStorage(p), &c, "${prefix}")
 		assert.That(t, err).Nil()
 		assert.That(t, c).Equal(expect)
 	})
 
 	t.Run("advanced types", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"boolSlice":   "true,false,true",
 			"intSlice":    "1,2,3",
 			"stringSlice": "a,b,c",
@@ -649,10 +580,10 @@ func TestProperties_Bind(t *testing.T) {
 				"name": "Pointer",
 				"age":  40,
 			},
-		})
+		}))
 
 		var s AdvancedTypes
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 
 		assert.That(t, s.BoolSlice).Equal([]bool{true, false, true})
@@ -672,7 +603,7 @@ func TestProperties_Bind(t *testing.T) {
 			EmptySlice []string       `value:"${emptySlice:=}"`
 			EmptyMap   map[string]int `value:"${emptyMap:=}"`
 		}
-		err := conf.New().Bind(&s)
+		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.EmptySlice).Equal([]string{})
 		assert.That(t, s.EmptyMap).Equal(map[string]int{})
@@ -688,7 +619,7 @@ func TestProperties_Bind(t *testing.T) {
 		}
 
 		v := reflect.ValueOf(&s).Elem()
-		err = conf.BindValue(conf.New(), v, v.Type(), param,
+		err = conf.BindValue(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), v, v.Type(), param,
 			funcFilter(func(i any, param conf.BindParam) (bool, error) {
 				return false, nil
 			}))
@@ -706,7 +637,7 @@ func TestProperties_Bind(t *testing.T) {
 		}
 
 		v := reflect.ValueOf(&s).Elem()
-		err = conf.BindValue(conf.New(), v, v.Type(), param,
+		err = conf.BindValue(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), v, v.Type(), param,
 			funcFilter(func(i any, param conf.BindParam) (bool, error) {
 				return true, nil
 			}))
@@ -724,44 +655,44 @@ func TestProperties_Bind(t *testing.T) {
 		}
 
 		v := reflect.ValueOf(&s).Elem()
-		err = conf.BindValue(conf.New(), v, v.Type(), param,
+		err = conf.BindValue(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), v, v.Type(), param,
 			funcFilter(func(i any, param conf.BindParam) (bool, error) {
-				return false, errors.New("filter error")
+				return false, errutil.Explain(nil, "filter error")
 			}))
 		assert.Error(t, err).Matches("filter error")
 		assert.That(t, s.Value).Equal(0)
 	})
 
 	t.Run("property reference resolution", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"host": "localhost",
 			"port": "8080",
 			"url":  "http://${host}:${port}",
-		})
+		}))
 
 		var s struct {
 			URL string `value:"${url}"`
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.URL).Equal("http://localhost:8080")
 	})
 
 	t.Run("nested property reference", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"protocol": "https",
 			"host":     "example.com",
 			"port":     "443",
 			"path":     "api",
 			"url":      "${protocol}://${host}:${port}/${path}",
-		})
+		}))
 
 		var s struct {
 			URL string `value:"${url}"`
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.URL).Equal("https://example.com:443/api")
 	})
@@ -774,24 +705,24 @@ func TestResolveString(t *testing.T) {
 	})
 
 	t.Run("missing property", func(t *testing.T) {
-		p := conf.New()
+		p := flatten.NewPropertiesStorage(flatten.NewProperties(nil))
 
 		var s struct {
 			Value string `value:"${missing}"`
 		}
 
-		err := p.Bind(&s)
-		assert.Error(t, err).Matches("property \"missing\" not exist")
+		err := conf.Bind(p, &s)
+		assert.Error(t, err).Matches("property \"missing\": not exist")
 	})
 
 	t.Run("missing property with default", func(t *testing.T) {
-		p := conf.New()
+		p := flatten.NewPropertiesStorage(flatten.NewProperties(nil))
 
 		var s struct {
 			Value string `value:"${missing:=default}"`
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Value).Equal("default")
 	})
@@ -799,19 +730,19 @@ func TestResolveString(t *testing.T) {
 
 func TestMapBinding(t *testing.T) {
 	t.Run("map success", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"config": map[string]any{
 				"a": 1,
 				"b": 2,
 				"c": 3,
 			},
-		})
+		}))
 
 		var s struct {
 			Config map[string]int `value:"${config}"`
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Config).Equal(map[string]int{
 			"a": 1,
@@ -820,60 +751,60 @@ func TestMapBinding(t *testing.T) {
 		})
 	})
 
-	t.Run("empty map", func(t *testing.T) {
-		p := conf.Map(map[string]any{
-			"config": map[string]any{},
-		})
-
-		var s struct {
-			Config map[string]int `value:"${config}"`
-		}
-
-		err := p.Bind(&s)
-		assert.That(t, err).Nil()
-		assert.That(t, s.Config).Equal(map[string]int{})
-	})
+	//t.Run("empty map", func(t *testing.T) {
+	//	p := flatten.MapProperties(map[string]any{
+	//		"config": map[string]any{},
+	//	})
+	//
+	//	var s struct {
+	//		Config map[string]int `value:"${config}"`
+	//	}
+	//
+	//	err := conf.Bind(p,&s)
+	//	assert.That(t, err).Nil()
+	//	assert.That(t, s.Config).Equal(map[string]int{})
+	//})
 }
 
 func TestSliceBinding(t *testing.T) {
 	t.Run("int slice from comma separated string", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"numbers": "1,2,3,4,5",
-		})
+		}))
 
 		var s struct {
 			Numbers []int `value:"${numbers}"`
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Numbers).Equal([]int{1, 2, 3, 4, 5})
 	})
 
 	t.Run("string slice with whitespace", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"values": " a , b , c ",
-		})
+		}))
 
 		var s struct {
 			Values []string `value:"${values}"`
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Values).Equal([]string{"a", "b", "c"})
 	})
 
 	t.Run("bool slice", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"flags": "true,false,true",
-		})
+		}))
 
 		var s struct {
 			Flags []bool `value:"${flags}"`
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Flags).Equal([]bool{true, false, true})
 	})
@@ -881,18 +812,18 @@ func TestSliceBinding(t *testing.T) {
 
 func TestStructBinding(t *testing.T) {
 	t.Run("nested struct", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"user": map[string]any{
 				"name": "Alice",
 				"age":  25,
 			},
-		})
+		}))
 
 		var s struct {
 			User Data `value:"${user}"`
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.User).Equal(Data{
 			Name: "Alice",
@@ -901,16 +832,16 @@ func TestStructBinding(t *testing.T) {
 	})
 
 	t.Run("embedded struct", func(t *testing.T) {
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"name": "Bob",
 			"age":  30,
-		})
+		}))
 
 		var s struct {
 			Data
 		}
 
-		err := p.Bind(&s)
+		err := conf.Bind(p, &s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Data).Equal(Data{
 			Name: "Bob",

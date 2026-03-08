@@ -20,15 +20,15 @@ import (
 	"container/list"
 	"testing"
 
-	"github.com/go-spring/spring-base/testing/assert"
-	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/stdlib/listutil"
+	"github.com/go-spring/stdlib/testing/assert"
 )
 
-func TestTripleSort(t *testing.T) {
+func TestTopologicalSort(t *testing.T) {
 
 	t.Run("empty list", func(t *testing.T) {
 		sorting := list.New()
-		sorted, err := TripleSort(sorting, nil)
+		sorted, err := TopologicalSort(sorting, nil)
 		assert.That(t, err).Nil()
 		assert.That(t, sorted.Len()).Equal(0)
 	})
@@ -37,8 +37,8 @@ func TestTripleSort(t *testing.T) {
 		getBefore := func(_ *list.List, _ any) *list.List {
 			return list.New()
 		}
-		sorting := util.ListOf("A")
-		sorted, err := TripleSort(sorting, getBefore)
+		sorting := listutil.ListOf("A")
+		sorted, err := TopologicalSort(sorting, getBefore)
 		assert.That(t, err).Nil()
 		assert.That(t, sorted.Len()).Equal(1)
 		assert.That(t, sorted.Front().Value).Equal("A")
@@ -49,10 +49,10 @@ func TestTripleSort(t *testing.T) {
 		getBefore := func(_ *list.List, _ any) *list.List {
 			return list.New()
 		}
-		sorting := util.ListOf("A", "B", "C")
-		sorted, err := TripleSort(sorting, getBefore)
+		sorting := listutil.ListOf("A", "B", "C")
+		sorted, err := TopologicalSort(sorting, getBefore)
 		assert.That(t, err).Nil()
-		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"A", "B", "C"})
+		assert.That(t, listutil.AllOfList[string](sorted)).Equal([]string{"A", "B", "C"})
 	})
 
 	t.Run("linear dependency", func(t *testing.T) {
@@ -67,10 +67,10 @@ func TestTripleSort(t *testing.T) {
 			}
 			return l
 		}
-		sorting := util.ListOf("A", "B", "C")
-		sorted, err := TripleSort(sorting, getBefore)
+		sorting := listutil.ListOf("A", "B", "C")
+		sorted, err := TopologicalSort(sorting, getBefore)
 		assert.That(t, err).Nil()
-		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
+		assert.That(t, listutil.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
 	})
 
 	t.Run("multiple dependencies", func(t *testing.T) {
@@ -86,10 +86,10 @@ func TestTripleSort(t *testing.T) {
 			}
 			return l
 		}
-		sorting := util.ListOf("A", "B", "C")
-		sorted, err := TripleSort(sorting, getBefore)
+		sorting := listutil.ListOf("A", "B", "C")
+		sorted, err := TopologicalSort(sorting, getBefore)
 		assert.That(t, err).Nil()
-		assert.That(t, util.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
+		assert.That(t, listutil.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
 	})
 
 	t.Run("cycle", func(t *testing.T) {
@@ -106,8 +106,8 @@ func TestTripleSort(t *testing.T) {
 			}
 			return l
 		}
-		sorting := util.ListOf("A", "B", "C")
-		_, err := TripleSort(sorting, getBefore)
-		assert.Error(t, err).Matches("found sorting cycle")
+		sorting := listutil.ListOf("A", "B", "C")
+		_, err := TopologicalSort(sorting, getBefore)
+		assert.Error(t, err).Matches("dependency cycle detected")
 	})
 }

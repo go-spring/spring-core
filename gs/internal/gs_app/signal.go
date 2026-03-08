@@ -21,50 +21,50 @@ import (
 	"sync/atomic"
 )
 
-// ReadySignal is a synchronization helper used to indicate
+// ReadySignalImpl is a synchronization helper used to indicate
 // when an application is ready to serve requests.
-type ReadySignal struct {
+type ReadySignalImpl struct {
 	wg sync.WaitGroup
 	ch chan struct{}
 	b  atomic.Bool
 }
 
-// NewReadySignal creates and returns a new ReadySignal instance.
-func NewReadySignal() *ReadySignal {
-	return &ReadySignal{
+// NewReadySignal creates and returns a new ReadySignalImpl instance.
+func NewReadySignal() *ReadySignalImpl {
+	return &ReadySignalImpl{
 		ch: make(chan struct{}),
 	}
 }
 
 // Add increments the WaitGroup counter.
-func (s *ReadySignal) Add() {
+func (s *ReadySignalImpl) Add() {
 	s.wg.Add(1)
 }
 
 // TriggerAndWait marks an operation as done by decrementing the WaitGroup
 // counter, and then returns the readiness signal channel for waiting.
-func (s *ReadySignal) TriggerAndWait() <-chan struct{} {
+func (s *ReadySignalImpl) TriggerAndWait() <-chan struct{} {
 	s.wg.Done()
 	return s.ch
 }
 
 // Intercepted returns true if the signal has been intercepted.
-func (s *ReadySignal) Intercepted() bool {
+func (s *ReadySignalImpl) Intercepted() bool {
 	return s.b.Load()
 }
 
 // Intercept marks the signal as intercepted.
-func (s *ReadySignal) Intercept() {
+func (s *ReadySignalImpl) Intercept() {
 	s.b.Store(true)
 	s.wg.Done()
 }
 
 // Wait blocks until all WaitGroup counters reach zero.
-func (s *ReadySignal) Wait() {
+func (s *ReadySignalImpl) Wait() {
 	s.wg.Wait()
 }
 
 // Close closes the signal channel, notifying all goroutines waiting on it.
-func (s *ReadySignal) Close() {
+func (s *ReadySignalImpl) Close() {
 	close(s.ch)
 }

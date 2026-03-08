@@ -23,12 +23,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
+	"github.com/go-spring/stdlib/typeutil"
 )
 
 var (
-	ErrNotExist      = util.FormatError(nil, "not exist")
-	ErrInvalidSyntax = util.FormatError(nil, "invalid syntax")
+	ErrNotExist      = errutil.Explain(nil, "not exist")
+	ErrInvalidSyntax = errutil.Explain(nil, "invalid syntax")
 )
 
 // ParsedTag represents a parsed configuration tag that encodes
@@ -36,24 +38,22 @@ var (
 //
 // A tag string generally follows the pattern:
 //
-//	${key:=default}>>splitter
+//	${key:=default}
 //
 // - "key":        the property key used to look up a value.
 // - "default":    optional fallback value if the key does not exist.
-// - "splitter":   optional custom function name to split strings into slices.
 //
 // Examples:
 //
 //	"${db.host:=localhost}"       -> key=db.host, default=localhost
-//	"${ports:=8080,9090}>>csv"    -> key=ports, default=8080,9090, splitter=csv
+//	"${ports:=8080,9090}"         -> key=ports, default=8080,9090
 //	"${:=foo}"                    -> empty key, only default value "foo"
 //
 // The parsing logic is strict; malformed tags will result in ErrInvalidSyntax.
 type ParsedTag struct {
-	Key      string // short property key
-	Def      string // default value string
-	HasDef   bool   // indicates whether a default value exists
-	Splitter string // optional splitter function name for slice parsing
+	Key    string // short property key
+	Def    string // default value string
+	HasDef bool   // indicates whether a default value exists
 }
 
 func (tag ParsedTag) String() string {
@@ -65,26 +65,21 @@ func (tag ParsedTag) String() string {
 		sb.WriteString(tag.Def)
 	}
 	sb.WriteString("}")
-	if tag.Splitter != "" {
-		sb.WriteString(">>")
-		sb.WriteString(tag.Splitter)
-	}
 	return sb.String()
 }
 
 // ParseTag parses a tag string into a ParsedTag struct.
 //
-// Supported syntax: `${key:=default}>>splitter`
+// Supported syntax: `${key:=default}`
 //
 // - The `${...}` block is mandatory.
 // - ":=" introduces an optional default value.
-// - ">>splitter" is optional and specifies a custom splitter.
 //
 // Example parses:
 //
 //	"${foo}"               -> Key="foo"
 //	"${foo:=bar}"          -> Key="foo", HasDef=true, Def="bar"
-//	"${foo:=bar}>>csv"     -> Key="foo", HasDef=true, Def="bar", Splitter="csv"
+//	"${foo:=bar}"          -> Key="foo", HasDef=true, Def="bar"
 //	"${:=fallback}"        -> Key="", HasDef=true, Def="fallback"
 //
 // Errors:
@@ -92,16 +87,13 @@ func (tag ParsedTag) String() string {
 func ParseTag(tag string) (ret ParsedTag, err error) {
 	j := strings.LastIndex(tag, "}")
 	if j <= 0 {
-		err = util.FormatError(ErrInvalidSyntax, "parse tag '%s' error", tag)
+		err = errutil.Explain(ErrInvalidSyntax, "parse tag '%s' error", tag)
 		return
 	}
 	k := strings.Index(tag, "${")
 	if k < 0 {
-		err = util.FormatError(ErrInvalidSyntax, "parse tag '%s' error", tag)
+		err = errutil.Explain(ErrInvalidSyntax, "parse tag '%s' error", tag)
 		return
-	}
-	if i := strings.LastIndex(tag, ">>"); i > j {
-		ret.Splitter = strings.TrimSpace(tag[i+2:])
 	}
 	ss := strings.SplitN(tag[k+2:j], ":=", 2)
 	ret.Key = strings.TrimSpace(ss[0])
@@ -144,7 +136,7 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 			param.Tag = parsedTag
 			return nil
 		}
-		return util.FormatError(ErrInvalidSyntax, "parse tag '%s' error", tag)
+		return errutil.Explain(ErrInvalidSyntax, "parse tag '%s' error", tag)
 	}
 	if parsedTag.Key == "ROOT" {
 		parsedTag.Key = ""
@@ -176,11 +168,11 @@ type Filter interface {
 // - Returns ErrNotExist if the property is missing without a default.
 // - Returns type conversion errors if parsing fails.
 // - Returns wrapped errors with context (path, type).
-func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
+func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
-	if !util.IsPropBindingTarget(t) {
-		err := util.FormatError(nil, "target should be value type")
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+	if !typeutil.IsPropBindingTarget(t) {
+		err := errutil.Explain(nil, "target should be value type")
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	// run validation if "expr" tag is defined and no prior error
@@ -189,7 +181,7 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 			tag, ok := param.Validate.Lookup("expr")
 			if ok && len(tag) > 0 {
 				if RetErr = validateField(tag, v.Interface()); RetErr != nil {
-					RetErr = util.FormatError(RetErr, "validate path=%s type=%s error", param.Path, v.Type().String())
+					RetErr = errutil.Explain(RetErr, "validate path=%s type=%s error", param.Path, v.Type().String())
 				}
 			}
 		}
@@ -201,8 +193,8 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 	case reflect.Slice:
 		return bindSlice(p, v, t, param, filter)
 	case reflect.Array:
-		err := util.FormatError(nil, "use slice instead of array")
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		err := errutil.Explain(nil, "use slice instead of array")
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	default: // for linter
 	}
 
@@ -217,16 +209,16 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 	// resolve property value (with default and references)
 	val, err := resolve(p, param)
 	if err != nil {
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	// try converter function first
 	if fn != nil {
 		fnValue := reflect.ValueOf(fn)
-		out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
+		out := fnValue.Call([]reflect.Value{reflect.ValueOf(strings.TrimSpace(val))})
 		if !out[1].IsNil() {
 			err = out[1].Interface().(error)
-			return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+			return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
 		v.Set(out[0])
 		return nil
@@ -240,28 +232,28 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 			v.SetUint(u)
 			return nil
 		}
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var i int64
 		if i, err = strconv.ParseInt(val, 0, 0); err == nil {
 			v.SetInt(i)
 			return nil
 		}
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	case reflect.Float32, reflect.Float64:
 		var f float64
 		if f, err = strconv.ParseFloat(val, 64); err == nil {
 			v.SetFloat(f)
 			return nil
 		}
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	case reflect.Bool:
 		var b bool
 		if b, err = strconv.ParseBool(val); err == nil {
 			v.SetBool(b)
 			return nil
 		}
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	default:
 		// treat everything else as string
 		v.SetString(val)
@@ -275,16 +267,16 @@ func BindValue(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 //  1. Indexed keys in the property source:
 //     e.g. "list[0]=a", "list[1]=b"
 //  2. A single delimited string:
-//     e.g. "list=a,b,c"  (split by "," or custom splitter)
+//     e.g. "list=a,b,c"  (split by ",")
 //
 // The slice is always reset (v.Set(slice)) before return,
 // even if binding fails midway.
-func bindSlice(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindSlice(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	elemType := t.Elem()
 	p, err := getSlice(p, elemType, param)
 	if err != nil {
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	slice := reflect.MakeSlice(t, 0, 0)
@@ -306,14 +298,14 @@ func bindSlice(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 			break
 		}
 		if err != nil {
-			return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+			return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
 		slice = reflect.Append(slice, subValue)
 	}
 	return nil
 }
 
-// getSlice prepares a Properties object representing slice elements
+// getSlice prepares a Storage object representing slice elements
 // derived from either:
 //
 // - Explicit indexed properties (preferred).
@@ -321,70 +313,50 @@ func bindSlice(p Properties, v reflect.Value, t reflect.Type, param BindParam, f
 //
 // Errors:
 // - ErrNotExist if property is missing and no default is provided.
-// - Unknown splitter name if specified splitter is not registered.
 // - Converter missing for non-primitive element types.
-func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error) {
+func getSlice(p flatten.Storage, et reflect.Type, param BindParam) (flatten.Storage, error) {
 
-	// case 1: properties already defined as list (e.g. key[0], key[1]...)
-	if p.Has(param.Key + "[0]") {
-		return p, nil
+	m := make(map[string]string)
+	if p.SliceEntries(param.Key, m) {
+		return flatten.NewPropertiesStorage(flatten.NewProperties(m)), nil
 	}
 
 	// case 2: property is a single string -> split into slice
-	var strVal string
-	{
-		if p.Has(param.Key) {
-			strVal = p.Get(param.Key)
-		} else {
-			if !param.Tag.HasDef {
-				return nil, util.FormatError(nil, "property %q %w", param.Key, ErrNotExist)
-			}
-			if param.Tag.Def == "" {
-				return nil, nil
-			}
-			if !util.IsPrimitiveValueType(et) && converters[et] == nil {
-				return nil, util.FormatError(nil, "can't find converter for %s", et.String())
-			}
-			strVal = param.Tag.Def
+	strVal, ok := p.Value(param.Key)
+	if !ok {
+		if !param.Tag.HasDef {
+			return nil, errutil.Explain(ErrNotExist, "property %q", param.Key)
 		}
+		if param.Tag.Def == "" {
+			return nil, nil
+		}
+		if !typeutil.IsPrimitiveValueType(et) && converters[et] == nil {
+			return nil, errutil.Explain(nil, "can't find converter for %s", et.String())
+		}
+		strVal = param.Tag.Def
 	}
 	if strVal == "" {
 		return nil, nil
 	}
 
-	var (
-		err    error
-		arrVal []string
-	)
-
-	// split string into elements
-	if s := param.Tag.Splitter; s == "" {
-		arrVal = strings.Split(strVal, ",")
-		for i := range arrVal {
-			arrVal[i] = strings.TrimSpace(arrVal[i])
-		}
-	} else if fn, ok := splitters[s]; ok && fn != nil {
-		// use custom splitter function
-		if arrVal, err = fn(strVal); err != nil {
-			return nil, util.FormatError(err, "split %q error", strVal)
-		}
-	} else {
-		return nil, util.FormatError(nil, "unknown splitter '%s'", s)
+	arrVal := strings.Split(strVal, ",")
+	for i := range arrVal {
+		arrVal[i] = strings.TrimSpace(arrVal[i])
 	}
 
-	r := New()
+	m = make(map[string]string)
 	for i, s := range arrVal {
 		k := fmt.Sprintf("%s[%d]", param.Key, i)
-		_ = r.Set(k, s, 0) // always no error
+		m[k] = s
 	}
-	return r, nil
+	return flatten.NewPropertiesStorage(flatten.NewProperties(m)), nil
 }
 
 // bindMap binds configuration properties into a Go map[K]V.
 //
 // Example:
 //
-//	Properties:
+//	Storage:
 //	  "users.alice.age" = 20
 //	  "users.bob.age"   = 30
 //
@@ -394,11 +366,11 @@ func getSlice(p Properties, et reflect.Type, param BindParam) (Properties, error
 // Errors:
 // - Returns error if property is missing without default.
 // - Propagates binding errors from element binding.
-func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindMap(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
-		err := util.FormatError(nil, "map can't have a non-empty default value")
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		err := errutil.Explain(nil, "map can't have a non-empty default value")
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	elemType := t.Elem()
@@ -413,20 +385,16 @@ func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, fil
 	}
 
 	// ensure property exists
-	if !p.Has(param.Key) {
+	keySet := make(map[string]struct{})
+	p.MapKeys(param.Key, keySet)
+	if len(keySet) == 0 {
 		if param.Tag.HasDef {
 			return nil
 		}
-		return util.FormatError(nil, "property %q %w", param.Key, ErrNotExist)
+		return errutil.Explain(ErrNotExist, "map property %q", param.Key)
 	}
 
-	// fetch subkeys under the current key prefix
-	keys, err := p.SubKeys(param.Key)
-	if err != nil {
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
-	}
-
-	for _, key := range keys {
+	for key := range keySet {
 		subValue := reflect.New(elemType).Elem()
 		subKey := key
 		if param.Key != "" {
@@ -436,7 +404,7 @@ func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, fil
 			Key:  subKey,
 			Path: param.Path,
 		}
-		if err = BindValue(p, subValue, elemType, subParam, filter); err != nil {
+		if err := BindValue(p, subValue, elemType, subParam, filter); err != nil {
 			return err // no wrap
 		}
 		ret.SetMapIndex(reflect.ValueOf(key), subValue)
@@ -462,11 +430,11 @@ func bindMap(p Properties, v reflect.Value, t reflect.Type, param BindParam, fil
 // - Invalid syntax in tag.
 // - Binding or conversion failures in nested fields.
 // - Infinite recursion is avoided for embedded pointer structs.
-func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
+func bindStruct(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
-		err := util.FormatError(nil, "struct can't have a non-empty default value")
-		return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		err := errutil.Explain(nil, "struct can't have a non-empty default value")
+		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	for i := range t.NumField() {
@@ -485,12 +453,12 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
 
 		if tag, ok := ft.Tag.Lookup("value"); ok {
 			if err := subParam.BindTag(tag, ft.Tag); err != nil {
-				return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+				return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 			}
 			if filter != nil {
 				ret, err := filter.Do(fv.Addr().Interface(), subParam)
 				if err != nil {
-					return util.FormatError(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+					return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 				}
 				if ret {
 					continue
@@ -520,95 +488,20 @@ func bindStruct(p Properties, v reflect.Value, t reflect.Type, param BindParam, 
 //
 // Example:
 //
-//	Properties:
+//	Storage:
 //	  "host" = "localhost"
 //	  "url"  = "http://${host}:8080"
 //
 //	resolve(url) -> "http://localhost:8080"
-func resolve(p Properties, param BindParam) (string, error) {
-	const defVal = "@@def@@"
-	val := p.Get(param.Key, defVal)
-	if val != defVal {
-		return resolveString(p, val)
+func resolve(p flatten.Storage, param BindParam) (string, error) {
+	if val, ok := p.Value(param.Key); ok {
+		return ResolveString(p, val)
 	}
-	if p.Has(param.Key) {
-		return "", util.FormatError(nil, "property %q isn't simple value", param.Key)
-	}
+	//if p.Exists(param.Key) {
+	//	return "", errutil.Explain(nil, "property %q isn't simple value", param.Key)
+	//}
 	if param.Tag.HasDef {
-		return resolveString(p, param.Tag.Def)
+		return ResolveString(p, param.Tag.Def)
 	}
-	return "", util.FormatError(nil, "property %q %w", param.Key, ErrNotExist)
-}
-
-// resolveString expands property references of the form ${key}
-// inside a string, recursively resolving nested expressions.
-//
-// Supported features:
-// - Nested references: e.g. "${outer${inner}}"
-// - Default values:    "${key:=fallback}"
-// - Arbitrary string concatenation around references.
-//
-// Example:
-//
-//	Properties:
-//	  "host" = "localhost"
-//	  "port" = "8080"
-//	Input:
-//	  "http://${host}:${port}"
-//	Output:
-//	  "http://localhost:8080"
-//
-// Errors:
-// - ErrInvalidSyntax if braces are unbalanced.
-// - Propagates errors from resolve().
-func resolveString(p Properties, s string) (string, error) {
-
-	// If there is no property reference, return the original string.
-	start := strings.Index(s, "${")
-	if start < 0 {
-		return s, nil
-	}
-
-	var (
-		level = 1
-		end   = -1
-	)
-
-	// scan for matching closing brace, handling nested references
-	for i := start + 2; i < len(s); i++ {
-		if s[i] == '$' {
-			if i+1 < len(s) && s[i+1] == '{' {
-				level++
-			}
-		} else if s[i] == '}' {
-			level--
-			if level == 0 {
-				end = i
-				break
-			}
-		}
-	}
-
-	if end < 0 {
-		err := ErrInvalidSyntax
-		return "", util.FormatError(err, "resolve string %q error", s)
-	}
-
-	var param BindParam
-	_ = param.BindTag(s[start:end+1], "")
-
-	// resolve the referenced property
-	resolved, err := resolve(p, param)
-	if err != nil {
-		return "", util.FormatError(err, "resolve string %q error", s)
-	}
-
-	// resolve the remaining part of the string
-	suffix, err := resolveString(p, s[end+1:])
-	if err != nil {
-		return "", util.FormatError(err, "resolve string %q error", s)
-	}
-
-	// combine: prefix + resolved + suffix
-	return s[:start] + resolved + suffix, nil
+	return "", errutil.Explain(ErrNotExist, "property %q", param.Key)
 }

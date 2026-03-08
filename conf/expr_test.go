@@ -19,8 +19,9 @@ package conf_test
 import (
 	"testing"
 
-	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/stdlib/flatten"
+	"github.com/go-spring/stdlib/testing/assert"
 )
 
 func TestExpr(t *testing.T) {
@@ -32,10 +33,10 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"checkInt($)"`
 		}
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a": 4,
-		})
-		err := p.Bind(&v)
+		}))
+		err := conf.Bind(p, &v)
 		assert.That(t, err).Nil()
 		assert.That(t, 4).Equal(v.A)
 	})
@@ -44,10 +45,10 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"$ < 10"`
 		}
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a": 5,
-		})
-		err := p.Bind(&v)
+		}))
+		err := conf.Bind(p, &v)
 		assert.That(t, err).Nil()
 		assert.That(t, 5).Equal(v.A)
 	})
@@ -56,10 +57,10 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"$ >= 1 && $ <= 3"`
 		}
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a": 2,
-		})
-		err := p.Bind(&v)
+		}))
+		err := conf.Bind(p, &v)
 		assert.That(t, err).Nil()
 		assert.That(t, 2).Equal(v.A)
 	})
@@ -68,10 +69,10 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"checkInt($)"`
 		}
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a": 14,
-		})
-		err := p.Bind(&v)
+		}))
+		err := conf.Bind(p, &v)
 		assert.Error(t, err).Matches("validate failed on .* for value 14")
 	})
 
@@ -79,10 +80,10 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"checkInt(2$)"`
 		}
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a": 4,
-		})
-		err := p.Bind(&v)
+		}))
+		err := conf.Bind(p, &v)
 		assert.Error(t, err).Matches("eval .* returns error")
 	})
 
@@ -90,10 +91,10 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"$+$"`
 		}
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a": 4,
-		})
-		err := p.Bind(&v)
+		}))
+		err := conf.Bind(p, &v)
 		assert.Error(t, err).Matches("eval .* doesn't return bool value")
 	})
 
@@ -101,10 +102,10 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:"unknownFunc($)"`
 		}
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a": 5,
-		})
-		err := p.Bind(&v)
+		}))
+		err := conf.Bind(p, &v)
 		assert.Error(t, err).Matches("eval .* returns error")
 	})
 
@@ -112,10 +113,10 @@ func TestExpr(t *testing.T) {
 		var v struct {
 			A int `value:"${a}" expr:""`
 		}
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a": 5,
-		})
-		err := p.Bind(&v)
+		}))
+		err := conf.Bind(p, &v)
 		assert.That(t, err).Nil()
 		assert.That(t, 5).Equal(v.A)
 	})

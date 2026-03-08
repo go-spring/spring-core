@@ -32,8 +32,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/funcutil"
 )
 
 /********************************* OnFunc ************************************/
@@ -54,28 +55,28 @@ func OnFunc(fn func(ctx gs.ConditionContext) (bool, error)) gs.Condition {
 func (c *onFunc) Matches(ctx gs.ConditionContext) (bool, error) {
 	ok, err := c.fn(ctx)
 	if err != nil {
-		return false, util.FormatError(err, "condition %s matches error", c)
+		return false, errutil.Explain(err, "condition %s matches error", c)
 	}
 	return ok, nil
 }
 
 func (c *onFunc) String() string {
-	_, _, fnName := util.FileLine(c.fn)
+	_, _, fnName := funcutil.FileLine(c.fn)
 	return fmt.Sprintf("OnFunc(fn=%s)", fnName)
 }
 
 /******************************* OnProperty **********************************/
 
-// ConditionOnProperty defines a condition that is evaluated based on the value
+// PropertyCondition defines a condition that is evaluated based on the value
 // of a property in the application context. It provides methods to customize
 // behavior for missing properties and specific property values.
-type ConditionOnProperty interface {
+type PropertyCondition interface {
 	gs.Condition
-	MatchIfMissing() ConditionOnProperty      // Match if the property is missing
-	HavingValue(s string) ConditionOnProperty // Match if the property has a specific value
+	MatchIfMissing() PropertyCondition      // Match if the property is missing
+	HavingValue(s string) PropertyCondition // Match if the property has a specific value
 }
 
-// onProperty implements [ConditionOnProperty], allowing conditions based on
+// onProperty implements [PropertyCondition], allowing conditions based on
 // the existence and value of properties in the context.
 type onProperty struct {
 	name           string // Property name to check
@@ -85,18 +86,18 @@ type onProperty struct {
 
 // OnProperty creates a new condition that checks for the presence
 // and/or value of a specified property.
-func OnProperty(name string) ConditionOnProperty {
+func OnProperty(name string) PropertyCondition {
 	return &onProperty{name: name}
 }
 
 // MatchIfMissing sets the condition to match if the property is missing.
-func (c *onProperty) MatchIfMissing() ConditionOnProperty {
+func (c *onProperty) MatchIfMissing() PropertyCondition {
 	c.matchIfMissing = true
 	return c
 }
 
 // HavingValue sets the expected value or expression to match.
-func (c *onProperty) HavingValue(s string) ConditionOnProperty {
+func (c *onProperty) HavingValue(s string) PropertyCondition {
 	c.havingValue = s
 	return c
 }
@@ -125,7 +126,7 @@ func (c *onProperty) Matches(ctx gs.ConditionContext) (bool, error) {
 	// Evaluate as an expression if prefixed with "expr:"
 	ok, err := EvalExpr(havingValue[5:], val)
 	if err != nil {
-		return false, util.FormatError(err, "condition %s matches error", c)
+		return false, errutil.Explain(err, "condition %s matches error", c)
 	}
 	return ok, nil
 }
@@ -150,32 +151,32 @@ func (c *onProperty) String() string {
 // onBean represents a condition that checks for the existence of beans
 // matching a specific selector in the application context.
 type onBean struct {
-	s gs.BeanSelector // Bean selector used to find matching beans
+	beanID gs.BeanID // Bean selector used to find matching beans
 }
 
 // OnBean creates a condition that evaluates to true if at least one bean
 // matches the specified type and optional name.
 func OnBean[T any](name ...string) gs.Condition {
-	return &onBean{s: gs.BeanSelectorFor[T](name...)}
+	return &onBean{beanID: gs.BeanIDFor[T](name...)}
 }
 
-// OnBeanSelector creates a condition that evaluates to true if at least one
+// OnBeanID creates a condition that evaluates to true if at least one
 // bean matches the provided selector.
-func OnBeanSelector(s gs.BeanSelector) gs.Condition {
-	return &onBean{s: s}
+func OnBeanID(beanID gs.BeanID) gs.Condition {
+	return &onBean{beanID: beanID}
 }
 
 // Matches checks if there is at least one matching bean in the context.
 func (c *onBean) Matches(ctx gs.ConditionContext) (bool, error) {
-	beans, err := ctx.Find(c.s)
+	beans, err := ctx.Find(c.beanID)
 	if err != nil {
-		return false, util.FormatError(err, "condition %s matches error", c)
+		return false, errutil.Explain(err, "condition %s matches error", c)
 	}
 	return len(beans) > 0, nil
 }
 
 func (c *onBean) String() string {
-	return fmt.Sprintf("OnBean(selector=%s)", c.s)
+	return fmt.Sprintf("OnBean(selector=%s)", c.beanID)
 }
 
 /***************************** OnMissingBean *********************************/
@@ -183,32 +184,32 @@ func (c *onBean) String() string {
 // onMissingBean represents a condition that evaluates to true if no bean
 // matches the specified selector in the context.
 type onMissingBean struct {
-	s gs.BeanSelector // Bean selector for finding beans
+	beanID gs.BeanID // Bean selector for finding beans
 }
 
 // OnMissingBean creates a condition that evaluates to true if no bean
 // matches the given type and optional name.
 func OnMissingBean[T any](name ...string) gs.Condition {
-	return &onMissingBean{s: gs.BeanSelectorFor[T](name...)}
+	return &onMissingBean{beanID: gs.BeanIDFor[T](name...)}
 }
 
-// OnMissingBeanSelector creates a condition that evaluates to true if no bean
+// OnMissingBeanID creates a condition that evaluates to true if no bean
 // matches the provided selector.
-func OnMissingBeanSelector(s gs.BeanSelector) gs.Condition {
-	return &onMissingBean{s: s}
+func OnMissingBeanID(beanID gs.BeanID) gs.Condition {
+	return &onMissingBean{beanID: beanID}
 }
 
 // Matches returns true if no beans matching the selector are found.
 func (c *onMissingBean) Matches(ctx gs.ConditionContext) (bool, error) {
-	beans, err := ctx.Find(c.s)
+	beans, err := ctx.Find(c.beanID)
 	if err != nil {
-		return false, util.FormatError(err, "condition %s matches error", c)
+		return false, errutil.Explain(err, "condition %s matches error", c)
 	}
 	return len(beans) == 0, nil
 }
 
 func (c *onMissingBean) String() string {
-	return fmt.Sprintf("OnMissingBean(selector=%s)", c.s)
+	return fmt.Sprintf("OnMissingBean(selector=%s)", c.beanID)
 }
 
 /***************************** OnSingleBean **********************************/
@@ -216,32 +217,32 @@ func (c *onMissingBean) String() string {
 // onSingleBean represents a condition that checks if exactly one bean
 // matches the specified selector in the context.
 type onSingleBean struct {
-	s gs.BeanSelector // Bean selector for finding beans
+	beanID gs.BeanID // Bean selector for finding beans
 }
 
 // OnSingleBean creates a condition that evaluates to true if exactly one bean
 // matches the given type and optional name.
 func OnSingleBean[T any](name ...string) gs.Condition {
-	return &onSingleBean{s: gs.BeanSelectorFor[T](name...)}
+	return &onSingleBean{beanID: gs.BeanIDFor[T](name...)}
 }
 
-// OnSingleBeanSelector creates a condition that evaluates to true if exactly
+// OnSingleBeanID creates a condition that evaluates to true if exactly
 // one bean matches the provided selector.
-func OnSingleBeanSelector(s gs.BeanSelector) gs.Condition {
-	return &onSingleBean{s: s}
+func OnSingleBeanID(beanID gs.BeanID) gs.Condition {
+	return &onSingleBean{beanID: beanID}
 }
 
 // Matches returns true if exactly one bean matching the selector is found.
 func (c *onSingleBean) Matches(ctx gs.ConditionContext) (bool, error) {
-	beans, err := ctx.Find(c.s)
+	beans, err := ctx.Find(c.beanID)
 	if err != nil {
-		return false, util.FormatError(err, "condition %s matches error", c)
+		return false, errutil.Explain(err, "condition %s matches error", c)
 	}
 	return len(beans) == 1, nil
 }
 
 func (c *onSingleBean) String() string {
-	return fmt.Sprintf("OnSingleBean(selector=%s)", c.s)
+	return fmt.Sprintf("OnSingleBean(selector=%s)", c.beanID)
 }
 
 /***************************** OnExpression **********************************/
@@ -259,8 +260,8 @@ func OnExpression(expression string) gs.Condition {
 
 // Matches evaluates the expression (currently unimplemented).
 func (c *onExpression) Matches(ctx gs.ConditionContext) (bool, error) {
-	err := util.ErrUnimplementedMethod
-	return false, util.FormatError(err, "condition %s matches error", c)
+	err := errutil.ErrUnimplementedMethod
+	return false, errutil.Explain(err, "condition %s matches error", c)
 }
 
 func (c *onExpression) String() string {
@@ -283,7 +284,7 @@ func Not(c gs.Condition) gs.Condition {
 func (c *onNot) Matches(ctx gs.ConditionContext) (bool, error) {
 	ok, err := c.c.Matches(ctx)
 	if err != nil {
-		return false, util.FormatError(err, "condition %s matches error", c)
+		return false, errutil.Explain(err, "condition %s matches error", c)
 	}
 	return !ok, nil
 }
@@ -314,7 +315,7 @@ func Or(conditions ...gs.Condition) gs.Condition {
 func (g *onOr) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
-			return false, util.FormatError(err, "condition %s matches error", g)
+			return false, errutil.Explain(err, "condition %s matches error", g)
 		} else if ok {
 			return true, nil
 		}
@@ -349,7 +350,7 @@ func (g *onAnd) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		ok, err := c.Matches(ctx)
 		if err != nil {
-			return false, util.FormatError(err, "condition %s matches error", g)
+			return false, errutil.Explain(err, "condition %s matches error", g)
 		} else if !ok {
 			return false, nil
 		}
@@ -384,7 +385,7 @@ func None(conditions ...gs.Condition) gs.Condition {
 func (g *onNone) Matches(ctx gs.ConditionContext) (bool, error) {
 	for _, c := range g.conditions {
 		if ok, err := c.Matches(ctx); err != nil {
-			return false, util.FormatError(err, "condition %s matches error", g)
+			return false, errutil.Explain(err, "condition %s matches error", g)
 		} else if ok {
 			return false, nil
 		}

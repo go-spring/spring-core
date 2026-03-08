@@ -5,7 +5,7 @@
    <img src="https://img.shields.io/github/go-mod/go-version/go-spring/spring-core" alt="go-version"/>
    <img src="https://img.shields.io/github/v/release/go-spring/spring-core?include_prereleases" alt="release"/>
    <a href="https://codecov.io/gh/go-spring/spring-core" > 
-      <img src="https://codecov.io/gh/go-spring/spring-core/graph/badge.svg?token=SX7CV1T0O8" alt="test-coverage"/>
+      <img src="https://codecov.io/gh/go-spring/spring-core/branch/main/graph/badge.svg?token=SX7CV1T0O8" alt="test-coverage"/>
    </a>
    <a href="https://deepwiki.com/go-spring/spring-core"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </div>
@@ -99,7 +99,7 @@ curl http://127.0.0.1:9090/echo
 
 ```go
 func init() {
-   gs.Object(&Service{})
+   gs.Provide(&Service{})
    
    gs.Provide(func (s *Service) *http.ServeMux {
       http.HandleFunc("/echo", s.Echo)
@@ -143,7 +143,7 @@ curl http://127.0.0.1:9090/refresh  # Trigger hot refresh
 
 ✅ `value` tag automatically binds configuration;  
 ✅ `gs.Dync[T]` implements field hot updates;  
-✅ `gs.Object` and `gs.Provide()` register Beans.
+✅ `gs.Provide()` register Beans.
 
 ## 🔧 Configuration Management
 
@@ -208,15 +208,14 @@ intrusion and (runtime) zero reflection**.
 
 ### 1️⃣ Registration Methods
 
-Go-Spring provides multiple ways to register Beans:
+Go-Spring provides only one way to register Beans:
 
-- **`gs.Object(obj)`** - Registers an existing object as a Bean
-- **`gs.Provide(ctor, args...)`** - Uses a constructor to generate and register a Bean
+- **`gs.Provide(objOrCtor, args...)`** - Registers an existing object as a Bean, or uses a constructor to generate and register a Bean
 
 Example:
 
 ```go
-gs.Object(&Service{})  // Register a struct instance
+gs.Provide(&Service{})  // Register a struct instance
 gs.Provide(NewService) // Register using a constructor
 gs.Provide(NewRepo, gs.ValueArg("db")) // Constructor with parameters
 ```
@@ -285,7 +284,7 @@ gs.Provide(NewService).
    Condition(OnProperty("feature.enabled")).
    DependsOn(gs.BeanSelectorFor[*Repo]()).
    Export(gs.As[ServiceInterface]()).
-   AsRunner()
+   Export(gs.As[gs.Runner]())
 ```
 
 Configuration item descriptions:
@@ -397,7 +396,7 @@ func RefreshVersion(w http.ResponseWriter, r *http.Request) {
 
 ```go
 func main() {
-   gs.Object(&App{})
+   gs.Provide(&App{})
    gs.Provide(func (app *App) *http.ServeMux {
       http.Handle("/", app)
       http.HandleFunc("/refresh", RefreshVersion)
@@ -445,7 +444,7 @@ providing services externally.
 
 ```go
 func init() {
-   gs.Object(NewServer()).AsServer()
+   gs.Provide(NewServer()).Export(gs.As[gs.Server]())
 }
 
 type MyServer struct {
@@ -498,12 +497,12 @@ func (s *GRPCServer) Shutdown(ctx context.Context) error {
 
 ### 💡 Multiple Servers Running Concurrently
 
-All services registered through `.AsServer()` will start concurrently when `gs.Run()` is called and listen for exit
-signals uniformly:
+All services registered through `.Export(gs.As[gs.Server]())` will start concurrently when `gs.Run()`
+is called and listen for exit signals uniformly:
 
 ```go
-gs.Object(&HTTPServer{}).AsServer()
-gs.Object(&GRPCServer{}).AsServer()
+gs.Provide(&HTTPServer{}).Export(gs.As[gs.Server]())
+gs.Provide(&GRPCServer{}).Export(gs.As[gs.Server]())
 ```
 
 ## ⏳ Application Lifecycle Management
@@ -515,7 +514,7 @@ meanings:
 2. **Job**: Background tasks that run continuously during application runtime (e.g., daemon threads, polling)
 3. **Server**: Long-term service processes that provide external services (e.g., HTTP/gRPC)
 
-These roles can be registered through `.AsRunner() / .AsJob() / .AsServer()`.
+These roles can be registered through `.Export()`.
 
 Example: Runner
 
@@ -528,7 +527,7 @@ func (b *Bootstrap) Run() error {
 }
 
 func init() {
-   gs.Object(&Bootstrap{}).AsRunner()
+   gs.Provide(&Bootstrap{}).Export(gs.As[gs.Runner]())
 }
 ```
 
@@ -556,7 +555,7 @@ func (j *Job) Run(ctx context.Context) error {
 }
 
 func init() {
-   gs.Object(&Job{}).AsJob()
+   gs.Provide(&Job{}).Export(gs.As[gs.Job]())
 }
 ```
 

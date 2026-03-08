@@ -17,18 +17,20 @@
 package resolving
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
 
-	"github.com/go-spring/spring-base/testing/assert"
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/spring-core/gs/internal/gs_init"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
+	"github.com/go-spring/stdlib/ordered"
+	"github.com/go-spring/stdlib/testing/assert"
 )
 
 type Logger interface {
@@ -83,236 +85,175 @@ func TestResolving(t *testing.T) {
 
 	t.Run("register error when container is refreshed", func(t *testing.T) {
 		r := New()
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.That(t, err).Nil()
 		assert.Panic(t, func() {
-			r.Register(&gs.BeanDefinition{})
-		}, "container is refreshing or already refreshed")
-	})
-
-	t.Run("duplicate mock bean", func(t *testing.T) {
-		r := New()
-		r.Object(&TestBean{Value: 1}).Configuration()
-		r.AddMock(gs.BeanMock{
-			Object: &TestBean{Value: 9},
-			Target: gs.BeanSelectorFor[*TestBean](),
-		})
-		r.AddMock(gs.BeanMock{
-			Object: &TestBean{Value: 9},
-			Target: gs.BeanSelectorFor[*TestBean](),
-		})
-		err := r.Refresh(conf.New())
-		assert.Error(t, err).Matches("found duplicate mock bean for 'TestBean'")
+			r.Provide(&gs_bean.BeanDefinition{})
+		}, "container is already refreshing or refreshed")
 	})
 
 	t.Run("invalid include pattern", func(t *testing.T) {
 		r := New()
-		r.Object(&TestBean{Value: 1}).Configuration(
-			gs.Configuration{
+		r.Provide(&TestBean{Value: 1}).Configuration(
+			gs_bean.Configuration{
 				Includes: []string{"*"},
 			},
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("error parsing regexp: missing argument to repetition operator: `*`")
 	})
 
 	t.Run("invalid exclude pattern", func(t *testing.T) {
 		r := New()
-		r.Object(&TestBean{Value: 1}).Configuration(
-			gs.Configuration{
+		r.Provide(&TestBean{Value: 1}).Configuration(
+			gs_bean.Configuration{
 				Excludes: []string{"*"},
 			},
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("error parsing regexp: missing argument to repetition operator: `*`")
 	})
 
-	t.Run("mock error with incompatible interface", func(t *testing.T) {
-		r := New()
-		r.Provide(NewZeroLogger, gs_arg.Value("a")).
-			Export(gs.As[Logger](), gs.As[CtxLogger]())
-		r.AddMock(gs.BeanMock{
-			Object: &SimpleLogger{},
-			Target: gs.BeanSelectorFor[Logger](),
-		})
-		err := r.Refresh(conf.New())
-		assert.Error(t, err).String("mock *resolving.SimpleLogger does not implement required interface resolving.CtxLogger")
-	})
-
-	t.Run("mock error with multiple target beans", func(t *testing.T) {
-		r := New()
-		r.Object(&TestBean{Value: 1}).Name("TestBean-1")
-		r.Object(&TestBean{Value: 2}).Name("TestBean-2")
-		r.AddMock(gs.BeanMock{
-			Object: &TestBean{},
-			Target: gs.BeanSelectorFor[*TestBean](),
-		})
-		err := r.Refresh(conf.New())
-		assert.Error(t, err).Matches("found duplicate mocked beans")
-	})
-
 	t.Run("module error", func(t *testing.T) {
-		r := New()
-		r.Module(nil, func(p conf.Properties) error {
-			return errors.New("module error")
-		})
+		defer func() { gs_init.Clear() }()
+		gs_init.AddModule(nil, func(r gs_init.BeanProvider, p flatten.Storage) error {
+			return errutil.Explain(nil, "module error")
+		}, "", 0)
 
-		err := r.Refresh(conf.New())
+		r := New()
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.That(t, err).NotNil()
 		assert.Error(t, err).Matches("module error")
 	})
 
 	t.Run("resolve error in bean condition", func(t *testing.T) {
 		r := New()
-		r.Object(&TestBean{Value: 1}).Condition(
+		r.Provide(&TestBean{Value: 1}).Condition(
 			gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
-				return false, errors.New("condition error")
+				return false, errutil.Explain(nil, "condition error")
 			}),
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("resolve bean error: condition OnFunc(.*) matches error: condition error")
 	})
 
 	t.Run("resolve error with multiple conditions", func(t *testing.T) {
 		r := New()
-		r.Object(&TestBean{Value: 1}).Condition(
+		r.Provide(&TestBean{Value: 1}).Condition(
 			gs_cond.OnBean[*TestBean](),
 		)
-		r.Object(&TestBean{Value: 1}).Condition(
+		r.Provide(&TestBean{Value: 1}).Condition(
 			gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
-				return false, errors.New("condition error")
+				return false, errutil.Explain(nil, "condition error")
 			}),
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("resolve bean error: condition OnBean(.*) matches error")
 		assert.Error(t, err).Matches("condition OnFunc(.*) matches error: condition error")
 	})
 
 	t.Run("condition not match", func(t *testing.T) {
 		r := New()
-		r.Object(&TestBean{Value: 1}).Condition(
+		r.Provide(&TestBean{Value: 1}).Condition(
 			gs_cond.OnProperty("test.property").HavingValue("true"),
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.That(t, err).Nil()
 		assert.That(t, len(r.Beans())).Equal(0)
 	})
 
 	t.Run("duplicate bean", func(t *testing.T) {
 		r := New()
-		r.Object(&TestBean{Value: 1})
-		r.Object(&TestBean{Value: 2})
-		err := r.Refresh(conf.New())
+		r.Provide(&TestBean{Value: 1})
+		r.Provide(&TestBean{Value: 2})
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("found duplicate beans")
 	})
 
 	t.Run("duplicate bean with same name", func(t *testing.T) {
 		r := New()
-		r.Object(&ZeroLogger{}).Name("a").Export(gs.As[Logger]())
-		r.Object(&SimpleLogger{}).Name("a").Export(gs.As[Logger]())
-		err := r.Refresh(conf.New())
+		r.Provide(&ZeroLogger{}).Name("a").Export(gs.As[Logger]())
+		r.Provide(&SimpleLogger{}).Name("a").Export(gs.As[Logger]())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("found duplicate beans")
 	})
 
 	t.Run("refresh container multiple times", func(t *testing.T) {
 		r := New()
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.That(t, err).Nil()
-		err = r.Refresh(conf.New())
+		err = r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("container is already refreshing or refreshed")
 	})
 
 	t.Run("configuration success", func(t *testing.T) {
 		r := New()
-		r.Object(&TestBean{Value: 1}).Configuration(
-			gs.Configuration{
+		r.Provide(&TestBean{Value: 1}).Configuration(
+			gs_bean.Configuration{
 				Includes: []string{"^NewChild$"},
 			},
 		).Name("TestBean")
 
-		p := conf.Map(map[string]any{})
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{}))
 		err := r.Refresh(p)
 		assert.That(t, err).Nil()
 
 		var names []string
 		for _, b := range r.Beans() {
-			names = append(names, b.Name())
+			names = append(names, b.GetName())
 		}
 		assert.That(t, len(names)).Equal(2)
 	})
 
 	t.Run("success", func(t *testing.T) {
+		defer func() { gs_init.Clear() }()
+		gs_init.AddModule(nil, func(r gs_init.BeanProvider, p flatten.Storage) error {
+			keys := make(map[string]struct{})
+			if !p.MapKeys("logger", keys) {
+				return nil
+			}
+			for _, name := range ordered.MapKeys(keys) {
+				arg := gs_arg.Tag(fmt.Sprintf("logger.%s", name))
+				r.Provide(NewZeroLogger, arg).
+					Export(gs.As[Logger](), gs.As[CtxLogger]()).
+					Name(name)
+			}
+			return nil
+		}, "", 0)
+
 		r := New()
 		{
-			r.Module(nil, func(p conf.Properties) error {
-				keys, err := p.SubKeys("logger")
-				if err != nil {
-					return err
-				}
-				for _, name := range keys {
-					arg := gs_arg.Tag(fmt.Sprintf("logger.%s", name))
-					r.Provide(NewZeroLogger, arg).
-						Export(gs.As[Logger](), gs.As[CtxLogger]()).
-						Name(name)
-				}
-				return nil
-			})
-			r.Provide(NewLogger, gs_arg.Value("c")).Name("c")
-			r.AddMock(gs.BeanMock{
-				Object: NewZeroLogger("a@mocked"),
-				Target: gs.BeanSelectorFor[Logger]("a"),
-			})
-			r.AddMock(gs.BeanMock{
-				Object: NewZeroLogger("b@mocked"),
-				Target: gs.BeanSelectorFor[CtxLogger]("b"),
-			})
-		}
-		{
-			b := r.Object(&http.Server{}).
+			b := r.Provide(&http.Server{}).
 				Condition(gs_cond.OnBean[*http.ServeMux]())
-			assert.That(t, b.BeanRegistration().Name()).Equal("Server")
+			assert.That(t, b.GetName()).Equal("Server")
 		}
 		{
 			b := r.Provide(http.NewServeMux).Name("ServeMux-1").
 				Condition(gs_cond.OnProperty("Enable.ServeMux-1").HavingValue("true"))
-			assert.That(t, b.BeanRegistration().Name()).Equal("ServeMux-1")
+			assert.That(t, b.GetName()).Equal("ServeMux-1")
 		}
 		{
 			b := r.Provide(http.NewServeMux).Name("ServeMux-2").
 				Condition(gs_cond.OnProperty("Enable.ServeMux-2").HavingValue("true"))
-			assert.That(t, b.BeanRegistration().Name()).Equal("ServeMux-2")
+			assert.That(t, b.GetName()).Equal("ServeMux-2")
 		}
 		{
-			b := r.Object(&TestBean{Value: 1}).Configuration().Name("TestBean")
-			assert.That(t, b.BeanRegistration().Name()).Equal("TestBean")
-			r.AddMock(gs.BeanMock{
-				Object: &TestBean{Value: 2},
-				Target: b,
-			})
+			b := r.Provide(&TestBean{Value: 1}).Configuration().Name("TestBean")
+			assert.That(t, b.GetName()).Equal("TestBean")
 		}
 		{
-			b := r.Object(&TestBean{Value: 1}).Name("TestBean-2").
-				Configuration(gs.Configuration{
+			b := r.Provide(&TestBean{Value: 1}).Name("TestBean-2").
+				Configuration(gs_bean.Configuration{
 					Excludes: []string{"^NewChild$"},
 				})
-			assert.That(t, b.BeanRegistration().Name()).Equal("TestBean-2")
-			r.AddMock(gs.BeanMock{
-				Object: &ChildBean{Value: 2},
-				Target: gs.BeanSelectorFor[*ChildBean]("TestBean-2_NewChildV2"),
-			})
+			assert.That(t, b.GetName()).Equal("TestBean-2")
 		}
 		{
-			r.AddMock(gs.BeanMock{
-				Object: &bytes.Buffer{},
-				Target: gs.BeanSelectorFor[*bytes.Buffer](),
-			})
-		}
-		{
-			b := r.Object(&TestBean{Value: 3}).Name("TestBean-3")
+			b := r.Provide(&TestBean{Value: 3}).Name("TestBean-3")
 			r.Provide((*TestBean).NewChild, b)
 		}
 
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"logger": map[string]string{
 				"a": "",
 				"b": "",
@@ -320,16 +261,15 @@ func TestResolving(t *testing.T) {
 			"Enable": map[string]any{
 				"ServeMux-2": true,
 			},
-		})
+		}))
 		err := r.Refresh(p)
 		assert.That(t, err).Nil()
 
 		var names []string
 		for _, b := range r.Beans() {
-			names = append(names, b.Name())
+			names = append(names, b.GetName())
 		}
 		assert.That(t, names).Equal([]string{
-			"c",
 			"Server",
 			"ServeMux-2",
 			"TestBean",
@@ -338,6 +278,8 @@ func TestResolving(t *testing.T) {
 			"NewChild",
 			"a",
 			"b",
+			"TestBean_NewChild",
+			"TestBean_NewChildV2",
 			"TestBean-2_NewChildV2",
 		})
 	})

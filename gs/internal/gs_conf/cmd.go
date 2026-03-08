@@ -20,8 +20,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-spring/spring-base/util"
-	"github.com/go-spring/spring-core/conf"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 // CommandArgsPrefix defines the environment variable name used to override
@@ -46,12 +46,10 @@ func NewCommandArgs() *CommandArgs {
 //
 // The default prefix is "-D", which can be overridden by the environment
 // variable `GS_ARGS_PREFIX`.
-func (c *CommandArgs) CopyTo(p *conf.MutableProperties) error {
+func (c *CommandArgs) CopyTo(p *flatten.Properties) error {
 	if len(os.Args) <= 1 {
 		return nil
 	}
-
-	fileID := p.AddFile("Args")
 
 	// Determine the option prefix.
 	option := "-D"
@@ -65,7 +63,7 @@ func (c *CommandArgs) CopyTo(p *conf.MutableProperties) error {
 		if cmdArgs[i] == option {
 			// separated form: <prefix> key=value
 			if i+1 >= len(cmdArgs) {
-				return util.FormatError(nil, "cmd option %s: needs arg", option)
+				return errutil.Explain(nil, "cmd option %s: needs arg", option)
 			}
 			i++
 			str = cmdArgs[i]
@@ -77,15 +75,13 @@ func (c *CommandArgs) CopyTo(p *conf.MutableProperties) error {
 			continue
 		}
 		if str = strings.TrimSpace(str); str == "" {
-			return util.FormatError(nil, "cmd option %s: needs arg", option)
+			return errutil.Explain(nil, "cmd option %s: needs arg", option)
 		}
 		ss := strings.SplitN(str, "=", 2)
 		if len(ss) == 1 {
 			ss = append(ss, "true")
 		}
-		if err := p.Set(ss[0], ss[1], fileID); err != nil {
-			return util.FormatError(err, "set cmd option %s error", str)
-		}
+		p.Set(ss[0], ss[1])
 	}
 	return nil
 }

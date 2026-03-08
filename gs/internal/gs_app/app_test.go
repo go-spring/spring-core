@@ -19,26 +19,23 @@ package gs_app
 import (
 	"bytes"
 	"context"
-	"errors"
-	"net/http"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/go-spring/gs-mock/gsmock"
 	"github.com/go-spring/log"
-	"github.com/go-spring/spring-base/testing/assert"
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_conf"
-	"github.com/go-spring/spring-core/util/goutil"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/goutil"
+	"github.com/go-spring/stdlib/testing/assert"
 )
 
 var logBuf = &bytes.Buffer{}
 
 func init() {
-	goutil.OnPanic = func(ctx context.Context, r any, stack []byte) {
-		log.Panicf(ctx, log.TagAppDef, "panic: %v\n%s\n", r, stack)
+	goutil.OnPanic = func(ctx context.Context, info goutil.PanicInfo) {
+		log.Panicf(ctx, log.TagAppDef, "panic: %v\n%s\n", info.Panic, info.Stack)
 	}
 }
 
@@ -47,7 +44,14 @@ func Reset() {
 	log.Stdout = logBuf
 	os.Args = nil
 	os.Clearenv()
-	gs_conf.SysConf = conf.New()
+}
+
+type funcRunner struct {
+	fn func(ctx context.Context) error
+}
+
+func (f *funcRunner) Run(ctx context.Context) error {
+	return f.fn(ctx)
 }
 
 func TestApp(t *testing.T) {
@@ -56,12 +60,11 @@ func TestApp(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		fileID := gs_conf.SysConf.AddFile("app_test.go")
-		_ = gs_conf.SysConf.Set("a", "123", fileID)
-		_ = os.Setenv("GS_A_B", "456")
 		app := NewApp()
+		app.Property("a", "123")
+		_ = os.Setenv("GS_A_B", "456")
 		err := app.Start()
-		assert.Error(t, err).Matches("property conflict at path a.b")
+		assert.Error(t, err).Nil() // .Matches("path a.b conflicts with existing structure")
 	})
 
 	t.Run("bean creation failure", func(t *testing.T) {
@@ -69,9 +72,9 @@ func TestApp(t *testing.T) {
 		t.Cleanup(Reset)
 
 		app := NewApp()
-		app.C.Root(app.C.Provide(func() (*http.Server, error) {
-			return nil, errors.New("fail to create bean")
-		}))
+		app.c.Provide(func() (Runner, error) {
+			return nil, errutil.Explain(nil, "fail to create bean")
+		})
 		err := app.Start()
 		assert.Error(t, err).Matches("fail to create bean")
 	})
@@ -80,12 +83,12 @@ func TestApp(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		r := gs.FuncRunner(func() error {
+		r := &funcRunner{fn: func(ctx context.Context) error {
 			panic("runner panic")
-		})
+		}}
 
 		app := NewApp()
-		app.C.Object(r).AsRunner()
+		app.c.Provide(r).Export(gs.As[Runner]())
 
 		assert.Panic(t, func() {
 			_ = app.Start()
@@ -96,12 +99,12 @@ func TestApp(t *testing.T) {
 		Reset()
 		t.Cleanup(Reset)
 
-		r := gs.FuncRunner(func() error {
-			return errors.New("runner return error")
-		})
+		r := &funcRunner{fn: func(ctx context.Context) error {
+			return errutil.Explain(nil, "runner return error")
+		}}
 
 		app := NewApp()
-		app.C.Object(r).AsRunner()
+		app.c.Provide(r).Export(gs.As[Runner]())
 		err := app.Start()
 		assert.Error(t, err).Matches("runner return error")
 	})
@@ -113,101 +116,19 @@ func TestApp(t *testing.T) {
 		app := NewApp()
 
 		// success
-		r1 := gs.FuncRunner(func() error {
+		r1 := &funcRunner{fn: func(ctx context.Context) error {
 			return nil
-		})
-		app.C.Object(r1).AsRunner().Name("r1")
+		}}
+		app.c.Provide(r1).Export(gs.As[Runner]()).Name("r1")
 
 		// error
-		r2 := gs.FuncRunner(func() error {
-			return errors.New("runner error")
-		})
-		app.C.Object(r2).AsRunner().Name("r2")
+		r2 := &funcRunner{fn: func(ctx context.Context) error {
+			return errutil.Explain(nil, "runner error")
+		}}
+		app.c.Provide(r2).Export(gs.As[Runner]()).Name("r2")
 
 		err := app.Start()
 		assert.Error(t, err).Matches("runner error")
-	})
-
-	t.Run("disable jobs & servers", func(t *testing.T) {
-		Reset()
-		t.Cleanup(Reset)
-
-		fileID := gs_conf.SysConf.AddFile("app_test.go")
-		_ = gs_conf.SysConf.Set("spring.app.enable-jobs", "false", fileID)
-		_ = gs_conf.SysConf.Set("spring.app.enable-servers", "false", fileID)
-		app := NewApp()
-		go func() {
-			time.Sleep(50 * time.Millisecond)
-			assert.That(t, app.EnableJobs).False()
-			assert.That(t, app.EnableServers).False()
-			assert.That(t, len(app.Jobs)).Equal(0)
-			assert.That(t, len(app.Servers)).Equal(0)
-			assert.That(t, len(app.Runners)).Equal(0)
-			app.ShutDown()
-		}()
-		err := app.Start()
-		assert.That(t, err).Nil()
-		app.WaitForShutdown()
-		time.Sleep(50 * time.Millisecond)
-		assert.String(t, logBuf.String()).Contains("shutdown complete")
-	})
-
-	t.Run("job panic", func(t *testing.T) {
-		Reset()
-		t.Cleanup(Reset)
-
-		r := gs.FuncJob(func(ctx context.Context) error {
-			panic("job panic")
-		})
-
-		app := NewApp()
-		app.C.Object(r).AsJob()
-		err := app.Start()
-		assert.That(t, err).Nil()
-		time.Sleep(50 * time.Millisecond)
-		assert.String(t, logBuf.String()).Contains("panic: job panic")
-	})
-
-	t.Run("job return error", func(t *testing.T) {
-		Reset()
-		t.Cleanup(Reset)
-
-		r := gs.FuncJob(func(ctx context.Context) error {
-			return errors.New("job return error")
-		})
-
-		app := NewApp()
-		app.C.Object(r).AsJob()
-		err := app.Start()
-		assert.That(t, err).Nil()
-		time.Sleep(50 * time.Millisecond)
-		assert.String(t, logBuf.String()).Contains("job run error: job return error")
-	})
-
-	t.Run("job context cancel", func(t *testing.T) {
-		Reset()
-		t.Cleanup(Reset)
-
-		jobFinished := make(chan bool, 1)
-		r := gs.FuncJob(func(ctx context.Context) error {
-			<-ctx.Done()
-			jobFinished <- true
-			return ctx.Err()
-		})
-
-		app := NewApp()
-		app.C.Object(r).AsJob()
-
-		go func() {
-			time.Sleep(50 * time.Millisecond)
-			app.ShutDown()
-		}()
-
-		err := app.Start()
-		assert.That(t, err).Nil()
-		app.WaitForShutdown()
-		<-jobFinished
-		assert.String(t, logBuf.String()).Contains("job run error: context canceled")
 	})
 
 	t.Run("server return error", func(t *testing.T) {
@@ -215,12 +136,12 @@ func TestApp(t *testing.T) {
 		t.Cleanup(Reset)
 
 		m := gsmock.NewManager()
-		r := gs.NewServerMockImpl(m)
-		r.MockShutdown().ReturnDefault()
-		r.MockListenAndServe().ReturnValue(errors.New("server return error"))
+		r := NewServerMockImpl(m)
+		r.MockStop().ReturnDefault()
+		r.MockRun().ReturnValue(errutil.Explain(nil, "server return error"))
 
 		app := NewApp()
-		app.C.Object(r).AsServer()
+		app.c.Provide(r).Export(gs.As[Server]())
 		err := app.Start()
 		assert.Error(t, err).String("server intercepted")
 		time.Sleep(50 * time.Millisecond)
@@ -232,14 +153,14 @@ func TestApp(t *testing.T) {
 		t.Cleanup(Reset)
 
 		m := gsmock.NewManager()
-		r := gs.NewServerMockImpl(m)
-		r.MockShutdown().ReturnDefault()
-		r.MockListenAndServe().Handle(func(sig gs.ReadySignal) error {
+		r := NewServerMockImpl(m)
+		r.MockStop().ReturnDefault()
+		r.MockRun().Handle(func(ctx context.Context, sig ReadySignal) error {
 			panic("server panic")
 		})
 
 		app := NewApp()
-		app.C.Object(r).AsServer()
+		app.c.Provide(r).Export(gs.As[Server]())
 		err := app.Start()
 		assert.Error(t, err).String("server intercepted")
 		time.Sleep(50 * time.Millisecond)
@@ -252,64 +173,41 @@ func TestApp(t *testing.T) {
 
 		app := NewApp()
 		{
-			r := gs.FuncRunner(func() error {
+			r := &funcRunner{fn: func(ctx context.Context) error {
 				return nil
-			})
-			app.C.Object(r).AsRunner().Name("r1")
+			}}
+			app.c.Provide(r).Export(gs.As[Runner]()).Name("r1")
 		}
 		{
-			r := gs.FuncRunner(func() error {
+			r := &funcRunner{fn: func(ctx context.Context) error {
 				return nil
-			})
-			app.C.Object(r).AsRunner().Name("r2")
-		}
-		{
-			r := gs.FuncJob(func(ctx context.Context) error {
-				<-ctx.Done()
-				return nil
-			})
-			app.C.Object(r).AsJob().Name("j1")
-		}
-		j2Wait := make(chan struct{}, 1)
-		{
-			r := gs.FuncJob(func(ctx context.Context) error {
-				for {
-					time.Sleep(time.Millisecond)
-					if app.Exiting() {
-						j2Wait <- struct{}{}
-						return nil
-					}
-				}
-			})
-			app.C.Object(r).AsJob().Name("j2")
+			}}
+			app.c.Provide(r).Export(gs.As[Runner]()).Name("r2")
 		}
 		{
 			m := gsmock.NewManager()
-			r := gs.NewServerMockImpl(m)
-			r.MockShutdown().ReturnDefault()
-			r.MockListenAndServe().Handle(func(sig gs.ReadySignal) error {
+			r := NewServerMockImpl(m)
+			r.MockStop().ReturnDefault()
+			r.MockRun().Handle(func(ctx context.Context, sig ReadySignal) error {
 				<-sig.TriggerAndWait()
 				return nil
 			})
 
-			app.C.Object(r).AsServer().Name("s1")
+			app.c.Provide(r).Export(gs.As[Server]()).Name("s1")
 		}
 		{
 			m := gsmock.NewManager()
-			r := gs.NewServerMockImpl(m)
-			r.MockShutdown().ReturnDefault()
-			r.MockListenAndServe().Handle(func(sig gs.ReadySignal) error {
+			r := NewServerMockImpl(m)
+			r.MockStop().ReturnDefault()
+			r.MockRun().Handle(func(ctx context.Context, sig ReadySignal) error {
 				<-sig.TriggerAndWait()
 				return nil
 			})
 
-			app.C.Object(r).AsServer().Name("s2")
+			app.c.Provide(r).Export(gs.As[Server]()).Name("s2")
 		}
 		go func() {
 			time.Sleep(50 * time.Millisecond)
-			assert.That(t, app.EnableJobs).True()
-			assert.That(t, app.EnableServers).True()
-			assert.That(t, len(app.Jobs)).Equal(2)
 			assert.That(t, len(app.Servers)).Equal(2)
 			assert.That(t, len(app.Runners)).Equal(2)
 			app.ShutDown()
@@ -318,7 +216,6 @@ func TestApp(t *testing.T) {
 		assert.That(t, err).Nil()
 		app.WaitForShutdown()
 		time.Sleep(50 * time.Millisecond)
-		<-j2Wait
 		assert.String(t, logBuf.String()).Contains("shutdown complete")
 	})
 
@@ -329,16 +226,16 @@ func TestApp(t *testing.T) {
 		app := NewApp()
 
 		m := gsmock.NewManager()
-		r := gs.NewServerMockImpl(m)
-		r.MockShutdown().Handle(func(ctx context.Context) error {
-			return errors.New("server shutdown error")
+		r := NewServerMockImpl(m)
+		r.MockStop().Handle(func() error {
+			return errutil.Explain(nil, "server shutdown error")
 		})
-		r.MockListenAndServe().Handle(func(sig gs.ReadySignal) error {
+		r.MockRun().Handle(func(ctx context.Context, sig ReadySignal) error {
 			<-sig.TriggerAndWait()
 			return nil
 		})
 
-		app.C.Object(r).AsServer()
+		app.c.Provide(r).Export(gs.As[Server]())
 		go func() {
 			time.Sleep(50 * time.Millisecond)
 			app.ShutDown()

@@ -20,7 +20,7 @@ import (
 	"maps"
 
 	"github.com/expr-lang/expr"
-	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/stdlib/errutil"
 )
 
 // funcMap stores registered functions that can be referenced in expressions.
@@ -42,11 +42,11 @@ func EvalExpr(input string, val string) (bool, error) {
 	maps.Copy(env, funcMap)
 	r, err := expr.Eval(input, env)
 	if err != nil {
-		return false, util.FormatError(err, "eval %q returns error", input)
+		return false, errutil.Explain(err, "eval %q returns error", input)
 	}
 	ret, ok := r.(bool)
 	if !ok {
-		return false, util.FormatError(nil, "eval %q doesn't return bool value", input)
+		return false, errutil.Explain(nil, "eval %q doesn't return bool value", input)
 	}
 	return ret, nil
 }

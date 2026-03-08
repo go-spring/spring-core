@@ -20,98 +20,144 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"reflect"
 	"syscall"
+	"testing"
 
 	"github.com/go-spring/log"
-	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/goutil"
 )
 
-// AppStarter is a wrapper to manage the lifecycle of a Spring application.
-// It handles initialization, running, graceful shutdown, and logging.
-type AppStarter struct{}
+// inited indicates whether the application has been initialized.
+var inited bool
 
-// startApp initializes logging, runs the Boot implementation,
-// and then starts the main application.
+// App defines the configuration interface of a Go-Spring application.
+// Methods on App are only valid during application configuration
+// and must not be called after the application has started.
+type App interface {
+	// Property sets a key-value property in the application configuration.
+	Property(key string, val string)
+	// Provide registers an object or constructor as a bean in the application.
+	Provide(objOrCtor any, args ...gs.Arg) *gs_bean.BeanDefinition
+}
+
+// AppStarter wraps a gs_app.App and manages its lifecycle.
+// It provides methods for initialization, configuration, starting,
+// stopping, running, and testing the application.
+type AppStarter struct {
+	app *gs_app.App
+	cfg func(App)
+}
+
+// Configure creates a new application and registers a configuration
+// function that will be applied before the application starts.
+func Configure(cfg func(App)) *AppStarter {
+	inited = true
+	return &AppStarter{app: gs_app.NewApp(), cfg: cfg}
+}
+
+// startApp starts the application lifecycle by printing the banner,
+// applying the configuration function, and starting the underlying gs_app.App.
+// Returns an error if the application fails to start.
 func (s *AppStarter) startApp() error {
 
-	// Print application banner at startup
+	// Print banner
 	printBanner()
 
-	// Initialize logger
-	if err := initLog(); err != nil {
+	// Apply user configuration
+	if s.cfg != nil {
+		s.cfg(s.app)
+	}
+
+	// Start application
+	if err := s.app.Start(); err != nil {
+		err = errutil.Stack(err, "start app failed")
+		log.Errorf(s.app.Context(), log.TagAppDef, "%s", err)
 		return err
 	}
 
-	// Run Boot implementation (pre-app setup)
-	if err := B.(*gs_app.BootImpl).Run(); err != nil {
-		return err
-	}
-	B = nil // Release Boot instance after running
-
-	// Start the application
-	if err := app.Start(); err != nil {
-		return err
-	}
 	return nil
 }
 
-// stopApp waits for the application to shut down and cleans up resources.
-// NOTE: ShutDown() must be called before invoking this function.
-func (s *AppStarter) stopApp() {
-	app.WaitForShutdown()
-	log.Destroy()
+// Run creates and starts a new application using default settings.
+func Run() error {
+	return Configure(nil).Run()
 }
 
-// Run starts the application, optionally runs a user-defined callback,
-// and waits for termination signals (e.g., SIGTERM, Ctrl+C) to trigger graceful shutdown.
-func (s *AppStarter) Run(fn ...func() error) {
-
-	// Start application
+// Run starts the application, applies configuration, and waits for
+// termination signals (e.g., SIGTERM, Ctrl+C) to trigger a graceful shutdown.
+// If no servers are running, the application stops immediately.
+func (s *AppStarter) Run() error {
 	if err := s.startApp(); err != nil {
-		err = util.WrapError(err, "start app failed")
-		log.Errorf(context.Background(), log.TagAppDef, "%s", err)
-		return
+		return err
 	}
 
-	// Execute user-provided callback after app starts
-	if len(fn) > 0 && fn[0] != nil {
-		if err := fn[0](); err != nil {
-			err = util.WrapError(err, "start app failed")
-			log.Errorf(context.Background(), log.TagAppDef, "%s", err)
-			return
-		}
-	}
-
-	// Start a goroutine to listen for OS interrupt or termination signals
-	go func() {
+	// Listen for termination signals in a separate goroutine
+	goutil.Go(s.app.Context(), func(ctx context.Context) {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		sig := <-ch
 		signal.Stop(ch)
 		close(ch)
-		log.Infof(context.Background(), log.TagAppDef, "Received signal: %v", sig)
-		app.ShutDown()
-	}()
+		log.Infof(ctx, log.TagAppDef, "Received signal: %v", sig)
+		s.app.ShutDown()
+	}, false)
 
-	// Wait until shutdown completes
-	s.stopApp()
+	// Wait for shutdown to complete
+	s.app.WaitForShutdown()
+	return nil
 }
 
-// RunAsync starts the application asynchronously and returns a function
-// that can be used to trigger shutdown from outside.
-func (s *AppStarter) RunAsync() (func(), error) {
+// RunAsync runs the application asynchronously and
+// returns a function to stop the application.
+func RunAsync(i any) (stop func(), err error) {
+	return Configure(nil).RunAsync(i)
+}
 
-	// Start application
-	if err := s.startApp(); err != nil {
-		err = util.WrapError(err, "start app failed")
-		log.Errorf(context.Background(), log.TagAppDef, "%s", err)
-		return nil, err
+// RunAsync runs the application asynchronously and
+// returns a function to stop the application.
+func (s *AppStarter) RunAsync(i any) (stop func(), err error) {
+
+	// Register the root bean
+	s.app.Provide(i).
+		Name("__root__").
+		Export(gs.As[any]())
+
+	if err = s.startApp(); err != nil {
+		return func() {}, err
 	}
 
-	// Return a shutdown function
 	return func() {
-		app.ShutDown()
-		s.stopApp()
+		s.app.ShutDown()
+		s.app.WaitForShutdown()
 	}, nil
+}
+
+// RunTest runs a test function using a new application instance.
+// The test function must accept exactly one argument, which must be
+// a pointer to a struct. The struct will be managed as a root bean
+// in the application context.
+func RunTest(t *testing.T, f any) {
+	Configure(nil).RunTest(t, f)
+}
+
+// RunTest runs a user-defined test function with a provided test object.
+// It initializes the application, registers the test object as a bean,
+// starts the application, executes the test, and ensures graceful shutdown.
+func (s *AppStarter) RunTest(t *testing.T, f any) {
+	ft := reflect.TypeOf(f)
+	obj := reflect.New(ft.In(0).Elem())
+
+	stop, err := s.RunAsync(obj.Interface())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { stop() }()
+
+	// Execute the test function
+	reflect.ValueOf(f).Call([]reflect.Value{obj})
 }

@@ -47,9 +47,12 @@ func printBanner() {
 
 	maxLength := 0
 	for s := range strings.SplitSeq(appBanner, "\n") {
-		sb.WriteString("\x1b[36m") // ANSI code for cyan color
-		sb.WriteString(s)
-		sb.WriteString("\x1b[0m\n") // ANSI code to reset color
+		if len(s) > 0 {
+			sb.WriteString("\x1b[36m") // ANSI code for cyan color
+			sb.WriteString(s)
+			sb.WriteString("\x1b[0m") // ANSI code to reset color
+		}
+		sb.WriteString("\n")
 		if len(s) > maxLength {
 			maxLength = len(s)
 		}

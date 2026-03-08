@@ -20,7 +20,7 @@ import (
 	"maps"
 
 	"github.com/expr-lang/expr"
-	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/stdlib/errutil"
 )
 
 // ValidateFunc defines a type for validation functions, which accept
@@ -44,14 +44,14 @@ func validateField(tag string, i any) error {
 	maps.Copy(env, validateFuncs)
 	r, err := expr.Eval(tag, env)
 	if err != nil {
-		return util.FormatError(err, "eval %q returns error", tag)
+		return errutil.Explain(err, "eval %q returns error", tag)
 	}
 	ret, ok := r.(bool)
 	if !ok {
-		return util.FormatError(nil, "eval %q doesn't return bool value", tag)
+		return errutil.Explain(nil, "eval %q doesn't return bool value", tag)
 	}
 	if !ret {
-		return util.FormatError(nil, "validate failed on %q for value %v", tag, i)
+		return errutil.Explain(nil, "validate failed on %q for value %v", tag, i)
 	}
 	return nil
 }

@@ -19,28 +19,28 @@ package gs_util
 import (
 	"container/list"
 
-	"github.com/go-spring/spring-base/util"
+	"github.com/go-spring/stdlib/errutil"
 )
 
 // GetBeforeItems is a function type that returns a list of items
-// that must appear before the given current item in the sorting order.
-type GetBeforeItems func(sorting *list.List, current any) *list.List
+// that the given current item depends on (must be processed before current item).
+type GetBeforeItems func(items *list.List, current any) *list.List
 
-// TripleSort performs a three-way sort (processing, toSort, sorted)
+// TopologicalSort performs topological sorting using three lists (processing, toSort, sorted)
 // to resolve dependencies and return a sorted list.
-// The input `sorting` is a list of all items to be sorted, and `fn` determines dependencies.
-func TripleSort(sorting *list.List, fn GetBeforeItems) (*list.List, error) {
+// The input `items` is a list of all items to be sorted, and `fn` determines dependencies.
+func TopologicalSort(items *list.List, fn GetBeforeItems) (*list.List, error) {
 	toSort := list.New()     // List of items that still need to be sorted.
 	sorted := list.New()     // List of items that have been fully sorted.
 	processing := list.New() // List of items currently being processed.
 
-	// Initialize the toSort list with all elements from the input sorting list.
-	toSort.PushBackList(sorting)
+	// Initialize the toSort list with all elements.
+	toSort.PushBackList(items)
 
 	// Process items in the toSort list until all items are sorted.
 	for toSort.Len() > 0 {
 		// Recursively sort the dependency chain starting with the next item in `toSort`.
-		err := tripleSortByAfter(sorting, toSort, sorted, processing, nil, fn)
+		err := dfsTopoVisit(items, toSort, sorted, processing, nil, fn)
 		if err != nil {
 			return nil, err
 		}
@@ -59,24 +59,24 @@ func searchInList(l *list.List, v any) *list.Element {
 	return nil
 }
 
-// tripleSortByAfter recursively processes an item's dependency chain and adds it to the sorted list.
+// dfsTopoVisit recursively processes the current item and its dependencies using DFS.
 // Parameters:
-// - sorting: The original list of items.
+// - items: The original list of items.
 // - toSort: The list of items to be sorted.
 // - sorted: The list of items that have been sorted.
 // - processing: The list of items currently being processed (to detect cycles).
 // - current: The current item being processed (nil for the first item).
 // - fn: A function that retrieves the list of items that must appear before the current item.
-func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
+func dfsTopoVisit(items *list.List, toSort *list.List, sorted *list.List,
 	processing *list.List, current any, fn GetBeforeItems) error {
 
-	// If no current item is specified, remove and process the first item in the `toSort` list.
+	// If no current item is specified, take the first item from the `toSort` list for processing.
 	if current == nil {
 		current = toSort.Remove(toSort.Front())
 	}
 
 	// Retrieve dependencies for the current item.
-	l := fn(sorting, current)
+	l := fn(items, current)
 
 	// Add the current item to the processing list to mark it as being processed.
 	processing.PushBack(current)
@@ -87,7 +87,7 @@ func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
 
 		// Detect circular dependencies by checking if `c` is already being processed.
 		if searchInList(processing, c) != nil {
-			return util.FormatError(nil, "found sorting cycle") // todo: more details
+			return errutil.Explain(nil, "dependency cycle detected")
 		}
 
 		// Check if the dependency `c` is already sorted or still in the toSort list.
@@ -96,7 +96,7 @@ func tripleSortByAfter(sorting *list.List, toSort *list.List, sorted *list.List,
 
 		// If the dependency is not sorted but still needs sorting, process it recursively.
 		if !inSorted && inToSort {
-			err := tripleSortByAfter(sorting, toSort, sorted, processing, c, fn)
+			err := dfsTopoVisit(items, toSort, sorted, processing, c, fn)
 			if err != nil {
 				return err
 			}

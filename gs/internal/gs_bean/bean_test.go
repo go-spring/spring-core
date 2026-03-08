@@ -24,10 +24,10 @@ import (
 	"testing"
 
 	"github.com/go-spring/gs-mock/gsmock"
-	"github.com/go-spring/spring-base/testing/assert"
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/stdlib/funcutil"
+	"github.com/go-spring/stdlib/testing/assert"
 )
 
 func TestBeanStatus(t *testing.T) {
@@ -67,75 +67,66 @@ func TestBeanDefinition(t *testing.T) {
 		v := reflect.ValueOf(a)
 
 		bean := makeBean(v.Type(), v, nil, "test")
-		assert.That(t, bean.Name()).Equal("test")
-		assert.That(t, bean.Type()).Equal(reflect.TypeFor[*TestBean]())
-		assert.That(t, bean.Value().Interface()).Equal(a)
+		assert.That(t, bean.GetName()).Equal("test")
+		assert.That(t, bean.GetType()).Equal(reflect.TypeFor[*TestBean]())
+		assert.That(t, bean.GetValue().Interface()).Equal(a)
 		assert.That(t, bean.Interface()).Equal(a)
 		assert.That(t, bean.Callable()).Nil()
 
 		bean.SetStatus(StatusCreated)
 		assert.That(t, StatusCreated).Equal(bean.Status())
 
-		bean.SetCaller(1)
+		bean.Caller(1)
 		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:79")
 
-		bean.SetName("test-1")
-		assert.That(t, bean.Name()).Equal("test-1")
-
-		beanType, beanName := bean.TypeAndName()
-		assert.That(t, beanType).Equal(reflect.TypeFor[*TestBean]())
-		assert.That(t, beanName).Equal("test-1")
-		assert.String(t, bean.String()).Matches(`name=test-1 .*/gs/internal/gs_bean/bean_test.go:79`)
-
-		assert.That(t, bean.BeanRuntime.Callable()).Nil()
-		assert.That(t, bean.BeanRuntime.Status()).Equal(StatusWired)
-		assert.That(t, bean.BeanRuntime.String()).Equal("test-1")
+		bean.Name("test-1")
+		assert.That(t, bean.GetName()).Equal("test-1")
 	})
 
 	t.Run("depends on", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
-		selector := gs.BeanSelectorFor[*http.ServeMux]()
-		bean.SetDependsOn(selector)
-		assert.That(t, bean.DependsOn()).Equal([]gs.BeanSelector{selector})
+		selector := gs.BeanIDFor[*http.ServeMux]()
+		bean.DependsOn(selector)
+		assert.That(t, bean.GetDependsOn()).Equal([]gs.BeanID{selector})
 	})
 
 	t.Run("init function", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
 		assert.Panic(t, func() {
-			bean.SetInit(3)
+			bean.Init(3)
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
 		assert.Panic(t, func() {
-			bean.SetInit(func() {})
+			bean.Init(func() {})
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
 		assert.Panic(t, func() {
-			bean.SetInit(func(int, string) {})
+			bean.Init(func(int, string) {})
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
 		assert.Panic(t, func() {
-			bean.SetInit(func(io.Reader) {})
+			bean.Init(func(io.Reader) {})
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
 		assert.Panic(t, func() {
-			bean.SetInit(func(*bytes.Buffer) {})
+			bean.Init(func(*bytes.Buffer) {})
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
-		bean.SetInit(func(TestBeanInterface) {})
+		bean.Init(func(TestBeanInterface) {})
 		assert.Panic(t, func() {
-			bean.SetInit(func(TestBeanInterface) int { return 0 })
+			bean.Init(func(TestBeanInterface) int { return 0 })
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
-		bean.SetInit(func(TestBeanInterface) error { return nil })
+		bean.Init(func(TestBeanInterface) error { return nil })
 		assert.Panic(t, func() {
-			bean.SetInit(func(TestBeanInterface) (int, error) { return 0, nil })
+			bean.Init(func(TestBeanInterface) (int, error) { return 0, nil })
 		}, "init should be func\\(bean\\) or func\\(bean\\)error")
-		bean.SetInit(InitTestBean)
-		assert.That(t, util.FuncName(bean.Init())).Equal("gs_bean.InitTestBean")
-		bean.SetInit(InitTestBeanV2)
-		assert.That(t, util.FuncName(bean.Init())).Equal("gs_bean.InitTestBeanV2")
-		bean.SetInitMethod("Init")
-		assert.That(t, util.FuncName(bean.Init())).Equal("gs_bean.(*TestBean).Init")
-		bean.SetInitMethod("InitV2")
-		assert.That(t, util.FuncName(bean.Init())).Equal("gs_bean.(*TestBean).InitV2")
+		bean.Init(InitTestBean)
+		assert.That(t, funcutil.FuncName(bean.GetInit())).Equal("gs_bean.InitTestBean")
+		bean.Init(InitTestBeanV2)
+		assert.That(t, funcutil.FuncName(bean.GetInit())).Equal("gs_bean.InitTestBeanV2")
+		bean.InitMethod("Init")
+		assert.That(t, funcutil.FuncName(bean.GetInit())).Equal("gs_bean.(*TestBean).Init")
+		bean.InitMethod("InitV2")
+		assert.That(t, funcutil.FuncName(bean.GetInit())).Equal("gs_bean.(*TestBean).InitV2")
 		assert.Panic(t, func() {
-			bean.SetInitMethod("InitV3")
+			bean.InitMethod("InitV3")
 		}, "method InitV3 not found on type \\*gs_bean.TestBean")
 	})
 
@@ -143,53 +134,53 @@ func TestBeanDefinition(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
 		assert.Panic(t, func() {
-			bean.SetDestroy(3)
+			bean.Destroy(3)
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
 		assert.Panic(t, func() {
-			bean.SetDestroy(func() {})
+			bean.Destroy(func() {})
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
 		assert.Panic(t, func() {
-			bean.SetDestroy(func(int, string) {})
+			bean.Destroy(func(int, string) {})
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
 		assert.Panic(t, func() {
-			bean.SetDestroy(func(io.Reader) {})
+			bean.Destroy(func(io.Reader) {})
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
 		assert.Panic(t, func() {
-			bean.SetDestroy(func(*bytes.Buffer) {})
+			bean.Destroy(func(*bytes.Buffer) {})
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
-		bean.SetDestroy(func(TestBeanInterface) {})
+		bean.Destroy(func(TestBeanInterface) {})
 		assert.Panic(t, func() {
-			bean.SetDestroy(func(TestBeanInterface) int { return 0 })
+			bean.Destroy(func(TestBeanInterface) int { return 0 })
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
-		bean.SetDestroy(func(TestBeanInterface) error { return nil })
+		bean.Destroy(func(TestBeanInterface) error { return nil })
 		assert.Panic(t, func() {
-			bean.SetDestroy(func(TestBeanInterface) (int, error) { return 0, nil })
+			bean.Destroy(func(TestBeanInterface) (int, error) { return 0, nil })
 		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
-		bean.SetDestroy(DestroyTestBean)
-		assert.That(t, util.FuncName(bean.Destroy())).Equal("gs_bean.DestroyTestBean")
-		bean.SetDestroy(DestroyTestBeanV2)
-		assert.That(t, util.FuncName(bean.Destroy())).Equal("gs_bean.DestroyTestBeanV2")
-		bean.SetDestroyMethod("Destroy")
-		assert.That(t, util.FuncName(bean.Destroy())).Equal("gs_bean.(*TestBean).Destroy")
-		bean.SetDestroyMethod("DestroyV2")
-		assert.That(t, util.FuncName(bean.Destroy())).Equal("gs_bean.(*TestBean).DestroyV2")
+		bean.Destroy(DestroyTestBean)
+		assert.That(t, funcutil.FuncName(bean.GetDestroy())).Equal("gs_bean.DestroyTestBean")
+		bean.Destroy(DestroyTestBeanV2)
+		assert.That(t, funcutil.FuncName(bean.GetDestroy())).Equal("gs_bean.DestroyTestBeanV2")
+		bean.DestroyMethod("Destroy")
+		assert.That(t, funcutil.FuncName(bean.GetDestroy())).Equal("gs_bean.(*TestBean).Destroy")
+		bean.DestroyMethod("DestroyV2")
+		assert.That(t, funcutil.FuncName(bean.GetDestroy())).Equal("gs_bean.(*TestBean).DestroyV2")
 		assert.Panic(t, func() {
-			bean.SetDestroyMethod("DestroyV3")
+			bean.DestroyMethod("DestroyV3")
 		}, "method DestroyV3 not found on type \\*gs_bean.TestBean")
 	})
 
 	t.Run("export", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
-		bean.SetExport(gs.As[TestBeanInterface]())
+		bean.Export(gs.As[TestBeanInterface]())
 		assert.That(t, len(bean.Exports())).Equal(1)
-		bean.SetExport(gs.As[TestBeanInterface]())
+		bean.Export(gs.As[TestBeanInterface]())
 		assert.That(t, len(bean.Exports())).Equal(1)
 		assert.Panic(t, func() {
-			bean.SetExport(reflect.TypeFor[int]())
+			bean.Export(reflect.TypeFor[int]())
 		}, "only interface type can be exported")
 		assert.Panic(t, func() {
-			bean.SetExport(reflect.TypeFor[io.Reader]())
+			bean.Export(reflect.TypeFor[io.Reader]())
 		}, "doesn't implement interface io.Reader")
 	})
 
@@ -263,26 +254,18 @@ func TestBeanDefinition(t *testing.T) {
 	t.Run("configuration", func(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
-		assert.That(t, bean.Configuration()).Nil()
+		assert.That(t, bean.GetConfiguration()).Nil()
 
-		bean.SetConfiguration()
-		assert.That(t, bean.Configuration()).NotNil()
-		assert.That(t, bean.Configuration().Includes).Nil()
-		assert.That(t, bean.Configuration().Excludes).Nil()
+		bean.Configuration()
+		assert.That(t, bean.GetConfiguration()).NotNil()
+		assert.That(t, bean.GetConfiguration().Includes).Nil()
+		assert.That(t, bean.GetConfiguration().Excludes).Nil()
 
-		bean.SetConfiguration(gs.Configuration{
+		bean.Configuration(Configuration{
 			Includes: []string{"New.*"},
 		})
-		assert.That(t, bean.Configuration()).NotNil()
-		assert.That(t, bean.Configuration().Includes).Equal([]string{"New.*"})
-	})
-
-	t.Run("mock success", func(t *testing.T) {
-		v := reflect.ValueOf(&bytes.Buffer{})
-		bean := makeBean(v.Type(), v, nil, "test")
-		bean.SetExport(gs.As[io.Writer]())
-		bean.SetMock(bytes.NewBufferString(""))
-		assert.That(t, bean.Mocked()).True()
+		assert.That(t, bean.GetConfiguration()).NotNil()
+		assert.That(t, bean.GetConfiguration().Includes).Equal([]string{"New.*"})
 	})
 }
 
@@ -308,24 +291,21 @@ func TestNewBean(t *testing.T) {
 
 	t.Run("object", func(t *testing.T) {
 		bean := NewBean(&TestBean{})
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("TestBean")
-		assert.That(t, beanX.Type()).Equal(reflect.TypeFor[*TestBean]())
+		assert.That(t, bean.GetName()).Equal("TestBean")
+		assert.That(t, bean.GetType()).Equal(reflect.TypeFor[*TestBean]())
 	})
 
 	t.Run("object by reflect.Value", func(t *testing.T) {
 		bean := NewBean(reflect.ValueOf(&TestBean{}))
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("TestBean")
-		assert.That(t, beanX.Type()).Equal(reflect.TypeFor[*TestBean]())
+		assert.That(t, bean.GetName()).Equal("TestBean")
+		assert.That(t, bean.GetType()).Equal(reflect.TypeFor[*TestBean]())
 	})
 
 	t.Run("function by reflect.Value", func(t *testing.T) {
 		fn := func(int, int) string { return "" }
 		bean := NewBean(reflect.ValueOf(fn)).Name("TestFunc")
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("TestFunc")
-		assert.That(t, beanX.Type()).Equal(reflect.TypeOf(fn))
+		assert.That(t, bean.GetName()).Equal("TestFunc")
+		assert.That(t, bean.GetType()).Equal(reflect.TypeFor[func(int, int) string]())
 	})
 
 	t.Run("constructor error", func(t *testing.T) {
@@ -354,63 +334,53 @@ func TestNewBean(t *testing.T) {
 	t.Run("constructor success", func(t *testing.T) {
 		fn := func(int, int) *TestBean { return nil }
 		bean := NewBean(fn).Name("NewTestBean")
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("NewTestBean")
-		assert.That(t, beanX.Type()).Equal(reflect.TypeFor[*TestBean]())
+		assert.That(t, bean.GetName()).Equal("NewTestBean")
+		assert.That(t, bean.GetType()).Equal(reflect.TypeFor[*TestBean]())
 	})
 
 	t.Run("method - 1", func(t *testing.T) {
 		bean := NewBean((*TestBean).Clone)
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("Clone")
-		assert.That(t, len(beanX.Conditions())).Equal(1)
+		assert.That(t, bean.GetName()).Equal("Clone")
+		assert.That(t, len(bean.Conditions())).Equal(1)
 	})
 
 	t.Run("method - 2", func(t *testing.T) {
 		parent := NewBean(&TestBean{})
 		bean := NewBean((*TestBean).Clone, parent)
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("Clone")
-		assert.That(t, len(beanX.Conditions())).Equal(1)
+		assert.That(t, bean.GetName()).Equal("Clone")
+		assert.That(t, len(bean.Conditions())).Equal(1)
 	})
 
 	t.Run("method - 3", func(t *testing.T) {
 		parent := NewBean(&TestBean{})
 		bean := NewBean((*TestBean).Clone, gs_arg.Index(0, parent))
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("Clone")
-		assert.That(t, len(beanX.Conditions())).Equal(1)
+		assert.That(t, bean.GetName()).Equal("Clone")
+		assert.That(t, len(bean.Conditions())).Equal(1)
 	})
 
 	t.Run("method - 4", func(t *testing.T) {
-		parent := gs.NewRegisteredBean(
-			NewBean(&TestBean{}).BeanRegistration(),
-		)
+		parent := NewBean(&TestBean{})
 		bean := NewBean((*TestBean).Clone, parent)
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("Clone")
-		assert.That(t, len(beanX.Conditions())).Equal(1)
+		assert.That(t, bean.GetName()).Equal("Clone")
+		assert.That(t, len(bean.Conditions())).Equal(1)
 	})
 
 	t.Run("method - 5", func(t *testing.T) {
-		parent := gs.NewRegisteredBean(
-			NewBean(&TestBean{}).BeanRegistration(),
-		)
+		parent := NewBean(&TestBean{})
 		bean := NewBean((*TestBean).Clone, gs_arg.Index(0, parent))
-		beanX := bean.BeanRegistration().(*BeanDefinition)
-		assert.That(t, beanX.Name()).Equal("Clone")
-		assert.That(t, len(beanX.Conditions())).Equal(1)
+		assert.That(t, bean.GetName()).Equal("Clone")
+		assert.That(t, len(bean.Conditions())).Equal(1)
 	})
 
 	t.Run("method error - 1", func(t *testing.T) {
 		assert.Panic(t, func() {
 			NewBean((*TestBean).Clone, gs_arg.Tag(""))
-		}, "ctorArgs\\[0] should be \\*RegisteredBean or \\*BeanDefinition or IndexArg\\[0]")
+		}, "ctorArgs\\[0] should be \\*BeanDefinition or IndexArg\\[0]")
 	})
 
 	t.Run("method error - 2", func(t *testing.T) {
 		assert.Panic(t, func() {
 			NewBean((*TestBean).Clone, gs_arg.Index(0, gs_arg.Tag("")))
-		}, "the arg of IndexArg\\[0] should be \\*RegisteredBean or \\*BeanDefinition")
+		}, "the arg of IndexArg\\[0] should be \\*BeanDefinition")
 	})
 }

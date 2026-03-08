@@ -18,7 +18,6 @@ package gs_arg
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -26,9 +25,10 @@ import (
 	"testing"
 
 	"github.com/go-spring/gs-mock/gsmock"
-	"github.com/go-spring/spring-base/testing/assert"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/testing/assert"
 )
 
 func TestTagArg(t *testing.T) {
@@ -65,7 +65,7 @@ func TestTagArg(t *testing.T) {
 		m := gsmock.NewManager()
 		c := gs.NewArgContextMockImpl(m)
 		c.MockBind().Handle(func(v reflect.Value, s string) error {
-			return errors.New("bind error")
+			return errutil.Explain(nil, "bind error")
 		})
 
 		tag := Tag("${int:=3}")
@@ -91,7 +91,7 @@ func TestTagArg(t *testing.T) {
 		m := gsmock.NewManager()
 		c := gs.NewArgContextMockImpl(m)
 		c.MockWire().Handle(func(v reflect.Value, s string) error {
-			return errors.New("wire error")
+			return errutil.Explain(nil, "wire error")
 		})
 
 		tag := Tag("server")
@@ -172,7 +172,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("mixed index and non-index args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Index(0, Value(1)),
 			Value("test"),
@@ -182,7 +182,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("mixed non-index and index args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Index(1, Value("test")),
@@ -192,7 +192,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("negative argument index", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Index(-1, Value(1)),
 		}
@@ -201,7 +201,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("out of range argument index", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Index(2, Value(1)),
 		}
@@ -210,7 +210,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("non-index args success", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test"),
@@ -225,7 +225,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("index args success", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Index(0, Value(1)),
 			Index(1, Value("test")),
@@ -240,7 +240,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("variadic success with non-index args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		fnType := reflect.TypeFor[func(a int, b ...string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test1"),
@@ -257,7 +257,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("variadic success with indexed args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		fnType := reflect.TypeFor[func(a int, b ...string)]()
 		args := []gs.Arg{
 			Index(0, Value(1)),
 			Index(1, Value("test1")),
@@ -274,7 +274,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("variadic success with partial indexed args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a error, b ...string) {})
+		fnType := reflect.TypeFor[func(a error, b ...string)]()
 		args := []gs.Arg{
 			Index(1, Value("test1")),
 			Index(1, Value("test2")),
@@ -290,7 +290,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("function with no parameters", func(t *testing.T) {
-		fnType := reflect.TypeOf(func() {})
+		fnType := reflect.TypeFor[func()]()
 		var args []gs.Arg
 		argList, err := NewArgList(fnType, args)
 		assert.That(t, err).Nil()
@@ -299,7 +299,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("too many arguments for non-variadic function", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test"),
@@ -313,7 +313,7 @@ func TestArgList_New(t *testing.T) {
 func TestArgList_Get(t *testing.T) {
 
 	t.Run("success with non-variadic function", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test"),
@@ -330,7 +330,7 @@ func TestArgList_Get(t *testing.T) {
 	})
 
 	t.Run("success with variadic function", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		fnType := reflect.TypeFor[func(a int, b ...string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test1"),
@@ -349,7 +349,7 @@ func TestArgList_Get(t *testing.T) {
 	})
 
 	t.Run("error when getting arg value", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value(2),
@@ -363,7 +363,7 @@ func TestArgList_Get(t *testing.T) {
 	})
 
 	t.Run("variadic function with no extra args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		fnType := reflect.TypeFor[func(a int, b ...string)]()
 		args := []gs.Arg{
 			Value(1),
 			// No extra args
@@ -379,7 +379,7 @@ func TestArgList_Get(t *testing.T) {
 	})
 
 	t.Run("function with any parameter", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a any) {})
+		fnType := reflect.TypeFor[func(a any)]()
 		args := []gs.Arg{
 			Value("test"),
 		}
@@ -458,7 +458,7 @@ func TestCallable_Call(t *testing.T) {
 
 	t.Run("function return error", func(t *testing.T) {
 		fn := func(a int, b string) (string, error) {
-			return "", errors.New("execution error")
+			return "", errutil.Explain(nil, "execution error")
 		}
 		args := []gs.Arg{
 			Value(1),
@@ -724,7 +724,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 
 	t.Run("error in function execution", func(t *testing.T) {
 		fn := func(a int, b string) (string, error) {
-			return "", errors.New("execution error")
+			return "", errutil.Explain(nil, "execution error")
 		}
 		args := []gs.Arg{
 			Value(1),
@@ -777,7 +777,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		}
 		arg := Bind(fn, args...)
 		arg.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
-			return false, errors.New("condition error")
+			return false, errutil.Explain(nil, "condition error")
 		}))
 
 		m := gsmock.NewManager()

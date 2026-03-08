@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-spring/spring-base/testing/assert"
+	"github.com/go-spring/stdlib/testing/assert"
 )
 
 func TestAs(t *testing.T) {
@@ -42,18 +42,16 @@ func TestAs(t *testing.T) {
 func TestBeanSelector(t *testing.T) {
 
 	t.Run("no name", func(t *testing.T) {
-		s := BeanSelectorFor[io.Reader]()
-		typ, name := s.TypeAndName()
-		assert.That(t, name).Equal("")
-		assert.That(t, typ).Equal(reflect.TypeFor[io.Reader]())
+		s := BeanIDFor[io.Reader]()
+		assert.That(t, s.Name).Equal("")
+		assert.That(t, s.Type).Equal(reflect.TypeFor[io.Reader]())
 		assert.That(t, fmt.Sprint(s)).Equal("{Type:io.Reader}")
 	})
 
 	t.Run("with name", func(t *testing.T) {
-		s := BeanSelectorFor[io.Writer]("writer")
-		typ, name := s.TypeAndName()
-		assert.That(t, name).Equal("writer")
-		assert.That(t, typ).Equal(reflect.TypeFor[io.Writer]())
+		s := BeanIDFor[io.Writer]("writer")
+		assert.That(t, s.Name).Equal("writer")
+		assert.That(t, s.Type).Equal(reflect.TypeFor[io.Writer]())
 		assert.That(t, fmt.Sprint(s)).Equal("{Type:io.Writer,Name:writer}")
 	})
 }

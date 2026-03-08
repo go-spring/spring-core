@@ -28,26 +28,17 @@ import (
 	"testing"
 
 	"github.com/go-spring/log"
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
-	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
+	"github.com/go-spring/stdlib/patchutil"
+	"github.com/go-spring/stdlib/typeutil"
 	"github.com/spf13/cast"
 )
-
-// BeanRuntime defines an interface that provides runtime metadata.
-type BeanRuntime interface {
-	Name() string               // The name of the bean
-	Type() reflect.Type         // The reflect.Type of the bean
-	Value() reflect.Value       // The reflect.Value of the bean
-	Interface() any             // The underlying Go interface of the bean
-	Callable() *gs_arg.Callable // Optional constructor or factory metadata
-	Status() gs_bean.BeanStatus // Lifecycle status of the bean
-	String() string             // A readable string representation
-}
 
 // refreshState represents the state of a refresh operation.
 type refreshState int
@@ -61,21 +52,21 @@ const (
 // Injecting is the IoC component that handles dependency injection and
 // lifecycle management for beans once they have been resolved.
 type Injecting struct {
-	p           *gs_dync.Properties            // Dynamic properties provider
-	beansByName map[string][]BeanRuntime       // Beans indexed by name
-	beansByType map[reflect.Type][]BeanRuntime // Beans indexed by type
-	destroyers  []func()                       // Cleanup functions in reverse order
+	p           *gs_dync.Properties                        // Dynamic properties provider
+	beansByName map[string][]*gs_bean.BeanDefinition       // Beans indexed by name
+	beansByType map[reflect.Type][]*gs_bean.BeanDefinition // Beans indexed by type
+	destroyers  []func()                                   // Cleanup functions in reverse order
 }
 
 // New creates a new Injecting instance.
-func New(p conf.Properties) *Injecting {
+func New(p flatten.Storage) *Injecting {
 	return &Injecting{
 		p: gs_dync.New(p),
 	}
 }
 
 // RefreshProperties updates the dynamic property source for the container.
-func (c *Injecting) RefreshProperties(p conf.Properties) error {
+func (c *Injecting) RefreshProperties(p flatten.Storage) error {
 	return c.p.Refresh(p)
 }
 
@@ -88,15 +79,17 @@ func (c *Injecting) RefreshProperties(p conf.Properties) error {
 //  4. Captures all registered destroyer callbacks for proper shutdown order.
 //  5. Optionally cleans up metadata if running outside testing.
 func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) {
-	allowCircularReferences := cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
-	forceAutowireIsNullable := cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
+	str1, _ := c.p.Data().Value("spring.allow-circular-references")
+	allowCircularReferences := cast.ToBool(str1)
+	str2, _ := c.p.Data().Value("spring.force-autowire-is-nullable")
+	forceAutowireIsNullable := cast.ToBool(str2)
 
 	// Index beans by name and type for lookup
-	c.beansByName = make(map[string][]BeanRuntime)
-	c.beansByType = make(map[reflect.Type][]BeanRuntime)
+	c.beansByName = make(map[string][]*gs_bean.BeanDefinition)
+	c.beansByType = make(map[reflect.Type][]*gs_bean.BeanDefinition)
 	for _, b := range beans {
-		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b)
-		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b)
+		c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b)
+		c.beansByType[b.GetType()] = append(c.beansByType[b.GetType()], b)
 		for _, t := range b.Exports() { // Register additional exported types
 			c.beansByType[t] = append(c.beansByType[t], b)
 		}
@@ -107,7 +100,7 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 		// If an error occurred, or there are unresolved beans in the stack,
 		// enrich the error message with the dependency path for easier debugging.
 		if err != nil || len(stack.beans) > 0 {
-			err = util.FormatError(nil, "%s ↩\n%s", err, stack.Path())
+			err = errutil.Explain(nil, "%s ↩\n%s", err, stack.Path())
 			log.Errorf(context.Background(), log.TagAppDef, "%s", err)
 		}
 	}()
@@ -138,14 +131,15 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 			}
 		}
 	} else if len(stack.lazyFields) > 0 {
-		return util.FormatError(nil, "found circular autowire")
+		return errutil.Explain(nil, "found circular autowire")
 	}
 
 	// Step 3: Collect destroyer callbacks in dependency-safe order.
 	c.destroyers = stack.getSortedDestroyers()
 
 	// Optional cleanup in non-testing environments.
-	forceClean := cast.ToBool(c.p.Data().Get("spring.force-clean"))
+	str3, _ := c.p.Data().Value("spring.force-clean")
+	forceClean := cast.ToBool(str3)
 	if !testing.Testing() || forceClean {
 		if c.p.ObjectsCount() == 0 {
 			c.p = nil
@@ -153,17 +147,6 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 		c.beansByName = nil
 		c.beansByType = nil
 		return nil
-	}
-
-	// In testing mode, retain bean indexes to allow further Wire() calls.
-	c.beansByName = make(map[string][]BeanRuntime)
-	c.beansByType = make(map[reflect.Type][]BeanRuntime)
-	for _, b := range beans {
-		c.beansByName[b.Name()] = append(c.beansByName[b.Name()], b.BeanRuntime)
-		c.beansByType[b.Type()] = append(c.beansByType[b.Type()], b.BeanRuntime)
-		for _, t := range b.Exports() {
-			c.beansByType[t] = append(c.beansByType[t], b.BeanRuntime)
-		}
 	}
 	return nil
 }
@@ -204,24 +187,23 @@ func (c *Injecting) Close() {
 // Injector is the component that executes core autowiring and
 // bean lifecycle management (constructor, field, and method injection).
 type Injector struct {
-	state                   refreshState                   // Current wiring state
-	p                       *gs_dync.Properties            // Property resolver
-	beansByName             map[string][]BeanRuntime       // Beans indexed by name
-	beansByType             map[reflect.Type][]BeanRuntime // Beans indexed by type
-	forceAutowireIsNullable bool                           // Treat missing references as nullable
+	state                   refreshState                               // Current wiring state
+	p                       *gs_dync.Properties                        // Property resolver
+	beansByName             map[string][]*gs_bean.BeanDefinition       // Beans indexed by name
+	beansByType             map[reflect.Type][]*gs_bean.BeanDefinition // Beans indexed by type
+	forceAutowireIsNullable bool                                       // Treat missing references as nullable
 }
 
 // findBeans retrieves all beans that match a given selector.
-func (c *Injector) findBeans(s gs.BeanSelector) []BeanRuntime {
-	t, name := s.TypeAndName()
-	var beans []BeanRuntime
-	if t != nil {
-		beans = c.beansByType[t]
+func (c *Injector) findBeans(beanID gs.BeanID) []*gs_bean.BeanDefinition {
+	var beans []*gs_bean.BeanDefinition
+	if beanID.Type != nil {
+		beans = c.beansByType[beanID.Type]
 	}
-	if name != "" {
-		var ret []BeanRuntime
+	if beanID.Name != "" {
+		var ret []*gs_bean.BeanDefinition
 		for _, b := range beans {
-			if name == b.Name() {
+			if beanID.Name == b.GetName() {
 				ret = append(ret, b)
 			}
 		}
@@ -275,29 +257,16 @@ func toWireString(tags []WireTag) string {
 // getBean locates a single bean that matches the given type and WireTag.
 // If the container is still in the Refreshing state, the matched bean will
 // be wired before it is returned.
-func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRuntime, error) {
+func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (*gs_bean.BeanDefinition, error) {
 	// Ensure the target type is valid for injection.
-	if !util.IsBeanInjectionTarget(t) {
-		return nil, util.FormatError(nil, "%s is not a valid receiver type", t.String())
+	if !typeutil.IsBeanInjectionTarget(t) {
+		return nil, errutil.Explain(nil, "%s is not a valid receiver type", t.String())
 	}
 
-	var foundBeans []BeanRuntime
+	var foundBeans []*gs_bean.BeanDefinition
 	for _, b := range c.beansByType[t] {
-		if tag.beanName == "" || tag.beanName == b.Name() {
+		if tag.beanName == "" || tag.beanName == b.GetName() {
 			foundBeans = append(foundBeans, b)
-		}
-	}
-
-	// Special handling for interface types with explicit bean names.
-	if t.Kind() == reflect.Interface && tag.beanName != "" {
-		for _, b := range c.beansByName[tag.beanName] {
-			if !b.Type().AssignableTo(t) {
-				continue
-			}
-			if !slices.Contains(foundBeans, b) {
-				foundBeans = append(foundBeans, b)
-				log.Warnf(context.Background(), log.TagAppDef, "call Export() on %s", b)
-			}
 		}
 	}
 
@@ -305,7 +274,7 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 		if tag.nullable {
 			return nil, nil
 		}
-		return nil, util.FormatError(nil, "can't find bean, bean:%q type:%q", tag, t)
+		return nil, errutil.Explain(nil, "can't find bean, bean:%q type:%q", tag, t)
 	}
 
 	if len(foundBeans) > 1 {
@@ -314,12 +283,12 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 			msg += "( " + b.String() + " ), "
 		}
 		msg = msg[:len(msg)-2] + "]"
-		return nil, util.FormatError(nil, "%s", msg)
+		return nil, errutil.Explain(nil, "%s", msg)
 	}
 
 	b := foundBeans[0]
 	if c.state == Refreshing {
-		if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
+		if err := c.wireBean(b, stack); err != nil {
 			return nil, err
 		}
 	}
@@ -328,11 +297,11 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (BeanRunti
 
 // getBeans retrieves a slice or map of beans that match the required element type and optional WireTags.
 // It supports filtering and ordering via tags, including the "*" wildcard to include unordered beans.
-func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]BeanRuntime, error) {
+func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]*gs_bean.BeanDefinition, error) {
 
 	et := t.Elem()
-	if !util.IsBeanInjectionTarget(et) {
-		return nil, util.FormatError(nil, "%s is not a valid receiver type", t.String())
+	if !typeutil.IsBeanInjectionTarget(et) {
+		return nil, errutil.Explain(nil, "%s is not a valid receiver type", t.String())
 	}
 
 	beans := c.beansByType[et]
@@ -350,7 +319,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 			// If we see the "*" wildcard, record its presence
 			if item.beanName == "*" {
 				if foundAny {
-					return nil, util.FormatError(nil, "more than one * in collection %q", tags)
+					return nil, errutil.Explain(nil, "more than one * in collection %q", tags)
 				}
 				foundAny = true
 				continue
@@ -359,7 +328,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 			// Find beans with the specified name
 			var founds []int
 			for i, b := range beans {
-				if item.beanName == b.Name() {
+				if item.beanName == b.GetName() {
 					founds = append(founds, i)
 				}
 			}
@@ -371,7 +340,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 					msg += "( " + beans[i].String() + " ), "
 				}
 				msg = msg[:len(msg)-2] + "]"
-				return nil, util.FormatError(nil, "%s", msg)
+				return nil, errutil.Explain(nil, "%s", msg)
 			}
 
 			// Error if no matching bean is found (unless the tag is nullable)
@@ -379,7 +348,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 				if item.nullable {
 					continue
 				}
-				return nil, util.FormatError(nil, "can't find bean, bean:%q type:%q", item, t)
+				return nil, errutil.Explain(nil, "can't find bean, bean:%q type:%q", item, t)
 			}
 
 			// Classify beans as before or after the '*'
@@ -403,7 +372,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 
 		// Assemble beans in the correct order: beforeAny -> anyBeans -> afterAny
 		n := len(beforeAny) + len(anyBeans) + len(afterAny)
-		arr := make([]BeanRuntime, 0, n)
+		arr := make([]*gs_bean.BeanDefinition, 0, n)
 		for _, i := range beforeAny {
 			arr = append(arr, beans[i])
 		}
@@ -422,13 +391,13 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 		if nullable {
 			return nil, nil
 		}
-		return nil, util.FormatError(nil, "no beans collected for %q", toWireString(tags))
+		return nil, errutil.Explain(nil, "no beans collected for %q", toWireString(tags))
 	}
 
 	// If the container is in the refreshing state, wire the beans before returning them
 	if c.state == Refreshing {
 		for _, b := range beans {
-			if err := c.wireBean(b.(*gs_bean.BeanDefinition), stack); err != nil {
+			if err := c.wireBean(b, stack); err != nil {
 				return nil, err
 			}
 		}
@@ -439,7 +408,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 // autowire injects dependencies into a single field or a collection (slice/map) based on its kind and tag.
 func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 	// Resolve placeholder expressions (e.g., ${...}) from configuration
-	str, err := c.p.Data().Resolve(str)
+	str, err := conf.ResolveString(c.p.Data(), str)
 	if err != nil {
 		return err
 	}
@@ -484,17 +453,17 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 			case reflect.Slice:
 				// Sort beans by name for deterministic order
 				sort.Slice(beans, func(i, j int) bool {
-					return beans[i].Name() < beans[j].Name()
+					return beans[i].GetName() < beans[j].GetName()
 				})
 				ret := reflect.MakeSlice(v.Type(), 0, 0)
 				for _, b := range beans {
-					ret = reflect.Append(ret, b.Value())
+					ret = reflect.Append(ret, b.GetValue())
 				}
 				v.Set(ret)
 			case reflect.Map:
 				ret := reflect.MakeMap(v.Type())
 				for _, b := range beans {
-					ret.SetMapIndex(reflect.ValueOf(b.Name()), b.Value())
+					ret.SetMapIndex(reflect.ValueOf(b.GetName()), b.GetValue())
 				}
 				v.Set(ret)
 			default: // for linter
@@ -512,7 +481,7 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 			return err
 		}
 		if b != nil {
-			v.Set(b.Value())
+			v.Set(b.GetValue())
 		}
 		return nil
 	}
@@ -532,7 +501,7 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	}()
 
 	// If the bean has a destroy callback, record it for later execution
-	if b.Destroy() != nil {
+	if b.GetDestroy() != nil {
 		haveDestroy = true
 		stack.pushDestroyer(b)
 	}
@@ -542,7 +511,7 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	// Detect circular dependencies
 	if b.Status() == gs_bean.StatusCreating && b.Callable() != nil {
 		if slices.Contains(stack.beans, b) {
-			return util.FormatError(nil, "found circular autowire")
+			return errutil.Explain(nil, "found circular autowire")
 		}
 	}
 
@@ -556,10 +525,10 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	b.SetStatus(gs_bean.StatusCreating)
 
 	// Wire all dependent beans before creating the current bean
-	for _, s := range b.DependsOn() {
+	for _, s := range b.GetDependsOn() {
 		beans := c.findBeans(s)
 		for _, d := range beans {
-			err := c.wireBean(d.(*gs_bean.BeanDefinition), stack)
+			err := c.wireBean(d, stack)
 			if err != nil {
 				return err
 			}
@@ -574,8 +543,8 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	b.SetStatus(gs_bean.StatusCreated)
 
-	// If the bean is valid and not mocked, inject its internal dependencies
-	if v.IsValid() && !b.Mocked() {
+	// If the bean is valid, inject its internal dependencies
+	if v.IsValid() {
 
 		// Perform field-level wiring on the bean value
 		if err = c.wireBeanValue(v, v.Type(), stack); err != nil {
@@ -583,9 +552,9 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 		}
 
 		// Invoke the bean's initialization method if defined
-		if b.Init() != nil {
-			fnValue := reflect.ValueOf(b.Init())
-			out := fnValue.Call([]reflect.Value{b.Value()})
+		if b.GetInit() != nil {
+			fnValue := reflect.ValueOf(b.GetInit())
+			out := fnValue.Call([]reflect.Value{b.GetValue()})
 			if len(out) > 0 && !out[0].IsNil() {
 				return out[0].Interface().(error)
 			}
@@ -599,11 +568,11 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 }
 
 // getBeanValue invokes the constructor (if present) of a bean and handles return values and errors.
-func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, error) {
+func (c *Injector) getBeanValue(b *gs_bean.BeanDefinition, stack *Stack) (reflect.Value, error) {
 
 	// If there is no constructor, return the pre-existing value
 	if b.Callable() == nil {
-		return b.Value(), nil
+		return b.GetValue(), nil
 	}
 
 	// Invoke the constructor
@@ -617,7 +586,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 	}
 
 	// Check if the last return value is an error
-	if o := out[len(out)-1]; util.IsErrorType(o.Type()) {
+	if o := out[len(out)-1]; typeutil.IsErrorType(o.Type()) {
 		if err, ok := o.Interface().(error); ok && err != nil {
 			if c.forceAutowireIsNullable {
 				log.Warnf(context.Background(), log.TagAppDef, "autowire error: %v", err)
@@ -628,26 +597,26 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 	}
 
 	// Assign the returned value to the bean
-	if val := out[0]; util.IsBeanType(val.Type()) {
+	if val := out[0]; typeutil.IsBeanType(val.Type()) {
 		// Convert interface values to pointers if necessary
-		if !val.IsNil() && val.Kind() == reflect.Interface && util.IsPropBindingTarget(val.Elem().Type()) {
+		if !val.IsNil() && val.Kind() == reflect.Interface && typeutil.IsPropBindingTarget(val.Elem().Type()) {
 			v := reflect.New(val.Elem().Type())
 			v.Elem().Set(val.Elem())
-			b.Value().Set(v)
+			b.GetValue().Set(v)
 		} else {
-			b.Value().Set(val)
+			b.GetValue().Set(val)
 		}
 	} else {
-		b.Value().Elem().Set(val)
+		b.GetValue().Elem().Set(val)
 	}
 
 	// Ensure the value is not nil
-	if b.Value().IsNil() {
-		return reflect.Value{}, util.FormatError(nil, "%s return nil", b.String())
+	if b.GetValue().IsNil() {
+		return reflect.Value{}, errutil.Explain(nil, "%s return nil", b.String())
 	}
 
 	// If the value is an interface, unwrap it
-	v := b.Value()
+	v := b.GetValue()
 	if v.Kind() == reflect.Interface {
 		v = v.Elem()
 	}
@@ -658,7 +627,7 @@ func (c *Injector) getBeanValue(b BeanRuntime, stack *Stack) (reflect.Value, err
 func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) error {
 
 	// Dereference pointers to obtain the underlying struct
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 		t = t.Elem()
 	}
@@ -686,7 +655,7 @@ func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPara
 
 		// Patch unexported fields so they can be set via reflection
 		if !fv.CanInterface() {
-			fv = util.PatchValue(fv)
+			fv = patchutil.PatchValue(fv)
 		}
 
 		fieldPath := opt.Path + "." + ft.Name
@@ -703,7 +672,7 @@ func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPara
 				stack.lazyFields = append(stack.lazyFields, f)
 			} else {
 				if err := c.autowire(fv, tag, stack); err != nil {
-					return util.FormatError(err, "%q wired error", fieldPath)
+					return errutil.Explain(err, "%q wired error", fieldPath)
 				}
 			}
 			continue
@@ -820,7 +789,7 @@ func (s *Stack) Path() (path string) {
 // pushDestroyer registers a destroyer for the given bean.
 // It also records dependencies so that beans are destroyed in the correct order.
 func (s *Stack) pushDestroyer(b *gs_bean.BeanDefinition) {
-	beanID := gs.BeanID{Name: b.Name(), Type: b.Type()}
+	beanID := gs.BeanID{Name: b.GetName(), Type: b.GetType()}
 
 	// Get or create the destroyer entry for this bean
 	d, ok := s.destroyerMap[beanID]
@@ -880,13 +849,13 @@ func (s *Stack) getSortedDestroyers() []func() {
 
 	// Perform a topological sort to respect dependencies
 	// (e.g. a bean must be destroyed after the beans it depends on)
-	destroyers, _ = gs_util.TripleSort(destroyers, getBeforeDestroyers)
+	destroyers, _ = gs_util.TopologicalSort(destroyers, getBeforeDestroyers)
 
 	// Convert the sorted destroyers into a slice of executable cleanup functions
 	var ret []func()
 	for e := destroyers.Front(); e != nil; e = e.Next() {
 		d := e.Value.(*destroyer).current
-		ret = append(ret, destroy(d.Value(), d.Destroy()))
+		ret = append(ret, destroy(d.GetValue(), d.GetDestroy()))
 	}
 	return ret
 }
@@ -906,17 +875,24 @@ func NewArgContext(c *Injector, stack *Stack) *ArgContext {
 
 // Has checks whether a configuration key is present.
 func (a *ArgContext) Has(key string) bool {
-	return a.c.p.Data().Has(key)
+	return a.c.p.Data().Exists(key)
 }
 
 // Prop retrieves a property value, with optional default.
 func (a *ArgContext) Prop(key string, def ...string) string {
-	return a.c.p.Data().Get(key, def...)
+	str, ok := a.c.p.Data().Value(key)
+	if ok {
+		return str
+	}
+	if len(def) > 0 {
+		return def[0]
+	}
+	return ""
 }
 
 // Find retrieves beans matching the given selector.
-func (a *ArgContext) Find(s gs.BeanSelector) ([]gs.ConditionBean, error) {
-	beans := a.c.findBeans(s)
+func (a *ArgContext) Find(beanID gs.BeanID) ([]gs.ConditionBean, error) {
+	beans := a.c.findBeans(beanID)
 	var ret []gs.ConditionBean
 	for _, bean := range beans {
 		ret = append(ret, bean)
@@ -932,7 +908,7 @@ func (a *ArgContext) Check(c gs.Condition) (bool, error) {
 // Bind binds configuration data into the provided reflect.Value
 // based on the given struct tag.
 func (a *ArgContext) Bind(v reflect.Value, tag string) error {
-	return a.c.p.Data().Bind(v, tag)
+	return conf.Bind(a.c.p.Data(), v, tag)
 }
 
 // Wire performs dependency injection on the given reflect.Value

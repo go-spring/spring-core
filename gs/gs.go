@@ -17,19 +17,19 @@
 package gs
 
 import (
-	"context"
 	"reflect"
 	"runtime"
 	"strings"
 
-	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_app"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
+	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
-	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
+	"github.com/go-spring/spring-core/gs/internal/gs_init"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 const (
@@ -37,21 +37,15 @@ const (
 	Website = "https://github.com/go-spring/"
 )
 
+// BeanID represents a selector for a bean.
+type BeanID = gs.BeanID
+
 // Dync is a generic alias for a dynamic configuration value.
 // It represents a property that can change at runtime.
 type Dync[T any] = gs_dync.Value[T]
 
-// BeanSelector is an alias for gs.BeanSelector used to locate beans
-// within the ioc context.
-type BeanSelector = gs.BeanSelector
-
-// BeanSelectorFor creates a BeanSelector for the specified type T
-// and optional bean name.
-func BeanSelectorFor[T any](name ...string) BeanSelector {
-	return gs.BeanSelectorFor[T](name...)
-}
-
-// As returns the [reflect.Type] for a given interface type T.
+// As returns the [reflect.Type] of an interface T.
+// T is expected to be an interface type.
 func As[T any]() reflect.Type {
 	return gs.As[T]()
 }
@@ -93,8 +87,8 @@ type (
 	// ConditionContext provides the evaluation context for a Condition.
 	ConditionContext = gs.ConditionContext
 
-	// ConditionOnProperty is a convenience wrapper for property-based conditions.
-	ConditionOnProperty = gs_cond.ConditionOnProperty
+	// PropertyCondition is a convenience wrapper for property-based conditions.
+	PropertyCondition = gs_cond.PropertyCondition
 )
 
 // OnOnce wraps the given conditions so they are evaluated only once.
@@ -120,7 +114,7 @@ func OnFunc(fn func(ctx ConditionContext) (bool, error)) Condition {
 }
 
 // OnProperty creates a property-based condition.
-func OnProperty(name string) ConditionOnProperty {
+func OnProperty(name string) PropertyCondition {
 	return gs_cond.OnProperty(name)
 }
 
@@ -141,6 +135,7 @@ func OnSingleBean[T any](name ...string) Condition {
 
 // RegisterExpressFunc registers a custom expression function
 // that can be used inside conditional expressions.
+// It should be called during application initialization.
 func RegisterExpressFunc(name string, fn any) {
 	gs_cond.RegisterExpressFunc(name, fn)
 }
@@ -170,132 +165,68 @@ func None(conditions ...Condition) Condition {
 	return gs_cond.None(conditions...)
 }
 
-// OnEnableJobs is a shortcut for checking whether scheduled jobs are enabled.
-func OnEnableJobs() ConditionOnProperty {
-	return OnProperty(EnableJobsProp).HavingValue("true").MatchIfMissing()
-}
-
-// OnEnableServers is a shortcut for checking whether servers are enabled.
-func OnEnableServers() ConditionOnProperty {
-	return OnProperty(EnableServersProp).HavingValue("true").MatchIfMissing()
-}
-
 /*********************************** app *************************************/
 
 type (
-	// Server is an alias for gs.Server.
-	Server = gs.Server
-
-	// ReadySignal represents a signal sent when the application is ready.
-	ReadySignal = gs.ReadySignal
+	Runner       = gs_app.Runner
+	Server       = gs_app.Server
+	ReadySignal  = gs_app.ReadySignal
+	ContextAware = gs_app.ContextAware
+	BeanProvider = gs_init.BeanProvider
 )
 
-var (
-	// B is the global bootstrapper for initializing the application.
-	B = gs_app.NewBoot()
-
-	// app is the global application instance.
-	app = gs_app.NewApp()
-)
-
-// Config returns the current application configuration.
-func Config() *gs_conf.AppConfig {
-	return app.P
-}
-
-// Property sets a system property.
-func Property(key string, val string) {
-	_, file, _, _ := runtime.Caller(1)
-	fileID := gs_conf.SysConf.AddFile(file)
-	if err := gs_conf.SysConf.Set(key, val, fileID); err != nil {
-		log.Errorf(context.Background(), log.TagAppDef, "failed to set property key=%s err=%v", key, err)
+// Provide registers a global bean definition.
+// It must be called during package initialization (init phase).
+// Calling it after application configuration has started will panic.
+// It accepts either an existing instance or a constructor function.
+// The optional args are used to bind parameters for the constructor or to
+// provide explicit injection values.
+func Provide(objOrCtor any, args ...Arg) *gs_bean.BeanDefinition {
+	if inited {
+		panic("gs.Provide can only be called in init function")
 	}
+	b := gs_bean.NewBean(objOrCtor, args...)
+	gs_init.AddBean(b)
+	return b.Caller(2)
 }
 
-// RefreshProperties reloads application properties from all sources.
-func RefreshProperties() error {
-	p, err := app.P.Refresh()
-	if err != nil {
-		return err
-	}
-	return app.C.RefreshProperties(p)
-}
-
-// Root registers a root bean in the application context.
-func Root(b *gs.RegisteredBean) {
-	app.C.Root(b)
-}
-
-// Object registers a bean definition for an existing object instance.
-func Object(i any) *gs.RegisteredBean {
-	return app.C.Object(i).Caller(1)
-}
-
-// Provide registers a bean definition using the provided constructor function.
-func Provide(ctor any, args ...Arg) *gs.RegisteredBean {
-	return app.C.Provide(ctor, args...).Caller(1)
-}
+// ModuleFunc defines the signature of a module function.
+type ModuleFunc = gs_init.ModuleFunc
 
 // Module registers a configuration module that is conditionally activated
 // based on property values.
-func Module(conditions []ConditionOnProperty, fn func(p conf.Properties) error) {
-	app.C.Module(conditions, fn)
+func Module(c PropertyCondition, fn ModuleFunc) {
+	if inited {
+		panic("gs.Module can only be called in init function")
+	}
+	_, file, line, _ := runtime.Caller(1)
+	gs_init.AddModule(c, fn, file, line)
 }
 
 // Group registers a set of beans based on a configuration property map.
 // Each map entry spawns a bean constructed via fn and optionally destroyed via d.
+// The bean name is derived from the map key.
 func Group[T any, R any](tag string, fn func(c T) (R, error), d func(R) error) {
+	if inited {
+		panic("gs.Group can only be called in init function")
+	}
+	if !strings.HasPrefix(tag, "${") || !strings.HasSuffix(tag, "}") {
+		panic("gs.Group tag must be in ${...} format")
+	}
+	_, file, line, _ := runtime.Caller(1)
 	key := strings.TrimSuffix(strings.TrimPrefix(tag, "${"), "}")
-	app.C.Module([]ConditionOnProperty{
-		OnProperty(key),
-	}, func(p conf.Properties) error {
+	gs_init.AddModule(OnProperty(key), func(r BeanProvider, p flatten.Storage) error {
 		var m map[string]T
-		if err := p.Bind(&m, "${"+key+"}"); err != nil {
+		if err := conf.Bind(p, &m, "${"+key+"}"); err != nil {
 			return err
 		}
 		for name, c := range m {
-			b := Provide(fn, ValueArg(c)).Name(name)
+			b := r.Provide(fn, ValueArg(c)).Name(name)
 			if d != nil {
 				b.Destroy(d)
 			}
+			b.SetFileLine(file, line)
 		}
 		return nil
-	})
-}
-
-// Runner registers a function as a runner bean.
-func Runner(fn func() error) *gs.RegisteredBean {
-	return Object(gs.FuncRunner(fn)).AsRunner().Caller(1)
-}
-
-// Job registers a function as a job bean.
-func Job(fn func(ctx context.Context) error) *gs.RegisteredBean {
-	return Object(gs.FuncJob(fn)).AsJob().Caller(1)
-}
-
-// Web enables or disables the built-in HTTP server.
-func Web(enable bool) *AppStarter {
-	EnableSimpleHttpServer(enable)
-	return &AppStarter{}
-}
-
-// Run starts the application with a custom run function.
-func Run(fn ...func() error) {
-	new(AppStarter).Run(fn...)
-}
-
-// RunAsync starts the application asynchronously and
-// returns a stop function to gracefully shut it down.
-func RunAsync() (func(), error) {
-	return new(AppStarter).RunAsync()
-}
-
-// Exiting returns true if the application is shutting down.
-func Exiting() bool {
-	return app.Exiting()
-}
-
-// ShutDown gracefully stops the application.
-func ShutDown() {
-	app.ShutDown()
+	}, file, line)
 }

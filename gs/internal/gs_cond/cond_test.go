@@ -17,14 +17,13 @@
 package gs_cond
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/go-spring/gs-mock/gsmock"
-	"github.com/go-spring/spring-base/testing/assert"
-	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/gs/internal/gs"
+	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/testing/assert"
 )
 
 var (
@@ -52,13 +51,13 @@ func TestConditionString(t *testing.T) {
 	c = OnMissingBean[any]("a")
 	assert.That(t, fmt.Sprint(c)).Equal(`OnMissingBean(selector={Name:a})`)
 
-	c = OnMissingBeanSelector(gs.BeanSelectorFor[error]())
+	c = OnMissingBeanID(gs.BeanIDFor[error]())
 	assert.That(t, fmt.Sprint(c)).Equal(`OnMissingBean(selector={Type:error})`)
 
 	c = OnSingleBean[any]("a")
 	assert.That(t, fmt.Sprint(c)).Equal(`OnSingleBean(selector={Name:a})`)
 
-	c = OnSingleBeanSelector(gs.BeanSelectorFor[error]())
+	c = OnSingleBeanID(gs.BeanIDFor[error]())
 	assert.That(t, fmt.Sprint(c)).Equal(`OnSingleBean(selector={Type:error})`)
 
 	c = OnExpression("a")
@@ -77,8 +76,8 @@ func TestConditionString(t *testing.T) {
 	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Name:a})`)
 
 	c = And(
-		OnBeanSelector(gs.BeanSelectorImpl{Name: "a"}),
-		OnBeanSelector(gs.BeanSelectorImpl{Name: "b"}),
+		OnBeanID(gs.BeanID{Name: "a"}),
+		OnBeanID(gs.BeanID{Name: "b"}),
 	)
 	assert.That(t, fmt.Sprint(c)).Equal(`And(OnBean(selector={Name:a}), OnBean(selector={Name:b}))`)
 
@@ -109,7 +108,7 @@ func TestOnFunc(t *testing.T) {
 	})
 
 	t.Run("returns error", func(t *testing.T) {
-		fn := func(ctx gs.ConditionContext) (bool, error) { return false, errors.New("test error") }
+		fn := func(ctx gs.ConditionContext) (bool, error) { return false, errutil.Explain(nil, "test error") }
 		cond := OnFunc(fn)
 		_, err := cond.Matches(nil)
 		assert.Error(t, err).Matches("test error")
@@ -244,7 +243,7 @@ func TestOnBean(t *testing.T) {
 	t.Run("returns error", func(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
-		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
+		ctx.MockFind().ReturnValue(nil, errutil.Explain(nil, "test error"))
 
 		cond := OnBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -280,7 +279,7 @@ func TestOnMissingBean(t *testing.T) {
 	t.Run("returns error", func(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
-		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
+		ctx.MockFind().ReturnValue(nil, errutil.Explain(nil, "test error"))
 
 		cond := OnMissingBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -314,7 +313,7 @@ func TestOnSingleBean(t *testing.T) {
 	t.Run("returns error", func(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
-		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
+		ctx.MockFind().ReturnValue(nil, errutil.Explain(nil, "test error"))
 
 		cond := OnSingleBean[any]("b")
 		ok, err := cond.Matches(ctx)
@@ -329,7 +328,7 @@ func TestOnExpression(t *testing.T) {
 
 	cond := OnExpression("1+1==2")
 	_, err := cond.Matches(ctx)
-	assert.That(t, errors.Is(err, util.ErrUnimplementedMethod)).True()
+	assert.Error(t, err).Is(errutil.ErrUnimplementedMethod)
 }
 
 func TestNot(t *testing.T) {
@@ -351,7 +350,7 @@ func TestNot(t *testing.T) {
 	t.Run("returns error", func(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
-		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
+		ctx.MockFind().ReturnValue(nil, errutil.Explain(nil, "test error"))
 
 		cond := OnSingleBean[any]("b")
 		ok, err := Not(cond).Matches(ctx)
@@ -389,7 +388,7 @@ func TestAnd(t *testing.T) {
 	t.Run("returns error", func(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
-		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
+		ctx.MockFind().ReturnValue(nil, errutil.Explain(nil, "test error"))
 
 		cond := OnSingleBean[any]("b")
 		ok, err := And(cond, trueCond).Matches(ctx)
@@ -427,7 +426,7 @@ func TestOr(t *testing.T) {
 	t.Run("returns error", func(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
-		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
+		ctx.MockFind().ReturnValue(nil, errutil.Explain(nil, "test error"))
 
 		cond := OnSingleBean[any]("b")
 		ok, err := Or(cond, trueCond).Matches(ctx)
@@ -467,7 +466,7 @@ func TestNone(t *testing.T) {
 	t.Run("returns error", func(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
-		ctx.MockFind().ReturnValue(nil, errors.New("test error"))
+		ctx.MockFind().ReturnValue(nil, errutil.Explain(nil, "test error"))
 
 		cond := OnSingleBean[any]("b")
 		ok, err := None(cond, trueCond).Matches(ctx)
