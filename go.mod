@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/expr-lang/expr v1.17.6
 	github.com/go-spring/gs-mock v0.0.7
-	github.com/go-spring/log v0.0.12
+	github.com/go-spring/log v0.1.0-alpha
 	github.com/go-spring/stdlib v0.0.10
 	github.com/magiconair/properties v1.8.10
 	github.com/pelletier/go-toml v1.9.5
@@ -24,5 +24,3 @@ require (
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 )
-
-replace github.com/go-spring/log => /Users/didi/log
