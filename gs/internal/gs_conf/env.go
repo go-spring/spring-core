@@ -20,8 +20,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 // Environment represents the environment configuration.
@@ -39,15 +38,13 @@ func NewEnvironment() *Environment {
 //   - Keys are converted to lowercase.
 //
 // All other variables are stored as-is.
-func (c *Environment) CopyTo(p *conf.MutableProperties) error {
+func (c *Environment) CopyTo(p *flatten.Properties) error {
 	environ := os.Environ()
 	if len(environ) == 0 {
 		return nil
 	}
 
 	const prefix = "GS_"
-	fileID := p.AddFile("Environment")
-
 	for _, env := range environ {
 		ss := strings.SplitN(env, "=", 2)
 		if len(ss[0]) == 0 {
@@ -64,10 +61,7 @@ func (c *Environment) CopyTo(p *conf.MutableProperties) error {
 			propKey = strings.ReplaceAll(s, "_", ".")
 			propKey = strings.ToLower(propKey)
 		}
-
-		if err := p.Set(propKey, v, fileID); err != nil {
-			return errutil.Explain(err, "set env %s error", env)
-		}
+		p.Set(propKey, v)
 	}
 	return nil
 }

@@ -172,7 +172,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("mixed index and non-index args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Index(0, Value(1)),
 			Value("test"),
@@ -182,7 +182,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("mixed non-index and index args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Index(1, Value("test")),
@@ -192,7 +192,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("negative argument index", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Index(-1, Value(1)),
 		}
@@ -201,7 +201,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("out of range argument index", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Index(2, Value(1)),
 		}
@@ -210,7 +210,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("non-index args success", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test"),
@@ -225,7 +225,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("index args success", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Index(0, Value(1)),
 			Index(1, Value("test")),
@@ -240,7 +240,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("variadic success with non-index args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		fnType := reflect.TypeFor[func(a int, b ...string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test1"),
@@ -257,7 +257,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("variadic success with indexed args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		fnType := reflect.TypeFor[func(a int, b ...string)]()
 		args := []gs.Arg{
 			Index(0, Value(1)),
 			Index(1, Value("test1")),
@@ -274,7 +274,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("variadic success with partial indexed args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a error, b ...string) {})
+		fnType := reflect.TypeFor[func(a error, b ...string)]()
 		args := []gs.Arg{
 			Index(1, Value("test1")),
 			Index(1, Value("test2")),
@@ -290,7 +290,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("function with no parameters", func(t *testing.T) {
-		fnType := reflect.TypeOf(func() {})
+		fnType := reflect.TypeFor[func()]()
 		var args []gs.Arg
 		argList, err := NewArgList(fnType, args)
 		assert.That(t, err).Nil()
@@ -299,7 +299,7 @@ func TestArgList_New(t *testing.T) {
 	})
 
 	t.Run("too many arguments for non-variadic function", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test"),
@@ -313,7 +313,7 @@ func TestArgList_New(t *testing.T) {
 func TestArgList_Get(t *testing.T) {
 
 	t.Run("success with non-variadic function", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test"),
@@ -330,7 +330,7 @@ func TestArgList_Get(t *testing.T) {
 	})
 
 	t.Run("success with variadic function", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		fnType := reflect.TypeFor[func(a int, b ...string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value("test1"),
@@ -349,7 +349,7 @@ func TestArgList_Get(t *testing.T) {
 	})
 
 	t.Run("error when getting arg value", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b string) {})
+		fnType := reflect.TypeFor[func(a int, b string)]()
 		args := []gs.Arg{
 			Value(1),
 			Value(2),
@@ -363,7 +363,7 @@ func TestArgList_Get(t *testing.T) {
 	})
 
 	t.Run("variadic function with no extra args", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a int, b ...string) {})
+		fnType := reflect.TypeFor[func(a int, b ...string)]()
 		args := []gs.Arg{
 			Value(1),
 			// No extra args
@@ -379,7 +379,7 @@ func TestArgList_Get(t *testing.T) {
 	})
 
 	t.Run("function with any parameter", func(t *testing.T) {
-		fnType := reflect.TypeOf(func(a any) {})
+		fnType := reflect.TypeFor[func(a any)]()
 		args := []gs.Arg{
 			Value("test"),
 		}

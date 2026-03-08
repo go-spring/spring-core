@@ -67,16 +67,16 @@ func (c *onFunc) String() string {
 
 /******************************* OnProperty **********************************/
 
-// ConditionOnProperty defines a condition that is evaluated based on the value
+// PropertyCondition defines a condition that is evaluated based on the value
 // of a property in the application context. It provides methods to customize
 // behavior for missing properties and specific property values.
-type ConditionOnProperty interface {
+type PropertyCondition interface {
 	gs.Condition
-	MatchIfMissing() ConditionOnProperty      // Match if the property is missing
-	HavingValue(s string) ConditionOnProperty // Match if the property has a specific value
+	MatchIfMissing() PropertyCondition      // Match if the property is missing
+	HavingValue(s string) PropertyCondition // Match if the property has a specific value
 }
 
-// onProperty implements [ConditionOnProperty], allowing conditions based on
+// onProperty implements [PropertyCondition], allowing conditions based on
 // the existence and value of properties in the context.
 type onProperty struct {
 	name           string // Property name to check
@@ -86,18 +86,18 @@ type onProperty struct {
 
 // OnProperty creates a new condition that checks for the presence
 // and/or value of a specified property.
-func OnProperty(name string) ConditionOnProperty {
+func OnProperty(name string) PropertyCondition {
 	return &onProperty{name: name}
 }
 
 // MatchIfMissing sets the condition to match if the property is missing.
-func (c *onProperty) MatchIfMissing() ConditionOnProperty {
+func (c *onProperty) MatchIfMissing() PropertyCondition {
 	c.matchIfMissing = true
 	return c
 }
 
 // HavingValue sets the expected value or expression to match.
-func (c *onProperty) HavingValue(s string) ConditionOnProperty {
+func (c *onProperty) HavingValue(s string) PropertyCondition {
 	c.havingValue = s
 	return c
 }

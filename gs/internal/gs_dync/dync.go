@@ -41,49 +41,16 @@ import (
 	"sync/atomic"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/stdlib/ordered"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 // refreshable represents an object that can be dynamically refreshed.
 type refreshable interface {
-	onRefresh(prop conf.Properties, param conf.BindParam) error
-}
-
-// Listener holds a channel to receive notifications.
-type Listener struct {
-	C chan struct{}
-}
-
-// listeners maintains a collection of listeners that can be notified on value updates.
-type listeners struct {
-	m sync.Mutex
-	a []*Listener
-}
-
-// NewListener creates and registers a new listener.
-func (r *listeners) NewListener() *Listener {
-	r.m.Lock()
-	defer r.m.Unlock()
-	l := &Listener{C: make(chan struct{}, 1)}
-	r.a = append(r.a, l)
-	return l
-}
-
-// notifyAll sends a notification signal to all registered listeners.
-func (r *listeners) notifyAll() {
-	r.m.Lock()
-	defer r.m.Unlock()
-	for _, l := range r.a {
-		select {
-		case l.C <- struct{}{}:
-		default:
-		}
-	}
+	onRefresh(prop flatten.Storage, param conf.BindParam, commit bool) error
 }
 
 // Value represents a thread-safe object that can dynamically refresh its value.
 type Value[T any] struct {
-	listeners
 	v atomic.Value
 }
 
@@ -99,15 +66,15 @@ func (r *Value[T]) Value() T {
 }
 
 // onRefresh updates the stored value with new properties and notifies listeners.
-func (r *Value[T]) onRefresh(prop conf.Properties, param conf.BindParam) error {
+func (r *Value[T]) onRefresh(prop flatten.Storage, param conf.BindParam, commit bool) error {
 	t := reflect.TypeFor[T]()
 	v := reflect.New(t).Elem()
-	err := conf.BindValue(prop, v, t, param, nil)
-	if err != nil {
+	if err := conf.BindValue(prop, v, t, param, nil); err != nil {
 		return err
 	}
-	r.v.Store(v.Interface())
-	r.notifyAll()
+	if commit {
+		r.v.Store(v.Interface())
+	}
 	return nil
 }
 
@@ -124,20 +91,20 @@ type refreshObject struct {
 
 // Properties manages dynamic properties and refreshable objects.
 type Properties struct {
-	prop    conf.Properties  // The current properties.
+	prop    flatten.Storage  // The current properties.
 	lock    sync.RWMutex     // A read-write lock for thread-safe access.
 	objects []*refreshObject // List of refreshable objects bound to the properties.
 }
 
 // New creates and returns a new Properties instance.
-func New(p conf.Properties) *Properties {
+func New(p flatten.Storage) *Properties {
 	return &Properties{
 		prop: p,
 	}
 }
 
 // Data returns the current properties.
-func (p *Properties) Data() conf.Properties {
+func (p *Properties) Data() flatten.Storage {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.prop
@@ -151,71 +118,20 @@ func (p *Properties) ObjectsCount() int {
 }
 
 // Refresh updates the properties and refreshes all bound objects as necessary.
-func (p *Properties) Refresh(prop conf.Properties) (err error) {
+func (p *Properties) Refresh(prop flatten.Storage) (err error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	if len(p.objects) == 0 {
-		p.prop = prop
-		return nil
-	}
-
-	old := p.prop
 	p.prop = prop
-
-	oldKeys := make(map[string]struct{})
-	for _, k := range old.Keys() {
-		oldKeys[k] = struct{}{}
-	}
-
-	changes := make(map[string]struct{})
-	for _, k := range prop.Keys() {
-		if _, ok := oldKeys[k]; ok {
-			delete(oldKeys, k)
-			if old.Get(k) == prop.Get(k) {
-				continue
-			}
-		}
-		changes[k] = struct{}{}
-	}
-	for k := range oldKeys {
-		changes[k] = struct{}{}
-	}
-
-	keys := ordered.MapKeys(changes)
-	return p.refreshKeys(keys)
-}
-
-// refreshKeys refreshes objects bound by the specified keys.
-func (p *Properties) refreshKeys(keys []string) (err error) {
-	updateIndexes := make(map[int]*refreshObject)
-	for _, key := range keys {
-		for index, o := range p.objects {
-			s := strings.TrimPrefix(key, o.param.Key)
-			if len(s) == len(key) { // Check if the key starts with the parameter key.
-				continue
-			}
-			if len(s) == 0 || s[0] == '.' || s[0] == '[' {
-				if _, ok := updateIndexes[index]; !ok {
-					updateIndexes[index] = o
-				}
-			}
-		}
-	}
-
-	// Sort and collect objects that need updating.
-	updateObjects := make([]*refreshObject, 0, len(updateIndexes))
-	{
-		ints := ordered.MapKeys(updateIndexes)
-		for _, k := range ints {
-			updateObjects = append(updateObjects, updateIndexes[k])
-		}
-	}
-
-	if len(updateObjects) == 0 {
+	if len(p.objects) == 0 {
 		return nil
 	}
-	return p.refreshObjects(updateObjects)
+
+	// 首先预刷新所有动态值，校验通过之后进行提交
+	if err = p.refreshObjects(p.objects, false); err != nil {
+		return err
+	}
+	return p.refreshObjects(p.objects, true)
 }
 
 // Errors represents a collection of errors.
@@ -248,10 +164,10 @@ func (e *Errors) Error() string {
 }
 
 // refreshObjects refreshes all provided objects and aggregates errors.
-func (p *Properties) refreshObjects(objects []*refreshObject) error {
+func (p *Properties) refreshObjects(objects []*refreshObject, commit bool) error {
 	ret := &Errors{}
 	for _, obj := range objects {
-		err := obj.target.onRefresh(p.prop, obj.param)
+		err := obj.target.onRefresh(p.prop, obj.param, commit)
 		ret.Append(err)
 	}
 	if ret.Len() == 0 {
@@ -275,7 +191,7 @@ func (f *filter) Do(i any, param conf.BindParam) (bool, error) {
 		target: v,
 		param:  param,
 	})
-	return true, v.onRefresh(f.prop, param)
+	return true, v.onRefresh(f.prop, param, true)
 }
 
 // RefreshField refreshes a field of a bean, optionally registering it as refreshable.
@@ -283,7 +199,7 @@ func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	f := &filter{Properties: p}
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		ok, err := f.Do(v.Interface(), param)
 		if err != nil {
 			return err

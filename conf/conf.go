@@ -31,12 +31,11 @@ The framework enables mapping configuration data from multiple sources into Go s
 
 Struct tags use the following format:
 
-	value:"${key:=default}>>splitter"
+	value:"${key:=default}"
 
 Key features:
 - Nested keys (e.g., service.endpoint)
 - Dynamic defaults (e.g., ${DB_HOST:=localhost:${DB_PORT:=3306}})
-- Splitter chaining (e.g., >>json for JSON parsing)
 
 # Data Binding:
 
@@ -44,7 +43,7 @@ Supports binding to various types with automatic conversion:
 
 1. Primitives: Uses strconv for basic type conversions
 2. Complex Types:
-  - Slices: From indexed properties or custom splitters
+  - Slices: From indexed properties
   - Maps: Via subkey expansion
   - Structs: Recursive binding of nested structures
 
@@ -80,7 +79,6 @@ Register custom readers with RegisterReader.
 
 # Extension Points:
 
-1. RegisterSplitter: Add custom string splitters
 2. RegisterConverter: Add type converters
 3. RegisterReader: Support new file formats
 4. RegisterValidateFunc: Add custom validators
@@ -104,8 +102,8 @@ Nested structure:
 Slice binding:
 
 	type Config struct {
-	    Endpoints []string `value:"${endpoints}"`       // Indexed properties
-	    Features  []string `value:"${features}>>split"` // Custom splitter
+	    Endpoints []string `value:"${endpoints}"`
+	    Features  []string `value:"${features}"`
 	}
 
 Validation:
@@ -120,7 +118,7 @@ package conf
 
 import (
 	"reflect"
-	"runtime"
+	"strings"
 	"time"
 
 	"github.com/go-spring/spring-core/conf/provider"
@@ -131,7 +129,6 @@ import (
 )
 
 var (
-	splitters  = map[string]Splitter{}
 	converters = map[reflect.Type]any{}
 )
 
@@ -150,14 +147,6 @@ func RegisterProvider(name string, p provider.Provider) {
 	provider.Register(name, p)
 }
 
-// Splitter splits a string into a slice of strings using custom logic.
-type Splitter func(string) ([]string, error)
-
-// RegisterSplitter registers a Splitter with a given name.
-func RegisterSplitter(name string, fn Splitter) {
-	splitters[name] = fn
-}
-
 // Converter converts a string to a target type T.
 type Converter[T any] func(string) (T, error)
 
@@ -168,89 +157,18 @@ func RegisterConverter[T any](fn Converter[T]) {
 	converters[t] = fn
 }
 
-// Properties defines the read-only interface for accessing configuration data.
-type Properties interface {
-	// Data returns all key-value pairs as a flat map.
-	Data() map[string]string
-	// Keys returns all keys.
-	Keys() []string
-	// SubKeys returns the sorted sub-keys of a given key.
-	SubKeys(key string) ([]string, error)
-	// SubMap returns the sub-map of a given key.
-	SubMap(key string) (map[string]string, error)
-	// Has checks whether a key exists.
-	Has(key string) bool
-	// Get returns the value for a given key, with an optional default.
-	Get(key string, def ...string) string
-	// Resolve resolves placeholders inside a string (e.g. ${key:=default}).
-	Resolve(s string) (string, error)
-	// Bind binds property values into a target object (struct, map, slice, or primitive).
-	Bind(i any, tag ...string) error
-	// CopyTo copies properties into another instance, overriding existing values.
-	CopyTo(out *MutableProperties) error
-}
-
-var _ Properties = (*MutableProperties)(nil)
-
-// MutableProperties stores the data with map[string]string and the keys are case-sensitive,
-// you can get one of them by its key, or bind some of them to a value.
-//
-// There are too many formats of configuration files, and too many conflicts between
-// them. Each format of configuration file provides its special characteristics, but
-// usually they are not all necessary, and complementary. For example, `conf` disabled
-// Java properties' expansion when reading file, but also provides similar function
-// when getting or binding properties.
-//
-// A good rule of thumb is that treating application configuration as a tree, but not
-// all formats of configuration files designed as a tree or not ideal, for instance
-// Java properties isn't strictly verified. Although configuration can store as a tree,
-// but it costs more CPU time when getting properties because it reads property node
-// by node. So `conf` uses a tree to strictly verify and a flat map to store.
-type MutableProperties struct {
-	*flatten.Storage
-}
-
-// New creates a new empty MutableProperties instance.
-func New() *MutableProperties {
-	return &MutableProperties{
-		Storage: flatten.NewStorage(),
-	}
-}
-
 // Load creates a MutableProperties instance from a configuration file.
 // Returns an error if the file type is not supported or parsing fails.
-func Load(source string) (*MutableProperties, error) {
-	s, err := provider.Load(source)
+func Load(source string) (*flatten.Properties, error) {
+	data, err := provider.Load(source)
 	if err != nil {
 		return nil, err
 	}
-	return &MutableProperties{s}, nil
-}
-
-// Map creates a MutableProperties instance directly from a map.
-func Map(data map[string]any) *MutableProperties {
-	p := New()
-	_, file, _, _ := runtime.Caller(1)
-	_ = p.MergeMap(data, file)
-	return p
-}
-
-// Resolve resolves placeholders in a string, replacing references like
-// ${key:=default} with their actual values from the properties.
-func (p *MutableProperties) Resolve(s string) (string, error) {
-	return resolveString(p, s)
+	return flatten.NewProperties(data), nil
 }
 
 // Bind maps property values into the provided target object.
-// Supported targets: primitive values, maps, slices, and structs.
-// Struct binding uses the `value` tag in the form:
-//
-//	value:"${key:=default}>>splitter"
-//
-// - key: property key
-// - default: default value if key is missing
-// - splitter: registered splitter name for splitting into []string
-func (p *MutableProperties) Bind(i any, tag ...string) error {
+func Bind(p flatten.Storage, i any, tag ...string) error {
 
 	var v reflect.Value
 	{
@@ -259,7 +177,7 @@ func (p *MutableProperties) Bind(i any, tag ...string) error {
 			v = refVal
 		default:
 			v = reflect.ValueOf(i)
-			if v.Kind() != reflect.Ptr {
+			if v.Kind() != reflect.Pointer {
 				return errutil.Explain(nil, "should be a pointer but %T", i)
 			}
 			v = v.Elem()
@@ -286,8 +204,75 @@ func (p *MutableProperties) Bind(i any, tag ...string) error {
 	return BindValue(p, v, t, param, nil)
 }
 
-// CopyTo copies all properties into another MutableProperties instance,
-// overriding values if keys already exist.
-func (p *MutableProperties) CopyTo(out *MutableProperties) error {
-	return out.Merge(p.Storage)
+// ResolveString expands property references of the form ${key}
+// inside a string, recursively resolving nested expressions.
+//
+// Supported features:
+// - Nested references: e.g. "${outer${inner}}"
+// - Default values:    "${key:=fallback}"
+// - Arbitrary string concatenation around references.
+//
+// Example:
+//
+//	Storage:
+//	  "host" = "localhost"
+//	  "port" = "8080"
+//	Input:
+//	  "http://${host}:${port}"
+//	Output:
+//	  "http://localhost:8080"
+//
+// Errors:
+// - ErrInvalidSyntax if braces are unbalanced.
+// - Propagates errors from resolve().
+func ResolveString(p flatten.Storage, s string) (string, error) {
+
+	// If there is no property reference, return the original string.
+	start := strings.Index(s, "${")
+	if start < 0 {
+		return s, nil
+	}
+
+	var (
+		level = 1
+		end   = -1
+	)
+
+	// scan for matching closing brace, handling nested references
+	for i := start + 2; i < len(s); i++ {
+		if s[i] == '$' {
+			if i+1 < len(s) && s[i+1] == '{' {
+				level++
+			}
+		} else if s[i] == '}' {
+			level--
+			if level == 0 {
+				end = i
+				break
+			}
+		}
+	}
+
+	if end < 0 {
+		err := ErrInvalidSyntax
+		return "", errutil.Explain(err, "resolve string %q error", s)
+	}
+
+	var param BindParam
+	_ = param.BindTag(s[start:end+1], "")
+
+	// resolve the referenced property
+	resolved, err := resolve(p, param)
+	if err != nil {
+		return "", errutil.Explain(err, "resolve string %q error", s)
+	}
+
+	// resolve the remaining part of the string
+	suffix, err := ResolveString(p, s[end+1:])
+	if err != nil {
+		return "", errutil.Explain(err, "resolve string %q error", s)
+	}
+
+	// combine: prefix + resolved + suffix
+	return s[:start] + resolved + suffix, nil
 }

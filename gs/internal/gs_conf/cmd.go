@@ -20,8 +20,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 // CommandArgsPrefix defines the environment variable name used to override
@@ -46,12 +46,10 @@ func NewCommandArgs() *CommandArgs {
 //
 // The default prefix is "-D", which can be overridden by the environment
 // variable `GS_ARGS_PREFIX`.
-func (c *CommandArgs) CopyTo(p *conf.MutableProperties) error {
+func (c *CommandArgs) CopyTo(p *flatten.Properties) error {
 	if len(os.Args) <= 1 {
 		return nil
 	}
-
-	fileID := p.AddFile("Args")
 
 	// Determine the option prefix.
 	option := "-D"
@@ -83,9 +81,7 @@ func (c *CommandArgs) CopyTo(p *conf.MutableProperties) error {
 		if len(ss) == 1 {
 			ss = append(ss, "true")
 		}
-		if err := p.Set(ss[0], ss[1], fileID); err != nil {
-			return errutil.Explain(err, "set cmd option %s error", str)
-		}
+		p.Set(ss[0], ss[1])
 	}
 	return nil
 }

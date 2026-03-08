@@ -305,7 +305,7 @@ func TestNewBean(t *testing.T) {
 		fn := func(int, int) string { return "" }
 		bean := NewBean(reflect.ValueOf(fn)).Name("TestFunc")
 		assert.That(t, bean.GetName()).Equal("TestFunc")
-		assert.That(t, bean.GetType()).Equal(reflect.TypeOf(fn))
+		assert.That(t, bean.GetType()).Equal(reflect.TypeFor[func(int, int) string]())
 	})
 
 	t.Run("constructor error", func(t *testing.T) {

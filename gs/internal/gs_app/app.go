@@ -22,17 +22,16 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"runtime"
 	"sync"
 	"sync/atomic"
 
 	"github.com/go-spring/log"
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_core"
 	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 	"github.com/go-spring/stdlib/goutil"
 )
 
@@ -63,8 +62,14 @@ type ContextAware struct {
 
 // ConfigRefresher is an interface for components that need to refresh
 // application properties after configuration changes.
-type ConfigRefresher interface {
-	RefreshProperties() error
+type ConfigRefresher struct {
+	app *App
+}
+
+// RefreshProperties refreshes application properties and
+// propagates the changes to the IoC container.
+func (c *ConfigRefresher) RefreshProperties() error {
+	return c.app.RefreshProperties()
 }
 
 // App represents the core application, managing its lifecycle,
@@ -81,12 +86,12 @@ type App struct {
 	Runners []Runner `autowire:"${spring.app.runners:=?}"`
 	Servers []Server `autowire:"${spring.app.servers:=?}"`
 
-	Tester any `autowire:"__tester__?"` // Root bean for testing mode
+	_ any `autowire:"__root__?"` // Special root bean
 }
 
 // NewApp creates a new App instance with an initialized root context.
 func NewApp() *App {
-	ctx := context.WithValue(context.TODO(), "app", "")
+	ctx := context.WithValue(context.Background(), "app", "")
 	ctx, cancel := context.WithCancel(ctx)
 	return &App{
 		c:      gs_core.New(),
@@ -104,21 +109,7 @@ func (app *App) Context() context.Context {
 // Property sets an app-level property in the application's configuration.
 // It associates the property with the caller file for traceability.
 func (app *App) Property(key string, val string) {
-	_, file, _, _ := runtime.Caller(1)
-	fileID := app.p.Properties.AddFile(file)
-	if err := app.p.Properties.Set(key, val, fileID); err != nil {
-		log.Errorf(app.ctx, log.TagAppDef, "failed to set property key=%s err=%v", key, err)
-	}
-}
-
-// RefreshProperties reloads application properties from all sources
-// and propagates the changes to the IoC container.
-func (app *App) RefreshProperties() error {
-	p, err := app.p.Refresh(true)
-	if err != nil {
-		return err
-	}
-	return app.c.RefreshProperties(p)
+	app.p.Properties.Set(key, val)
 }
 
 // Provide registers a new bean definition in the IoC container.
@@ -128,20 +119,24 @@ func (app *App) Provide(objOrCtor any, args ...gs.Arg) *gs_bean.BeanDefinition {
 	return app.c.Provide(objOrCtor, args...).Caller(2)
 }
 
+// RefreshProperties reloads application properties from all sources
+// and propagates the changes to the IoC container.
+func (app *App) RefreshProperties() error {
+	p, err := app.p.Refresh()
+	if err != nil {
+		return err
+	}
+	return app.c.RefreshProperties(p)
+}
+
 // initLog initializes the application's logging system.
-func (app *App) initLog() error {
-	p, err := app.p.Refresh(false)
-	if err != nil {
-		return err
-	}
-	m, err := p.SubMap("logging")
-	if err != nil {
-		return err
-	}
-	if len(m) == 0 {
+func (app *App) initLog(p flatten.Storage) error {
+	// No logging configuration
+	if !p.Exists("logging") {
 		return nil
 	}
-	return log.Refresh(m)
+	s := flatten.NewPrefixedStorage(p, "logging")
+	return log.Refresh(s)
 }
 
 // Start initializes and launches the application.
@@ -154,36 +149,33 @@ func (app *App) initLog() error {
 //  6. Wait for readiness signal from all servers
 func (app *App) Start() error {
 
-	// Initialize logger
-	if err := app.initLog(); err != nil {
+	// Load and refresh application properties
+	p, err := app.p.Refresh()
+	if err != nil {
 		return err
 	}
 
-	// Provide ContextAware for beans to access application context
+	// Initialize logger
+	if err = app.initLog(p); err != nil {
+		return err
+	}
+
 	app.c.Provide(&ContextAware{app.ctx})
+	app.c.Provide(&ConfigRefresher{app})
 
 	// Root beans for container refresh
 	roots := []*gs_bean.BeanDefinition{
-		app.c.Provide(app).Export(gs.As[ConfigRefresher]()),
-	}
-
-	// Load and refresh application properties
-	var p conf.Properties
-	{
-		var err error
-		if p, err = app.p.Refresh(true); err != nil {
-			return err
-		}
+		app.c.Provide(app),
 	}
 
 	// Refresh IoC container to wire all beans
-	if err := app.c.Refresh(p, roots); err != nil {
+	if err = app.c.Refresh(p, roots); err != nil {
 		return err
 	}
 
 	// Execute all Runner beans sequentially
 	for _, r := range app.Runners {
-		if err := r.Run(app.ctx); err != nil {
+		if err = r.Run(app.ctx); err != nil {
 			return err
 		}
 	}

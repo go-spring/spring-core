@@ -20,10 +20,10 @@
 package gs_core
 
 import (
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/injecting"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/resolving"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 // RefreshState represents the current state of the container.
@@ -54,7 +54,7 @@ func New() *Container {
 }
 
 // Refresh performs the full lifecycle initialization of the container.
-func (c *Container) Refresh(p conf.Properties, roots []*gs_bean.BeanDefinition) error {
+func (c *Container) Refresh(p flatten.Storage, roots []*gs_bean.BeanDefinition) error {
 	c.State = Refreshing
 
 	// Step 1: Resolve and prepare all bean definitions.

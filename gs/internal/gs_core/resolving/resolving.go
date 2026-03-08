@@ -21,12 +21,12 @@ import (
 	"regexp"
 	"slices"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_init"
 	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 	"github.com/go-spring/stdlib/funcutil"
 )
 
@@ -83,7 +83,7 @@ func (c *Resolving) Provide(objOrCtor any, args ...gs.Arg) *gs_bean.BeanDefiniti
 //  4. Resolve conditions for all beans and mark inactive ones as deleted.
 //  5. Check for duplicate beans (by type and name).
 //  6. Validate that all root beans are resolved and ready to wire.
-func (c *Resolving) Refresh(p conf.Properties) error {
+func (c *Resolving) Refresh(p flatten.Storage) error {
 	if c.state != RefreshDefault {
 		return errutil.Explain(nil, "container is already refreshing or refreshed")
 	}
@@ -113,7 +113,7 @@ func (c *Resolving) Refresh(p conf.Properties) error {
 }
 
 // applyModules executes all registered modules that match their conditions.
-func (c *Resolving) applyModules(p conf.Properties) error {
+func (c *Resolving) applyModules(p flatten.Storage) error {
 	ctx := &ConditionContext{p: p, c: c}
 	for _, m := range gs_init.Modules() {
 		if m.Condition != nil {
@@ -226,7 +226,7 @@ func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool {
 
 // resolveBeans iterates over all beans and resolves their conditions,
 // marking them as resolved or deleted.
-func (c *Resolving) resolveBeans(p conf.Properties) error {
+func (c *Resolving) resolveBeans(p flatten.Storage) error {
 	ctx := &ConditionContext{p: p, c: c}
 	for _, b := range c.beans {
 		if err := ctx.resolveBean(b); err != nil {
@@ -258,7 +258,7 @@ func (c *Resolving) checkDuplicateBeans() error {
 // during bean resolution.
 type ConditionContext struct {
 	c *Resolving
-	p conf.Properties
+	p flatten.Storage
 }
 
 // resolveBean evaluates a bean's conditions and updates its status accordingly.
@@ -282,13 +282,20 @@ func (c *ConditionContext) resolveBean(b *gs_bean.BeanDefinition) error {
 
 // Has checks if a configuration property exists.
 func (c *ConditionContext) Has(key string) bool {
-	return c.p.Has(key)
+	return c.p.Exists(key)
 }
 
 // Prop retrieves a configuration property by key,
 // optionally returning a default value if the key is not found.
 func (c *ConditionContext) Prop(key string, def ...string) string {
-	return c.p.Get(key, def...)
+	str, ok := c.p.Value(key)
+	if ok {
+		return str
+	}
+	if len(def) > 0 {
+		return def[0]
+	}
+	return ""
 }
 
 // Find returns all beans that match the provided selector

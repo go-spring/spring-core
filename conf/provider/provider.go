@@ -39,7 +39,7 @@ func init() {
 // To support dynamic refresh, a version number field can be added and a regular Bean
 // can be registered to listen for changes. When the version changes, the configuration
 // can be updated.
-type Provider func(optional bool, source string) (*flatten.Storage, error)
+type Provider func(optional bool, source string) (map[string]string, error)
 
 // Register registers a Provider for a specific configuration source type.
 func Register(name string, p Provider) {
@@ -47,7 +47,7 @@ func Register(name string, p Provider) {
 }
 
 // Load loads a configuration source and returns its content as a flattened Storage.
-func Load(source string) (*flatten.Storage, error) {
+func Load(source string) (map[string]string, error) {
 	// For example, a spring.config.import value of optional:file:./myconfig.properties
 	// allows your application to start, even if the myconfig.properties file is missing.
 
@@ -82,7 +82,7 @@ func Load(source string) (*flatten.Storage, error) {
 
 // LoadFile loads a configuration file and returns its content as a flattened Storage.
 // If the file does not exist and optional is true, it returns nil without error.
-func LoadFile(optional bool, source string) (*flatten.Storage, error) {
+func LoadFile(optional bool, source string) (map[string]string, error) {
 	m, err := reader.ReadFile(source)
 	if err != nil {
 		if os.IsNotExist(err) && optional {
@@ -90,12 +90,12 @@ func LoadFile(optional bool, source string) (*flatten.Storage, error) {
 		}
 		return nil, err
 	}
-	s := flatten.NewStorage()
-	fileID := s.AddFile(source)
-	for k, v := range flatten.Flatten(m) {
-		if err = s.Set(k, v, fileID); err != nil {
-			return nil, err
-		}
-	}
-	return s, nil
+	//s := flatten.NewStorage()
+	//fileID := s.AddFile(source)
+	//for k, v := range flatten.Flatten(m) {
+	//	if err = s.Set(k, v, fileID); err != nil {
+	//		return nil, err
+	//	}
+	//}
+	return flatten.Flatten(m), nil
 }

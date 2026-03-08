@@ -45,7 +45,7 @@ func TestApp1(t *testing.T) {
 }
 
 func TestApp2(t *testing.T) {
-	gs.NewApp().Configure(func(g gs.App) {
+	gs.Configure(func(g gs.App) {
 		g.Property("name", "myapp2")
 	}).RunTest(t, func(s *struct {
 		Name string         `value:"${name:=app2}"`

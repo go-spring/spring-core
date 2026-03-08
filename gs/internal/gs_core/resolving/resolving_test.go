@@ -22,13 +22,14 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_init"
 	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
+	"github.com/go-spring/stdlib/ordered"
 	"github.com/go-spring/stdlib/testing/assert"
 )
 
@@ -84,7 +85,7 @@ func TestResolving(t *testing.T) {
 
 	t.Run("register error when container is refreshed", func(t *testing.T) {
 		r := New()
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.That(t, err).Nil()
 		assert.Panic(t, func() {
 			r.Provide(&gs_bean.BeanDefinition{})
@@ -98,7 +99,7 @@ func TestResolving(t *testing.T) {
 				Includes: []string{"*"},
 			},
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("error parsing regexp: missing argument to repetition operator: `*`")
 	})
 
@@ -109,18 +110,18 @@ func TestResolving(t *testing.T) {
 				Excludes: []string{"*"},
 			},
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("error parsing regexp: missing argument to repetition operator: `*`")
 	})
 
 	t.Run("module error", func(t *testing.T) {
 		defer func() { gs_init.Clear() }()
-		gs_init.AddModule(nil, func(r gs_init.BeanProvider, p conf.Properties) error {
+		gs_init.AddModule(nil, func(r gs_init.BeanProvider, p flatten.Storage) error {
 			return errutil.Explain(nil, "module error")
-		})
+		}, "", 0)
 
 		r := New()
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.That(t, err).NotNil()
 		assert.Error(t, err).Matches("module error")
 	})
@@ -132,7 +133,7 @@ func TestResolving(t *testing.T) {
 				return false, errutil.Explain(nil, "condition error")
 			}),
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("resolve bean error: condition OnFunc(.*) matches error: condition error")
 	})
 
@@ -146,7 +147,7 @@ func TestResolving(t *testing.T) {
 				return false, errutil.Explain(nil, "condition error")
 			}),
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("resolve bean error: condition OnBean(.*) matches error")
 		assert.Error(t, err).Matches("condition OnFunc(.*) matches error: condition error")
 	})
@@ -156,7 +157,7 @@ func TestResolving(t *testing.T) {
 		r.Provide(&TestBean{Value: 1}).Condition(
 			gs_cond.OnProperty("test.property").HavingValue("true"),
 		)
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.That(t, err).Nil()
 		assert.That(t, len(r.Beans())).Equal(0)
 	})
@@ -165,7 +166,7 @@ func TestResolving(t *testing.T) {
 		r := New()
 		r.Provide(&TestBean{Value: 1})
 		r.Provide(&TestBean{Value: 2})
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("found duplicate beans")
 	})
 
@@ -173,15 +174,15 @@ func TestResolving(t *testing.T) {
 		r := New()
 		r.Provide(&ZeroLogger{}).Name("a").Export(gs.As[Logger]())
 		r.Provide(&SimpleLogger{}).Name("a").Export(gs.As[Logger]())
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("found duplicate beans")
 	})
 
 	t.Run("refresh container multiple times", func(t *testing.T) {
 		r := New()
-		err := r.Refresh(conf.New())
+		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.That(t, err).Nil()
-		err = r.Refresh(conf.New())
+		err = r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		assert.Error(t, err).Matches("container is already refreshing or refreshed")
 	})
 
@@ -193,7 +194,7 @@ func TestResolving(t *testing.T) {
 			},
 		).Name("TestBean")
 
-		p := conf.Map(map[string]any{})
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{}))
 		err := r.Refresh(p)
 		assert.That(t, err).Nil()
 
@@ -206,19 +207,19 @@ func TestResolving(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		defer func() { gs_init.Clear() }()
-		gs_init.AddModule(nil, func(r gs_init.BeanProvider, p conf.Properties) error {
-			keys, err := p.SubKeys("logger")
-			if err != nil {
-				return err
+		gs_init.AddModule(nil, func(r gs_init.BeanProvider, p flatten.Storage) error {
+			keys := make(map[string]struct{})
+			if !p.MapKeys("logger", keys) {
+				return nil
 			}
-			for _, name := range keys {
+			for _, name := range ordered.MapKeys(keys) {
 				arg := gs_arg.Tag(fmt.Sprintf("logger.%s", name))
 				r.Provide(NewZeroLogger, arg).
 					Export(gs.As[Logger](), gs.As[CtxLogger]()).
 					Name(name)
 			}
 			return nil
-		})
+		}, "", 0)
 
 		r := New()
 		{
@@ -252,7 +253,7 @@ func TestResolving(t *testing.T) {
 			r.Provide((*TestBean).NewChild, b)
 		}
 
-		p := conf.Map(map[string]any{
+		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"logger": map[string]string{
 				"a": "",
 				"b": "",
@@ -260,7 +261,7 @@ func TestResolving(t *testing.T) {
 			"Enable": map[string]any{
 				"ServeMux-2": true,
 			},
-		})
+		}))
 		err := r.Refresh(p)
 		assert.That(t, err).Nil()
 

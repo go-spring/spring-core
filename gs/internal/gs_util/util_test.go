@@ -24,11 +24,11 @@ import (
 	"github.com/go-spring/stdlib/testing/assert"
 )
 
-func TestTripleSort(t *testing.T) {
+func TestTopologicalSort(t *testing.T) {
 
 	t.Run("empty list", func(t *testing.T) {
 		sorting := list.New()
-		sorted, err := TripleSort(sorting, nil)
+		sorted, err := TopologicalSort(sorting, nil)
 		assert.That(t, err).Nil()
 		assert.That(t, sorted.Len()).Equal(0)
 	})
@@ -38,7 +38,7 @@ func TestTripleSort(t *testing.T) {
 			return list.New()
 		}
 		sorting := listutil.ListOf("A")
-		sorted, err := TripleSort(sorting, getBefore)
+		sorted, err := TopologicalSort(sorting, getBefore)
 		assert.That(t, err).Nil()
 		assert.That(t, sorted.Len()).Equal(1)
 		assert.That(t, sorted.Front().Value).Equal("A")
@@ -50,7 +50,7 @@ func TestTripleSort(t *testing.T) {
 			return list.New()
 		}
 		sorting := listutil.ListOf("A", "B", "C")
-		sorted, err := TripleSort(sorting, getBefore)
+		sorted, err := TopologicalSort(sorting, getBefore)
 		assert.That(t, err).Nil()
 		assert.That(t, listutil.AllOfList[string](sorted)).Equal([]string{"A", "B", "C"})
 	})
@@ -68,7 +68,7 @@ func TestTripleSort(t *testing.T) {
 			return l
 		}
 		sorting := listutil.ListOf("A", "B", "C")
-		sorted, err := TripleSort(sorting, getBefore)
+		sorted, err := TopologicalSort(sorting, getBefore)
 		assert.That(t, err).Nil()
 		assert.That(t, listutil.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
 	})
@@ -87,7 +87,7 @@ func TestTripleSort(t *testing.T) {
 			return l
 		}
 		sorting := listutil.ListOf("A", "B", "C")
-		sorted, err := TripleSort(sorting, getBefore)
+		sorted, err := TopologicalSort(sorting, getBefore)
 		assert.That(t, err).Nil()
 		assert.That(t, listutil.AllOfList[string](sorted)).Equal([]string{"C", "B", "A"})
 	})
@@ -107,7 +107,7 @@ func TestTripleSort(t *testing.T) {
 			return l
 		}
 		sorting := listutil.ListOf("A", "B", "C")
-		_, err := TripleSort(sorting, getBefore)
-		assert.Error(t, err).Matches("found sorting cycle")
+		_, err := TopologicalSort(sorting, getBefore)
+		assert.Error(t, err).Matches("dependency cycle detected")
 	})
 }

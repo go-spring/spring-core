@@ -193,10 +193,7 @@ func (d *BeanDefinition) SetFileLine(file string, line int) {
 
 // BeanID returns the bean's identifier.
 func (d *BeanDefinition) BeanID() gs.BeanID {
-	return gs.BeanID{
-		Name: d.GetName(),
-		Type: d.GetType(),
-	}
+	return gs.BeanID{Name: d.GetName(), Type: d.GetType()}
 }
 
 // GetName returns the bean's name.

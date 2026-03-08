@@ -9,8 +9,8 @@ github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7z
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/go-spring/gs-mock v0.0.7 h1:mqQ4cc5+sgAMpKOVJbbfaNsSHSMIhOo3k9vCQUqMKI8=
 github.com/go-spring/gs-mock v0.0.7/go.mod h1:gQk5i7QGfAIWR75qjhAYXHaQPohlT86KmL7dkPhoDh0=
-github.com/go-spring/stdlib v0.0.6 h1:IpKROhRRl1rWBtUORKAvX8mCELrFfI7Ra0kk5vBvlkA=
-github.com/go-spring/stdlib v0.0.6/go.mod h1:QV0qBBhoaGl8knj9U8TH6EBcaGuQ8PzaPzbZ85r1a9c=
+github.com/go-spring/stdlib v0.0.10 h1:fNTnJh0BAj/WPwkg+JC9GjhKTuGQLA1K7JlIo+e85no=
+github.com/go-spring/stdlib v0.0.10/go.mod h1:QV0qBBhoaGl8knj9U8TH6EBcaGuQ8PzaPzbZ85r1a9c=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=

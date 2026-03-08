@@ -20,12 +20,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_arg"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 	"github.com/go-spring/stdlib/testing/assert"
 )
 
@@ -36,7 +36,7 @@ func TestContainer(t *testing.T) {
 		roots := []*gs_bean.BeanDefinition{
 			c.Provide(&http.Server{}),
 		}
-		err := c.Refresh(conf.New(), roots)
+		err := c.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), roots)
 		assert.That(t, err).Nil()
 		c.Close()
 	})
@@ -50,7 +50,7 @@ func TestContainer(t *testing.T) {
 				}),
 			),
 		}
-		err := c.Refresh(conf.New(), roots)
+		err := c.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), roots)
 		assert.Error(t, err).Matches("condition error")
 	})
 
@@ -59,8 +59,8 @@ func TestContainer(t *testing.T) {
 		roots := []*gs_bean.BeanDefinition{
 			c.Provide(func(addr string) *http.Server { return nil }),
 		}
-		err := c.Refresh(conf.New(), roots)
-		assert.Error(t, err).Matches("property \"\" not exist")
+		err := c.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), roots)
+		assert.Error(t, err).Matches("property \"\": not exist")
 	})
 
 	t.Run("duplicate object registration", func(t *testing.T) {
@@ -69,7 +69,7 @@ func TestContainer(t *testing.T) {
 			c.Provide(&http.Server{}),
 			c.Provide(&http.Server{}),
 		}
-		err := c.Refresh(conf.New(), roots)
+		err := c.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), roots)
 		assert.Error(t, err).Matches("found duplicate beans")
 	})
 
@@ -80,9 +80,9 @@ func TestContainer(t *testing.T) {
 				return &http.Server{Addr: addr}
 			}, gs_arg.Tag("${server.address:=:9090}")),
 		}
-		err := c.Refresh(conf.Map(map[string]any{
+		err := c.Refresh(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"server.address": ":8080",
-		}), roots)
+		})), roots)
 		assert.That(t, err).Nil()
 	})
 
@@ -93,7 +93,7 @@ func TestContainer(t *testing.T) {
 				return &http.Server{Addr: addr}
 			}, gs_arg.Tag("${server.address}")),
 		}
-		err := c.Refresh(conf.New(), roots)
-		assert.Error(t, err).Matches("property \"server.address\" not exist")
+		err := c.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), roots)
+		assert.Error(t, err).Matches("property \"server.address\": not exist")
 	})
 }

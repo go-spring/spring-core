@@ -18,6 +18,7 @@ package gs
 
 import (
 	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
@@ -28,6 +29,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/gs/internal/gs_init"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 const (
@@ -35,14 +37,15 @@ const (
 	Website = "https://github.com/go-spring/"
 )
 
+// BeanID represents a selector for a bean.
+type BeanID = gs.BeanID
+
 // Dync is a generic alias for a dynamic configuration value.
 // It represents a property that can change at runtime.
 type Dync[T any] = gs_dync.Value[T]
 
-// BeanID represents a selector for a bean.
-type BeanID = gs.BeanID
-
-// As returns the [reflect.Type] for a given interface type T.
+// As returns the [reflect.Type] of an interface T.
+// T is expected to be an interface type.
 func As[T any]() reflect.Type {
 	return gs.As[T]()
 }
@@ -84,8 +87,8 @@ type (
 	// ConditionContext provides the evaluation context for a Condition.
 	ConditionContext = gs.ConditionContext
 
-	// ConditionOnProperty is a convenience wrapper for property-based conditions.
-	ConditionOnProperty = gs_cond.ConditionOnProperty
+	// PropertyCondition is a convenience wrapper for property-based conditions.
+	PropertyCondition = gs_cond.PropertyCondition
 )
 
 // OnOnce wraps the given conditions so they are evaluated only once.
@@ -111,7 +114,7 @@ func OnFunc(fn func(ctx ConditionContext) (bool, error)) Condition {
 }
 
 // OnProperty creates a property-based condition.
-func OnProperty(name string) ConditionOnProperty {
+func OnProperty(name string) PropertyCondition {
 	return gs_cond.OnProperty(name)
 }
 
@@ -132,6 +135,7 @@ func OnSingleBean[T any](name ...string) Condition {
 
 // RegisterExpressFunc registers a custom expression function
 // that can be used inside conditional expressions.
+// It should be called during application initialization.
 func RegisterExpressFunc(name string, fn any) {
 	gs_cond.RegisterExpressFunc(name, fn)
 }
@@ -171,13 +175,15 @@ type (
 	BeanProvider = gs_init.BeanProvider
 )
 
-// Provide registers a bean definition. 全局函数。
+// Provide registers a global bean definition.
+// It must be called during package initialization (init phase).
+// Calling it after application configuration has started will panic.
 // It accepts either an existing instance or a constructor function.
 // The optional args are used to bind parameters for the constructor or to
 // provide explicit injection values.
 func Provide(objOrCtor any, args ...Arg) *gs_bean.BeanDefinition {
-	if started {
-		panic("gs.Provide can only be called before the application is started")
+	if inited {
+		panic("gs.Provide can only be called in init function")
 	}
 	b := gs_bean.NewBean(objOrCtor, args...)
 	gs_init.AddBean(b)
@@ -188,34 +194,39 @@ func Provide(objOrCtor any, args ...Arg) *gs_bean.BeanDefinition {
 type ModuleFunc = gs_init.ModuleFunc
 
 // Module registers a configuration module that is conditionally activated
-// based on property values. 全局函数。
-func Module(conditions []ConditionOnProperty, fn ModuleFunc) {
-	if started {
-		panic("gs.Module can only be called before the application is started")
+// based on property values.
+func Module(c PropertyCondition, fn ModuleFunc) {
+	if inited {
+		panic("gs.Module can only be called in init function")
 	}
-	gs_init.AddModule(conditions, fn)
+	_, file, line, _ := runtime.Caller(1)
+	gs_init.AddModule(c, fn, file, line)
 }
 
-// Group registers a set of beans based on a configuration property map. 全局函数。
+// Group registers a set of beans based on a configuration property map.
 // Each map entry spawns a bean constructed via fn and optionally destroyed via d.
+// The bean name is derived from the map key.
 func Group[T any, R any](tag string, fn func(c T) (R, error), d func(R) error) {
-	if started {
-		panic("gs.Group can only be called before the application is started")
+	if inited {
+		panic("gs.Group can only be called in init function")
 	}
+	if !strings.HasPrefix(tag, "${") || !strings.HasSuffix(tag, "}") {
+		panic("gs.Group tag must be in ${...} format")
+	}
+	_, file, line, _ := runtime.Caller(1)
 	key := strings.TrimSuffix(strings.TrimPrefix(tag, "${"), "}")
-	gs_init.AddModule([]ConditionOnProperty{
-		OnProperty(key),
-	}, func(r BeanProvider, p conf.Properties) error {
+	gs_init.AddModule(OnProperty(key), func(r BeanProvider, p flatten.Storage) error {
 		var m map[string]T
-		if err := p.Bind(&m, "${"+key+"}"); err != nil {
+		if err := conf.Bind(p, &m, "${"+key+"}"); err != nil {
 			return err
 		}
 		for name, c := range m {
-			b := r.Provide(fn, ValueArg(c)).Name(name).Caller(2)
+			b := r.Provide(fn, ValueArg(c)).Name(name)
 			if d != nil {
 				b.Destroy(d)
 			}
+			b.SetFileLine(file, line)
 		}
 		return nil
-	})
+	}, file, line)
 }

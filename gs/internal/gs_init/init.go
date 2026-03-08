@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-// Package gs_init provides registration and management of modules
-// and beans for the Go-Spring IoC container. It allows conditional
-// module registration and keeps track of all registered beans.
 package gs_init
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/spring-core/gs/internal/gs"
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_cond"
+	"github.com/go-spring/stdlib/flatten"
 )
 
 var (
@@ -41,13 +39,14 @@ type BeanProvider interface {
 // ModuleFunc defines the signature of a module function that registers
 // beans using a BeanProvider. The function receives a set of configuration
 // properties as input.
-type ModuleFunc func(r BeanProvider, p conf.Properties) error
+type ModuleFunc func(r BeanProvider, p flatten.Storage) error
 
 // Module represents a conditional module that can register beans
 // when its Condition is satisfied.
 type Module struct {
 	ModuleFunc ModuleFunc
 	Condition  gs.Condition
+	FileLine   string
 }
 
 // Modules returns all registered modules.
@@ -56,7 +55,8 @@ func Modules() []Module {
 }
 
 // Beans returns all registered beans.
-// In test mode, it returns cloned instances to avoid mutating global state.
+// In test mode, it returns cloned BeanDefinitions
+// to avoid mutating shared bean definitions.
 func Beans() []*gs_bean.BeanDefinition {
 	if !testing.Testing() {
 		return beans
@@ -74,15 +74,12 @@ func AddBean(bean *gs_bean.BeanDefinition) {
 }
 
 // AddModule registers a new module function along with its activation
-// conditions. The module will only be applied if the conditions satisfied.
-func AddModule(conditions []gs_cond.ConditionOnProperty, fn ModuleFunc) {
-	var arr []gs.Condition
-	for _, cond := range conditions {
-		arr = append(arr, cond)
-	}
+// conditions. The module will only be applied if the conditions are satisfied.
+func AddModule(c gs_cond.PropertyCondition, fn ModuleFunc, file string, line int) {
 	modules = append(modules, Module{
 		ModuleFunc: fn,
-		Condition:  gs_cond.And(arr...),
+		Condition:  c,
+		FileLine:   fmt.Sprintf("%s:%d", file, line),
 	})
 }
 

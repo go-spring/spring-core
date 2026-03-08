@@ -39,37 +39,8 @@ import (
 
 	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 )
-
-// PropertyCopier defines the interface for any configuration source
-// that can copy its key-value pairs into a MutableProperties instance.
-type PropertyCopier interface {
-	CopyTo(out *conf.MutableProperties) error
-}
-
-// NamedPropertyCopier is a wrapper around PropertyCopier that carries
-// a human-readable name. The Name field is used for logging, debugging,
-// or error reporting when merging multiple configuration sources.
-type NamedPropertyCopier struct {
-	PropertyCopier
-	Name string
-}
-
-// NewNamedPropertyCopier creates a new NamedPropertyCopier instance
-// with the given name and underlying PropertyCopier.
-func NewNamedPropertyCopier(name string, p PropertyCopier) *NamedPropertyCopier {
-	return &NamedPropertyCopier{PropertyCopier: p, Name: name}
-}
-
-// CopyTo copies the properties from the underlying PropertyCopier into
-// the given MutableProperties instance. If PropertyCopier is nil, this
-// method does nothing and returns nil.
-func (c *NamedPropertyCopier) CopyTo(out *conf.MutableProperties) error {
-	if c.PropertyCopier != nil {
-		return c.PropertyCopier.CopyTo(out)
-	}
-	return nil
-}
 
 // AppConfig represents the layered configuration of an application.
 // The typical merge order is:
@@ -82,151 +53,140 @@ func (c *NamedPropertyCopier) CopyTo(out *conf.MutableProperties) error {
 //
 // Later layers override earlier ones in case of key conflicts.
 type AppConfig struct {
-	Properties *conf.MutableProperties
+	Properties *flatten.Properties
 }
 
 // NewAppConfig creates a new AppConfig instance.
 func NewAppConfig() *AppConfig {
 	return &AppConfig{
-		Properties: conf.New(),
+		Properties: flatten.NewProperties(nil),
 	}
 }
 
-// merge combines multiple NamedPropertyCopier instances into a single
-// Properties instance. Sources are applied in order; later sources
-// override earlier ones. If any source fails to copy, merge aborts
-// and returns an error identifying the failing source.
-func merge(sources ...*NamedPropertyCopier) (conf.Properties, error) {
-	out := conf.New()
-	for _, s := range sources {
-		if s != nil {
-			if err := s.CopyTo(out); err != nil {
-				return nil, errutil.Stack(err, "merge error in source %s", s.Name)
-			}
-		}
+// Refresh refreshes the configuration by merging multiple sources.
+func (c *AppConfig) Refresh() (flatten.Storage, error) {
+	env := flatten.NewProperties(nil)
+	cmd := flatten.NewProperties(nil)
+
+	if err := NewEnvironment().CopyTo(env); err != nil {
+		return nil, err
 	}
-	return out, nil
-}
+	if err := NewCommandArgs().CopyTo(cmd); err != nil {
+		return nil, err
+	}
 
-// Refresh merges all configuration layers into a read-only Properties instance.
-// If useImport is true, it additionally loads and merges imported configuration
-// files defined via the "spring.app.imports" property.
-func (c *AppConfig) Refresh(useImport bool) (conf.Properties, error) {
-	env := NewEnvironment()
-	cmd := NewCommandArgs()
+	l := &flatten.LayeredStorage{}
+	l.AddStorage(flatten.StorageCommandLine, flatten.NewPropertiesStorage(cmd), "cmd")
+	l.AddStorage(flatten.StorageEnvironment, flatten.NewPropertiesStorage(env), "env")
+	l.AddStorage(flatten.StorageDefault, flatten.NewPropertiesStorage(c.Properties), "sys")
 
-	p, err := merge(
-		NewNamedPropertyCopier("app", c.Properties),
-		NewNamedPropertyCopier("env", env),
-		NewNamedPropertyCopier("cmd", cmd),
-	)
+	confDir, err := conf.ResolveString(l, "${spring.app.config.dir:=./conf}")
 	if err != nil {
 		return nil, err
 	}
 
-	// Load local configuration files
-	localFiles, err := loadFiles(p)
-	if err != nil {
+	if err = loadFiles(l, confDir, nil); err != nil {
 		return nil, errutil.Stack(err, "refresh error in source local")
 	}
 
-	var sources []*NamedPropertyCopier
-	sources = append(sources, NewNamedPropertyCopier("app", c.Properties))
-	sources = append(sources, localFiles...)
-	sources = append(sources, NewNamedPropertyCopier("env", env))
-	sources = append(sources, NewNamedPropertyCopier("cmd", cmd))
-	if p, err = merge(sources...); err != nil {
+	strActiveProfiles, err := conf.ResolveString(l, "${spring.profiles.active:=}")
+	if err != nil {
 		return nil, err
 	}
+	activeProfiles := strings.Split(strActiveProfiles, ",")
 
-	// Skip imports if not enabled
-	if !useImport {
-		return p, nil
+	if err = loadFiles(l, confDir, activeProfiles); err != nil {
+		return nil, errutil.Stack(err, "refresh error in source local")
 	}
-
-	var i struct {
-		Imports []string `value:"${spring.app.imports:=}"`
-	}
-	if err = p.Bind(&i); err != nil {
-		return nil, err
-	}
-
-	sources = []*NamedPropertyCopier{}
-	sources = append(sources, NewNamedPropertyCopier("app", c.Properties))
-	sources = append(sources, localFiles...)
-	for _, source := range i.Imports {
-		if p, err = conf.Load(source); err != nil {
-			return nil, err
-		}
-		if p != nil {
-			sources = append(sources, NewNamedPropertyCopier(source, p))
-		}
-	}
-	sources = append(sources, NewNamedPropertyCopier("env", env))
-	sources = append(sources, NewNamedPropertyCopier("cmd", cmd))
-	return merge(sources...)
-}
-
-// getAppFiles generates a list of candidate configuration file paths,
-// including both base files (app.yaml, app.properties, etc.) and
-// profile-specific variants (app-dev.yaml, app-prod.properties, etc.).
-func getAppFiles(dir string, activeProfiles []string) ([]string, error) {
-	extensions := []string{".properties", ".yaml", ".yml", ".toml", ".tml", ".json"}
-
-	var files []string
-	for _, ext := range extensions {
-		files = append(files, filepath.Join(dir, "app"+ext))
-	}
-
-	for _, s := range activeProfiles {
-		for _, ext := range extensions {
-			files = append(files, filepath.Join(dir, "app-"+s+ext))
-		}
-	}
-	return files, nil
+	return l, nil
 }
 
 // loadFiles loads all candidate configuration files in order and returns
 // them as NamedPropertyCopier instances. Non-existent files are skipped,
 // while other loading errors abort the process.
-func loadFiles(resolver conf.Properties) ([]*NamedPropertyCopier, error) {
-	dir, err := resolver.Resolve("${spring.app.config.dir:=./conf}")
-	if err != nil {
-		return nil, err
-	}
+func loadFiles(l *flatten.LayeredStorage, dir string, activeProfiles []string) error {
+	extensions := []string{".properties", ".yaml", ".yml", ".toml", ".tml", ".json"}
 
-	strActiveProfiles, err := resolver.Resolve("${spring.profiles.active:=}")
-	if err != nil {
-		return nil, err
-	}
-
-	var activeProfiles []string
-	for s := range strings.SplitSeq(strActiveProfiles, ",") {
-		if s = strings.TrimSpace(s); s != "" {
-			activeProfiles = append(activeProfiles, s)
+	var files []string
+	if activeProfiles == nil {
+		for _, ext := range extensions {
+			files = append(files, filepath.Join(dir, "app"+ext))
+		}
+	} else {
+		for _, s := range activeProfiles {
+			for _, ext := range extensions {
+				files = append(files, filepath.Join(dir, "app-"+s+ext))
+			}
 		}
 	}
 
-	files, err := getAppFiles(dir, activeProfiles)
-	if err != nil {
-		return nil, err
-	}
-
-	var ret []*NamedPropertyCopier
 	for _, s := range files {
-		filename, err := resolver.Resolve(s)
+		// 解析文件名
+		filename, err := conf.ResolveString(l, s)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		c, err := conf.Load(filename)
+
+		// Load the file
+		p, err := conf.Load(filename)
 		if err != nil {
 			// Don't use `os.IsNotExist`
 			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}
-			return nil, err
+			return err
 		}
-		ret = append(ret, NewNamedPropertyCopier(filename, c))
+
+		// Load the file imports
+		if err = loadFileImports(l, p, activeProfiles); err != nil {
+			return err
+		}
+
+		// 优先级高的在前面，优先级低的在后面，因此是前插操作
+		if activeProfiles == nil {
+			l.AddStorage(flatten.StorageAppFile, flatten.NewPropertiesStorage(p), filename)
+		} else {
+			l.AddStorage(flatten.StorageProfileFile, flatten.NewPropertiesStorage(p), filename)
+		}
 	}
-	return ret, nil
+	return nil
+}
+
+func loadFileImports(l *flatten.LayeredStorage, p *flatten.Properties, activeProfiles []string) error {
+
+	var i struct {
+		Imports []string `value:"${spring.app.imports:=}"`
+	}
+
+	// 找到 file 里面的 imports
+	if err := conf.Bind(flatten.NewPropertiesStorage(p), &i); err != nil {
+		return err
+	}
+
+	// 没有则退出
+	if len(i.Imports) == 0 {
+		return nil
+	}
+
+	for _, source := range i.Imports {
+		// 解析 source
+		str, err := conf.ResolveString(l, source)
+		if err != nil {
+			return err
+		}
+
+		// 加载 source
+		c, err := conf.Load(str)
+		if err != nil {
+			return err
+		}
+
+		// 优先级高的在前面，优先级低的在后面，因此是前插操作
+		if activeProfiles == nil {
+			l.AddStorage(flatten.StorageAppFile, flatten.NewPropertiesStorage(c), str)
+		} else {
+			l.AddStorage(flatten.StorageProfileFile, flatten.NewPropertiesStorage(c), str)
+		}
+	}
+	return nil
 }

@@ -34,6 +34,7 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_dync"
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/stdlib/errutil"
+	"github.com/go-spring/stdlib/flatten"
 	"github.com/go-spring/stdlib/patchutil"
 	"github.com/go-spring/stdlib/typeutil"
 	"github.com/spf13/cast"
@@ -58,14 +59,14 @@ type Injecting struct {
 }
 
 // New creates a new Injecting instance.
-func New(p conf.Properties) *Injecting {
+func New(p flatten.Storage) *Injecting {
 	return &Injecting{
 		p: gs_dync.New(p),
 	}
 }
 
 // RefreshProperties updates the dynamic property source for the container.
-func (c *Injecting) RefreshProperties(p conf.Properties) error {
+func (c *Injecting) RefreshProperties(p flatten.Storage) error {
 	return c.p.Refresh(p)
 }
 
@@ -78,8 +79,10 @@ func (c *Injecting) RefreshProperties(p conf.Properties) error {
 //  4. Captures all registered destroyer callbacks for proper shutdown order.
 //  5. Optionally cleans up metadata if running outside testing.
 func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) {
-	allowCircularReferences := cast.ToBool(c.p.Data().Get("spring.allow-circular-references"))
-	forceAutowireIsNullable := cast.ToBool(c.p.Data().Get("spring.force-autowire-is-nullable"))
+	str1, _ := c.p.Data().Value("spring.allow-circular-references")
+	allowCircularReferences := cast.ToBool(str1)
+	str2, _ := c.p.Data().Value("spring.force-autowire-is-nullable")
+	forceAutowireIsNullable := cast.ToBool(str2)
 
 	// Index beans by name and type for lookup
 	c.beansByName = make(map[string][]*gs_bean.BeanDefinition)
@@ -135,7 +138,8 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 	c.destroyers = stack.getSortedDestroyers()
 
 	// Optional cleanup in non-testing environments.
-	forceClean := cast.ToBool(c.p.Data().Get("spring.force-clean"))
+	str3, _ := c.p.Data().Value("spring.force-clean")
+	forceClean := cast.ToBool(str3)
 	if !testing.Testing() || forceClean {
 		if c.p.ObjectsCount() == 0 {
 			c.p = nil
@@ -404,7 +408,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 // autowire injects dependencies into a single field or a collection (slice/map) based on its kind and tag.
 func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 	// Resolve placeholder expressions (e.g., ${...}) from configuration
-	str, err := c.p.Data().Resolve(str)
+	str, err := conf.ResolveString(c.p.Data(), str)
 	if err != nil {
 		return err
 	}
@@ -623,7 +627,7 @@ func (c *Injector) getBeanValue(b *gs_bean.BeanDefinition, stack *Stack) (reflec
 func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) error {
 
 	// Dereference pointers to obtain the underlying struct
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 		t = t.Elem()
 	}
@@ -845,7 +849,7 @@ func (s *Stack) getSortedDestroyers() []func() {
 
 	// Perform a topological sort to respect dependencies
 	// (e.g. a bean must be destroyed after the beans it depends on)
-	destroyers, _ = gs_util.TripleSort(destroyers, getBeforeDestroyers)
+	destroyers, _ = gs_util.TopologicalSort(destroyers, getBeforeDestroyers)
 
 	// Convert the sorted destroyers into a slice of executable cleanup functions
 	var ret []func()
@@ -871,12 +875,19 @@ func NewArgContext(c *Injector, stack *Stack) *ArgContext {
 
 // Has checks whether a configuration key is present.
 func (a *ArgContext) Has(key string) bool {
-	return a.c.p.Data().Has(key)
+	return a.c.p.Data().Exists(key)
 }
 
 // Prop retrieves a property value, with optional default.
 func (a *ArgContext) Prop(key string, def ...string) string {
-	return a.c.p.Data().Get(key, def...)
+	str, ok := a.c.p.Data().Value(key)
+	if ok {
+		return str
+	}
+	if len(def) > 0 {
+		return def[0]
+	}
+	return ""
 }
 
 // Find retrieves beans matching the given selector.
@@ -897,7 +908,7 @@ func (a *ArgContext) Check(c gs.Condition) (bool, error) {
 // Bind binds configuration data into the provided reflect.Value
 // based on the given struct tag.
 func (a *ArgContext) Bind(v reflect.Value, tag string) error {
-	return a.c.p.Data().Bind(v, tag)
+	return conf.Bind(a.c.p.Data(), v, tag)
 }
 
 // Wire performs dependency injection on the given reflect.Value
