@@ -49,8 +49,9 @@ const (
 	Refreshed                           // Successfully refreshed
 )
 
-// Injecting is the IoC component that handles dependency injection and
-// lifecycle management for beans once they have been resolved.
+// Injecting is the core IoC container component.
+// It handles bean creation, dependency injection, lifecycle management,
+// dynamic property updates, and destroy callbacks.
 type Injecting struct {
 	p           *gs_dync.Properties                        // Dynamic properties provider
 	beansByName map[string][]*gs_bean.BeanDefinition       // Beans indexed by name
@@ -71,13 +72,20 @@ func (c *Injecting) RefreshProperties(p flatten.Storage) error {
 }
 
 // Refresh wires all provided beans and prepares them for use.
+// It performs the following operations:
 //
-// It performs the following steps:
-//  1. Builds indexes for bean lookup by name and type.
-//  2. Wires root beans (entry points of the dependency graph).
-//  3. Handles lazy wiring for circular dependencies if allowed.
-//  4. Captures all registered destroyer callbacks for proper shutdown order.
-//  5. Optionally cleans up metadata if running outside testing.
+//  1. Builds indexes for bean lookup by name and type (by name and by type).
+//  2. Wires all root beans (entry points of the dependency graph), recursively wiring dependencies.
+//  3. Handles fields tagged with ',lazy' for deferred injection.
+//     Note: lazy wiring only applies to explicitly marked fields and does not
+//     resolve arbitrary circular dependencies.
+//  4. Registers destroyer callbacks for beans in dependency-safe order.
+//  5. Optionally cleans up metadata and internal references when not in testing mode,
+//     or if 'spring.force-clean' is true (even in testing).
+//
+// Behavior is influenced by properties:
+// - spring.allow-circular-references: whether lazy circular references are allowed.
+// - spring.force-autowire-is-nullable: whether missing dependencies are treated as nullable.
 func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) {
 	str1, _ := c.p.Data().Value("spring.allow-circular-references")
 	allowCircularReferences := cast.ToBool(str1)
@@ -151,7 +159,9 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 	return nil
 }
 
-// Wire injects dependencies into an externally provided object.
+// Wire injects dependencies into a user-provided object.
+// It recursively wires struct fields marked with 'autowire' or 'inject' tags,
+// including fields marked with ',lazy' for deferred injection.
 func (c *Injecting) Wire(obj any) error {
 	r := &Injector{
 		state:                   Refreshed,
@@ -175,17 +185,24 @@ func (c *Injecting) Wire(obj any) error {
 	return nil
 }
 
-// Close shuts down the container by invoking all registered destroyer
-// callbacks in reverse registration order, ensuring dependent resources
-// are released safely.
+// Close shuts down the container by invoking all registered destroyer callbacks.
+// The destroyers are executed in reverse order respecting dependency relationships,
+// ensuring that beans are destroyed after the beans they depend on.
+// Any errors returned from destroy methods are logged but do not stop the shutdown process.
 func (c *Injecting) Close() {
-	for _, f := range slices.Backward(c.destroyers) {
+	for _, f := range c.destroyers {
 		f()
 	}
 }
 
-// Injector is the component that executes core autowiring and
-// bean lifecycle management (constructor, field, and method injection).
+// Injector performs core dependency injection and bean lifecycle management.
+// Responsibilities include:
+// - Constructor invocation and creation of bean values.
+// - Field injection and wiring of struct dependencies.
+// - Initialization callbacks execution.
+// - Bean status management (creating, created, wired).
+// - Lazy field handling and circular dependency detection.
+// - Respecting forceAutowireIsNullable flag to treat missing dependencies as optional.
 type Injector struct {
 	state                   refreshState                               // Current wiring state
 	p                       *gs_dync.Properties                        // Property resolver
@@ -194,7 +211,9 @@ type Injector struct {
 	forceAutowireIsNullable bool                                       // Treat missing references as nullable
 }
 
-// findBeans retrieves all beans that match a given selector.
+// findBeans retrieves all beans matching the specified BeanID.
+// Matching is done first by type (if Type is not nil), then filtered by Name (if Name is not empty).
+// Returns a slice of BeanDefinition; may be empty if no match is found.
 func (c *Injector) findBeans(beanID gs.BeanID) []*gs_bean.BeanDefinition {
 	var beans []*gs_bean.BeanDefinition
 	if beanID.Type != nil {
@@ -212,8 +231,8 @@ func (c *Injector) findBeans(beanID gs.BeanID) []*gs_bean.BeanDefinition {
 	return beans
 }
 
-// WireTag represents the parsed structure of an injection tag
-// in the form "BeanName?" where "?" indicates that the dependency is optional.
+// WireTag represents the parsed structure of an injection tag.
+// Format: "BeanName?" where "?" marks the dependency as nullable.
 type WireTag struct {
 	beanName string // The target bean's name
 	nullable bool   // Whether the injection can be nil
@@ -254,9 +273,13 @@ func toWireString(tags []WireTag) string {
 	return buf.String()
 }
 
-// getBean locates a single bean that matches the given type and WireTag.
-// If the container is still in the Refreshing state, the matched bean will
-// be wired before it is returned.
+// getBean retrieves a single bean of the given type that matches the WireTag.
+// Behavior:
+// - Validates the type is suitable for injection.
+// - Filters by bean name if WireTag.beanName is set.
+// - Respects WireTag.nullable; returns nil if no matching bean and nullable.
+// - Returns an error if multiple matching beans are found.
+// - If the container is currently Refreshing, the bean will be wired before returning.
 func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (*gs_bean.BeanDefinition, error) {
 	// Ensure the target type is valid for injection.
 	if !typeutil.IsBeanInjectionTarget(t) {
@@ -295,9 +318,15 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (*gs_bean.
 	return b, nil
 }
 
-// getBeans retrieves a slice or map of beans that match the required element type and optional WireTags.
-// It supports filtering and ordering via tags, including the "*" wildcard to include unordered beans.
-func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack *Stack) ([]*gs_bean.BeanDefinition, error) {
+// getBeans retrieves a collection (slice or map) of beans matching the element type.
+// Supports optional WireTags for ordering and selection.
+// - Tags with '*' act as a wildcard for remaining unordered beans.
+// - Tags marked nullable are skipped if not found.
+// - Ensures deterministic order: before '*' -> '*' -> after '*'.
+// - Returns an error if required beans are missing or duplicates are detected.
+// - During Refreshing state, each returned bean is wired before inclusion.
+func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool,
+	stack *Stack) ([]*gs_bean.BeanDefinition, error) {
 
 	et := t.Elem()
 	if !typeutil.IsBeanInjectionTarget(et) {
@@ -405,10 +434,14 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool, stack
 	return beans, nil
 }
 
-// autowire injects dependencies into a single field or a collection (slice/map) based on its kind and tag.
+// autowire injects dependencies into the given reflect.Value according to the tag string.
+// - Supports single beans, slices, and maps.
+// - Resolves placeholders (e.g., ${...}) from configuration.
+// - Honors lazy or nullable tags, including forceAutowireIsNullable setting.
+// - Populates slices/maps with wired bean values, sorting slices by bean name.
 func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 	// Resolve placeholder expressions (e.g., ${...}) from configuration
-	str, err := conf.ResolveString(c.p.Data(), str)
+	str, err := conf.Resolve(c.p.Data(), str)
 	if err != nil {
 		return err
 	}
@@ -487,23 +520,25 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 	}
 }
 
-// wireBean ensures that the specified BeanDefinition is fully constructed,
-// injected, initialized, and registered for destruction.
+// wireBean fully constructs, injects dependencies, and initializes the given BeanDefinition.
+// Steps:
+// 1. Detects circular dependencies and returns error if detected.
+// 2. Wires beans declared in GetDependsOn() recursively.
+// 3. Invokes the bean's constructor (if any) via getBeanValue.
+// 4. Performs field-level wiring using wireBeanValue.
+// 5. Calls the bean's Init callback if defined.
+// 6. Registers destroyer for later cleanup.
+// After completion, bean status is set to StatusWired.
 func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
+	//fmt.Println(b.String())
 
-	haveDestroy := false
-
-	// Ensure that the destroyer is popped from the stack
-	defer func() {
-		if haveDestroy {
-			stack.popDestroyer()
+	// Wire all dependent beans before creating the current bean
+	for _, s := range b.GetDependsOn() {
+		for _, d := range c.findBeans(s) {
+			if err := c.wireBean(d, stack); err != nil {
+				return err
+			}
 		}
-	}()
-
-	// If the bean has a destroy callback, record it for later execution
-	if b.GetDestroy() != nil {
-		haveDestroy = true
-		stack.pushDestroyer(b)
 	}
 
 	stack.pushBean(b)
@@ -523,17 +558,6 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	// Mark the bean as currently being created
 	b.SetStatus(gs_bean.StatusCreating)
-
-	// Wire all dependent beans before creating the current bean
-	for _, s := range b.GetDependsOn() {
-		beans := c.findBeans(s)
-		for _, d := range beans {
-			err := c.wireBean(d, stack)
-			if err != nil {
-				return err
-			}
-		}
-	}
 
 	// Retrieve the actual value for the bean (e.g., via its factory method)
 	v, err := c.getBeanValue(b, stack)
@@ -623,7 +647,7 @@ func (c *Injector) getBeanValue(b *gs_bean.BeanDefinition, stack *Stack) (reflec
 	return v, nil
 }
 
-// wireBeanValue injects dependencies into a bean's struct fields.
+// wireBeanValue injects dependencies into all struct fields of the given bean value.
 func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) error {
 
 	// Dereference pointers to obtain the underlying struct
@@ -647,7 +671,11 @@ func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) 
 	return c.wireStruct(v, t, param, stack)
 }
 
-// wireStruct inspects struct fields and performs autowiring or configuration binding as needed.
+// wireStruct inspects each field of a struct and performs wiring as needed.
+// - Handles 'autowire' and 'inject' tags for dependency injection.
+// - Handles 'value' tags for configuration binding.
+// - Supports anonymous/embedded structs recursively.
+// - Defers lazy injection fields by appending to the stack's lazyFields.
 func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindParam, stack *Stack) error {
 	for i := range t.NumField() {
 		ft := t.Field(i)
@@ -740,20 +768,40 @@ type LazyField struct {
 	tag  string        // Original tag (e.g. "autowire") for this field
 }
 
+// todo listutil
+type destroyerList struct {
+	data *list.List
+}
+
+func (l *destroyerList) push(d *gs_bean.BeanDefinition) {
+	l.data.PushBack(d)
+}
+
+func (l *destroyerList) pop() {
+	l.data.Remove(l.data.Back())
+}
+
+func (l *destroyerList) back() *gs_bean.BeanDefinition {
+	if i := l.data.Back(); i != nil {
+		return i.Value.(*gs_bean.BeanDefinition)
+	}
+	return nil
+}
+
 // Stack represents the runtime context during bean wiring.
 // It keeps track of the current wiring call stack, lazily injected fields,
 // and the ordering of destroyers for proper shutdown.
 type Stack struct {
 	beans        []*gs_bean.BeanDefinition // The stack of beans currently being wired
 	lazyFields   []LazyField               // Fields deferred due to lazy injection
-	destroyers   *list.List                // Ordered list of destroyers
+	destroyers   destroyerList             // Ordered list of destroyers
 	destroyerMap map[gs.BeanID]*destroyer  // Fast lookup map for destroyers by bean ID
 }
 
 // NewStack creates and initializes a new Stack for a fresh Refresh or Wire operation.
 func NewStack() *Stack {
 	return &Stack{
-		destroyers:   list.New(),
+		destroyers:   destroyerList{list.New()},
 		destroyerMap: make(map[gs.BeanID]*destroyer),
 	}
 }
@@ -763,12 +811,18 @@ func NewStack() *Stack {
 func (s *Stack) pushBean(b *gs_bean.BeanDefinition) {
 	log.Debugf(context.Background(), log.TagAppDef, "push %s %s", b, b.Status())
 	s.beans = append(s.beans, b)
+	if b.GetDestroy() != nil {
+		s.pushDestroyer(b)
+	}
 }
 
 // popBean pops the most recently added bean from the wiring stack.
 func (s *Stack) popBean() {
 	n := len(s.beans)
 	b := s.beans[n-1]
+	if b.GetDestroy() != nil {
+		s.popDestroyer()
+	}
 	s.beans[n-1] = nil // avoid memory leak
 	s.beans = s.beans[:n-1]
 	log.Debugf(context.Background(), log.TagAppDef, "pop %s %s", b, b.Status())
@@ -798,18 +852,25 @@ func (s *Stack) pushDestroyer(b *gs_bean.BeanDefinition) {
 		s.destroyerMap[beanID] = d
 	}
 
+	// Record dependencies
+	for _, depBeanID := range b.GetDependsOn() {
+		if depDestroyer, ok := s.destroyerMap[depBeanID]; ok {
+			d.dependOn(depDestroyer.current)
+		}
+	}
+
 	// If there is a previously registered destroyer, current depends on it
-	if i := s.destroyers.Back(); i != nil {
-		d.dependOn(i.Value.(*gs_bean.BeanDefinition))
+	if x := s.destroyers.back(); x != nil {
+		s.destroyerMap[x.BeanID()].dependOn(b)
 	}
 
 	// Add the current bean to the end of the destroyer list
-	s.destroyers.PushBack(b)
+	s.destroyers.push(b)
 }
 
 // popDestroyer removes the last registered destroyer from the ordering list.
 func (s *Stack) popDestroyer() {
-	s.destroyers.Remove(s.destroyers.Back())
+	s.destroyers.pop()
 }
 
 // getBeforeDestroyers returns a list of destroyers that the given destroyer depends on.
@@ -826,8 +887,9 @@ func getBeforeDestroyers(destroyers *list.List, i any) *list.List {
 	return result
 }
 
-// getSortedDestroyers computes and returns a slice of destroyer functions
-// in the correct order, respecting declared dependencies between beans.
+// getSortedDestroyers returns destroyer functions in execution order.
+// Topological sort ensures each bean is destroyed after all beans it depends on.
+// The returned slice can be safely iterated to close the container.
 func (s *Stack) getSortedDestroyers() []func() {
 
 	// Helper to wrap a bean's destroy method as a no-argument function

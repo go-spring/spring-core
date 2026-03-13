@@ -43,6 +43,8 @@ type App interface {
 	Property(key string, val string)
 	// Provide registers an object or constructor as a bean in the application.
 	Provide(objOrCtor any, args ...gs.Arg) *gs_bean.BeanDefinition
+	// Root marks a bean as the root bean.
+	Root(b *gs_bean.BeanDefinition) *gs_bean.BeanDefinition
 }
 
 // AppStarter wraps a gs_app.App and manages its lifecycle.
@@ -84,16 +86,17 @@ func (s *AppStarter) startApp() error {
 }
 
 // Run creates and starts a new application using default settings.
-func Run() error {
-	return Configure(nil).Run()
+func Run() {
+	Configure(nil).Run()
 }
 
 // Run starts the application, applies configuration, and waits for
 // termination signals (e.g., SIGTERM, Ctrl+C) to trigger a graceful shutdown.
-// If no servers are running, the application stops immediately.
-func (s *AppStarter) Run() error {
+func (s *AppStarter) Run() {
+
+	// Error has already been logged
 	if err := s.startApp(); err != nil {
-		return err
+		return
 	}
 
 	// Listen for termination signals in a separate goroutine
@@ -109,23 +112,17 @@ func (s *AppStarter) Run() error {
 
 	// Wait for shutdown to complete
 	s.app.WaitForShutdown()
-	return nil
 }
 
 // RunAsync runs the application asynchronously and
 // returns a function to stop the application.
-func RunAsync(i any) (stop func(), err error) {
-	return Configure(nil).RunAsync(i)
+func RunAsync() (stop func(), err error) {
+	return Configure(nil).RunAsync()
 }
 
 // RunAsync runs the application asynchronously and
 // returns a function to stop the application.
-func (s *AppStarter) RunAsync(i any) (stop func(), err error) {
-
-	// Register the root bean
-	s.app.Provide(i).
-		Name("__root__").
-		Export(gs.As[any]())
+func (s *AppStarter) RunAsync() (stop func(), err error) {
 
 	if err = s.startApp(); err != nil {
 		return func() {}, err
@@ -152,7 +149,10 @@ func (s *AppStarter) RunTest(t *testing.T, f any) {
 	ft := reflect.TypeOf(f)
 	obj := reflect.New(ft.In(0).Elem())
 
-	stop, err := s.RunAsync(obj.Interface())
+	// Register the root bean
+	s.app.Root(s.app.Provide(obj.Interface()))
+
+	stop, err := s.RunAsync()
 	if err != nil {
 		t.Fatal(err)
 	}

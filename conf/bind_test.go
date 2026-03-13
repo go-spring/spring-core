@@ -698,7 +698,7 @@ func TestProperties_Bind(t *testing.T) {
 	})
 }
 
-func TestResolveString(t *testing.T) {
+func TestResolve(t *testing.T) {
 	t.Run("unbalanced braces", func(t *testing.T) {
 		_, err := conf.ParseTag("${key")
 		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")

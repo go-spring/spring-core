@@ -20,55 +20,132 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-spring/stdlib/flatten"
 	"github.com/go-spring/stdlib/testing/assert"
 )
 
-func TestEnvironment(t *testing.T) {
+func TestExtractEnvironments(t *testing.T) {
 	os.Clearenv()
 
-	t.Run("empty", func(t *testing.T) {
-		props := flatten.NewProperties(nil)
-		err := NewEnvironment().CopyTo(props)
+	t.Run("empty environment", func(t *testing.T) {
+		environ := os.Environ()
+		if len(environ) > 0 {
+			t.Skipf("Skipping test as environment is not empty")
+		}
+		p, err := extractEnvironments()
 		assert.That(t, err).Nil()
-		//assert.That(t, 0).Equal(len(props.Keys()))
+		assert.That(t, p).NotNil()
 	})
 
-	t.Run("normal", func(t *testing.T) {
-		_ = os.Setenv("GS_DB_HOST", "db1")
-		_ = os.Setenv("API_KEY", "key123")
+	t.Run("GS_ prefixed variables", func(t *testing.T) {
+		_ = os.Setenv("GS_DB_HOST", "localhost")
+		_ = os.Setenv("GS_DB_PORT", "5432")
+		_ = os.Setenv("GS_APP_NAME", "MyApp")
 		defer func() {
 			_ = os.Unsetenv("GS_DB_HOST")
+			_ = os.Unsetenv("GS_DB_PORT")
+			_ = os.Unsetenv("GS_APP_NAME")
+		}()
+
+		p, err := extractEnvironments()
+		assert.That(t, err).Nil()
+		v, ok := p.Get("db.host")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("localhost")
+		v, ok = p.Get("db.port")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("5432")
+		v, ok = p.Get("app.name")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("MyApp")
+	})
+
+	t.Run("non-GS_ variables preserved as-is", func(t *testing.T) {
+		_ = os.Setenv("API_KEY", "secret123")
+		_ = os.Setenv("PATH", "/usr/bin")
+		defer func() {
 			_ = os.Unsetenv("API_KEY")
+			_ = os.Unsetenv("PATH")
 		}()
-		props := flatten.NewProperties(nil)
-		err := NewEnvironment().CopyTo(props)
+
+		p, err := extractEnvironments()
 		assert.That(t, err).Nil()
-		//assert.That(t, props.Get("db.host")).Equal("db1")
-		//assert.That(t, props.Get("API_KEY")).Equal("key123")
+		v, ok := p.Get("API_KEY")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("secret123")
+		v, ok = p.Get("PATH")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("/usr/bin")
 	})
 
-	t.Run("property conflict", func(t *testing.T) {
-		_ = os.Setenv("GS_DB_HOST", "db1")
+	t.Run("mixed GS_ and non-GS_ variables", func(t *testing.T) {
+		_ = os.Setenv("GS_SERVER_URL", "https://api.example.com")
+		_ = os.Setenv("DEBUG", "true")
+		_ = os.Setenv("GS_LOG_LEVEL", "INFO")
 		defer func() {
-			_ = os.Unsetenv("GS_DB_HOST")
+			_ = os.Unsetenv("GS_SERVER_URL")
+			_ = os.Unsetenv("DEBUG")
+			_ = os.Unsetenv("GS_LOG_LEVEL")
 		}()
-		props := flatten.MapProperties(map[string]any{
-			"db": []string{"db2"},
-		})
-		err := NewEnvironment().CopyTo(props)
-		assert.Error(t, err).Nil() // Matches("type conflict at path db.host")
+
+		p, err := extractEnvironments()
+		assert.That(t, err).Nil()
+		v, ok := p.Get("server.url")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("https://api.example.com")
+		v, ok = p.Get("DEBUG")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("true")
+		v, ok = p.Get("log.level")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("INFO")
 	})
 
-	t.Run("nested property conflict", func(t *testing.T) {
-		_ = os.Setenv("GS_DB_HOST", "db1")
+	t.Run("empty value", func(t *testing.T) {
+		_ = os.Setenv("GS_EMPTY_VAR", "")
 		defer func() {
-			_ = os.Unsetenv("GS_DB_HOST")
+			_ = os.Unsetenv("GS_EMPTY_VAR")
 		}()
-		props := flatten.MapProperties(map[string]any{
-			"db": "123",
-		})
-		err := NewEnvironment().CopyTo(props)
-		assert.Error(t, err).Nil() // Matches("path db.host conflicts with existing structure")
+
+		p, err := extractEnvironments()
+		assert.That(t, err).Nil()
+		v, ok := p.Get("empty.var")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("")
+	})
+
+	t.Run("value with equals sign", func(t *testing.T) {
+		_ = os.Setenv("GS_FORMULA", "x=y+z")
+		defer func() {
+			_ = os.Unsetenv("GS_FORMULA")
+		}()
+
+		p, err := extractEnvironments()
+		assert.That(t, err).Nil()
+		v, ok := p.Get("formula")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("x=y+z")
+	})
+
+	t.Run("complex nested structure", func(t *testing.T) {
+		_ = os.Setenv("GS_DATABASE_PRIMARY_HOST", "db1.example.com")
+		_ = os.Setenv("GS_DATABASE_PRIMARY_PORT", "3306")
+		_ = os.Setenv("GS_DATABASE_REPLICA_HOST", "db2.example.com")
+		defer func() {
+			_ = os.Unsetenv("DATABASE_PRIMARY_HOST")
+			_ = os.Unsetenv("DATABASE_PRIMARY_PORT")
+			_ = os.Unsetenv("DATABASE_REPLICA_HOST")
+		}()
+
+		p, err := extractEnvironments()
+		assert.That(t, err).Nil()
+		v, ok := p.Get("database.primary.host")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("db1.example.com")
+		v, ok = p.Get("database.primary.port")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("3306")
+		v, ok = p.Get("database.replica.host")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("db2.example.com")
 	})
 }

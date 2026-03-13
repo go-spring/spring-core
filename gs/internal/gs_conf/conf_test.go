@@ -20,6 +20,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-spring/spring-core/conf"
 	"github.com/go-spring/stdlib/testing/assert"
 )
 
@@ -38,43 +39,173 @@ func TestAppConfig(t *testing.T) {
 		assert.Error(t, err).Matches(`resolve string "\${a}" error: property \"a\": not exist`)
 	})
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("config file not exist", func(t *testing.T) {
+		t.Cleanup(clean)
+		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "./nonexistent")
+		p, err := NewAppConfig().Refresh()
+		assert.That(t, err).Nil()
+		assert.That(t, p).NotNil()
+	})
+
+	t.Run("success - load from properties file", func(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "./testdata/conf")
 		p, err := NewAppConfig().Refresh()
 		assert.That(t, err).Nil()
-		_ = p
-		//assert.That(t, p.Data()).Equal(map[string]string{
-		//	"spring.app.config.dir": "./testdata/conf",
-		//	"spring.app.name":       "test",
-		//	"http.server.addr":      "0.0.0.0:8080",
-		//})
+
+		var config struct {
+			SpringAppConfigDir string `value:"${spring.app.config.dir:=./conf}"`
+			SpringAppName      string `value:"${spring.app.name}"`
+			HttpServerAddr     string `value:"${http.server.addr}"`
+		}
+		err = conf.Bind(p, &config)
+		assert.That(t, err).Nil()
+		assert.That(t, config.SpringAppConfigDir).Equal("./testdata/conf")
+		assert.That(t, config.SpringAppName).Equal("test")
+		assert.That(t, config.HttpServerAddr).Equal("0.0.0.0:8080")
 	})
 
-	t.Run("merge error - env", func(t *testing.T) {
-		t.Cleanup(clean)
-		_ = os.Setenv("GS_A", "a")
-		_ = os.Setenv("GS_A_B", "a.b")
-		_, err := NewAppConfig().Refresh()
-		assert.Error(t, err).Nil() // Matches("path a.b conflicts with existing structure")
-	})
-
-	t.Run("merge error - sys", func(t *testing.T) {
+	t.Run("env override config file", func(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "./testdata/conf")
-		c := NewAppConfig()
-		c.Properties.Set("http.server[0].addr", "0.0.0.0:8080")
-		_, err := c.Refresh()
-		assert.Error(t, err).Nil() // Matches("type conflict at path http.server.addr")
+		_ = os.Setenv("GS_SPRING_APP_NAME", "env-override-app")
+		p, err := NewAppConfig().Refresh()
+		assert.That(t, err).Nil()
+
+		var config struct {
+			SpringAppName string `value:"${spring.app.name}"`
+		}
+		err = conf.Bind(p, &config)
+		assert.That(t, err).Nil()
+		assert.That(t, config.SpringAppName).Equal("env-override-app")
 	})
 
-	t.Run("load from sys conf", func(t *testing.T) {
+	t.Run("cmd args override all", func(t *testing.T) {
+		t.Cleanup(clean)
+		os.Args = []string{"test", "-D", "spring.app.name=cmd-override-app"}
+		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "./testdata/conf")
+		_ = os.Setenv("GS_SPRING_APP_NAME", "env-override-app")
+		p, err := NewAppConfig().Refresh()
+		assert.That(t, err).Nil()
+
+		var config struct {
+			SpringAppName string `value:"${spring.app.name}"`
+		}
+		err = conf.Bind(p, &config)
+		assert.That(t, err).Nil()
+		assert.That(t, config.SpringAppName).Equal("cmd-override-app")
+	})
+
+	t.Run("sys conf override by config file", func(t *testing.T) {
 		t.Cleanup(clean)
 		c := NewAppConfig()
-		c.Properties.Set("spring.app.name", "sysconf-test")
+		c.Properties.Set("spring.app.name", "sysconf-default")
+		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "./testdata/conf")
 		p, err := c.Refresh()
 		assert.That(t, err).Nil()
-		_ = p
-		//assert.That(t, p.Get("spring.app.name")).Equal("sysconf-test")
+
+		var config struct {
+			SpringAppName string `value:"${spring.app.name}"`
+		}
+		err = conf.Bind(p, &config)
+		assert.That(t, err).Nil()
+		assert.That(t, config.SpringAppName).Equal("test")
+	})
+
+	t.Run("profile config override default config", func(t *testing.T) {
+		t.Cleanup(clean)
+		tmpDir := t.TempDir()
+		appProps := tmpDir + "/app.properties"
+		err := os.WriteFile(appProps, []byte("spring.app.name=default\nserver.port=8080"), 0644)
+		assert.That(t, err).Nil()
+		devProps := tmpDir + "/app-dev.properties"
+		err = os.WriteFile(devProps, []byte("spring.app.name=dev-app\nserver.port=9090"), 0644)
+		assert.That(t, err).Nil()
+
+		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", tmpDir)
+		_ = os.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev")
+		p, err := NewAppConfig().Refresh()
+		assert.That(t, err).Nil()
+
+		var config struct {
+			SpringAppName string `value:"${spring.app.name}"`
+			ServerPort    string `value:"${server.port}"`
+		}
+		err = conf.Bind(p, &config)
+		assert.That(t, err).Nil()
+		assert.That(t, config.SpringAppName).Equal("dev-app")
+		assert.That(t, config.ServerPort).Equal("9090")
+	})
+
+	t.Run("multiple profiles merge", func(t *testing.T) {
+		t.Cleanup(clean)
+		tmpDir := t.TempDir()
+		appProps := tmpDir + "/app.properties"
+		err := os.WriteFile(appProps, []byte("spring.app.name=default\ndb.host=localhost"), 0644)
+		assert.That(t, err).Nil()
+		devProps := tmpDir + "/app-dev.properties"
+		err = os.WriteFile(devProps, []byte("spring.app.name=dev-app\nlog.level=debug"), 0644)
+		assert.That(t, err).Nil()
+		prodProps := tmpDir + "/app-prod.properties"
+		err = os.WriteFile(prodProps, []byte("db.host=prod-db.example.com\ndb.port=5432"), 0644)
+		assert.That(t, err).Nil()
+
+		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", tmpDir)
+		_ = os.Setenv("GS_SPRING_PROFILES_ACTIVE", "dev,prod")
+		p, err := NewAppConfig().Refresh()
+		assert.That(t, err).Nil()
+
+		var config struct {
+			SpringAppName string `value:"${spring.app.name}"`
+			DbHost        string `value:"${db.host}"`
+			DbPort        string `value:"${db.port}"`
+			LogLevel      string `value:"${log.level}"`
+		}
+		err = conf.Bind(p, &config)
+		assert.That(t, err).Nil()
+		assert.That(t, config.SpringAppName).Equal("dev-app")
+		assert.That(t, config.DbHost).Equal("prod-db.example.com")
+		assert.That(t, config.DbPort).Equal("5432")
+		assert.That(t, config.LogLevel).Equal("debug")
+	})
+
+	t.Run("import config file", func(t *testing.T) {
+		t.Cleanup(clean)
+		tmpDir := t.TempDir()
+		importedProps := tmpDir + "/imported.properties"
+		err := os.WriteFile(importedProps, []byte("db.host=imported-host\ndb.port=3306"), 0644)
+		assert.That(t, err).Nil()
+		appProps := tmpDir + "/app.properties"
+		err = os.WriteFile(appProps, []byte("spring.app.name=main-app\nspring.app.imports="+importedProps+"\ndb.user=admin"), 0644)
+		assert.That(t, err).Nil()
+
+		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", tmpDir)
+		p, err := NewAppConfig().Refresh()
+		assert.That(t, err).Nil()
+
+		var config struct {
+			SpringAppName string `value:"${spring.app.name}"`
+			DbHost        string `value:"${db.host}"`
+			DbPort        string `value:"${db.port}"`
+			DbUser        string `value:"${db.user}"`
+		}
+		err = conf.Bind(p, &config)
+		assert.That(t, err).Nil()
+		assert.That(t, config.SpringAppName).Equal("main-app")
+		assert.That(t, config.DbHost).Equal("imported-host")
+		assert.That(t, config.DbPort).Equal("3306")
+		assert.That(t, config.DbUser).Equal("admin")
+	})
+
+	t.Run("import file not exist", func(t *testing.T) {
+		t.Cleanup(clean)
+		tmpDir := t.TempDir()
+		appProps := tmpDir + "/app.properties"
+		err := os.WriteFile(appProps, []byte("spring.app.name=test\nspring.app.imports=/nonexistent/file.properties"), 0644)
+		assert.That(t, err).Nil()
+
+		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", tmpDir)
+		_, err = NewAppConfig().Refresh()
+		assert.Error(t, err).NotNil()
 	})
 }

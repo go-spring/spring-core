@@ -40,9 +40,9 @@ const (
 	Refreshed
 )
 
-// Resolving is the core container responsible for holding bean definitions,
-// processing modules, scanning configuration beans, and
-// resolving beans against conditions.
+// Resolving is the core container managing BeanDefinitions.
+// It supports registering beans, applying modules, scanning configuration beans,
+// resolving conditional beans, and checking for duplicates.
 type Resolving struct {
 	state RefreshState              // current refresh state
 	beans []*gs_bean.BeanDefinition // all beans managed by the container
@@ -53,7 +53,7 @@ func New() *Resolving {
 	return &Resolving{}
 }
 
-// Beans returns all active bean definitions, excluding deleted ones.
+// Beans returns all bean definitions that are not marked as deleted (StatusDeleted).
 func (c *Resolving) Beans() []*gs_bean.BeanDefinition {
 	var beans []*gs_bean.BeanDefinition
 	for _, b := range c.beans {
@@ -65,8 +65,10 @@ func (c *Resolving) Beans() []*gs_bean.BeanDefinition {
 	return beans
 }
 
-// Provide registers a bean definition.
-// It accepts either an existing instance or a constructor function.
+// Provide registers a new bean definition in the container.
+// - objOrCtor can be an existing instance or a constructor function.
+// - Panics if the container is already Refreshing or Refreshed.
+// - Returns the BeanDefinition with caller information populated.
 func (c *Resolving) Provide(objOrCtor any, args ...gs.Arg) *gs_bean.BeanDefinition {
 	if c.state >= Refreshing {
 		panic("container is already refreshing or refreshed")
@@ -76,13 +78,15 @@ func (c *Resolving) Provide(objOrCtor any, args ...gs.Arg) *gs_bean.BeanDefiniti
 	return b.Caller(2)
 }
 
-// Refresh performs the full lifecycle of container initialization.
-// The phases are as follows:
-//  1. Apply registered modules to register additional beans.
-//  2. Scan configuration beans and register methods as beans.
-//  4. Resolve conditions for all beans and mark inactive ones as deleted.
-//  5. Check for duplicate beans (by type and name).
-//  6. Validate that all root beans are resolved and ready to wire.
+// Refresh performs the full container initialization lifecycle.
+// Steps:
+// 1. Merge globally registered beans and container beans.
+// 2. Apply registered modules that satisfy their conditions.
+// 3. Set the container state to Refreshing.
+// 4. Scan configuration beans and register eligible methods as beans.
+// 5. Resolve all beans against their conditions, marking inactive ones as deleted.
+// 6. Check for duplicate beans by type and name.
+// 7. Set the container state to Refreshed.
 func (c *Resolving) Refresh(p flatten.Storage) error {
 	if c.state != RefreshDefault {
 		return errutil.Explain(nil, "container is already refreshing or refreshed")
@@ -112,7 +116,8 @@ func (c *Resolving) Refresh(p flatten.Storage) error {
 	return nil
 }
 
-// applyModules executes all registered modules that match their conditions.
+// applyModules iterates over all globally registered modules and executes
+// those whose conditions match the given context.
 func (c *Resolving) applyModules(p flatten.Storage) error {
 	ctx := &ConditionContext{p: p, c: c}
 	for _, m := range gs_init.Modules() {
@@ -130,10 +135,12 @@ func (c *Resolving) applyModules(p flatten.Storage) error {
 	return nil
 }
 
-// scanConfigurations iterates over all beans that represent configuration
-// objects and scans their methods to register additional beans.
+// scanConfigurations iterates over all beans with a non-nil configuration.
+// For each configuration bean, its methods are scanned to register new beans.
+// Newly discovered beans are appended to the container's bean list.
 func (c *Resolving) scanConfigurations() error {
-	for _, b := range c.beans {
+	tempBeans := c.beans
+	for _, b := range tempBeans {
 		if b.GetConfiguration() == nil {
 			continue
 		}
@@ -146,9 +153,12 @@ func (c *Resolving) scanConfigurations() error {
 	return nil
 }
 
-// scanConfiguration inspects methods of a configuration bean and registers
-// methods as beans if they match the inclusion/exclusion patterns.
-// By default, include methods named like "NewXxx"
+// scanConfiguration scans the methods of a configuration bean (bd) and
+// registers methods as new beans according to include/exclude regex patterns.
+//   - If Includes is empty, defaults to methods matching "New*".
+//   - Methods matching any Exclude pattern are skipped.
+//   - Each registered bean gets a name "<ConfigBeanName>_<MethodName>"
+//     and a condition OnBeanID of the configuration bean.
 func (c *Resolving) scanConfiguration(bd *gs_bean.BeanDefinition) ([]*gs_bean.BeanDefinition, error) {
 	var (
 		includes []*regexp.Regexp
@@ -224,8 +234,9 @@ func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool {
 	return true
 }
 
-// resolveBeans iterates over all beans and resolves their conditions,
-// marking them as resolved or deleted.
+// resolveBeans evaluates all beans in the container against their conditions.
+// Each bean's status is updated: StatusResolved if all conditions pass,
+// or StatusDeleted if any condition fails.
 func (c *Resolving) resolveBeans(p flatten.Storage) error {
 	ctx := &ConditionContext{p: p, c: c}
 	for _, b := range c.beans {
@@ -254,15 +265,16 @@ func (c *Resolving) checkDuplicateBeans() error {
 	return nil
 }
 
-// ConditionContext provides an evaluation context for conditions
-// during bean resolution.
+// ConditionContext represents the context for evaluating bean conditions.
 type ConditionContext struct {
 	c *Resolving
 	p flatten.Storage
 }
 
-// resolveBean evaluates a bean's conditions and updates its status accordingly.
-// If any condition fails, the bean is marked as deleted.
+// resolveBean evaluates all conditions of the given bean within this context.
+// - If the bean is already resolving or resolved, it is skipped.
+// - If any condition fails, the bean's status is set to StatusDeleted.
+// - If all conditions pass, the status is set to StatusResolved.
 func (c *ConditionContext) resolveBean(b *gs_bean.BeanDefinition) error {
 	if b.Status() >= gs_bean.StatusResolving {
 		return nil
@@ -280,13 +292,14 @@ func (c *ConditionContext) resolveBean(b *gs_bean.BeanDefinition) error {
 	return nil
 }
 
-// Has checks if a configuration property exists.
+// Has returns true if the given configuration key exists in the storage.
 func (c *ConditionContext) Has(key string) bool {
 	return c.p.Exists(key)
 }
 
-// Prop retrieves a configuration property by key,
-// optionally returning a default value if the key is not found.
+// Prop returns the string value of the given configuration key.
+// If the key does not exist and a default value is provided, the default is returned.
+// Otherwise, returns an empty string.
 func (c *ConditionContext) Prop(key string, def ...string) string {
 	str, ok := c.p.Value(key)
 	if ok {
@@ -298,8 +311,10 @@ func (c *ConditionContext) Prop(key string, def ...string) string {
 	return ""
 }
 
-// Find returns all beans that match the provided selector
-// and are successfully resolved (active).
+// Find searches for all active beans matching the given BeanID (type and/or name).
+// - Skips beans that are resolving or deleted.
+// - Calls resolveBean to ensure each matching bean still satisfies its conditions.
+// Returns a slice of ConditionBean and an error if any resolution fails.
 func (c *ConditionContext) Find(beanID gs.BeanID) ([]gs.ConditionBean, error) {
 	var found []gs.ConditionBean
 	for _, b := range c.c.beans {

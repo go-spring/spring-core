@@ -211,11 +211,14 @@ func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 	if err != nil {
 		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
+	if val = strings.TrimSpace(val); val == "" {
+		return nil
+	}
 
 	// try converter function first
 	if fn != nil {
 		fnValue := reflect.ValueOf(fn)
-		out := fnValue.Call([]reflect.Value{reflect.ValueOf(strings.TrimSpace(val))})
+		out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
 		if !out[1].IsNil() {
 			err = out[1].Interface().(error)
 			return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
@@ -495,13 +498,13 @@ func bindStruct(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPa
 //	resolve(url) -> "http://localhost:8080"
 func resolve(p flatten.Storage, param BindParam) (string, error) {
 	if val, ok := p.Value(param.Key); ok {
-		return ResolveString(p, val)
+		return Resolve(p, val)
 	}
 	//if p.Exists(param.Key) {
 	//	return "", errutil.Explain(nil, "property %q isn't simple value", param.Key)
 	//}
 	if param.Tag.HasDef {
-		return ResolveString(p, param.Tag.Def)
+		return Resolve(p, param.Tag.Def)
 	}
 	return "", errutil.Explain(ErrNotExist, "property %q", param.Key)
 }

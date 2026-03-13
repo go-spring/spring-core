@@ -15,20 +15,21 @@
  */
 
 // Package gs_conf provides a layered configuration system for Go-Spring
-// applications. It consolidates multiple configuration sources into a
-// single immutable property set, supporting profile-specific files
-// and optional import of additional configuration files.
+// applications. It merges multiple configuration sources into a single
+// layered property set, supporting profile-specific files and optional
+// imports of additional configuration files.
 //
-// Supported configuration sources include:
-//   - Built-in system defaults (SysConf)
-//   - Local configuration files (e.g., ./conf/app.yaml)
-//   - Remote configuration files (from config servers)
-//   - Dynamically supplied remote properties
-//   - Operating system environment variables
+// Supported configuration sources include (from highest to lowest precedence):
 //   - Command-line arguments
+//   - Operating system environment variables
+//   - Imports declared in profile configuration files (spring.app.imports)
+//   - Profile-specific configuration files (e.g., ./conf/app-dev.yaml)
+//   - Imports declared in application configuration files (spring.app.imports)
+//   - Local configuration files (e.g., ./conf/app.yaml)
+//   - Built-in default properties
 //
-// Sources are applied in a defined order; later sources override
-// earlier ones when the same key is defined multiple times.
+// Configuration sources are applied in layers, and later layers override
+// earlier ones when the same key appears multiple times.
 package gs_conf
 
 import (
@@ -43,15 +44,6 @@ import (
 )
 
 // AppConfig represents the layered configuration of an application.
-// The typical merge order is:
-//  1. System defaults (SysConf)
-//  2. Local configuration files
-//  3. Remote configuration files
-//  4. Dynamically supplied remote properties
-//  5. Environment variables
-//  6. Command-line arguments
-//
-// Later layers override earlier ones in case of key conflicts.
 type AppConfig struct {
 	Properties *flatten.Properties
 }
@@ -65,22 +57,22 @@ func NewAppConfig() *AppConfig {
 
 // Refresh refreshes the configuration by merging multiple sources.
 func (c *AppConfig) Refresh() (flatten.Storage, error) {
-	env := flatten.NewProperties(nil)
-	cmd := flatten.NewProperties(nil)
-
-	if err := NewEnvironment().CopyTo(env); err != nil {
+	cmd, err := extractCmdArgs()
+	if err != nil {
 		return nil, err
 	}
-	if err := NewCommandArgs().CopyTo(cmd); err != nil {
+
+	env, err := extractEnvironments()
+	if err != nil {
 		return nil, err
 	}
 
 	l := &flatten.LayeredStorage{}
 	l.AddStorage(flatten.StorageCommandLine, flatten.NewPropertiesStorage(cmd), "cmd")
 	l.AddStorage(flatten.StorageEnvironment, flatten.NewPropertiesStorage(env), "env")
-	l.AddStorage(flatten.StorageDefault, flatten.NewPropertiesStorage(c.Properties), "sys")
+	l.AddStorage(flatten.StorageDefault, flatten.NewPropertiesStorage(c.Properties), "")
 
-	confDir, err := conf.ResolveString(l, "${spring.app.config.dir:=./conf}")
+	confDir, err := conf.Resolve(l, "${spring.app.config.dir:=./conf}")
 	if err != nil {
 		return nil, err
 	}
@@ -89,11 +81,12 @@ func (c *AppConfig) Refresh() (flatten.Storage, error) {
 		return nil, errutil.Stack(err, "refresh error in source local")
 	}
 
-	strActiveProfiles, err := conf.ResolveString(l, "${spring.profiles.active:=}")
+	// Profiles are designed to be orthogonal and independent.
+	strActiveProfiles, err := conf.Resolve(l, "${spring.profiles.active:=}")
 	if err != nil {
 		return nil, err
 	}
-	activeProfiles := strings.Split(strActiveProfiles, ",")
+	activeProfiles := checkDuplicates(strings.Split(strActiveProfiles, ","))
 
 	if err = loadFiles(l, confDir, activeProfiles); err != nil {
 		return nil, errutil.Stack(err, "refresh error in source local")
@@ -101,9 +94,30 @@ func (c *AppConfig) Refresh() (flatten.Storage, error) {
 	return l, nil
 }
 
-// loadFiles loads all candidate configuration files in order and returns
-// them as NamedPropertyCopier instances. Non-existent files are skipped,
-// while other loading errors abort the process.
+// checkDuplicates removes duplicate strings while preserving the
+// original order. Empty items are ignored.
+func checkDuplicates(arr []string) []string {
+	var result []string
+	temp := make(map[string]struct{})
+	for _, s := range arr {
+		if s = strings.TrimSpace(s); s == "" {
+			continue
+		}
+		if _, ok := temp[s]; ok {
+			continue
+		}
+		result = append(result, s)
+		temp[s] = struct{}{}
+	}
+	return result
+}
+
+// loadFiles loads candidate configuration files in order and adds them
+// to the layered storage. File paths may contain property placeholders
+// that are resolved before loading.
+//
+// Non-existent files are skipped, while other loading errors abort the process.
+// Loaded files may declare additional imports via spring.app.imports.
 func loadFiles(l *flatten.LayeredStorage, dir string, activeProfiles []string) error {
 	extensions := []string{".properties", ".yaml", ".yml", ".toml", ".tml", ".json"}
 
@@ -121,8 +135,8 @@ func loadFiles(l *flatten.LayeredStorage, dir string, activeProfiles []string) e
 	}
 
 	for _, s := range files {
-		// 解析文件名
-		filename, err := conf.ResolveString(l, s)
+		// Resolve property placeholders in the file name
+		filename, err := conf.Resolve(l, s)
 		if err != nil {
 			return err
 		}
@@ -137,51 +151,42 @@ func loadFiles(l *flatten.LayeredStorage, dir string, activeProfiles []string) e
 			return err
 		}
 
-		// Load the file imports
-		if err = loadFileImports(l, p, activeProfiles); err != nil {
-			return err
-		}
-
-		// 优先级高的在前面，优先级低的在后面，因此是前插操作
+		// Add the file to the layered storage
 		if activeProfiles == nil {
 			l.AddStorage(flatten.StorageAppFile, flatten.NewPropertiesStorage(p), filename)
 		} else {
 			l.AddStorage(flatten.StorageProfileFile, flatten.NewPropertiesStorage(p), filename)
 		}
+
+		// Load file imports; later-loaded sources override earlier ones
+		if err = loadFileImports(l, p, activeProfiles); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
+// loadFileImports loads additional configuration files declared by
+// the property `spring.app.imports`.
+//
+// Only one level of import is supported; imported files are not allowed
+// to declare further imports.
 func loadFileImports(l *flatten.LayeredStorage, p *flatten.Properties, activeProfiles []string) error {
-
 	var i struct {
 		Imports []string `value:"${spring.app.imports:=}"`
 	}
-
-	// 找到 file 里面的 imports
 	if err := conf.Bind(flatten.NewPropertiesStorage(p), &i); err != nil {
 		return err
 	}
-
-	// 没有则退出
-	if len(i.Imports) == 0 {
-		return nil
-	}
-
-	for _, source := range i.Imports {
-		// 解析 source
-		str, err := conf.ResolveString(l, source)
+	for _, source := range checkDuplicates(i.Imports) {
+		str, err := conf.Resolve(l, source)
 		if err != nil {
 			return err
 		}
-
-		// 加载 source
 		c, err := conf.Load(str)
 		if err != nil {
 			return err
 		}
-
-		// 优先级高的在前面，优先级低的在后面，因此是前插操作
 		if activeProfiles == nil {
 			l.AddStorage(flatten.StorageAppFile, flatten.NewPropertiesStorage(c), str)
 		} else {

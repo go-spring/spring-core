@@ -49,7 +49,8 @@ type refreshable interface {
 	onRefresh(prop flatten.Storage, param conf.BindParam, commit bool) error
 }
 
-// Value represents a thread-safe object that can dynamically refresh its value.
+// Value represents a thread-safe container that stores a dynamic configuration value.
+// Its value can be updated atomically via onRefresh.
 type Value[T any] struct {
 	v atomic.Value
 }
@@ -65,7 +66,7 @@ func (r *Value[T]) Value() T {
 	return v
 }
 
-// onRefresh updates the stored value with new properties and notifies listeners.
+// onRefresh updates the stored value with new properties if commit is true.
 func (r *Value[T]) onRefresh(prop flatten.Storage, param conf.BindParam, commit bool) error {
 	t := reflect.TypeFor[T]()
 	v := reflect.New(t).Elem()
@@ -117,7 +118,9 @@ func (p *Properties) ObjectsCount() int {
 	return len(p.objects)
 }
 
-// Refresh updates the properties and refreshes all bound objects as necessary.
+// Refresh updates the properties and refreshes all bound objects.
+// The refresh process is two-phase: first validate all objects without committing,
+// then commit the updates if validation succeeds.
 func (p *Properties) Refresh(prop flatten.Storage) (err error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -127,7 +130,8 @@ func (p *Properties) Refresh(prop flatten.Storage) (err error) {
 		return nil
 	}
 
-	// 首先预刷新所有动态值，校验通过之后进行提交
+	// First pre-refresh all dynamic values;
+	// if validation passes, commit the updates.
 	if err = p.refreshObjects(p.objects, false); err != nil {
 		return err
 	}

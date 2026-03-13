@@ -14,106 +14,6 @@
  * limitations under the License.
  */
 
-/*
-Package conf provides a configuration binding framework with hierarchical resolution,
-type-safe mapping, and validation capabilities.
-
-# Core Concepts:
-
-The framework enables mapping configuration data from multiple sources into Go structures with:
-
-- Hierarchical property resolution using ${key} syntax
-- Type-safe binding with automatic conversions
-- Expression-based validation
-- Extensible architecture via pluggable components
-
-# Tag Syntax:
-
-Struct tags use the following format:
-
-	value:"${key:=default}"
-
-Key features:
-- Nested keys (e.g., service.endpoint)
-- Dynamic defaults (e.g., ${DB_HOST:=localhost:${DB_PORT:=3306}})
-
-# Data Binding:
-
-Supports binding to various types with automatic conversion:
-
-1. Primitives: Uses strconv for basic type conversions
-2. Complex Types:
-  - Slices: From indexed properties
-  - Maps: Via subkey expansion
-  - Structs: Recursive binding of nested structures
-
-3. Custom Types: Register converters using RegisterConverter
-
-# Validation System:
-
- 1. Expression validation using expr tag:
-    type Config struct {
-    Port int `expr:"$ > 0 && $ < 65535"`
-    }
-
- 2. Custom validators:
-    RegisterValidateFunc("futureDate", func(t time.Time) bool {
-    return t.After(time.Now())
-    })
-
-# File Support:
-
-Built-in readers handle:
-- JSON (.json)
-- Properties (.properties)
-- YAML (.yaml/.yml)
-- TOML (.toml/.tml)
-
-Register custom readers with RegisterReader.
-
-# Property Resolution:
-
-- Recursive ${} substitution
-- Type-aware defaults
-- Chained defaults (${A:=${B:=C}})
-
-# Extension Points:
-
-2. RegisterConverter: Add type converters
-3. RegisterReader: Support new file formats
-4. RegisterValidateFunc: Add custom validators
-
-# Examples:
-
-Basic binding:
-
-	type ServerConfig struct {
-	    Host string `value:"${host:=localhost}"`
-	    Port int    `value:"${port:=8080}"`
-	}
-
-Nested structure:
-
-	type AppConfig struct {
-	    DB      Database `value:"${db}"`
-	    Timeout string   `value:"${timeout:=5s}"`
-	}
-
-Slice binding:
-
-	type Config struct {
-	    Endpoints []string `value:"${endpoints}"`
-	    Features  []string `value:"${features}"`
-	}
-
-Validation:
-
-	type UserConfig struct {
-	    Age     int       `value:"${age}" expr:"$ >= 18"`
-	    Email   string    `value:"${email}" expr:"contains($, '@')"`
-	    Expires time.Time `value:"${expires}" expr:"futureDate($)"`
-	}
-*/
 package conf
 
 import (
@@ -128,13 +28,21 @@ import (
 	"github.com/spf13/cast"
 )
 
-var (
-	converters = map[reflect.Type]any{}
-)
+var converters = map[reflect.Type]any{}
 
 func init() {
 	RegisterConverter(func(s string) (time.Time, error) { return cast.ToTimeE(s) })
 	RegisterConverter(func(s string) (time.Duration, error) { return time.ParseDuration(s) })
+}
+
+// Converter converts a string to a target type T.
+type Converter[T any] func(string) (T, error)
+
+// RegisterConverter registers a Converter for a type T, such as
+// time.Time, time.Duration, or other user-defined types.
+func RegisterConverter[T any](fn Converter[T]) {
+	t := reflect.TypeFor[T]()
+	converters[t] = fn
 }
 
 // RegisterReader registers its Reader for some kind of file extension.
@@ -145,16 +53,6 @@ func RegisterReader(r reader.Reader, ext ...string) {
 // RegisterProvider registers a Provider for a specific configuration source.
 func RegisterProvider(name string, p provider.Provider) {
 	provider.Register(name, p)
-}
-
-// Converter converts a string to a target type T.
-type Converter[T any] func(string) (T, error)
-
-// RegisterConverter registers a Converter for a non-primitive type such as
-// time.Time, time.Duration, or other user-defined value types.
-func RegisterConverter[T any](fn Converter[T]) {
-	t := reflect.TypeFor[T]()
-	converters[t] = fn
 }
 
 // Load creates a MutableProperties instance from a configuration file.
@@ -168,6 +66,7 @@ func Load(source string) (*flatten.Properties, error) {
 }
 
 // Bind maps property values into the provided target object.
+// Optionally, a tag can be provided to specify the root property path.
 func Bind(p flatten.Storage, i any, tag ...string) error {
 
 	var v reflect.Value
@@ -204,7 +103,7 @@ func Bind(p flatten.Storage, i any, tag ...string) error {
 	return BindValue(p, v, t, param, nil)
 }
 
-// ResolveString expands property references of the form ${key}
+// Resolve expands property references of the form ${key}
 // inside a string, recursively resolving nested expressions.
 //
 // Supported features:
@@ -225,7 +124,7 @@ func Bind(p flatten.Storage, i any, tag ...string) error {
 // Errors:
 // - ErrInvalidSyntax if braces are unbalanced.
 // - Propagates errors from resolve().
-func ResolveString(p flatten.Storage, s string) (string, error) {
+func Resolve(p flatten.Storage, s string) (string, error) {
 
 	// If there is no property reference, return the original string.
 	start := strings.Index(s, "${")
@@ -268,7 +167,7 @@ func ResolveString(p flatten.Storage, s string) (string, error) {
 	}
 
 	// resolve the remaining part of the string
-	suffix, err := ResolveString(p, s[end+1:])
+	suffix, err := Resolve(p, s[end+1:])
 	if err != nil {
 		return "", errutil.Explain(err, "resolve string %q error", s)
 	}

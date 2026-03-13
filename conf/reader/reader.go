@@ -47,6 +47,7 @@ func Register(r Reader, ext ...string) {
 }
 
 // ReadFile reads a file and parses its content into a map[string]any.
+// Returns an error if the file cannot be read or the file type is unsupported.
 func ReadFile(file string) (map[string]any, error) {
 	b, err := os.ReadFile(file)
 	if err != nil {

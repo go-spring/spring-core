@@ -29,8 +29,9 @@ import (
 
 func init() {
 	// Register a module for HTTP server.
-	enableHttpServer := OnProperty("http.server.enable").HavingValue("true").MatchIfMissing()
-	Module(enableHttpServer, func(r BeanProvider, p flatten.Storage) error {
+	enableSimpleHttpServer := OnProperty("spring.simple-http-server.enabled").
+		HavingValue("true").MatchIfMissing()
+	Module(enableSimpleHttpServer, func(r BeanProvider, p flatten.Storage) error {
 
 		// Register the default HTTP multiplexer (http.ServeMux) as a bean
 		// only when no user-defined *HttpServeMux is present.
@@ -39,7 +40,10 @@ func init() {
 
 		// Provide a new SimpleHttpServer instance with
 		// HTTP handler injection and configuration binding.
-		r.Provide(NewSimpleHttpServer).Export(As[Server]())
+		r.Provide(
+			NewSimpleHttpServer,
+			IndexArg(1, TagArg("${spring.simple-http-server}")),
+		).Export(As[Server]())
 
 		return nil
 	})
@@ -56,22 +60,22 @@ type HttpServeMux struct {
 type SimpleHttpServerConfig struct {
 	// Address specifies the TCP address the server listens on.
 	// Example: ":9090" (listen on all interfaces, port 9090).
-	Address string `value:"${http.server.addr:=:9090}"`
+	Address string `value:"${addr:=:9090}"`
 
 	// ReadTimeout is the maximum duration for reading the entire
 	// HTTP request, including the body.
-	ReadTimeout time.Duration `value:"${http.server.readTimeout:=5s}"`
+	ReadTimeout time.Duration `value:"${readTimeout:=5s}"`
 
 	// HeaderTimeout is the maximum duration for reading request headers.
-	HeaderTimeout time.Duration `value:"${http.server.headerTimeout:=1s}"`
+	HeaderTimeout time.Duration `value:"${headerTimeout:=1s}"`
 
 	// WriteTimeout is the maximum duration before timing out
 	// an HTTP response write.
-	WriteTimeout time.Duration `value:"${http.server.writeTimeout:=5s}"`
+	WriteTimeout time.Duration `value:"${writeTimeout:=5s}"`
 
 	// IdleTimeout is the maximum time to wait for the next request
 	// when keep-alive connections are enabled.
-	IdleTimeout time.Duration `value:"${http.server.idleTimeout:=60s}"`
+	IdleTimeout time.Duration `value:"${idleTimeout:=60s}"`
 }
 
 // SimpleHttpServer wraps a standard http.Server to integrate it

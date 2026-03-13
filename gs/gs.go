@@ -168,11 +168,12 @@ func None(conditions ...Condition) Condition {
 /*********************************** app *************************************/
 
 type (
-	Runner       = gs_app.Runner
-	Server       = gs_app.Server
-	ReadySignal  = gs_app.ReadySignal
-	ContextAware = gs_app.ContextAware
-	BeanProvider = gs_init.BeanProvider
+	BeanProvider    = gs_init.BeanProvider
+	Runner          = gs_app.Runner
+	Server          = gs_app.Server
+	ReadySignal     = gs_app.ReadySignal
+	ContextAware    = gs_app.ContextAware
+	ConfigRefresher = gs_app.ConfigRefresher
 )
 
 // Provide registers a global bean definition.

@@ -20,56 +20,45 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-spring/stdlib/flatten"
 	"github.com/go-spring/stdlib/testing/assert"
 )
 
-func TestCommandArgs(t *testing.T) {
-
+func TestExtractCmdArgs(t *testing.T) {
 	t.Run("no args - empty", func(t *testing.T) {
 		os.Args = nil
 
-		props := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(props)
+		p, err := extractCmdArgs()
 		assert.That(t, err).Nil()
-		//assert.That(t, len(props.Keys()) == 0).True()
+		assert.That(t, p).NotNil()
 	})
 
 	t.Run("no args - only executable", func(t *testing.T) {
 		os.Args = []string{"test"}
 
-		props := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(props)
+		p, err := extractCmdArgs()
 		assert.That(t, err).Nil()
-		//assert.That(t, len(props.Keys()) == 0).True()
+		assert.That(t, p).NotNil()
 	})
 
 	t.Run("normal", func(t *testing.T) {
 		os.Args = []string{"test", "-D", "name=go-spring", "-D", "debug"}
 
-		p := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(p)
+		p, err := extractCmdArgs()
 		assert.That(t, err).Nil()
-		//assert.That(t, "go-spring").Equal(p.Get("name"))
-		//assert.That(t, "true").Equal(p.Get("debug"))
+		v, ok := p.Get("name")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("go-spring")
+		v, ok = p.Get("debug")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("true")
 	})
 
 	t.Run("missing arg", func(t *testing.T) {
 		os.Args = []string{"test", "-D"}
 
-		props := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(props)
+		p, err := extractCmdArgs()
 		assert.Error(t, err).Matches("cmd option -D: needs arg")
-	})
-
-	t.Run("property conflict", func(t *testing.T) {
-		os.Args = []string{"test", "-D", "name=go-spring", "-D", "debug"}
-
-		p := flatten.MapProperties(map[string]any{
-			"debug": []string{"true"},
-		})
-		err := NewCommandArgs().CopyTo(p)
-		assert.Error(t, err).Nil() // Matches("cannot overwrite path debug")
+		assert.That(t, p).Nil()
 	})
 
 	t.Run("custom prefix", func(t *testing.T) {
@@ -79,49 +68,68 @@ func TestCommandArgs(t *testing.T) {
 		defer func() { _ = os.Setenv(CommandArgsPrefix, oldEnv) }()
 		_ = os.Setenv(CommandArgsPrefix, "--option")
 
-		props := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(props)
+		p, err := extractCmdArgs()
 		assert.That(t, err).Nil()
-		//assert.That(t, "8080").Equal(props.Get("port"))
+		v, ok := p.Get("port")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("8080")
 	})
 
 	t.Run("ignore args", func(t *testing.T) {
 		os.Args = []string{"test", "-v", "-D", "env=prod", "--log-level=info"}
 
-		props := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(props)
+		p, err := extractCmdArgs()
 		assert.That(t, err).Nil()
-		//assert.That(t, "prod").Equal(props.Get("env"))
-		//assert.That(t, props.Exists("--log-level")).False()
-		//assert.That(t, props.Exists("-v")).False()
+		v, ok := p.Get("env")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("prod")
+		_, ok = p.Get("--log-level")
+		assert.That(t, ok).False()
+		_, ok = p.Get("-v")
+		assert.That(t, ok).False()
 	})
 
 	t.Run("empty value assignment", func(t *testing.T) {
 		os.Args = []string{"test", "-D", "name="}
 
-		props := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(props)
+		p, err := extractCmdArgs()
 		assert.That(t, err).Nil()
-		//assert.That(t, "").Equal(props.Get("name"))
+		v, ok := p.Get("name")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("")
 	})
 
-	t.Run("multiple equal signs", func(t *testing.T) {
+	t.Run("empty key after trim", func(t *testing.T) {
+		// When key is empty after trimming, it should return an error
+		os.Args = []string{"test", "-D", "   =value"}
+
+		p, err := extractCmdArgs()
+		assert.Error(t, err).Matches("cmd option -D: empty key")
+		assert.That(t, p).Nil()
+	})
+
+	t.Run("custom prefix with spaces", func(t *testing.T) {
 		os.Args = []string{"test", "-D", "database.url=localhost:3306"}
 
-		props := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(props)
+		p, err := extractCmdArgs()
 		assert.That(t, err).Nil()
-		//assert.That(t, "localhost:3306").Equal(props.Get("database.url"))
+		v, ok := p.Get("database.url")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("localhost:3306")
 	})
 
 	t.Run("mixed args", func(t *testing.T) {
 		os.Args = []string{"test", "-D", "valid=key", "-x", "-D", "another=value"}
 
-		props := flatten.NewProperties(nil)
-		err := NewCommandArgs().CopyTo(props)
+		p, err := extractCmdArgs()
 		assert.That(t, err).Nil()
-		//assert.That(t, "key").Equal(props.Get("valid"))
-		//assert.That(t, "value").Equal(props.Get("another"))
-		//assert.That(t, props.Exists("-x")).False()
+		v, ok := p.Get("valid")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("key")
+		v, ok = p.Get("another")
+		assert.That(t, ok).True()
+		assert.That(t, v).Equal("value")
+		_, ok = p.Get("-x")
+		assert.That(t, ok).False()
 	})
 }
