@@ -42,9 +42,8 @@ func TestTagArg(t *testing.T) {
 		})
 
 		tag := Tag("")
-		v, err := tag.GetArgValue(c, reflect.TypeFor[string]())
-		assert.That(t, err).Nil()
-		assert.That(t, v.String()).Equal("default")
+		_, err := tag.GetArgValue(c, reflect.TypeFor[string]())
+		assert.Error(t, err).String("missing tag for property binding")
 	})
 
 	t.Run("bind success", func(t *testing.T) {

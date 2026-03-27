@@ -42,7 +42,7 @@ func TestProperties_Load(t *testing.T) {
 	})
 
 	t.Run("file not exist", func(t *testing.T) {
-		_, err := conf.Load("./testdata/config/app.tcl")
+		_, err := conf.Load("./testdata/config/xxx.yml")
 		assert.Error(t, err).Matches("no such file or directory")
 	})
 
@@ -88,7 +88,7 @@ func TestProperties_Resolve(t *testing.T) {
 	t.Run("key not exist", func(t *testing.T) {
 		p := flatten.NewPropertiesStorage(flatten.NewProperties(nil))
 		_, err := conf.Resolve(p, "${a.b.c}")
-		assert.Error(t, err).Matches("property \"a.b.c\": not exist")
+		assert.Error(t, err).Matches("property \"a.b.c\" not exist")
 	})
 
 	//t.Run("array property as string", func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		}))
 		_, err := conf.Resolve(p, "${a.b.c")
-		assert.Error(t, err).Matches("resolve string .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag .*")
 	})
 
 	//t.Run("invalid expression", func(t *testing.T) {

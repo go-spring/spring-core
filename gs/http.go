@@ -29,7 +29,7 @@ import (
 
 func init() {
 	// Register a module for HTTP server.
-	enableSimpleHttpServer := OnProperty("spring.simple-http-server.enabled").
+	enableSimpleHttpServer := OnProperty("spring.http.server.enabled").
 		HavingValue("true").MatchIfMissing()
 	Module(enableSimpleHttpServer, func(r BeanProvider, p flatten.Storage) error {
 
@@ -42,7 +42,7 @@ func init() {
 		// HTTP handler injection and configuration binding.
 		r.Provide(
 			NewSimpleHttpServer,
-			IndexArg(1, TagArg("${spring.simple-http-server}")),
+			IndexArg(1, TagArg("${spring.http.server}")),
 		).Export(As[Server]())
 
 		return nil

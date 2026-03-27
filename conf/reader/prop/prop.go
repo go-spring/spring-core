@@ -17,7 +17,6 @@
 package prop
 
 import (
-	"github.com/go-spring/stdlib/errutil"
 	"github.com/magiconair/properties"
 )
 
@@ -27,7 +26,7 @@ func Read(b []byte) (map[string]any, error) {
 	p := properties.NewProperties()
 	p.DisableExpansion = true
 	if err := p.Load(b, properties.UTF8); err != nil {
-		return nil, errutil.Explain(err, "read properties error")
+		return nil, err
 	}
 
 	ret := make(map[string]any)

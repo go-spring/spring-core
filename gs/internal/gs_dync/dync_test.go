@@ -61,7 +61,7 @@ func TestValue(t *testing.T) {
 			"value": "42",
 		},
 	})))
-	assert.Error(t, err).Matches("bind path= type=int error: property \"key\": not exist")
+	assert.Error(t, err).Matches("bind path= type=int error: property \"key\" isn't simple value")
 
 	time.Sleep(50 * time.Millisecond)
 	err = refresh(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{

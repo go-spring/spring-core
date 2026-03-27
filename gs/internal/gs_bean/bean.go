@@ -319,8 +319,8 @@ func (d *BeanDefinition) Export(exports ...reflect.Type) *BeanDefinition {
 //	d.OnProfiles("dev,test")  // bean created if active profile is "dev" or "test"
 func (d *BeanDefinition) OnProfiles(profiles string) *BeanDefinition {
 	d.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
-		val := strings.TrimSpace(ctx.Prop("spring.profiles.active"))
-		if val == "" {
+		val, ok := ctx.Prop("spring.profiles.active")
+		if val = strings.TrimSpace(val); !ok || val == "" {
 			return false, nil
 		}
 		ss := strings.Split(strings.TrimSpace(profiles), ",")

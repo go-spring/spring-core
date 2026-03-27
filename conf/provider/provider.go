@@ -42,11 +42,32 @@ func init() {
 type Provider func(optional bool, source string) (map[string]string, error)
 
 // Register registers a Provider for a specific configuration source type.
+// Must be called in init functions only.
 func Register(name string, p Provider) {
+	if name == "" {
+		panic("provider name cannot be empty")
+	}
+	if _, ok := providers[name]; ok {
+		panic("provider " + name + " already exists")
+	}
 	providers[name] = p
 }
 
 // Load loads a configuration source and returns its content as a flattened map[string]string.
+//
+// The source string format is:
+//
+//	[optional:]<provider>:<path>
+//	<path> (defaults to file provider)
+//
+// Examples:
+//   - "file:./config.yaml"                    // file provider, required
+//   - "optional:file:./config.yaml"           // file provider, optional
+//   - "./config.yaml"                         // shorthand for file:./config.yaml
+//   - "etcd:localhost:2379/config"            // custom provider
+//   - "optional:etcd:localhost:2379/config"   // custom provider, optional
+//
+// When optional is true and the source does not exist, Load returns (nil, nil).
 func Load(source string) (map[string]string, error) {
 	// For example, a spring.config.import value of optional:file:./myconfig.properties
 	// allows your application to start, even if the myconfig.properties file is missing.
@@ -56,7 +77,7 @@ func Load(source string) (map[string]string, error) {
 		optional bool
 	)
 
-	// Parse the source string with up to 3 parts: optional, provider type, and path
+	// Parse the source string in format [optional:]<provider>:<path> or just <path>
 	if ss := strings.SplitN(source, ":", 3); len(ss) == 3 {
 		optional = ss[0] == "optional"
 		provider = ss[1]
@@ -67,9 +88,6 @@ func Load(source string) (map[string]string, error) {
 	} else if len(ss) == 1 {
 		provider = "file"
 		source = ss[0]
-	} else {
-		err := errutil.Explain(nil, "invalid config source %s", source)
-		return nil, errutil.Explain(err, "read config %s error", source)
 	}
 
 	p, ok := providers[provider]

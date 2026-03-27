@@ -300,15 +300,8 @@ func (c *ConditionContext) Has(key string) bool {
 // Prop returns the string value of the given configuration key.
 // If the key does not exist and a default value is provided, the default is returned.
 // Otherwise, returns an empty string.
-func (c *ConditionContext) Prop(key string, def ...string) string {
-	str, ok := c.p.Value(key)
-	if ok {
-		return str
-	}
-	if len(def) > 0 {
-		return def[0]
-	}
-	return ""
+func (c *ConditionContext) Prop(key string) (string, bool) {
+	return c.p.Value(key)
 }
 
 // Find searches for all active beans matching the given BeanID (type and/or name).

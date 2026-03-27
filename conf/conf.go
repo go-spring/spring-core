@@ -40,22 +40,29 @@ type Converter[T any] func(string) (T, error)
 
 // RegisterConverter registers a Converter for a type T, such as
 // time.Time, time.Duration, or other user-defined types.
+// Must be called in init functions only.
 func RegisterConverter[T any](fn Converter[T]) {
 	t := reflect.TypeFor[T]()
+	if _, ok := converters[t]; ok {
+		panic("converter for type " + t.String() + " already exists")
+	}
 	converters[t] = fn
 }
 
 // RegisterReader registers its Reader for some kind of file extension.
+// Must be called in init functions only.
 func RegisterReader(r reader.Reader, ext ...string) {
 	reader.Register(r, ext...)
 }
 
 // RegisterProvider registers a Provider for a specific configuration source.
+// Must be called in init functions only.
 func RegisterProvider(name string, p provider.Provider) {
 	provider.Register(name, p)
 }
 
-// Load creates a MutableProperties instance from a configuration file.
+// Load creates a Properties instance from a configuration source.
+// The source format is [optional:]<provider>:<path> or just <path>.
 // Returns an error if the file type is not supported or parsing fails.
 func Load(source string) (*flatten.Properties, error) {
 	data, err := provider.Load(source)
@@ -65,8 +72,11 @@ func Load(source string) (*flatten.Properties, error) {
 	return flatten.NewProperties(data), nil
 }
 
-// Bind maps property values into the provided target object.
-// Optionally, a tag can be provided to specify the root property path.
+// Bind maps property values from storage into the target object.
+// The target must be a pointer to a struct.
+// An optional tag specifies the root property key using ${key} syntax.
+// Supports default values: ${key:=default}.
+// If no tag is provided, uses ${ROOT} (binds from the root).
 func Bind(p flatten.Storage, i any, tag ...string) error {
 
 	var v reflect.Value
@@ -77,7 +87,7 @@ func Bind(p flatten.Storage, i any, tag ...string) error {
 		default:
 			v = reflect.ValueOf(i)
 			if v.Kind() != reflect.Pointer {
-				return errutil.Explain(nil, "should be a pointer but %T", i)
+				return errutil.Explain(nil, "target should be a pointer but got %T", i)
 			}
 			v = v.Elem()
 		}
@@ -90,7 +100,7 @@ func Bind(p flatten.Storage, i any, tag ...string) error {
 	}
 
 	s := "${ROOT}"
-	if len(tag) > 0 && tag[0] != "" {
+	if len(tag) > 0 {
 		s = tag[0]
 	}
 
@@ -122,8 +132,7 @@ func Bind(p flatten.Storage, i any, tag ...string) error {
 //	  "http://localhost:8080"
 //
 // Errors:
-// - ErrInvalidSyntax if braces are unbalanced.
-// - Propagates errors from resolve().
+// - Returns invalid syntax if braces are unbalanced.
 func Resolve(p flatten.Storage, s string) (string, error) {
 
 	// If there is no property reference, return the original string.
@@ -153,12 +162,14 @@ func Resolve(p flatten.Storage, s string) (string, error) {
 	}
 
 	if end < 0 {
-		err := ErrInvalidSyntax
-		return "", errutil.Explain(err, "resolve string %q error", s)
+		return "", errutil.Explain(nil, "invalid syntax tag '%s'", s)
 	}
 
 	var param BindParam
-	_ = param.BindTag(s[start:end+1], "")
+	err := param.BindTag(s[start:end+1], "")
+	if err != nil {
+		return "", errutil.Explain(err, "resolve string %q error", s)
+	}
 
 	// resolve the referenced property
 	resolved, err := resolve(p, param)

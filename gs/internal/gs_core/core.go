@@ -33,10 +33,12 @@ package gs_core
 
 import (
 	"errors"
+	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/injecting"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/resolving"
+	"github.com/go-spring/spring-core/gs/internal/gs_init"
 	"github.com/go-spring/stdlib/flatten"
 )
 
@@ -83,6 +85,10 @@ func (c *Container) Refresh(p flatten.Storage, roots []*gs_bean.BeanDefinition) 
 	// Step 1: Resolve and prepare all bean definitions.
 	if err := c.Resolving.Refresh(p); err != nil {
 		return err
+	}
+
+	if !testing.Testing() {
+		gs_init.Clear()
 	}
 
 	// Step 2: Run the injecting phase and perform dependency wiring.

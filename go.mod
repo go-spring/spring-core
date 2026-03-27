@@ -5,8 +5,8 @@ go 1.25
 require (
 	github.com/expr-lang/expr v1.17.6
 	github.com/go-spring/gs-mock v0.0.7
-	github.com/go-spring/log v0.1.0-alpha
-	github.com/go-spring/stdlib v0.0.10
+	github.com/go-spring/log v0.1.0-rc
+	github.com/go-spring/stdlib v0.0.11
 	github.com/magiconair/properties v1.8.10
 	github.com/pelletier/go-toml v1.9.5
 	github.com/spf13/cast v1.10.0

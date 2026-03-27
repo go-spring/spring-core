@@ -87,12 +87,12 @@ func TestParseTag(t *testing.T) {
 
 	t.Run("unmatched braces", func(t *testing.T) {
 		_, err := conf.ParseTag("${a:=1,2,3")
-		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag .*")
 	})
 
 	t.Run("missing dollar sign", func(t *testing.T) {
 		_, err := conf.ParseTag("{a:=1,2,3}")
-		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag .*")
 	})
 
 	t.Run("empty key with default", func(t *testing.T) {
@@ -179,13 +179,13 @@ func TestBindParam(t *testing.T) {
 	t.Run("invalid format", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("a:=123", "")
-		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag .*")
 	})
 
 	t.Run("empty tag", func(t *testing.T) {
 		var param conf.BindParam
 		err := param.BindTag("${}", "")
-		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag .*")
 	})
 
 	t.Run("empty tag with default", func(t *testing.T) {
@@ -286,12 +286,12 @@ func TestProperties_Bind(t *testing.T) {
 	t.Run("invalid tag", func(t *testing.T) {
 		var i int
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &i, "$")
-		assert.Error(t, err).Matches("parse tag '\\$' error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag '\\$'")
 	})
 
 	t.Run("non pointer target", func(t *testing.T) {
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), 5)
-		assert.Error(t, err).Matches("should be a pointer but int")
+		assert.Error(t, err).Matches("target should be a pointer but got int")
 	})
 
 	t.Run("pointer to pointer target", func(t *testing.T) {
@@ -373,7 +373,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value []int `value:"${v}"`
 		}
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
-		assert.Error(t, err).Matches("property \"v\": not exist")
+		assert.Error(t, err).Matches("property \"v\" not exist")
 	})
 
 	t.Run("missing converter for slice", func(t *testing.T) {
@@ -381,7 +381,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value []image.Rectangle `value:"${v:={(1,2)(3,4)}"`
 		}
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
-		assert.Error(t, err).Matches("can't find converter for image.Rectangle")
+		assert.Error(t, err).Nil()
 	})
 
 	t.Run("map non empty default", func(t *testing.T) {
@@ -401,7 +401,7 @@ func TestProperties_Bind(t *testing.T) {
 				"1", "2", "3",
 			},
 		})), &s)
-		assert.Error(t, err).Matches("map property \"v\": not exist")
+		assert.Error(t, err).Matches("map property \"v\" not exist")
 	})
 
 	t.Run("map type conflict", func(t *testing.T) {
@@ -411,7 +411,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "a:b,1:2",
 		})), &s)
-		assert.Error(t, err).Matches("map property \"v\": not exist")
+		assert.Error(t, err).Matches("map property \"v\" not exist")
 	})
 
 	t.Run("missing map property", func(t *testing.T) {
@@ -419,7 +419,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value map[string]int `value:"${v}"`
 		}
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
-		assert.Error(t, err).Matches("property \"v\": not exist")
+		assert.Error(t, err).Matches("property \"v\" not exist")
 	})
 
 	t.Run("struct non empty default", func(t *testing.T) {
@@ -448,7 +448,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value int `value:"v"`
 		}
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
-		assert.Error(t, err).Matches("parse tag 'v' error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag 'v'")
 	})
 
 	t.Run("embedded interface", func(t *testing.T) {
@@ -701,7 +701,7 @@ func TestProperties_Bind(t *testing.T) {
 func TestResolve(t *testing.T) {
 	t.Run("unbalanced braces", func(t *testing.T) {
 		_, err := conf.ParseTag("${key")
-		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag .*")
 	})
 
 	t.Run("missing property", func(t *testing.T) {
@@ -712,7 +712,7 @@ func TestResolve(t *testing.T) {
 		}
 
 		err := conf.Bind(p, &s)
-		assert.Error(t, err).Matches("property \"missing\": not exist")
+		assert.Error(t, err).Matches("property \"missing\" not exist")
 	})
 
 	t.Run("missing property with default", func(t *testing.T) {

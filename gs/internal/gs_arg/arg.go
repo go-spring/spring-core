@@ -54,6 +54,9 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 
 	// Bind property values based on the argument type.
 	if typeutil.IsPropBindingTarget(t) {
+		if arg.Tag == "" {
+			return reflect.Value{}, errutil.Explain(nil, "missing tag for property binding")
+		}
 		v := reflect.New(t).Elem()
 		if err := ctx.Bind(v, arg.Tag); err != nil {
 			return reflect.Value{}, err

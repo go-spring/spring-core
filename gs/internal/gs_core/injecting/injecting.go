@@ -24,8 +24,8 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
-	"testing"
 
 	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/conf"
@@ -35,9 +35,9 @@ import (
 	"github.com/go-spring/spring-core/gs/internal/gs_util"
 	"github.com/go-spring/stdlib/errutil"
 	"github.com/go-spring/stdlib/flatten"
+	"github.com/go-spring/stdlib/listutil"
 	"github.com/go-spring/stdlib/patchutil"
 	"github.com/go-spring/stdlib/typeutil"
-	"github.com/spf13/cast"
 )
 
 // refreshState represents the state of a refresh operation.
@@ -66,7 +66,15 @@ func New(p flatten.Storage) *Injecting {
 	}
 }
 
-// RefreshProperties updates the dynamic property source for the container.
+// DynamicObjectsCount returns the number of objects that can be dynamically refreshed.
+func (c *Injecting) DynamicObjectsCount() int {
+	if c.p == nil {
+		return 0
+	}
+	return c.p.ObjectsCount()
+}
+
+// RefreshProperties updates the dynamic properties in the container.
 func (c *Injecting) RefreshProperties(p flatten.Storage) error {
 	return c.p.Refresh(p)
 }
@@ -80,17 +88,17 @@ func (c *Injecting) RefreshProperties(p flatten.Storage) error {
 //     Note: lazy wiring only applies to explicitly marked fields and does not
 //     resolve arbitrary circular dependencies.
 //  4. Registers destroyer callbacks for beans in dependency-safe order.
-//  5. Optionally cleans up metadata and internal references when not in testing mode,
-//     or if 'spring.force-clean' is true (even in testing).
+//  5. Cleans up metadata.
 //
 // Behavior is influenced by properties:
 // - spring.allow-circular-references: whether lazy circular references are allowed.
 // - spring.force-autowire-is-nullable: whether missing dependencies are treated as nullable.
 func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) {
-	str1, _ := c.p.Data().Value("spring.allow-circular-references")
-	allowCircularReferences := cast.ToBool(str1)
-	str2, _ := c.p.Data().Value("spring.force-autowire-is-nullable")
-	forceAutowireIsNullable := cast.ToBool(str2)
+	var forceAutowireIsNullable bool
+	{
+		s, _ := c.p.Data().Value("spring.force-autowire-is-nullable")
+		forceAutowireIsNullable, _ = strconv.ParseBool(s)
+	}
 
 	// Index beans by name and type for lookup
 	c.beansByName = make(map[string][]*gs_bean.BeanDefinition)
@@ -131,57 +139,22 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 	r.state = Refreshed
 
 	// Step 2: Handle lazy fields caused by circular dependencies.
-	if allowCircularReferences {
-		for _, f := range stack.lazyFields {
-			tag := strings.TrimSuffix(f.tag, ",lazy")
-			if err = r.autowire(f.v, tag, stack); err != nil {
-				return err
-			}
+	for _, f := range stack.lazyFields {
+		tag := strings.TrimSuffix(f.tag, ",lazy")
+		if err = r.autowire(f.v, tag, stack); err != nil {
+			return err
 		}
-	} else if len(stack.lazyFields) > 0 {
-		return errutil.Explain(nil, "found circular autowire")
 	}
 
 	// Step 3: Collect destroyer callbacks in dependency-safe order.
 	c.destroyers = stack.getSortedDestroyers()
 
-	// Optional cleanup in non-testing environments.
-	str3, _ := c.p.Data().Value("spring.force-clean")
-	forceClean := cast.ToBool(str3)
-	if !testing.Testing() || forceClean {
-		if c.p.ObjectsCount() == 0 {
-			c.p = nil
-		}
-		c.beansByName = nil
-		c.beansByType = nil
-		return nil
+	// Step 4: Clean up metadata.
+	if c.p.ObjectsCount() == 0 {
+		c.p = nil
 	}
-	return nil
-}
-
-// Wire injects dependencies into a user-provided object.
-// It recursively wires struct fields marked with 'autowire' or 'inject' tags,
-// including fields marked with ',lazy' for deferred injection.
-func (c *Injecting) Wire(obj any) error {
-	r := &Injector{
-		state:                   Refreshed,
-		p:                       gs_dync.New(c.p.Data()),
-		beansByName:             c.beansByName,
-		beansByType:             c.beansByType,
-		forceAutowireIsNullable: true,
-	}
-	stack := NewStack()
-	t := reflect.TypeOf(obj)
-	v := reflect.ValueOf(obj)
-	if err := r.wireBeanValue(v, t, stack); err != nil {
-		return err
-	}
-	for _, f := range stack.lazyFields {
-		tag := strings.TrimSuffix(f.tag, ",lazy")
-		if err := r.autowire(f.v, tag, stack); err != nil {
-			return err
-		}
-	}
+	c.beansByName = nil
+	c.beansByType = nil
 	return nil
 }
 
@@ -768,25 +741,7 @@ type LazyField struct {
 	tag  string        // Original tag (e.g. "autowire") for this field
 }
 
-// todo listutil
-type destroyerList struct {
-	data *list.List
-}
-
-func (l *destroyerList) push(d *gs_bean.BeanDefinition) {
-	l.data.PushBack(d)
-}
-
-func (l *destroyerList) pop() {
-	l.data.Remove(l.data.Back())
-}
-
-func (l *destroyerList) back() *gs_bean.BeanDefinition {
-	if i := l.data.Back(); i != nil {
-		return i.Value.(*gs_bean.BeanDefinition)
-	}
-	return nil
-}
+type destroyerList = listutil.List[*gs_bean.BeanDefinition]
 
 // Stack represents the runtime context during bean wiring.
 // It keeps track of the current wiring call stack, lazily injected fields,
@@ -794,14 +749,14 @@ func (l *destroyerList) back() *gs_bean.BeanDefinition {
 type Stack struct {
 	beans        []*gs_bean.BeanDefinition // The stack of beans currently being wired
 	lazyFields   []LazyField               // Fields deferred due to lazy injection
-	destroyers   destroyerList             // Ordered list of destroyers
+	destroyers   *destroyerList            // Ordered list of destroyers
 	destroyerMap map[gs.BeanID]*destroyer  // Fast lookup map for destroyers by bean ID
 }
 
 // NewStack creates and initializes a new Stack for a fresh Refresh or Wire operation.
 func NewStack() *Stack {
 	return &Stack{
-		destroyers:   destroyerList{list.New()},
+		destroyers:   listutil.New[*gs_bean.BeanDefinition](),
 		destroyerMap: make(map[gs.BeanID]*destroyer),
 	}
 }
@@ -860,17 +815,17 @@ func (s *Stack) pushDestroyer(b *gs_bean.BeanDefinition) {
 	}
 
 	// If there is a previously registered destroyer, current depends on it
-	if x := s.destroyers.back(); x != nil {
-		s.destroyerMap[x.BeanID()].dependOn(b)
+	if x := s.destroyers.Back(); x.Valid() {
+		s.destroyerMap[x.Value().BeanID()].dependOn(b)
 	}
 
 	// Add the current bean to the end of the destroyer list
-	s.destroyers.push(b)
+	s.destroyers.PushBack(b)
 }
 
 // popDestroyer removes the last registered destroyer from the ordering list.
 func (s *Stack) popDestroyer() {
-	s.destroyers.pop()
+	s.destroyers.Remove(s.destroyers.Back())
 }
 
 // getBeforeDestroyers returns a list of destroyers that the given destroyer depends on.
@@ -941,15 +896,8 @@ func (a *ArgContext) Has(key string) bool {
 }
 
 // Prop retrieves a property value, with optional default.
-func (a *ArgContext) Prop(key string, def ...string) string {
-	str, ok := a.c.p.Data().Value(key)
-	if ok {
-		return str
-	}
-	if len(def) > 0 {
-		return def[0]
-	}
-	return ""
+func (a *ArgContext) Prop(key string) (string, bool) {
+	return a.c.p.Data().Value(key)
 }
 
 // Find retrieves beans matching the given selector.

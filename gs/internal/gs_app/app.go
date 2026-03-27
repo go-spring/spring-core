@@ -20,10 +20,7 @@ package gs_app
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"sync"
-	"sync/atomic"
 
 	"github.com/go-spring/log"
 	"github.com/go-spring/spring-core/gs/internal/gs"
@@ -54,21 +51,21 @@ type Server interface {
 	Stop() error
 }
 
-// ContextAware provides access to the application's root context.
+// ContextProvider provides access to the application's root context.
 // Users can inject this bean to access the App's context.
-type ContextAware struct {
+type ContextProvider struct {
 	Context context.Context
 }
 
-// ConfigRefresher is an interface for components that need to refresh
+// PropertiesRefresher is an interface for components that need to refresh
 // application properties after configuration changes.
-type ConfigRefresher struct {
+type PropertiesRefresher struct {
 	app *App
 }
 
 // RefreshProperties refreshes application properties and
 // propagates the changes to the IoC container.
-func (c *ConfigRefresher) RefreshProperties() error {
+func (c *PropertiesRefresher) RefreshProperties() error {
 	return c.app.RefreshProperties()
 }
 
@@ -78,10 +75,9 @@ type App struct {
 	c *gs_core.Container // IoC container
 	p *gs_conf.AppConfig // Application configuration
 
-	exiting atomic.Bool        // Indicates whether the app is shutting down
-	ctx     context.Context    // Root context for managing cancellation
-	cancel  context.CancelFunc // Function to cancel the root context
-	wg      sync.WaitGroup     // WaitGroup to track running servers
+	ctx    context.Context    // Root context for managing cancellation
+	cancel context.CancelFunc // Function to cancel the root context
+	wg     sync.WaitGroup     // WaitGroup to track running servers
 
 	Runners []Runner `autowire:"${spring.app.runners:=?}"`
 	Servers []Server `autowire:"${spring.app.servers:=?}"`
@@ -137,11 +133,11 @@ func (app *App) RefreshProperties() error {
 
 // initLog initializes the application's logging system.
 func (app *App) initLog(p flatten.Storage) error {
-	// No logging configuration
-	if !p.Exists("logging") {
+	const loggingKey = "logging"
+	if !p.Exists(loggingKey) { // no logging
 		return nil
 	}
-	s := flatten.NewPrefixedStorage(p, "logging")
+	s := flatten.NewPrefixedStorage(p, loggingKey)
 	return log.Refresh(s)
 }
 
@@ -149,7 +145,7 @@ func (app *App) initLog(p flatten.Storage) error {
 // The startup sequence is:
 //  1. Refresh application properties from all sources
 //  2. Initialize logging system
-//  3. Register the App, ContextAware, and ConfigRefresher beans in the container
+//  3. Register the App, ContextProvider, and PropertiesRefresher beans in the container
 //  4. Refresh the IoC container to wire all beans
 //  5. Clear the temporary root bean list after container refresh
 //  6. Execute all Runner beans sequentially
@@ -159,6 +155,10 @@ func (app *App) initLog(p flatten.Storage) error {
 //     and the application initiates a graceful shutdown
 //  8. Wait until all servers signal readiness or intercept occurs
 func (app *App) Start() error {
+
+	app.Root(app.c.Provide(app))
+	app.c.Provide(&ContextProvider{app.ctx})
+	app.c.Provide(&PropertiesRefresher{app})
 
 	// Load and refresh application properties
 	p, err := app.p.Refresh()
@@ -171,17 +171,15 @@ func (app *App) Start() error {
 		return err
 	}
 
-	app.Root(app.c.Provide(app))
-	app.c.Provide(&ContextAware{app.ctx})
-	app.c.Provide(&ConfigRefresher{app})
-
 	// Refresh IoC container to wire all beans
 	if err = app.c.Refresh(p, app.roots); err != nil {
 		return err
 	}
 
-	// todo 清理运行时资源
 	app.roots = nil
+	if app.c.DynamicObjectsCount() == 0 {
+		app.p = nil
+	}
 
 	// Execute all Runner beans sequentially
 	for _, r := range app.Runners {
@@ -203,18 +201,17 @@ func (app *App) Start() error {
 					if r := recover(); r != nil {
 						sig.Intercept()
 						app.ShutDown()
-						panic(r)
+						panic(r) // re-panic so goutil.Go can handle it
 					}
 				}()
-				err := svr.Run(ctx, sig)
-				if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				if err := svr.Run(ctx, sig); err != nil {
 					log.Errorf(ctx, log.TagAppDef, "server serve error: %v", err)
 					sig.Intercept()
 					app.ShutDown()
 				} else {
 					log.Infof(ctx, log.TagAppDef, "server closed")
 				}
-			}, false)
+			}, goutil.InheritCancel)
 		}
 
 		// Wait until all servers signal readiness
@@ -245,7 +242,7 @@ func (app *App) WaitForShutdown() {
 			if err := svr.Stop(); err != nil {
 				log.Errorf(ctx, log.TagAppDef, "shutdown server failed: %v", err)
 			}
-		}, true)
+		}, goutil.DetachCancel)
 	}
 
 	app.wg.Wait()
@@ -254,16 +251,8 @@ func (app *App) WaitForShutdown() {
 	log.Destroy()
 }
 
-// Exiting indicates whether the application is currently shutting down.
-func (app *App) Exiting() bool {
-	return app.exiting.Load()
-}
-
 // ShutDown initiates a graceful shutdown of the application.
-// It sets the exiting flag and cancels the root context.
 func (app *App) ShutDown() {
-	if app.exiting.CompareAndSwap(false, true) {
-		log.Infof(app.ctx, log.TagAppDef, "shutting down")
-		app.cancel()
-	}
+	log.Infof(app.ctx, log.TagAppDef, "shutting down")
+	app.cancel()
 }

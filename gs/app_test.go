@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	gs.Provide(func(ctx *gs.ContextAware) *GlobalService {
+	gs.Provide(func(ctx *gs.ContextProvider) *GlobalService {
 		return &GlobalService{}
 	})
 }

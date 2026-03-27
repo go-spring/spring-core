@@ -17,7 +17,6 @@
 package conf
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -26,11 +25,6 @@ import (
 	"github.com/go-spring/stdlib/errutil"
 	"github.com/go-spring/stdlib/flatten"
 	"github.com/go-spring/stdlib/typeutil"
-)
-
-var (
-	ErrNotExist      = errutil.Explain(nil, "not exist")
-	ErrInvalidSyntax = errutil.Explain(nil, "invalid syntax")
 )
 
 // ParsedTag represents a parsed configuration tag that encodes
@@ -49,7 +43,7 @@ var (
 //	"${ports:=8080,9090}"         -> key=ports, default=8080,9090
 //	"${:=foo}"                    -> empty key, only default value "foo"
 //
-// The parsing logic is strict; malformed tags will result in ErrInvalidSyntax.
+// The parsing logic is strict; malformed tags will result in invalid syntax.
 type ParsedTag struct {
 	Key    string // short property key
 	Def    string // default value string
@@ -79,20 +73,19 @@ func (tag ParsedTag) String() string {
 //
 //	"${foo}"               -> Key="foo"
 //	"${foo:=bar}"          -> Key="foo", HasDef=true, Def="bar"
-//	"${foo:=bar}"          -> Key="foo", HasDef=true, Def="bar"
 //	"${:=fallback}"        -> Key="", HasDef=true, Def="fallback"
 //
 // Errors:
-//   - Returns ErrInvalidSyntax if the string does not follow the pattern.
+//   - Returns invalid syntax if the string does not follow the pattern.
 func ParseTag(tag string) (ret ParsedTag, err error) {
 	j := strings.LastIndex(tag, "}")
 	if j <= 0 {
-		err = errutil.Explain(ErrInvalidSyntax, "parse tag '%s' error", tag)
+		err = errutil.Explain(nil, "invalid syntax tag '%s'", tag)
 		return
 	}
 	k := strings.Index(tag, "${")
 	if k < 0 {
-		err = errutil.Explain(ErrInvalidSyntax, "parse tag '%s' error", tag)
+		err = errutil.Explain(nil, "invalid syntax tag '%s'", tag)
 		return
 	}
 	ss := strings.SplitN(tag[k+2:j], ":=", 2)
@@ -124,19 +117,19 @@ type BindParam struct {
 // e.g. parent Key="db", tag="${host}" -> final Key="db.host".
 //
 // Errors:
-// - ErrInvalidSyntax if the tag string is malformed or empty without default.
+// - Returns invalid syntax if the tag string is malformed or empty without default.
 func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 	param.Validate = validate
 	parsedTag, err := ParseTag(tag)
 	if err != nil {
 		return err
 	}
-	if parsedTag.Key == "" { // ${:=} 默认值语法
+	if parsedTag.Key == "" { // ${:=} default value syntax
 		if parsedTag.HasDef {
 			param.Tag = parsedTag
 			return nil
 		}
-		return errutil.Explain(ErrInvalidSyntax, "parse tag '%s' error", tag)
+		return errutil.Explain(nil, "invalid syntax tag '%s'", tag)
 	}
 	if parsedTag.Key == "ROOT" {
 		parsedTag.Key = ""
@@ -151,6 +144,7 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 }
 
 // Filter defines an interface for filtering configuration fields during binding.
+// Dynamic configuration fields have the same syntax, they need to be filtered out.
 type Filter interface {
 	Do(i any, param BindParam) (bool, error)
 }
@@ -165,7 +159,7 @@ type Filter interface {
 // - Slices (bound by either indexed keys or split strings).
 //
 // Errors:
-// - Returns ErrNotExist if the property is missing without a default.
+// - Returns not exist if the property is missing without a default.
 // - Returns type conversion errors if parsing fails.
 // - Returns wrapped errors with context (path, type).
 func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
@@ -277,15 +271,14 @@ func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 func bindSlice(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam, filter Filter) error {
 
 	elemType := t.Elem()
-	p, err := getSlice(p, elemType, param)
+	p, err := getSlice(p, param)
 	if err != nil {
 		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 	}
 
 	slice := reflect.MakeSlice(t, 0, 0)
-	defer func() { v.Set(slice) }()
-
 	if p == nil {
+		v.Set(slice)
 		return nil
 	}
 
@@ -295,16 +288,16 @@ func bindSlice(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 			Key:  fmt.Sprintf("%s[%d]", param.Key, i),
 			Path: fmt.Sprintf("%s[%d]", param.Path, i),
 		}
-		err = BindValue(p, subValue, elemType, subParam, filter)
-		if errors.Is(err, ErrNotExist) {
-			// stop when no more indexed elements
-			break
+		if !p.Exists(subParam.Key) {
+			break // stop when no more indexed elements
 		}
+		err = BindValue(p, subValue, elemType, subParam, filter)
 		if err != nil {
 			return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
 		}
 		slice = reflect.Append(slice, subValue)
 	}
+	v.Set(slice)
 	return nil
 }
 
@@ -315,9 +308,8 @@ func bindSlice(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 // - A single delimited string property, split into multiple elements.
 //
 // Errors:
-// - ErrNotExist if property is missing and no default is provided.
-// - Converter missing for non-primitive element types.
-func getSlice(p flatten.Storage, et reflect.Type, param BindParam) (flatten.Storage, error) {
+// - Returns not exist if property is missing and no default is provided.
+func getSlice(p flatten.Storage, param BindParam) (flatten.Storage, error) {
 
 	m := make(map[string]string)
 	if p.SliceEntries(param.Key, m) {
@@ -328,17 +320,11 @@ func getSlice(p flatten.Storage, et reflect.Type, param BindParam) (flatten.Stor
 	strVal, ok := p.Value(param.Key)
 	if !ok {
 		if !param.Tag.HasDef {
-			return nil, errutil.Explain(ErrNotExist, "property %q", param.Key)
-		}
-		if param.Tag.Def == "" {
-			return nil, nil
-		}
-		if !typeutil.IsPrimitiveValueType(et) && converters[et] == nil {
-			return nil, errutil.Explain(nil, "can't find converter for %s", et.String())
+			return nil, errutil.Explain(nil, "property %q not exist", param.Key)
 		}
 		strVal = param.Tag.Def
 	}
-	if strVal == "" {
+	if strVal = strings.TrimSpace(strVal); strVal == "" {
 		return nil, nil
 	}
 
@@ -378,23 +364,25 @@ func bindMap(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam
 
 	elemType := t.Elem()
 	ret := reflect.MakeMap(t)
-	defer func() { v.Set(ret) }()
 
 	// handle empty key as default value placeholder
 	if param.Tag.Key == "" {
 		if param.Tag.HasDef {
+			v.Set(ret)
 			return nil
 		}
 	}
 
-	// ensure property exists
+	// Allow `param.Key` to be an empty string,
+	// to retrieve all configuration items.
 	keySet := make(map[string]struct{})
 	p.MapKeys(param.Key, keySet)
 	if len(keySet) == 0 {
 		if param.Tag.HasDef {
+			v.Set(ret)
 			return nil
 		}
-		return errutil.Explain(ErrNotExist, "map property %q", param.Key)
+		return errutil.Explain(nil, "map property %q not exist", param.Key)
 	}
 
 	for key := range keySet {
@@ -412,6 +400,7 @@ func bindMap(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam
 		}
 		ret.SetMapIndex(reflect.ValueOf(key), subValue)
 	}
+	v.Set(ret)
 	return nil
 }
 
@@ -500,11 +489,11 @@ func resolve(p flatten.Storage, param BindParam) (string, error) {
 	if val, ok := p.Value(param.Key); ok {
 		return Resolve(p, val)
 	}
-	//if p.Exists(param.Key) {
-	//	return "", errutil.Explain(nil, "property %q isn't simple value", param.Key)
-	//}
+	if p.Exists(param.Key) {
+		return "", errutil.Explain(nil, "property %q isn't simple value", param.Key)
+	}
 	if param.Tag.HasDef {
 		return Resolve(p, param.Tag.Def)
 	}
-	return "", errutil.Explain(ErrNotExist, "property %q", param.Key)
+	return "", errutil.Explain(nil, "property %q not exist", param.Key)
 }

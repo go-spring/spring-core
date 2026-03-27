@@ -52,13 +52,15 @@ Supports binding to various types with automatic conversion:
 # Validation System:
 
  1. Expression validation using expr tag:
+
     type Config struct {
-    Port int `expr:"$ > 0 && $ < 65535"`
+    .    Port int `expr:"$ > 0 && $ < 65535"`
     }
 
  2. Custom validators:
+
     RegisterValidateFunc("futureDate", func(t time.Time) bool {
-    return t.After(time.Now())
+    .    return t.After(time.Now())
     })
 
 # File Support:
@@ -79,6 +81,7 @@ Register custom readers with RegisterReader.
 
 # Extension Points:
 
+1. RegisterProvider: Add configuration source providers
 2. RegisterConverter: Add type converters
 3. RegisterReader: Support new file formats
 4. RegisterValidateFunc: Add custom validators

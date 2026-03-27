@@ -108,7 +108,7 @@ func (s *AppStarter) Run() {
 		close(ch)
 		log.Infof(ctx, log.TagAppDef, "Received signal: %v", sig)
 		s.app.ShutDown()
-	}, false)
+	}, goutil.InheritCancel)
 
 	// Wait for shutdown to complete
 	s.app.WaitForShutdown()
@@ -151,6 +151,9 @@ func (s *AppStarter) RunTest(t *testing.T, f any) {
 
 	// Register the root bean
 	s.app.Root(s.app.Provide(obj.Interface()))
+
+	// Force autowire to be nullable
+	s.app.Property("spring.force-autowire-is-nullable", "true")
 
 	stop, err := s.RunAsync()
 	if err != nil {

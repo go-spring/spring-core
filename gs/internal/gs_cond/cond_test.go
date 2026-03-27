@@ -43,19 +43,19 @@ func TestConditionString(t *testing.T) {
 	assert.That(t, fmt.Sprint(c)).Equal(`OnProperty(name=a, havingValue=123, matchIfMissing)`)
 
 	c = OnBean[any]("a")
-	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Name:a})`)
+	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Type:any,Name:a})`)
 
 	c = OnBean[error]()
 	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Type:error})`)
 
 	c = OnMissingBean[any]("a")
-	assert.That(t, fmt.Sprint(c)).Equal(`OnMissingBean(selector={Name:a})`)
+	assert.That(t, fmt.Sprint(c)).Equal(`OnMissingBean(selector={Type:any,Name:a})`)
 
 	c = OnMissingBeanID(gs.BeanIDFor[error]())
 	assert.That(t, fmt.Sprint(c)).Equal(`OnMissingBean(selector={Type:error})`)
 
 	c = OnSingleBean[any]("a")
-	assert.That(t, fmt.Sprint(c)).Equal(`OnSingleBean(selector={Name:a})`)
+	assert.That(t, fmt.Sprint(c)).Equal(`OnSingleBean(selector={Type:any,Name:a})`)
 
 	c = OnSingleBeanID(gs.BeanIDFor[error]())
 	assert.That(t, fmt.Sprint(c)).Equal(`OnSingleBean(selector={Type:error})`)
@@ -64,16 +64,16 @@ func TestConditionString(t *testing.T) {
 	assert.That(t, fmt.Sprint(c)).Equal(`OnExpression(expression=a)`)
 
 	c = Not(OnBean[any]("a"))
-	assert.That(t, fmt.Sprint(c)).Equal(`Not(OnBean(selector={Name:a}))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`Not(OnBean(selector={Type:any,Name:a}))`)
 
 	c = Or(OnBean[any]("a"))
-	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Name:a})`)
+	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Type:any,Name:a})`)
 
 	c = Or(OnBean[any]("a"), OnBean[any]("b"))
-	assert.That(t, fmt.Sprint(c)).Equal(`Or(OnBean(selector={Name:a}), OnBean(selector={Name:b}))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`Or(OnBean(selector={Type:any,Name:a}), OnBean(selector={Type:any,Name:b}))`)
 
 	c = And(OnBean[any]("a"))
-	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Name:a})`)
+	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Type:any,Name:a})`)
 
 	c = And(
 		OnBeanID(gs.BeanID{Name: "a"}),
@@ -82,10 +82,10 @@ func TestConditionString(t *testing.T) {
 	assert.That(t, fmt.Sprint(c)).Equal(`And(OnBean(selector={Name:a}), OnBean(selector={Name:b}))`)
 
 	c = None(OnBean[any]("a"))
-	assert.That(t, fmt.Sprint(c)).Equal(`Not(OnBean(selector={Name:a}))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`Not(OnBean(selector={Type:any,Name:a}))`)
 
 	c = None(OnBean[any]("a"), OnBean[any]("b"))
-	assert.That(t, fmt.Sprint(c)).Equal(`None(OnBean(selector={Name:a}), OnBean(selector={Name:b}))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`None(OnBean(selector={Type:any,Name:a}), OnBean(selector={Type:any,Name:b}))`)
 
 	c = And(
 		OnBean[any]("a"),
@@ -94,7 +94,7 @@ func TestConditionString(t *testing.T) {
 			Not(OnBean[any]("c")),
 		),
 	)
-	assert.That(t, fmt.Sprint(c)).Equal(`And(OnBean(selector={Name:a}), Or(OnBean(selector={Name:b}), Not(OnBean(selector={Name:c}))))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`And(OnBean(selector={Type:any,Name:a}), Or(OnBean(selector={Type:any,Name:b}), Not(OnBean(selector={Type:any,Name:c}))))`)
 }
 
 func TestOnFunc(t *testing.T) {
@@ -140,7 +140,7 @@ func TestOnProperty(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockHas().ReturnValue(true)
-		ctx.MockProp().ReturnValue("42")
+		ctx.MockProp().ReturnValue("42", true)
 
 		cond := OnProperty("test.prop").HavingValue("42")
 		ok, err := cond.Matches(ctx)
@@ -152,7 +152,7 @@ func TestOnProperty(t *testing.T) {
 		m := gsmock.NewManager()
 		ctx := gs.NewConditionContextMockImpl(m)
 		ctx.MockHas().ReturnValue(true)
-		ctx.MockProp().ReturnValue("42")
+		ctx.MockProp().ReturnValue("42", true)
 
 		cond := OnProperty("test.prop").HavingValue("100")
 		ok, _ := cond.Matches(ctx)
@@ -185,7 +185,7 @@ func TestOnProperty(t *testing.T) {
 			m := gsmock.NewManager()
 			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockHas().ReturnValue(true)
-			ctx.MockProp().ReturnValue("42")
+			ctx.MockProp().ReturnValue("42", true)
 
 			cond := OnProperty("test.prop").HavingValue("expr:int($) > 40")
 			ok, _ := cond.Matches(ctx)
@@ -196,7 +196,7 @@ func TestOnProperty(t *testing.T) {
 			m := gsmock.NewManager()
 			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockHas().ReturnValue(true)
-			ctx.MockProp().ReturnValue("42")
+			ctx.MockProp().ReturnValue("42", true)
 
 			cond := OnProperty("test.prop").HavingValue(`expr:$ == "42"`)
 			ok, _ := cond.Matches(ctx)
@@ -207,7 +207,7 @@ func TestOnProperty(t *testing.T) {
 			m := gsmock.NewManager()
 			ctx := gs.NewConditionContextMockImpl(m)
 			ctx.MockHas().ReturnValue(true)
-			ctx.MockProp().ReturnValue("42")
+			ctx.MockProp().ReturnValue("42", true)
 
 			cond := OnProperty("test.prop").HavingValue("expr:invalid syntax")
 			_, err := cond.Matches(ctx)

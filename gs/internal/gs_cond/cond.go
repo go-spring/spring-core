@@ -79,9 +79,9 @@ type PropertyCondition interface {
 // onProperty implements [PropertyCondition], allowing conditions based on
 // the existence and value of properties in the context.
 type onProperty struct {
-	name           string // Property name to check
-	matchIfMissing bool   // Whether to match when the property is missing
-	havingValue    any    // Expected value or expression for comparison
+	name           string  // Property name to check
+	matchIfMissing bool    // Whether to match when the property is missing
+	havingValue    *string // Expected value or expression for comparison
 }
 
 // OnProperty creates a new condition that checks for the presence
@@ -98,27 +98,29 @@ func (c *onProperty) MatchIfMissing() PropertyCondition {
 
 // HavingValue sets the expected value or expression to match.
 func (c *onProperty) HavingValue(s string) PropertyCondition {
-	c.havingValue = s
+	c.havingValue = &s
 	return c
 }
 
 // Matches evaluates the condition based on the property's existence and value.
 func (c *onProperty) Matches(ctx gs.ConditionContext) (bool, error) {
 
-	// If property does not exist
-	if !ctx.Has(c.name) {
+	if c.havingValue == nil {
+		if ctx.Has(c.name) {
+			return true, nil
+		}
 		return c.matchIfMissing, nil
 	}
 
-	// If no specific value is required, condition passes
-	if c.havingValue == nil {
-		return true, nil
+	val, ok := ctx.Prop(c.name)
+	if !ok {
+		if ctx.Has(c.name) {
+			return false, errutil.Explain(nil, "property %s not leaf node", c.name)
+		}
+		return c.matchIfMissing, nil
 	}
 
-	havingValue, _ := c.havingValue.(string)
-
-	// Compare the property's value with the expected value.
-	val := ctx.Prop(c.name)
+	havingValue := *c.havingValue
 	if !strings.HasPrefix(havingValue, "expr:") {
 		return val == havingValue, nil
 	}
@@ -137,7 +139,7 @@ func (c *onProperty) String() string {
 	sb.WriteString(c.name)
 	if c.havingValue != nil {
 		sb.WriteString(", havingValue=")
-		sb.WriteString(c.havingValue.(string))
+		sb.WriteString(*c.havingValue)
 	}
 	if c.matchIfMissing {
 		sb.WriteString(", matchIfMissing")

@@ -17,7 +17,6 @@
 package yaml
 
 import (
-	"github.com/go-spring/stdlib/errutil"
 	"gopkg.in/yaml.v2"
 )
 
@@ -25,7 +24,7 @@ import (
 func Read(b []byte) (map[string]any, error) {
 	ret := make(map[string]any)
 	if err := yaml.Unmarshal(b, &ret); err != nil {
-		return nil, errutil.Explain(err, "read yaml error")
+		return nil, err
 	}
 	return ret, nil
 }
