@@ -29,26 +29,23 @@ import (
 // for command-line options if needed.
 const CommandArgsPrefix = "GS_ARGS_PREFIX"
 
-// CommandArgs represents a structure for handling command-line parameters.
-type CommandArgs struct{}
-
-// NewCommandArgs creates and returns a new CommandArgs instance.
-func NewCommandArgs() *CommandArgs {
-	return &CommandArgs{}
-}
-
-// CopyTo extracts command-line parameters and stores them as key-value pairs.
-// Supported formats include:
+// extractCmdArgs extracts command-line parameters as key-value pairs.
 //
-//   - <prefix> key=value
-//   - <prefix> key        (defaults to "true")
-//   - <prefix>key=value   (inline form)
+// Supported formats:
 //
-// The default prefix is "-D", which can be overridden by the environment
-// variable `GS_ARGS_PREFIX`.
-func (c *CommandArgs) CopyTo(p *flatten.Properties) error {
+//	<prefix> key=value
+//	<prefix> key              (defaults to "true")
+//	<prefix>key=value
+//	<prefix>key               (defaults to "true")
+//
+// The default prefix is "-D", which can be overridden by the
+// environment variable `GS_ARGS_PREFIX`.
+//
+// Arguments that do not match the configured prefix are ignored.
+func extractCmdArgs() (*flatten.Properties, error) {
+	p := flatten.NewProperties(nil)
 	if len(os.Args) <= 1 {
-		return nil
+		return p, nil
 	}
 
 	// Determine the option prefix.
@@ -63,7 +60,7 @@ func (c *CommandArgs) CopyTo(p *flatten.Properties) error {
 		if cmdArgs[i] == option {
 			// separated form: <prefix> key=value
 			if i+1 >= len(cmdArgs) {
-				return errutil.Explain(nil, "cmd option %s: needs arg", option)
+				return nil, errutil.Explain(nil, "cmd option %s: needs arg", option)
 			}
 			i++
 			str = cmdArgs[i]
@@ -75,13 +72,16 @@ func (c *CommandArgs) CopyTo(p *flatten.Properties) error {
 			continue
 		}
 		if str = strings.TrimSpace(str); str == "" {
-			return errutil.Explain(nil, "cmd option %s: needs arg", option)
+			return nil, errutil.Explain(nil, "cmd option %s: needs arg", option)
 		}
 		ss := strings.SplitN(str, "=", 2)
+		if strings.TrimSpace(ss[0]) == "" {
+			return nil, errutil.Explain(nil, "cmd option %s: empty key", option)
+		}
 		if len(ss) == 1 {
 			ss = append(ss, "true")
 		}
 		p.Set(ss[0], ss[1])
 	}
-	return nil
+	return p, nil
 }

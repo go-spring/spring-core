@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	Version = "go-spring@v1.2.5"
+	Version = "go-spring@v1.3.0-rc"
 	Website = "https://github.com/go-spring/"
 )
 
@@ -168,11 +168,12 @@ func None(conditions ...Condition) Condition {
 /*********************************** app *************************************/
 
 type (
-	Runner       = gs_app.Runner
-	Server       = gs_app.Server
-	ReadySignal  = gs_app.ReadySignal
-	ContextAware = gs_app.ContextAware
-	BeanProvider = gs_init.BeanProvider
+	BeanProvider        = gs_init.BeanProvider
+	Runner              = gs_app.Runner
+	Server              = gs_app.Server
+	ReadySignal         = gs_app.ReadySignal
+	ContextProvider     = gs_app.ContextProvider
+	PropertiesRefresher = gs_app.PropertiesRefresher
 )
 
 // Provide registers a global bean definition.

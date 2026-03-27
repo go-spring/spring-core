@@ -40,22 +40,30 @@ func init() {
 type Reader func(b []byte) (map[string]any, error)
 
 // Register registers its Reader for some kind of file extension.
+// Must be called in init functions only.
 func Register(r Reader, ext ...string) {
 	for _, s := range ext {
+		if s == "" {
+			panic("file extension cannot be empty")
+		}
+		if _, ok := readers[s]; ok {
+			panic("file extension " + s + " has been registered")
+		}
 		readers[s] = r
 	}
 }
 
-// ReadFile reads a file and parses its content into a map[string]any.
+// ReadFile reads a file and parses its content based on file extension.
+// Returns an error if the file cannot be read or the file type is unsupported.
 func ReadFile(file string) (map[string]any, error) {
-	b, err := os.ReadFile(file)
-	if err != nil {
-		return nil, errutil.Explain(err, "read file %s error", file)
-	}
 	ext := filepath.Ext(file)
 	r, ok := readers[ext]
 	if !ok {
-		err = errutil.Explain(nil, "unsupported file type %s", ext)
+		err := errutil.Explain(nil, "unsupported file type %s", ext)
+		return nil, errutil.Explain(err, "read file %s error", file)
+	}
+	b, err := os.ReadFile(file)
+	if err != nil {
 		return nil, errutil.Explain(err, "read file %s error", file)
 	}
 	m, err := r(b)

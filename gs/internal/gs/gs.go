@@ -57,9 +57,13 @@ func BeanIDFor[T any](name ...string) BeanID {
 func (s BeanID) String() string {
 	var sb strings.Builder
 	sb.WriteString("{")
-	if s.Type != nil && s.Type != anyType {
+	if s.Type != nil {
 		sb.WriteString("Type:")
-		sb.WriteString(s.Type.String())
+		if s.Type == anyType {
+			sb.WriteString("any")
+		} else {
+			sb.WriteString(s.Type.String())
+		}
 	}
 	if s.Name != "" {
 		if sb.Len() > 1 {
@@ -86,7 +90,7 @@ type ConditionContext interface {
 	// Has checks if a property with the given key exists in the IoC container.
 	Has(key string) bool
 	// Prop retrieves a property value from the IoC container with an optional default.
-	Prop(key string, def ...string) string
+	Prop(key string) (string, bool)
 	// Find searches for beans that match the given BeanSelector.
 	Find(beanID BeanID) ([]ConditionBean, error)
 }

@@ -42,7 +42,7 @@ func TestProperties_Load(t *testing.T) {
 	})
 
 	t.Run("file not exist", func(t *testing.T) {
-		_, err := conf.Load("./testdata/config/app.tcl")
+		_, err := conf.Load("./testdata/config/xxx.yml")
 		assert.Error(t, err).Matches("no such file or directory")
 	})
 
@@ -64,7 +64,7 @@ func TestProperties_Resolve(t *testing.T) {
 			"a.b.c": []string{"3"},
 		}))
 
-		s, err := conf.ResolveString(p, "${a.b.c[0]}")
+		s, err := conf.Resolve(p, "${a.b.c[0]}")
 		assert.That(t, err).Nil()
 		assert.That(t, s).Equal("3")
 	})
@@ -73,29 +73,29 @@ func TestProperties_Resolve(t *testing.T) {
 		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a.b.c": []string{"3"},
 		}))
-		s, err := conf.ResolveString(p, "${x:=${a.b.c[0]}}")
+		s, err := conf.Resolve(p, "${x:=${a.b.c[0]}}")
 		assert.That(t, err).Nil()
 		assert.That(t, s).Equal("3")
 	})
 
 	t.Run("key with default", func(t *testing.T) {
 		p := flatten.NewPropertiesStorage(flatten.NewProperties(nil))
-		s, err := conf.ResolveString(p, "${a.b.c:=123}")
+		s, err := conf.Resolve(p, "${a.b.c:=123}")
 		assert.That(t, err).Nil()
 		assert.That(t, s).Equal("123")
 	})
 
 	t.Run("key not exist", func(t *testing.T) {
 		p := flatten.NewPropertiesStorage(flatten.NewProperties(nil))
-		_, err := conf.ResolveString(p, "${a.b.c}")
-		assert.Error(t, err).Matches("property \"a.b.c\": not exist")
+		_, err := conf.Resolve(p, "${a.b.c}")
+		assert.Error(t, err).Matches("property \"a.b.c\" not exist")
 	})
 
 	//t.Run("array property as string", func(t *testing.T) {
 	//	p := flatten.MapProperties(map[string]any{
 	//		"a.b.c": []string{"3"},
 	//	})
-	//	_, err := conf.ResolveString(p,"${a.b.c}")
+	//	_, err := conf.Resolve(p,"${a.b.c}")
 	//	assert.Error(t, err).Matches("property \"a.b.c\" isn't simple value")
 	//})
 
@@ -103,15 +103,15 @@ func TestProperties_Resolve(t *testing.T) {
 		p := flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"a.b.c": []string{"3"},
 		}))
-		_, err := conf.ResolveString(p, "${a.b.c")
-		assert.Error(t, err).Matches("resolve string .* error: invalid syntax")
+		_, err := conf.Resolve(p, "${a.b.c")
+		assert.Error(t, err).Matches("invalid syntax tag .*")
 	})
 
 	//t.Run("invalid expression", func(t *testing.T) {
 	//	p := flatten.MapProperties(map[string]any{
 	//		"a.b.c": []string{"3"},
 	//	})
-	//	_, err := conf.ResolveString(p,"${a.b.c[0]}==${a.b.c}")
+	//	_, err := conf.Resolve(p,"${a.b.c[0]}==${a.b.c}")
 	//	assert.Error(t, err).Matches("property \"a.b.c\" isn't simple value")
 	//})
 }
@@ -192,7 +192,7 @@ func BenchmarkResolve(b *testing.B) {
 	p := flatten.NewPropertiesStorage(flatten.NewProperties(nil))
 	b.Run("resolve", func(b *testing.B) {
 		for b.Loop() {
-			_, _ = conf.ResolveString(p, s)
+			_, _ = conf.Resolve(p, s)
 		}
 	})
 }

@@ -5,8 +5,9 @@
 package gs
 
 import (
-	"github.com/go-spring/gs-mock/gsmock"
 	"reflect"
+
+	"github.com/go-spring/gs-mock/gsmock"
 )
 
 // ConditionContextMockImpl is a generated mock implementation of the ConditionContext interface.
@@ -41,23 +42,23 @@ func (impl *ConditionContextMockImpl) MockHas() *gsmock.Mocker11[string, bool] {
 }
 
 //go:noinline
-func (impl *ConditionContextMockImpl) funcProp() func(key string, def ...string) string {
+func (impl *ConditionContextMockImpl) funcProp() func(key string) (string, bool) {
 	return impl.Prop
 }
 
 // Prop calls the registered mock for Prop via gsmock.Invoke.
 // If no matching mock is registered, it panics.
-func (impl *ConditionContextMockImpl) Prop(key string, def ...string) string {
-	if ret, ok := gsmock.Invoke(impl.r, impl, impl.funcProp(), key, def); ok {
-		return gsmock.Unbox1[string](ret)
+func (impl *ConditionContextMockImpl) Prop(key string) (string, bool) {
+	if ret, ok := gsmock.Invoke(impl.r, impl, impl.funcProp(), key); ok {
+		return gsmock.Unbox2[string, bool](ret)
 	}
 	panic("no mock code matched for ConditionContextMockImpl.Prop")
 }
 
-// MockProp returns a VarMocker21
+// MockProp returns a Mocker12
 // for registering mock behavior of Prop with specific parameter and return types.
-func (impl *ConditionContextMockImpl) MockProp() *gsmock.VarMocker21[string, string, string] {
-	return gsmock.VarMethod21(impl, impl.funcProp(), impl.r)
+func (impl *ConditionContextMockImpl) MockProp() *gsmock.Mocker12[string, string, bool] {
+	return gsmock.Method12(impl, impl.funcProp(), impl.r)
 }
 
 //go:noinline

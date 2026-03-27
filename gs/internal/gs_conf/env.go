@@ -23,29 +23,24 @@ import (
 	"github.com/go-spring/stdlib/flatten"
 )
 
-// Environment represents the environment configuration.
-type Environment struct{}
-
-// NewEnvironment initializes a new instance of Environment.
-func NewEnvironment() *Environment {
-	return &Environment{}
-}
-
-// CopyTo adds environment variables.
+// extractEnvironments extracts environment variables.
+//
 // Variables with the prefix "GS_" are transformed:
-//   - Prefix "GS_" is removed.
+//   - The prefix "GS_" is removed.
 //   - Remaining underscores '_' are replaced by dots '.'.
 //   - Keys are converted to lowercase.
 //
-// All other variables are stored as-is.
-func (c *Environment) CopyTo(p *flatten.Properties) error {
-	environ := os.Environ()
-	if len(environ) == 0 {
-		return nil
+// All other variables are stored using their original key and value.
+// Malformed environment variables (e.g., "=value") are ignored.
+func extractEnvironments() (*flatten.Properties, error) {
+	p := flatten.NewProperties(nil)
+	environs := os.Environ()
+	if len(environs) == 0 {
+		return p, nil
 	}
 
 	const prefix = "GS_"
-	for _, env := range environ {
+	for _, env := range environs {
 		ss := strings.SplitN(env, "=", 2)
 		if len(ss[0]) == 0 {
 			continue // Skip malformed env vars like "=::=:"
@@ -63,5 +58,5 @@ func (c *Environment) CopyTo(p *flatten.Properties) error {
 		}
 		p.Set(propKey, v)
 	}
-	return nil
+	return p, nil
 }

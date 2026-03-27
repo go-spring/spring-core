@@ -201,11 +201,7 @@ type LazyB struct {
 func TestInjecting(t *testing.T) {
 
 	t.Run("lazy error - missing bean", func(t *testing.T) {
-		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
-			"spring": map[string]any{
-				"allow-circular-references": true,
-			},
-		})))
+		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{})))
 		beans := []*gs_bean.BeanDefinition{
 			objectBean(&LazyA{}),
 			objectBean(&LazyB{}),
@@ -214,31 +210,14 @@ func TestInjecting(t *testing.T) {
 		assert.Error(t, err).Matches("can't find bean")
 	})
 
-	t.Run("lazy error - circular reference", func(t *testing.T) {
-		r := New(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
-		beans := []*gs_bean.BeanDefinition{
-			objectBean(&LazyA{}),
-			objectBean(&LazyB{}),
-		}
-		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("found circular autowire")
-	})
-
 	t.Run("lazy success", func(t *testing.T) {
-		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
-			"spring": map[string]any{
-				"allow-circular-references": true,
-			},
-		})))
+		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{})))
+		a := &LazyA{}
 		beans := []*gs_bean.BeanDefinition{
-			objectBean(&LazyA{}),
+			objectBean(a),
 			objectBean(&LazyB{}).Name("b"),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.That(t, err).Nil()
-
-		var a LazyA
-		err = r.Wire(&a)
 		assert.That(t, err).Nil()
 		assert.That(t, a.LazyB).NotNil()
 	})
@@ -246,7 +225,6 @@ func TestInjecting(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"spring": map[string]any{
-				"allow-circular-references":  true,
 				"force-autowire-is-nullable": true,
 			},
 			"logger": map[string]any{
@@ -269,11 +247,18 @@ func TestInjecting(t *testing.T) {
 
 		myFilter := &FilterImpl{}
 
+		c := &Controller{}
+		s := &struct {
+			Server  *Server  `inject:""`
+			Service *Service `autowire:""`
+		}{}
+
 		beans := []*gs_bean.BeanDefinition{
+			objectBean(s),
 			objectBean(myFilter).Name("my_filter").Export(gs.As[Filter]()),
 			objectBean(&ReqFilter{}).Name("my_filter"),
 			objectBean(&Repository{}),
-			objectBean(&Controller{}).DependsOn(
+			objectBean(c).DependsOn(
 				gs.BeanIDFor[*Service](),
 			),
 			objectBean(&Service{}).DestroyMethod("Destroy").Init(func(s *Service) {
@@ -312,17 +297,7 @@ func TestInjecting(t *testing.T) {
 
 		time.Sleep(time.Millisecond * 50)
 
-		c := &Controller{}
-		err = r.Wire(c)
-		assert.That(t, err).Nil()
 		assert.That(t, len(c.Loggers)).Equal(2)
-
-		s := &struct {
-			Server  *Server  `inject:""`
-			Service *Service `autowire:""`
-		}{}
-		err = r.Wire(s)
-		assert.That(t, err).Nil()
 		assert.That(t, s.Service.Status).Equal(1)
 		assert.That(t, s.Service.Filter).Equal(myFilter)
 		assert.That(t, s.Service.Int).Equal(100)
@@ -334,7 +309,6 @@ func TestInjecting(t *testing.T) {
 
 		err = r.RefreshProperties(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"spring": map[string]any{
-				"allow-circular-references":  true,
 				"force-autowire-is-nullable": true,
 			},
 			"logger": map[string]any{
@@ -358,11 +332,6 @@ func TestInjecting(t *testing.T) {
 		assert.That(t, err).Nil()
 
 		assert.That(t, s.Service.Repository.Addr.Value()).Equal("0.0.0.0:5050")
-
-		err = r.Wire(new(struct {
-			ChildBean *ChildBean `autowire:""`
-		}))
-		assert.That(t, err).Nil()
 
 		r.Close()
 
@@ -472,7 +441,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("resolve string .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag '\\${'")
 	})
 
 	t.Run("wire error - invalid collection tag", func(t *testing.T) {
@@ -483,7 +452,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("resolve string .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag '\\*\\?,\\${'")
 	})
 
 	t.Run("wire error - collection with no matches", func(t *testing.T) {
@@ -509,7 +478,7 @@ func TestInjecting(t *testing.T) {
 			provideBean(NewZeroLogger),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("property \"\": not exist")
+		assert.Error(t, err).Matches("missing tag for property binding")
 	})
 
 	t.Run("wire error - missing required dependencies", func(t *testing.T) {
@@ -580,8 +549,6 @@ func TestInjecting(t *testing.T) {
 		r := New(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
 		err := r.Refresh(extractBeans(nil))
 		assert.That(t, err).Nil()
-		err = r.Wire(new(int))
-		assert.That(t, err).Nil()
 	})
 
 	t.Run("wire error - malformed tag", func(t *testing.T) {
@@ -592,7 +559,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("parse tag .* error: invalid syntax")
+		assert.Error(t, err).Matches("invalid syntax tag 'int'")
 	})
 
 	t.Run("wire error - struct - missing properties", func(t *testing.T) {
@@ -603,7 +570,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("property \"config.int\": not exist")
+		assert.Error(t, err).Matches("property \"config.int\" not exist")
 	})
 
 	t.Run("wire error - struct - missing prefixed properties", func(t *testing.T) {
@@ -614,7 +581,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("property \"svr.config.int\": not exist")
+		assert.Error(t, err).Matches("property \"svr.config.int\" not exist")
 	})
 
 	t.Run("wire error - destruction failure", func(t *testing.T) {
@@ -756,19 +723,18 @@ func TestCircularBean(t *testing.T) {
 
 	t.Run("not truly circular - object", func(t *testing.T) {
 		r := New(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
+		s := new(struct {
+			A *A `autowire:""`
+			B *B `autowire:""`
+			C *C `autowire:""`
+		})
 		beans := []*gs_bean.BeanDefinition{
+			objectBean(s),
 			objectBean(&A{}),
 			objectBean(&B{}),
 			objectBean(&C{}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.That(t, err).Nil()
-		var s struct {
-			A *A `autowire:""`
-			B *B `autowire:""`
-			C *C `autowire:""`
-		}
-		err = r.Wire(&s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.A.B).Equal(s.B)
 		assert.That(t, s.B.C).Equal(s.C)
@@ -777,19 +743,18 @@ func TestCircularBean(t *testing.T) {
 
 	t.Run("not truly circular - constructor", func(t *testing.T) {
 		r := New(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
+		s := new(struct {
+			C *C `autowire:""`
+			D *D `autowire:""`
+			E *E `autowire:""`
+		})
 		beans := []*gs_bean.BeanDefinition{
+			objectBean(s),
 			objectBean(&C{}),
 			objectBean(&D{}),
 			provideBean(NewE, gs_arg.Index(1, gs_arg.Tag("?"))),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.That(t, err).Nil()
-		var s struct {
-			C *C `autowire:""`
-			D *D `autowire:""`
-			E *E `autowire:""`
-		}
-		err = r.Wire(&s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.C.D).Equal(s.D)
 		assert.That(t, s.D.E).Equal(s.E)
@@ -815,28 +780,23 @@ func TestCircularBean(t *testing.T) {
 			provideBean(NewJ),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("found circular autowire")
+		assert.Error(t, err).Nil()
 	})
 
 	t.Run("found circular - lazy", func(t *testing.T) {
-		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
-			"spring": map[string]any{
-				"allow-circular-references": true,
-			},
-		})))
+		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{})))
+		s := new(struct {
+			H *H `autowire:""`
+			I *I `autowire:""`
+			J *J `autowire:""`
+		})
 		beans := []*gs_bean.BeanDefinition{
+			objectBean(s),
 			provideBean(NewH),
 			objectBean(&I{}),
 			provideBean(NewJ),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.That(t, err).Nil()
-		var s struct {
-			H *H `autowire:""`
-			I *I `autowire:""`
-			J *J `autowire:""`
-		}
-		err = r.Wire(&s)
 		assert.That(t, err).Nil()
 		assert.That(t, s.H.i).Equal(s.I)
 		assert.That(t, s.I.J).Equal(s.J)
@@ -891,7 +851,12 @@ func TestDestroy(t *testing.T) {
 
 	t.Run("independent", func(t *testing.T) {
 		r := New(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
+		s := new(struct {
+			DestroyA *DestroyA `autowire:""`
+			DestroyB *DestroyB `autowire:""`
+		})
 		beans := []*gs_bean.BeanDefinition{
+			objectBean(s),
 			objectBean(&Counter{}),
 			objectBean(&DestroyA{}).Destroy(func(d *DestroyA) {
 				d.value = d.Counter.Incr()
@@ -900,12 +865,6 @@ func TestDestroy(t *testing.T) {
 		}
 		err := r.Refresh(extractBeans(beans))
 		assert.That(t, err).Nil()
-		var s struct {
-			DestroyA *DestroyA `autowire:""`
-			DestroyB *DestroyB `autowire:""`
-		}
-		err = r.Wire(&s)
-		assert.That(t, err).Nil()
 		r.Close()
 		assert.That(t, s.DestroyA.value == 1 || s.DestroyA.value == 2).True()
 		assert.That(t, s.DestroyB.value == 1 || s.DestroyB.value == 2).True()
@@ -913,7 +872,12 @@ func TestDestroy(t *testing.T) {
 
 	t.Run("dependency", func(t *testing.T) {
 		r := New(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
+		s := new(struct {
+			DestroyC *DestroyC `autowire:""`
+			DestroyE *DestroyE `autowire:""`
+		})
 		beans := []*gs_bean.BeanDefinition{
+			objectBean(s),
 			objectBean(&Counter{}),
 			objectBean(&DestroyC{}).Destroy(func(d *DestroyC) {
 				d.value = d.Counter.Incr()
@@ -922,12 +886,6 @@ func TestDestroy(t *testing.T) {
 			objectBean(&DestroyE{}).DestroyMethod("Destroy"),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.That(t, err).Nil()
-		var s struct {
-			DestroyC *DestroyC `autowire:""`
-			DestroyE *DestroyE `autowire:""`
-		}
-		err = r.Wire(&s)
 		assert.That(t, err).Nil()
 		r.Close()
 		assert.That(t, s.DestroyC.value).Equal(2)
@@ -939,16 +897,12 @@ type DyncValue struct {
 	Value gs_dync.Value[int] `value:"${:=3}"`
 }
 
-func TestForceClean(t *testing.T) {
+func TestDyncValue(t *testing.T) {
 
 	t.Run("without dync value", func(t *testing.T) {
 		release := make(map[string]struct{})
 
-		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
-			"spring": map[string]any{
-				"force-clean": true,
-			},
-		})))
+		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{})))
 
 		b1 := objectBean(&SimpleLogger{}).Name("biz")
 		runtime.AddCleanup(&b1, func(s string) {
@@ -976,11 +930,7 @@ func TestForceClean(t *testing.T) {
 	})
 
 	t.Run("with dync value", func(t *testing.T) {
-		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
-			"spring": map[string]any{
-				"force-clean": true,
-			},
-		})))
+		r := New(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{})))
 		beans := []*gs_bean.BeanDefinition{
 			objectBean(&DyncValue{}).Name("biz"),
 			objectBean(&SimpleLogger{}).Name("sys"),

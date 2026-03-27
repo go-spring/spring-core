@@ -87,14 +87,17 @@ type BeanDefinition struct {
 	configuration *Configuration   // Configuration for sub/child beans
 }
 
-// Clone 克隆一个 BeanDefinition 对象
+// Clone creates a copy of the BeanDefinition.
+// For pointer beans, a new instance of the underlying type is created.
+// For function beans, the value is shared (functions are immutable in Go).
+// This ensures the cloned BeanDefinition has a separate reflect.Value when necessary.
 func (d *BeanDefinition) Clone() *BeanDefinition {
 	r := *d
-	if d.f != nil { // 构造函数
+	if d.f != nil { // Constructor
 		r.v = reflect.New(d.t).Elem()
 		return &r
 	}
-	if d.t.Kind() == reflect.Func { // 函数对象
+	if d.t.Kind() == reflect.Func { // Function
 		return &r
 	}
 	r.v = reflect.New(d.t.Elem())
@@ -306,11 +309,18 @@ func (d *BeanDefinition) Export(exports ...reflect.Type) *BeanDefinition {
 	return d
 }
 
-// OnProfiles adds conditions based on active profiles.
+// OnProfiles adds a creation condition based on active profiles.
+// The bean will only be created if the application's "spring.profiles.active"
+// property contains at least one of the specified profiles.
+// Multiple profiles can be provided as a comma-separated string.
+//
+// Example:
+//
+//	d.OnProfiles("dev,test")  // bean created if active profile is "dev" or "test"
 func (d *BeanDefinition) OnProfiles(profiles string) *BeanDefinition {
 	d.Condition(gs_cond.OnFunc(func(ctx gs.ConditionContext) (bool, error) {
-		val := strings.TrimSpace(ctx.Prop("spring.profiles.active"))
-		if val == "" {
+		val, ok := ctx.Prop("spring.profiles.active")
+		if val = strings.TrimSpace(val); !ok || val == "" {
 			return false, nil
 		}
 		ss := strings.Split(strings.TrimSpace(profiles), ",")

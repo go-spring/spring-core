@@ -23,16 +23,22 @@ import (
 	"github.com/go-spring/stdlib/errutil"
 )
 
+var validateFuncs = map[string]any{}
+
 // ValidateFunc defines a type for validation functions, which accept
 // a value of type T and return a boolean result.
 type ValidateFunc[T any] func(T) bool
 
-// validateFuncs holds a map of registered validation functions.
-var validateFuncs = map[string]any{}
-
 // RegisterValidateFunc registers a validation function with a specific name.
 // The function can then be used in validation expressions.
+// Must be called in init functions only.
 func RegisterValidateFunc[T any](name string, fn ValidateFunc[T]) {
+	if name == "" {
+		panic("validate function name can't be empty")
+	}
+	if _, ok := validateFuncs[name]; ok {
+		panic("validate function " + name + " already exists")
+	}
 	validateFuncs[name] = fn
 }
 
