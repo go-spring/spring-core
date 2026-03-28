@@ -291,12 +291,12 @@ func TestProperties_Bind(t *testing.T) {
 
 	t.Run("non pointer target", func(t *testing.T) {
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), 5)
-		assert.Error(t, err).Matches("target should be a pointer but got int")
+		assert.Error(t, err).Matches("target should be a pointer to value type")
 	})
 
 	t.Run("pointer to pointer target", func(t *testing.T) {
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), new(*int))
-		assert.Error(t, err).Matches("target should be value type")
+		assert.Error(t, err).Matches("target should be a value type")
 	})
 
 	t.Run("validate error", func(t *testing.T) {
@@ -306,7 +306,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "1",
 		})), &s)
-		assert.Error(t, err).Matches("validate failed on .* for value 1")
+		assert.Error(t, err).Matches(".* expression evaluated to false")
 	})
 
 	t.Run("array error", func(t *testing.T) {
@@ -373,7 +373,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value []int `value:"${v}"`
 		}
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
-		assert.Error(t, err).Matches("property \"v\" not exist")
+		assert.Error(t, err).Matches("property \"v\" does not exist")
 	})
 
 	t.Run("missing converter for slice", func(t *testing.T) {
@@ -401,7 +401,7 @@ func TestProperties_Bind(t *testing.T) {
 				"1", "2", "3",
 			},
 		})), &s)
-		assert.Error(t, err).Matches("map property \"v\" not exist")
+		assert.Error(t, err).Matches("map property \"v\" does not exist")
 	})
 
 	t.Run("map type conflict", func(t *testing.T) {
@@ -411,7 +411,7 @@ func TestProperties_Bind(t *testing.T) {
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
 			"v": "a:b,1:2",
 		})), &s)
-		assert.Error(t, err).Matches("map property \"v\" not exist")
+		assert.Error(t, err).Matches("map property \"v\" does not exist")
 	})
 
 	t.Run("missing map property", func(t *testing.T) {
@@ -419,7 +419,7 @@ func TestProperties_Bind(t *testing.T) {
 			Value map[string]int `value:"${v}"`
 		}
 		err := conf.Bind(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), &s)
-		assert.Error(t, err).Matches("property \"v\" not exist")
+		assert.Error(t, err).Matches("property \"v\" does not exist")
 	})
 
 	t.Run("struct non empty default", func(t *testing.T) {
@@ -712,7 +712,7 @@ func TestResolve(t *testing.T) {
 		}
 
 		err := conf.Bind(p, &s)
-		assert.Error(t, err).Matches("property \"missing\" not exist")
+		assert.Error(t, err).Matches("property \"missing\" does not exist")
 	})
 
 	t.Run("missing property with default", func(t *testing.T) {

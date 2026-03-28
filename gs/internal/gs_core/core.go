@@ -32,13 +32,13 @@
 package gs_core
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/go-spring/spring-core/gs/internal/gs_bean"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/injecting"
 	"github.com/go-spring/spring-core/gs/internal/gs_core/resolving"
 	"github.com/go-spring/spring-core/gs/internal/gs_init"
+	"github.com/go-spring/stdlib/errutil"
 	"github.com/go-spring/stdlib/flatten"
 )
 
@@ -78,7 +78,7 @@ func New() *Container {
 // and the container transitions to the Refreshed state.
 func (c *Container) Refresh(p flatten.Storage, roots []*gs_bean.BeanDefinition) error {
 	if c.State != RefreshDefault {
-		return errors.New("container already refreshed")
+		return errutil.Explain(nil, "container already refreshed")
 	}
 	c.State = Refreshing
 

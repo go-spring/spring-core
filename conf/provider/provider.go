@@ -73,6 +73,7 @@ func Load(source string) (map[string]string, error) {
 	// allows your application to start, even if the myconfig.properties file is missing.
 
 	var (
+		config   = source
 		provider string
 		optional bool
 	)
@@ -93,9 +94,13 @@ func Load(source string) (map[string]string, error) {
 	p, ok := providers[provider]
 	if !ok {
 		err := errutil.Explain(nil, "unsupported provider type %s", provider)
-		return nil, errutil.Explain(err, "read config %s error", source)
+		return nil, errutil.Explain(err, "conf: read config %q error", config)
 	}
-	return p(optional, source)
+	m, err := p(optional, source)
+	if err != nil {
+		return nil, errutil.Explain(err, "conf: read config %q error", config)
+	}
+	return m, nil
 }
 
 // LoadFile loads a configuration file and returns its content as a flattened map[string]string.
@@ -106,7 +111,7 @@ func LoadFile(optional bool, source string) (map[string]string, error) {
 		if os.IsNotExist(err) && optional {
 			return nil, nil
 		}
-		return nil, errutil.Explain(err, "read file %s error", source)
+		return nil, err
 	}
 	return flatten.Flatten(m), nil
 }

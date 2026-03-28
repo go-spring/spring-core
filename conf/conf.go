@@ -18,7 +18,6 @@ package conf
 
 import (
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/go-spring/spring-core/conf/provider"
@@ -50,12 +49,14 @@ func RegisterConverter[T any](fn Converter[T]) {
 }
 
 // RegisterReader registers its Reader for some kind of file extension.
+// For example, a YAML reader parses .yaml files into nested maps.
 // Must be called in init functions only.
 func RegisterReader(r reader.Reader, ext ...string) {
 	reader.Register(r, ext...)
 }
 
 // RegisterProvider registers a Provider for a specific configuration source.
+// For example, a file provider reads local files, an etcd provider fetches remote config.
 // Must be called in init functions only.
 func RegisterProvider(name string, p provider.Provider) {
 	provider.Register(name, p)
@@ -73,11 +74,17 @@ func Load(source string) (*flatten.Properties, error) {
 }
 
 // Bind maps property values from storage into the target object.
-// The target must be a pointer to a struct.
+// The target must be a pointer to a struct or a reflect.Value.
 // An optional tag specifies the root property key using ${key} syntax.
 // Supports default values: ${key:=default}.
 // If no tag is provided, uses ${ROOT} (binds from the root).
+// Supports binding to structs, maps, slices, and primitive types.
 func Bind(p flatten.Storage, i any, tag ...string) error {
+
+	s := "${ROOT}"
+	if len(tag) > 0 {
+		s = tag[0]
+	}
 
 	var v reflect.Value
 	{
@@ -87,7 +94,8 @@ func Bind(p flatten.Storage, i any, tag ...string) error {
 		default:
 			v = reflect.ValueOf(i)
 			if v.Kind() != reflect.Pointer {
-				return errutil.Explain(nil, "target should be a pointer but got %T", i)
+				err := errutil.Explain(nil, "target should be a pointer to value type")
+				return errutil.Explain(err, "conf: bind %q error", s)
 			}
 			v = v.Elem()
 		}
@@ -99,18 +107,15 @@ func Bind(p flatten.Storage, i any, tag ...string) error {
 		typeName = t.String()
 	}
 
-	s := "${ROOT}"
-	if len(tag) > 0 {
-		s = tag[0]
-	}
-
 	var param BindParam
-	err := param.BindTag(s, "")
-	if err != nil {
-		return errutil.Explain(err, "bind tag '%s' error", s)
+	if err := param.BindTag(s, ""); err != nil {
+		return errutil.Explain(err, "conf: bind %q error", s)
 	}
 	param.Path = typeName
-	return BindValue(p, v, t, param, nil)
+	if err := BindValue(p, v, t, param, nil); err != nil {
+		return errutil.Explain(err, "conf: bind %q error", s)
+	}
+	return nil
 }
 
 // Resolve expands property references of the form ${key}
@@ -134,55 +139,9 @@ func Bind(p flatten.Storage, i any, tag ...string) error {
 // Errors:
 // - Returns invalid syntax if braces are unbalanced.
 func Resolve(p flatten.Storage, s string) (string, error) {
-
-	// If there is no property reference, return the original string.
-	start := strings.Index(s, "${")
-	if start < 0 {
-		return s, nil
-	}
-
-	var (
-		level = 1
-		end   = -1
-	)
-
-	// scan for matching closing brace, handling nested references
-	for i := start + 2; i < len(s); i++ {
-		if s[i] == '$' {
-			if i+1 < len(s) && s[i+1] == '{' {
-				level++
-			}
-		} else if s[i] == '}' {
-			level--
-			if level == 0 {
-				end = i
-				break
-			}
-		}
-	}
-
-	if end < 0 {
-		return "", errutil.Explain(nil, "invalid syntax tag '%s'", s)
-	}
-
-	var param BindParam
-	err := param.BindTag(s[start:end+1], "")
+	v, err := resolveString(p, s)
 	if err != nil {
-		return "", errutil.Explain(err, "resolve string %q error", s)
+		return "", errutil.Explain(err, "conf: resolve %q error", s)
 	}
-
-	// resolve the referenced property
-	resolved, err := resolve(p, param)
-	if err != nil {
-		return "", errutil.Explain(err, "resolve string %q error", s)
-	}
-
-	// resolve the remaining part of the string
-	suffix, err := Resolve(p, s[end+1:])
-	if err != nil {
-		return "", errutil.Explain(err, "resolve string %q error", s)
-	}
-
-	// combine: prefix + resolved + suffix
-	return s[:start] + resolved + suffix, nil
+	return v, nil
 }

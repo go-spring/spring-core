@@ -63,29 +63,15 @@ func (tag ParsedTag) String() string {
 }
 
 // ParseTag parses a tag string into a ParsedTag struct.
-//
-// Supported syntax: `${key:=default}`
-//
-// - The `${...}` block is mandatory.
-// - ":=" introduces an optional default value.
-//
-// Example parses:
-//
-//	"${foo}"               -> Key="foo"
-//	"${foo:=bar}"          -> Key="foo", HasDef=true, Def="bar"
-//	"${:=fallback}"        -> Key="", HasDef=true, Def="fallback"
-//
-// Errors:
-//   - Returns invalid syntax if the string does not follow the pattern.
 func ParseTag(tag string) (ret ParsedTag, err error) {
 	j := strings.LastIndex(tag, "}")
 	if j <= 0 {
-		err = errutil.Explain(nil, "invalid syntax tag '%s'", tag)
+		err = errutil.Explain(nil, "invalid syntax tag '%s': missing closing brace", tag)
 		return
 	}
 	k := strings.Index(tag, "${")
 	if k < 0 {
-		err = errutil.Explain(nil, "invalid syntax tag '%s'", tag)
+		err = errutil.Explain(nil, "invalid syntax tag '%s': missing opening '${'", tag)
 		return
 	}
 	ss := strings.SplitN(tag[k+2:j], ":=", 2)
@@ -129,7 +115,7 @@ func (param *BindParam) BindTag(tag string, validate reflect.StructTag) error {
 			param.Tag = parsedTag
 			return nil
 		}
-		return errutil.Explain(nil, "invalid syntax tag '%s'", tag)
+		return errutil.Explain(nil, "invalid syntax tag '%s': empty key without default value", tag)
 	}
 	if parsedTag.Key == "ROOT" {
 		parsedTag.Key = ""
@@ -153,20 +139,22 @@ type Filter interface {
 // into the given reflect.Value `v`, based on metadata in `param`.
 //
 // Supported binding targets:
-// - Primitive types (string, int, float, bool, etc.).
-// - Structs (recursively bound field by field).
-// - Maps (bound by iterating subkeys).
-// - Slices (bound by either indexed keys or split strings).
+//   - Primitive types (string, int, float, bool, etc.).
+//   - Structs (recursively bound field by field).
+//   - Maps (bound by iterating subkeys).
+//   - Slices (bound by either indexed keys or split strings).
 //
 // Errors:
-// - Returns not exist if the property is missing without a default.
-// - Returns type conversion errors if parsing fails.
-// - Returns wrapped errors with context (path, type).
+//   - Validation failure if "expr" tag evaluation fails.
+//   - Type mismatch (e.g., array instead of slice).
+//   - Property not exist without default value.
+//   - Type conversion errors during parsing.
+//   - Custom converter function errors.
 func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam, filter Filter) (RetErr error) {
 
 	if !typeutil.IsPropBindingTarget(t) {
-		err := errutil.Explain(nil, "target should be value type")
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		err := errutil.Explain(nil, "target should be a value type")
+		return errutil.Explain(err, "failed to bind at path %s", param.Path)
 	}
 
 	// run validation if "expr" tag is defined and no prior error
@@ -175,7 +163,7 @@ func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 			tag, ok := param.Validate.Lookup("expr")
 			if ok && len(tag) > 0 {
 				if RetErr = validateField(tag, v.Interface()); RetErr != nil {
-					RetErr = errutil.Explain(RetErr, "validate path=%s type=%s error", param.Path, v.Type().String())
+					RetErr = errutil.Explain(RetErr, "validation failed at path %s with expr %q", param.Path, tag)
 				}
 			}
 		}
@@ -188,14 +176,14 @@ func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 		return bindSlice(p, v, t, param, filter)
 	case reflect.Array:
 		err := errutil.Explain(nil, "use slice instead of array")
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to bind at path %s", param.Path)
 	default: // for linter
 	}
 
 	fn := converters[t]
 	if fn == nil && v.Kind() == reflect.Struct {
 		if err := bindStruct(p, v, t, param, filter); err != nil {
-			return err // no wrap
+			return err
 		}
 		return nil
 	}
@@ -203,7 +191,7 @@ func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 	// resolve property value (with default and references)
 	val, err := resolve(p, param)
 	if err != nil {
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to resolve value at path %s", param.Path)
 	}
 	if val = strings.TrimSpace(val); val == "" {
 		return nil
@@ -215,7 +203,7 @@ func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 		out := fnValue.Call([]reflect.Value{reflect.ValueOf(val)})
 		if !out[1].IsNil() {
 			err = out[1].Interface().(error)
-			return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+			return errutil.Explain(err, "failed to convert value at path %s", param.Path)
 		}
 		v.Set(out[0])
 		return nil
@@ -229,28 +217,28 @@ func BindValue(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 			v.SetUint(u)
 			return nil
 		}
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to parse uint at path %s", param.Path)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var i int64
 		if i, err = strconv.ParseInt(val, 0, 0); err == nil {
 			v.SetInt(i)
 			return nil
 		}
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to parse int at path %s", param.Path)
 	case reflect.Float32, reflect.Float64:
 		var f float64
 		if f, err = strconv.ParseFloat(val, 64); err == nil {
 			v.SetFloat(f)
 			return nil
 		}
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to parse float at path %s", param.Path)
 	case reflect.Bool:
 		var b bool
 		if b, err = strconv.ParseBool(val); err == nil {
 			v.SetBool(b)
 			return nil
 		}
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to parse bool at path %s", param.Path)
 	default:
 		// treat everything else as string
 		v.SetString(val)
@@ -273,7 +261,7 @@ func bindSlice(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 	elemType := t.Elem()
 	p, err := getSlice(p, param)
 	if err != nil {
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to bind slice at path %s", param.Path)
 	}
 
 	slice := reflect.MakeSlice(t, 0, 0)
@@ -293,7 +281,7 @@ func bindSlice(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPar
 		}
 		err = BindValue(p, subValue, elemType, subParam, filter)
 		if err != nil {
-			return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+			return err
 		}
 		slice = reflect.Append(slice, subValue)
 	}
@@ -313,6 +301,13 @@ func getSlice(p flatten.Storage, param BindParam) (flatten.Storage, error) {
 
 	m := make(map[string]string)
 	if p.SliceEntries(param.Key, m) {
+		for k, v := range m {
+			s, err := resolveString(p, v)
+			if err != nil {
+				return nil, err
+			}
+			m[k] = s
+		}
 		return flatten.NewPropertiesStorage(flatten.NewProperties(m)), nil
 	}
 
@@ -320,7 +315,7 @@ func getSlice(p flatten.Storage, param BindParam) (flatten.Storage, error) {
 	strVal, ok := p.Value(param.Key)
 	if !ok {
 		if !param.Tag.HasDef {
-			return nil, errutil.Explain(nil, "property %q not exist", param.Key)
+			return nil, errutil.Explain(nil, "property %q does not exist", param.Key)
 		}
 		strVal = param.Tag.Def
 	}
@@ -359,7 +354,7 @@ func bindMap(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errutil.Explain(nil, "map can't have a non-empty default value")
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to bind map at path %s", param.Path)
 	}
 
 	elemType := t.Elem()
@@ -382,7 +377,8 @@ func bindMap(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam
 			v.Set(ret)
 			return nil
 		}
-		return errutil.Explain(nil, "map property %q not exist", param.Key)
+		err := errutil.Explain(nil, "map property %q does not exist", param.Key)
+		return errutil.Explain(err, "failed to bind map at path %s", param.Path)
 	}
 
 	for key := range keySet {
@@ -396,7 +392,7 @@ func bindMap(p flatten.Storage, v reflect.Value, t reflect.Type, param BindParam
 			Path: param.Path,
 		}
 		if err := BindValue(p, subValue, elemType, subParam, filter); err != nil {
-			return err // no wrap
+			return err
 		}
 		ret.SetMapIndex(reflect.ValueOf(key), subValue)
 	}
@@ -426,7 +422,7 @@ func bindStruct(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPa
 
 	if param.Tag.HasDef && param.Tag.Def != "" {
 		err := errutil.Explain(nil, "struct can't have a non-empty default value")
-		return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+		return errutil.Explain(err, "failed to bind struct at path %s", param.Path)
 	}
 
 	for i := range t.NumField() {
@@ -445,19 +441,17 @@ func bindStruct(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPa
 
 		if tag, ok := ft.Tag.Lookup("value"); ok {
 			if err := subParam.BindTag(tag, ft.Tag); err != nil {
-				return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
+				return errutil.Explain(err, "failed to bind field %s.%s at path %s", t.Name(), ft.Name, param.Path)
 			}
 			if filter != nil {
-				ret, err := filter.Do(fv.Addr().Interface(), subParam)
-				if err != nil {
-					return errutil.Explain(err, "bind path=%s type=%s error", param.Path, v.Type().String())
-				}
-				if ret {
+				if ret, err := filter.Do(fv.Addr().Interface(), subParam); err != nil {
+					return err
+				} else if ret {
 					continue
 				}
 			}
 			if err := BindValue(p, fv, ft.Type, subParam, filter); err != nil {
-				return err // no wrap
+				return err
 			}
 			continue
 		}
@@ -468,7 +462,7 @@ func bindStruct(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPa
 				continue
 			}
 			if err := bindStruct(p, fv, ft.Type, subParam, filter); err != nil {
-				return err // no wrap
+				return err
 			}
 		}
 	}
@@ -487,13 +481,69 @@ func bindStruct(p flatten.Storage, v reflect.Value, t reflect.Type, param BindPa
 //	resolve(url) -> "http://localhost:8080"
 func resolve(p flatten.Storage, param BindParam) (string, error) {
 	if val, ok := p.Value(param.Key); ok {
-		return Resolve(p, val)
+		return resolveString(p, val)
 	}
 	if p.Exists(param.Key) {
-		return "", errutil.Explain(nil, "property %q isn't simple value", param.Key)
+		return "", errutil.Explain(nil, "property %q is not a simple value", param.Key)
 	}
 	if param.Tag.HasDef {
-		return Resolve(p, param.Tag.Def)
+		return resolveString(p, param.Tag.Def)
 	}
-	return "", errutil.Explain(nil, "property %q not exist", param.Key)
+	return "", errutil.Explain(nil, "property %q does not exist", param.Key)
+}
+
+// resolveString resolves a single string value,
+// applying default values and resolving references recursively.
+func resolveString(p flatten.Storage, s string) (string, error) {
+
+	// If there is no property reference, return the original string.
+	start := strings.Index(s, "${")
+	if start < 0 {
+		return s, nil
+	}
+
+	var (
+		level = 1
+		end   = -1
+	)
+
+	// scan for matching closing brace, handling nested references
+	for i := start + 2; i < len(s); i++ {
+		if s[i] == '$' {
+			if i+1 < len(s) && s[i+1] == '{' {
+				level++
+			}
+		} else if s[i] == '}' {
+			level--
+			if level == 0 {
+				end = i
+				break
+			}
+		}
+	}
+
+	if end < 0 {
+		return "", errutil.Explain(nil, "invalid syntax: unmatched braces in '%s'", s)
+	}
+
+	var param BindParam
+	err := param.BindTag(s[start:end+1], "")
+	if err != nil {
+		return "", err
+	}
+
+	// resolve the referenced property
+	resolved, err := resolve(p, param)
+	if err != nil {
+		return "", err
+	}
+
+	// resolve the remaining part of the string
+	suffix, err := resolveString(p, s[end+1:])
+	if err != nil {
+		return "", err
+	}
+
+	// combine: prefix + resolved + suffix
+	return s[:start] + resolved + suffix, nil
 }

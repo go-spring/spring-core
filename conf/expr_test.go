@@ -73,7 +73,7 @@ func TestExpr(t *testing.T) {
 			"a": 14,
 		}))
 		err := conf.Bind(p, &v)
-		assert.Error(t, err).Matches("validate failed on .* for value 14")
+		assert.Error(t, err).Matches("expression evaluated to false")
 	})
 
 	t.Run("syntax error", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestExpr(t *testing.T) {
 			"a": 4,
 		}))
 		err := conf.Bind(p, &v)
-		assert.Error(t, err).Matches("eval .* returns error")
+		assert.Error(t, err).Matches("bad number syntax")
 	})
 
 	t.Run("return not bool", func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestExpr(t *testing.T) {
 			"a": 4,
 		}))
 		err := conf.Bind(p, &v)
-		assert.Error(t, err).Matches("eval .* doesn't return bool value")
+		assert.Error(t, err).Matches("expression must return a boolean value")
 	})
 
 	t.Run("unregistered function", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestExpr(t *testing.T) {
 			"a": 5,
 		}))
 		err := conf.Bind(p, &v)
-		assert.Error(t, err).Matches("eval .* returns error")
+		assert.Error(t, err).Matches("reflect: call of reflect.Value.Call on zero Value")
 	})
 
 	t.Run("empty expression", func(t *testing.T) {

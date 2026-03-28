@@ -59,16 +59,11 @@ func ReadFile(file string) (map[string]any, error) {
 	ext := filepath.Ext(file)
 	r, ok := readers[ext]
 	if !ok {
-		err := errutil.Explain(nil, "unsupported file type %s", ext)
-		return nil, errutil.Explain(err, "read file %s error", file)
+		return nil, errutil.Explain(nil, "unsupported file type %s", ext)
 	}
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return nil, errutil.Explain(err, "read file %s error", file)
+		return nil, err
 	}
-	m, err := r(b)
-	if err != nil {
-		return nil, errutil.Explain(err, "read file %s error", file)
-	}
-	return m, nil
+	return r(b)
 }

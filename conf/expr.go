@@ -25,12 +25,10 @@ import (
 
 var validateFuncs = map[string]any{}
 
-// ValidateFunc defines a type for validation functions, which accept
-// a value of type T and return a boolean result.
+// ValidateFunc defines a type for validation functions.
 type ValidateFunc[T any] func(T) bool
 
 // RegisterValidateFunc registers a validation function with a specific name.
-// The function can then be used in validation expressions.
 // Must be called in init functions only.
 func RegisterValidateFunc[T any](name string, fn ValidateFunc[T]) {
 	if name == "" {
@@ -50,14 +48,14 @@ func validateField(tag string, i any) error {
 	maps.Copy(env, validateFuncs)
 	r, err := expr.Eval(tag, env)
 	if err != nil {
-		return errutil.Explain(err, "eval %q returns error", tag)
+		return err
 	}
 	ret, ok := r.(bool)
 	if !ok {
-		return errutil.Explain(nil, "eval %q doesn't return bool value", tag)
+		return errutil.Explain(nil, "expression must return a boolean value")
 	}
 	if !ret {
-		return errutil.Explain(nil, "validate failed on %q for value %v", tag, i)
+		return errutil.Explain(nil, "expression evaluated to false")
 	}
 	return nil
 }
