@@ -116,7 +116,8 @@ func (app *App) Provide(objOrCtor any, args ...gs.Arg) *gs_bean.BeanDefinition {
 }
 
 // Root registers a root bean for container refresh.
-func (app *App) Root(b *gs_bean.BeanDefinition) *gs_bean.BeanDefinition {
+func (app *App) Root(obj any) *gs_bean.BeanDefinition {
+	b := app.c.Provide(obj).Caller(2)
 	app.roots = append(app.roots, b)
 	return b
 }
@@ -156,7 +157,7 @@ func (app *App) initLog(p flatten.Storage) error {
 //  8. Wait until all servers signal readiness or intercept occurs
 func (app *App) Start() error {
 
-	app.Root(app.c.Provide(app))
+	app.Root(app)
 	app.c.Provide(&ContextProvider{app.ctx})
 	app.c.Provide(&PropertiesRefresher{app})
 

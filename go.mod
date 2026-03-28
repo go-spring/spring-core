@@ -1,10 +1,10 @@
 module github.com/go-spring/spring-core
 
-go 1.25
+go 1.26
 
 require (
 	github.com/expr-lang/expr v1.17.6
-	github.com/go-spring/gs-mock v0.0.7
+	github.com/go-spring/gs-mock v0.0.8
 	github.com/go-spring/log v0.1.0-rc
 	github.com/go-spring/stdlib v0.0.11
 	github.com/magiconair/properties v1.8.10
@@ -15,7 +15,7 @@ require (
 
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/bytedance/mockey v1.3.2 // indirect
+	github.com/bytedance/mockey v1.4.5 // indirect
 	github.com/gopherjs/gopherjs v1.12.80 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/smartystreets/assertions v1.2.0 // indirect
