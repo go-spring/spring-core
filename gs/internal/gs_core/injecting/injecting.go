@@ -106,7 +106,7 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 	for _, b := range beans {
 		c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b)
 		c.beansByType[b.GetType()] = append(c.beansByType[b.GetType()], b)
-		for _, t := range b.Exports() { // Register additional exported types
+		for _, t := range b.GetExports() { // Register additional exported types
 			c.beansByType[t] = append(c.beansByType[t], b)
 		}
 	}
@@ -517,14 +517,14 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	stack.pushBean(b)
 
 	// Detect circular dependencies
-	if b.Status() == gs_bean.StatusCreating && b.Callable() != nil {
+	if b.GetStatus() == gs_bean.StatusCreating && b.Callable() != nil {
 		if slices.Contains(stack.beans, b) {
 			return errutil.Explain(nil, "found circular autowire")
 		}
 	}
 
 	// If the bean is already being created, return early.
-	if b.Status() >= gs_bean.StatusCreating {
+	if b.GetStatus() >= gs_bean.StatusCreating {
 		stack.popBean()
 		return nil
 	}
@@ -764,7 +764,7 @@ func NewStack() *Stack {
 // pushBean pushes a bean onto the wiring stack.
 // Used to keep track of current wiring path for cycle detection.
 func (s *Stack) pushBean(b *gs_bean.BeanDefinition) {
-	log.Debugf(context.Background(), log.TagAppDef, "push %s %s", b, b.Status())
+	log.Debugf(context.Background(), log.TagAppDef, "push %s %s", b, b.GetStatus())
 	s.beans = append(s.beans, b)
 	if b.GetDestroy() != nil {
 		s.pushDestroyer(b)
@@ -780,7 +780,7 @@ func (s *Stack) popBean() {
 	}
 	s.beans[n-1] = nil // avoid memory leak
 	s.beans = s.beans[:n-1]
-	log.Debugf(context.Background(), log.TagAppDef, "pop %s %s", b, b.Status())
+	log.Debugf(context.Background(), log.TagAppDef, "pop %s %s", b, b.GetStatus())
 }
 
 // Path returns a formatted string representation of the current wiring stack,

@@ -115,7 +115,8 @@ func (c *onProperty) Matches(ctx gs.ConditionContext) (bool, error) {
 	val, ok := ctx.Prop(c.name)
 	if !ok {
 		if ctx.Has(c.name) {
-			return false, errutil.Explain(nil, "property %s not leaf node", c.name)
+			err := errutil.Explain(nil, "property %s not leaf node", c.name)
+			return false, errutil.Explain(err, "condition %s matches error", c)
 		}
 		return c.matchIfMissing, nil
 	}
@@ -138,11 +139,11 @@ func (c *onProperty) String() string {
 	sb.WriteString("OnProperty(name=")
 	sb.WriteString(c.name)
 	if c.havingValue != nil {
-		sb.WriteString(", havingValue=")
+		sb.WriteString(",havingValue=")
 		sb.WriteString(*c.havingValue)
 	}
 	if c.matchIfMissing {
-		sb.WriteString(", matchIfMissing")
+		sb.WriteString(",matchIfMissing")
 	}
 	sb.WriteString(")")
 	return sb.String()
@@ -409,9 +410,9 @@ func FormatGroup(op string, conditions []gs.Condition) string {
 	sb.WriteString("(")
 	for i, c := range conditions {
 		if i > 0 {
-			sb.WriteString(", ")
+			sb.WriteString(",")
 		}
-		sb.WriteString(fmt.Sprint(c))
+		_, _ = fmt.Fprint(&sb, c)
 	}
 	sb.WriteString(")")
 	return sb.String()

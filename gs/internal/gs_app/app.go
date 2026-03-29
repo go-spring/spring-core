@@ -34,6 +34,17 @@ import (
 
 // Runner defines an interface for components that need to be executed
 // after all beans have been injected but before servers start.
+//
+// Runners are executed synchronously and sequentially during application startup.
+// Each Runner must complete quickly and should NOT block indefinitely, as this
+// would prevent the application from starting. If a Runner returns an error,
+// the application startup process will be terminated immediately.
+//
+// Typical use cases include:
+//   - Database schema initialization
+//   - Cache warming
+//   - One-time data migration tasks
+//   - Application bootstrap logic
 type Runner interface {
 	Run(ctx context.Context) error
 }
@@ -46,19 +57,45 @@ type ReadySignal interface {
 
 // Server defines the lifecycle of application servers (e.g., HTTP, gRPC).
 // It provides methods to start and gracefully stop the server.
+//
+// Servers are started concurrently in separate goroutines when the application
+// runs. Each server is a long-running background process that provides services
+// externally. The server must:
+//   - Support graceful shutdown via the Stop() method
+//   - Respond to context cancellation for timely cleanup
+//   - Signal readiness via ReadySignal before accepting requests
+//   - Handle errors appropriately and trigger application shutdown if needed
+//
+// Typical use cases include:
+//   - HTTP servers
+//   - gRPC servers
+//   - WebSocket servers
+//   - TCP/UDP service listeners
 type Server interface {
 	Run(ctx context.Context, sig ReadySignal) error
 	Stop() error
 }
 
-// ContextProvider provides access to the application's root context.
-// Users can inject this bean to access the App's context.
+// ContextProvider is a wrapper that provides explicit access to the
+// application's root context. It allows users to inject the context into
+// their beans without ambiguity.
+//
+// This wrapper is necessary because:
+//   - It distinguishes the app's root context from other context.Context beans
+//   - It provides a clear, intentional injection point for context access
+//   - It ensures all components use the same unified context hierarchy
 type ContextProvider struct {
 	Context context.Context
 }
 
-// PropertiesRefresher is an interface for components that need to refresh
-// application properties after configuration changes.
+// PropertiesRefresher encapsulates the ability to refresh application
+// properties at runtime. Components can inject this bean to trigger
+// hot configuration updates without restarting the application.
+//
+// When RefreshProperties() is called:
+//  1. Configuration is reloaded from all sources (files, env, cmd args)
+//  2. Changes are propagated to the IoC container
+//  3. All dynamic fields (gs.Dync[T]) are updated automatically
 type PropertiesRefresher struct {
 	app *App
 }
@@ -70,7 +107,12 @@ func (c *PropertiesRefresher) RefreshProperties() error {
 }
 
 // App represents the core application, managing its lifecycle,
-// configuration, and dependency injection.
+// configuration, and dependency injection. It serves as the central
+// coordinator for:
+//   - Bean registration and wiring via the IoC container
+//   - Configuration loading and hot-refreshing
+//   - Runner and Server lifecycle management
+//   - Graceful shutdown orchestration
 type App struct {
 	c *gs_core.Container // IoC container
 	p *gs_conf.AppConfig // Application configuration
@@ -87,6 +129,7 @@ type App struct {
 
 // NewApp creates a new App instance with an initialized root context.
 func NewApp() *App {
+	// nolint: staticcheck
 	ctx := context.WithValue(context.Background(), "app", "")
 	ctx, cancel := context.WithCancel(ctx)
 	return &App{
@@ -103,7 +146,7 @@ func (app *App) Context() context.Context {
 }
 
 // Property sets an app-level property in the application's configuration.
-// It associates the property with the caller file for traceability.
+// This method allows programmatic configuration during initialization.
 func (app *App) Property(key string, val string) {
 	app.p.Properties.Set(key, val)
 }
@@ -115,7 +158,11 @@ func (app *App) Provide(objOrCtor any, args ...gs.Arg) *gs_bean.BeanDefinition {
 	return app.c.Provide(objOrCtor, args...).Caller(2)
 }
 
-// Root registers a root bean for container refresh.
+// Root beans serve as entry points for the dependency injection graph.
+//
+// Unlike regular Provide(), which only registers a bean definition,
+// Root() also marks the bean as a "root" that triggers recursive wiring
+// of all its dependencies during container initialization.
 func (app *App) Root(obj any) *gs_bean.BeanDefinition {
 	b := app.c.Provide(obj).Caller(2)
 	app.roots = append(app.roots, b)
@@ -123,8 +170,22 @@ func (app *App) Root(obj any) *gs_bean.BeanDefinition {
 }
 
 // RefreshProperties reloads application properties from all sources
-// and propagates the changes to the IoC container.
+// and propagates the changes to the IoC container, enabling hot configuration updates.
+//
+// This method triggers a complete configuration refresh:
+//  1. Reloads configuration from all sources (files, env vars, cmd args)
+//  2. Merges configurations according to priority rules
+//  3. Propagates changes to the IoC container
+//  4. Updates all dynamic fields (gs.Dync[T]) automatically
+//
+// Thread safety:
+//   - This method is thread-safe and can be called from any goroutine
+//   - All dynamic field updates are atomic
+//   - If validation fails, no partial updates are applied
 func (app *App) RefreshProperties() error {
+	if app.p == nil {
+		return errutil.Explain(nil, "app.p is nil")
+	}
 	p, err := app.p.Refresh()
 	if err != nil {
 		return err
@@ -132,7 +193,10 @@ func (app *App) RefreshProperties() error {
 	return app.c.RefreshProperties(p)
 }
 
-// initLog initializes the application's logging system.
+// initLog initializes the application's logging system based on configuration.
+// It configures the global logger if the "logging" section exists in the
+// provided configuration storage. When no "logging" section is present,
+// the application uses the default logging configuration.
 func (app *App) initLog(p flatten.Storage) error {
 	const loggingKey = "logging"
 	if !p.Exists(loggingKey) { // no logging
@@ -144,9 +208,9 @@ func (app *App) initLog(p flatten.Storage) error {
 
 // Start initializes and launches the application.
 // The startup sequence is:
-//  1. Refresh application properties from all sources
-//  2. Initialize logging system
-//  3. Register the App, ContextProvider, and PropertiesRefresher beans in the container
+//  1. Register the App, ContextProvider, and PropertiesRefresher beans
+//  2. Refresh application properties from all sources
+//  3. Initialize logging system
 //  4. Refresh the IoC container to wire all beans
 //  5. Clear the temporary root bean list after container refresh
 //  6. Execute all Runner beans sequentially
@@ -178,6 +242,7 @@ func (app *App) Start() error {
 	}
 
 	app.roots = nil
+	// If there are no dynamic fields, clear the configuration
 	if app.c.DynamicObjectsCount() == 0 {
 		app.p = nil
 	}

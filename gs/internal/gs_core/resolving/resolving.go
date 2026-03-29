@@ -57,7 +57,7 @@ func New() *Resolving {
 func (c *Resolving) Beans() []*gs_bean.BeanDefinition {
 	var beans []*gs_bean.BeanDefinition
 	for _, b := range c.beans {
-		if b.Status() == gs_bean.StatusDeleted {
+		if b.GetStatus() == gs_bean.StatusDeleted {
 			continue
 		}
 		beans = append(beans, b)
@@ -227,7 +227,7 @@ func isBeanMatched(t reflect.Type, s string, b *gs_bean.BeanDefinition) bool {
 		return false
 	}
 	if t != nil && t != b.GetType() {
-		if !slices.Contains(b.Exports(), t) {
+		if !slices.Contains(b.GetExports(), t) {
 			return false
 		}
 	}
@@ -251,10 +251,10 @@ func (c *Resolving) resolveBeans(p flatten.Storage) error {
 func (c *Resolving) checkDuplicateBeans() error {
 	beansByID := make(map[gs.BeanID]*gs_bean.BeanDefinition)
 	for _, b := range c.beans {
-		if b.Status() == gs_bean.StatusDeleted {
+		if b.GetStatus() == gs_bean.StatusDeleted {
 			continue
 		}
-		for _, t := range append(b.Exports(), b.GetType()) {
+		for _, t := range append(b.GetExports(), b.GetType()) {
 			beanID := gs.BeanID{Name: b.GetName(), Type: t}
 			if d, ok := beansByID[beanID]; ok {
 				return errutil.Explain(nil, "found duplicate beans [%s] [%s]", b, d)
@@ -276,7 +276,7 @@ type ConditionContext struct {
 // - If any condition fails, the bean's status is set to StatusDeleted.
 // - If all conditions pass, the status is set to StatusResolved.
 func (c *ConditionContext) resolveBean(b *gs_bean.BeanDefinition) error {
-	if b.Status() >= gs_bean.StatusResolving {
+	if b.GetStatus() >= gs_bean.StatusResolving {
 		return nil
 	}
 	b.SetStatus(gs_bean.StatusResolving)
@@ -311,7 +311,7 @@ func (c *ConditionContext) Prop(key string) (string, bool) {
 func (c *ConditionContext) Find(beanID gs.BeanID) ([]gs.ConditionBean, error) {
 	var found []gs.ConditionBean
 	for _, b := range c.c.beans {
-		if b.Status() == gs_bean.StatusResolving || b.Status() == gs_bean.StatusDeleted {
+		if b.GetStatus() == gs_bean.StatusResolving || b.GetStatus() == gs_bean.StatusDeleted {
 			continue
 		}
 		if !isBeanMatched(beanID.Type, beanID.Name, b) {
@@ -320,7 +320,7 @@ func (c *ConditionContext) Find(beanID gs.BeanID) ([]gs.ConditionBean, error) {
 		if err := c.resolveBean(b); err != nil {
 			return nil, err
 		}
-		if b.Status() == gs_bean.StatusDeleted {
+		if b.GetStatus() == gs_bean.StatusDeleted {
 			continue
 		}
 		found = append(found, b)

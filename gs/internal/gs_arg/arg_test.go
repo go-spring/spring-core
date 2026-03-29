@@ -101,7 +101,7 @@ func TestTagArg(t *testing.T) {
 	t.Run("unsupported type", func(t *testing.T) {
 		tag := Tag("server")
 		_, err := tag.GetArgValue(nil, reflect.TypeFor[*string]())
-		assert.Error(t, err).Matches("unsupported argument type: \\*string")
+		assert.Error(t, err).Matches("unsupported argument type \\*string")
 	})
 }
 
@@ -158,7 +158,7 @@ func TestValueArg(t *testing.T) {
 	t.Run("incompatible types", func(t *testing.T) {
 		tag := Value(new(int))
 		_, err := tag.GetArgValue(nil, reflect.TypeFor[*http.Server]())
-		assert.Error(t, err).Matches("cannot assign type:\\*int to type:\\*http.Server")
+		assert.Error(t, err).Matches("cannot assign type \\*int to type \\*http.Server")
 	})
 }
 
@@ -167,7 +167,7 @@ func TestArgList_New(t *testing.T) {
 	t.Run("invalid function type", func(t *testing.T) {
 		fnType := reflect.TypeFor[int]()
 		_, err := NewArgList(fnType, nil)
-		assert.Error(t, err).Matches("NewArgList error: invalid function type:int")
+		assert.Error(t, err).Matches("invalid function type int")
 	})
 
 	t.Run("mixed index and non-index args", func(t *testing.T) {
@@ -177,7 +177,7 @@ func TestArgList_New(t *testing.T) {
 			Value("test"),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.Error(t, err).Matches("NewArgList error: arguments must be all indexed or non-indexed")
+		assert.Error(t, err).Matches("arguments must be all indexed or non-indexed")
 	})
 
 	t.Run("mixed non-index and index args", func(t *testing.T) {
@@ -187,7 +187,7 @@ func TestArgList_New(t *testing.T) {
 			Index(1, Value("test")),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.Error(t, err).Matches("NewArgList error: arguments must be all indexed or non-indexed")
+		assert.Error(t, err).Matches("arguments must be all indexed or non-indexed")
 	})
 
 	t.Run("negative argument index", func(t *testing.T) {
@@ -196,7 +196,7 @@ func TestArgList_New(t *testing.T) {
 			Index(-1, Value(1)),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.Error(t, err).Matches("NewArgList error: invalid argument index -1")
+		assert.Error(t, err).Matches("invalid argument index -1")
 	})
 
 	t.Run("out of range argument index", func(t *testing.T) {
@@ -205,7 +205,7 @@ func TestArgList_New(t *testing.T) {
 			Index(2, Value(1)),
 		}
 		_, err := NewArgList(fnType, args)
-		assert.Error(t, err).Matches("NewArgList error: invalid argument index 2")
+		assert.Error(t, err).Matches("invalid argument index 2")
 	})
 
 	t.Run("non-index args success", func(t *testing.T) {
@@ -305,7 +305,7 @@ func TestArgList_New(t *testing.T) {
 			Value("extra"), // Extra argument
 		}
 		_, err := NewArgList(fnType, args)
-		assert.Error(t, err).Matches("NewArgList error: too many arguments")
+		assert.Error(t, err).Matches("too many arguments")
 	})
 }
 
@@ -358,7 +358,7 @@ func TestArgList_Get(t *testing.T) {
 
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = argList.get(ctx)
-		assert.Error(t, err).Matches("cannot assign type:int to type:string")
+		assert.Error(t, err).Matches("cannot assign type int to type string")
 	})
 
 	t.Run("variadic function with no extra args", func(t *testing.T) {
@@ -402,7 +402,7 @@ func TestCallable_New(t *testing.T) {
 			Value("test"),
 		}
 		_, err := NewCallable(fn, args)
-		assert.Error(t, err).Matches("NewArgList error: invalid function type:string")
+		assert.Error(t, err).Matches("invalid function type string")
 	})
 
 	t.Run("error in argument processing", func(t *testing.T) {
@@ -418,7 +418,7 @@ func TestCallable_New(t *testing.T) {
 
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = callable.Call(ctx)
-		assert.Error(t, err).Matches("cannot assign type:int to type:string")
+		assert.Error(t, err).Matches("cannot assign type int to type string")
 	})
 }
 
@@ -437,7 +437,7 @@ func TestCallable_Call(t *testing.T) {
 
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err = callable.Call(ctx)
-		assert.Error(t, err).Matches("cannot assign type:int to type:string")
+		assert.Error(t, err).Matches("cannot assign type int to type string")
 	})
 
 	t.Run("function return none", func(t *testing.T) {
@@ -587,14 +587,14 @@ func TestBindArg_Bind(t *testing.T) {
 		}
 		assert.Panic(t, func() {
 			Bind(fn, args...)
-		}, "invalid function type")
+		}, "invalid bind function signature: expected func\\(.*\\) error or func\\(.*\\) \\(T, error\\)")
 	})
 
 	t.Run("non-function type", func(t *testing.T) {
 		fn := "not a function"
 		assert.Panic(t, func() {
 			Bind(fn)
-		}, "invalid function type")
+		}, "invalid function type string")
 	})
 
 	t.Run("function returning only error", func(t *testing.T) {
@@ -603,7 +603,7 @@ func TestBindArg_Bind(t *testing.T) {
 		}
 		assert.Panic(t, func() {
 			Bind(fn)
-		}, "invalid function type")
+		}, "invalid bind function signature: expected func\\(.*\\) error or func\\(.*\\) \\(T, error\\)")
 	})
 
 	t.Run("function with invalid return types", func(t *testing.T) {
@@ -612,7 +612,7 @@ func TestBindArg_Bind(t *testing.T) {
 		}
 		assert.Panic(t, func() {
 			Bind(fn)
-		}, "invalid function type")
+		}, "invalid bind function signature: expected func\\(.*\\) error or func\\(.*\\) \\(T, error\\)")
 	})
 
 	t.Run("function with too many return values", func(t *testing.T) {
@@ -625,7 +625,7 @@ func TestBindArg_Bind(t *testing.T) {
 		}
 		assert.Panic(t, func() {
 			Bind(fn, args...)
-		}, "invalid function type")
+		}, "invalid bind function signature: expected func\\(.*\\) error or func\\(.*\\) \\(T, error\\)")
 	})
 
 	t.Run("error in argument processing", func(t *testing.T) {
@@ -638,7 +638,7 @@ func TestBindArg_Bind(t *testing.T) {
 		}
 		assert.Panic(t, func() {
 			Bind(fn, args...)
-		}, "NewArgList error: arguments must be all indexed or non-indexed")
+		}, "arguments must be all indexed or non-indexed")
 	})
 
 	t.Run("success with returning single value", func(t *testing.T) {
@@ -679,7 +679,7 @@ func TestBindArg_GetArgValue(t *testing.T) {
 		arg := Bind(fn, args...)
 		ctx := gs.NewArgContextMockImpl(nil)
 		_, err := arg.GetArgValue(ctx, reflect.TypeFor[string]())
-		assert.Error(t, err).Matches("cannot assign type:int to type:string")
+		assert.Error(t, err).Matches("cannot assign type int to type string")
 	})
 
 	t.Run("function returning slice", func(t *testing.T) {

@@ -73,15 +73,15 @@ func (arg TagArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value,
 		return v, nil
 	}
 
-	err := errutil.Explain(nil, "unsupported argument type: %s", t.String())
+	err := errutil.Explain(nil, "unsupported argument type %s", t.String())
 	return reflect.Value{}, err
 }
 
 // IndexArg represents an argument that is bound by its explicit position
 // (index) in the target function’s parameter list.
 type IndexArg struct {
-	Idx int    //The positional index (0-based).
-	Arg gs.Arg //The wrapped argument value.
+	Idx int    // The positional index (0-based).
+	Arg gs.Arg // The wrapped argument value.
 }
 
 // Index creates an IndexArg with the given index and argument.
@@ -116,7 +116,7 @@ func (arg ValueArg) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Valu
 	}
 	v := reflect.ValueOf(arg.v)
 	if !v.Type().AssignableTo(t) {
-		err := errutil.Explain(nil, "cannot assign type:%T to type:%s", arg.v, t.String())
+		err := errutil.Explain(nil, "cannot assign type %T to type %s", arg.v, t.String())
 		return reflect.Value{}, err
 	}
 	return v, nil
@@ -141,8 +141,7 @@ type ArgList struct {
 //   - Index values must be within valid parameter bounds.
 func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	if fnType.Kind() != reflect.Func {
-		err := errutil.Explain(nil, "invalid function type:%s", fnType.String())
-		return nil, errutil.Explain(err, "NewArgList error")
+		return nil, errutil.Explain(nil, "invalid function type %s", fnType.String())
 	}
 
 	// Determine number of fixed arguments.
@@ -150,8 +149,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 	if fnType.IsVariadic() {
 		fixedArgCount--
 	} else if len(args) > fixedArgCount {
-		err := errutil.Explain(nil, "too many arguments for function:%s", fnType.String())
-		return nil, errutil.Explain(err, "NewArgList error")
+		return nil, errutil.Explain(nil, "too many arguments for function %s", fnType.String())
 	}
 
 	// Initialize argument list with empty Tag() placeholders.
@@ -171,12 +169,10 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		case IndexArg:
 			useIdx = true
 			if notIdx {
-				err := errutil.Explain(nil, "arguments must be all indexed or non-indexed")
-				return nil, errutil.Explain(err, "NewArgList error")
+				return nil, errutil.Explain(nil, "arguments must be all indexed or non-indexed")
 			}
 			if arg.Idx < 0 || arg.Idx >= fnType.NumIn() {
-				err := errutil.Explain(nil, "invalid argument index %d", arg.Idx)
-				return nil, errutil.Explain(err, "NewArgList error")
+				return nil, errutil.Explain(nil, "invalid argument index %d", arg.Idx)
 			}
 			if arg.Idx < fixedArgCount {
 				fnArgs[arg.Idx] = arg.Arg
@@ -186,8 +182,7 @@ func NewArgList(fnType reflect.Type, args []gs.Arg) (*ArgList, error) {
 		default:
 			notIdx = true
 			if useIdx {
-				err := errutil.Explain(nil, "arguments must be all indexed or non-indexed")
-				return nil, errutil.Explain(err, "NewArgList error")
+				return nil, errutil.Explain(nil, "arguments must be all indexed or non-indexed")
 			}
 			if i < fixedArgCount {
 				fnArgs[i] = arg
@@ -271,7 +266,7 @@ type BindArg struct {
 func validBindFunc(fn CallableFunc) error {
 	t := reflect.TypeOf(fn)
 	if t.Kind() != reflect.Func {
-		return errutil.Explain(nil, "invalid function type")
+		return errutil.Explain(nil, "invalid function type %s", t.String())
 	}
 	if numOut := t.NumOut(); numOut == 1 { // func(...) error
 		if o := t.Out(0); !typeutil.IsErrorType(o) {
@@ -282,7 +277,8 @@ func validBindFunc(fn CallableFunc) error {
 			return nil
 		}
 	}
-	return errutil.Explain(nil, "invalid function type")
+	err := errutil.Explain(nil, "expected func(...) error or func(...) (T, error)")
+	return errutil.Explain(err, "invalid bind function signature")
 }
 
 // Bind creates a BindArg for a given function and its arguments.

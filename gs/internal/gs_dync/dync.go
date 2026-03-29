@@ -17,20 +17,14 @@
 // Package gs_dync provides dynamic configuration binding and refresh
 // capabilities for Go-Spring applications.
 //
-// It allows application components to register themselves as refreshable
-// objects that automatically update their internal state whenever the
-// underlying configuration changes.
+// It enables hot-reload of configuration in long-running applications through
+// a two-phase commit mechanism that ensures system consistency. Components register
+// themselves during IOC container initialization and can be batch-refreshed at runtime.
 //
-// Key components:
-//   - Properties: holds the current configuration and manages all
-//     registered `refreshable` objects.
-//   - Value[T]: a type-safe container for dynamic configuration values.
-//   - Listener: allows components to receive change notifications.
-//   - `refreshable`: interface that application components can implement
-//     to react to configuration updates.
-//
-// This package is designed to be thread-safe and suitable for hot-reload
-// scenarios in long-running applications.
+// Two-phase refresh:
+//  1. Pre-refresh (commit=false): Validates all objects against new configuration.
+//     On failure, the old configuration is preserved and no changes are applied.
+//  2. Commit (commit=true): Atomically applies validated configuration to all objects.
 package gs_dync
 
 import (
@@ -45,12 +39,29 @@ import (
 )
 
 // refreshable represents an object that can be dynamically refreshed.
+// Objects implementing this interface are registered during the IOC container initialization phase
+// via RefreshField and can be batch-refreshed at runtime via the Refresh method.
 type refreshable interface {
 	onRefresh(prop flatten.Storage, param conf.BindParam, commit bool) error
 }
 
 // Value represents a thread-safe container that stores a dynamic configuration value.
 // Its value can be updated atomically via onRefresh.
+//
+// Key features:
+//   - Type-safe: Generic type parameter ensures compile-time type safety.
+//   - Atomic access: Uses atomic.Value for lock-free concurrent reads and writes.
+//   - JSON serializable: Implements json.Marshaler for easy debugging and monitoring.
+//   - Zero-value safe: Returns zero value when no configuration has been set yet.
+//
+// Typical usage:
+//
+//	type Config struct {
+//	    Timeout gs_dync.Value[time.Duration] `value:"${server.timeout:=30s}"`
+//	}
+//
+// During IOC initialization, the field is bound to configuration.
+// At runtime, calling Properties.Refresh() updates all registered Value fields atomically.
 type Value[T any] struct {
 	v atomic.Value
 }
@@ -91,6 +102,18 @@ type refreshObject struct {
 }
 
 // Properties manages dynamic properties and refreshable objects.
+// It serves two distinct phases:
+//
+// 1. Initialization Phase (IOC Container Startup):
+//   - RefreshField is called for each configuration-bound field
+//   - Registers refreshable objects in the internal objects slice
+//   - Sets initial configuration values immediately (commit=true)
+//
+// 2. Runtime Phase (Dynamic Configuration Updates):
+//   - Refresh is called with new configuration data
+//   - Executes two-phase refresh: validate all objects first, then commit
+//   - On validation failure, automatically restores the previous configuration
+//   - Thread-safe: All operations are protected by RWMutex
 type Properties struct {
 	prop    flatten.Storage  // The current properties.
 	lock    sync.RWMutex     // A read-write lock for thread-safe access.
@@ -118,14 +141,23 @@ func (p *Properties) ObjectsCount() int {
 	return len(p.objects)
 }
 
-// Refresh updates the properties and refreshes all bound objects.
-// The refresh process is two-phase: first validate all objects without committing,
-// then commit the updates if validation succeeds.
+// Refresh updates the properties and refreshes all bound objects using a two-phase commit.
+//
+// This method is designed for runtime dynamic configuration updates. It ensures that
+// either all objects are successfully refreshed with the new configuration, or none
+// are, maintaining system consistency. It is thread-safe.
 func (p *Properties) Refresh(prop flatten.Storage) (err error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
+	old := p.prop
 	p.prop = prop
+	defer func() {
+		if err != nil {
+			p.prop = old
+		}
+	}()
+
 	if len(p.objects) == 0 {
 		return nil
 	}
@@ -180,12 +212,18 @@ func (p *Properties) refreshObjects(objects []*refreshObject, commit bool) error
 	return ret
 }
 
-// filter is used to selectively refresh objects and fields.
+// filter is used to selectively refresh objects and fields during IOC initialization.
 type filter struct {
 	*Properties
 }
 
-// Do attempts to refresh a single object if it implements the [refreshable] interface.
+// Do attempts to refresh a single object if it implements the refreshable interface.
+//
+// This method is invoked by conf.BindValue during the IOC container initialization phase
+// when processing struct fields with `value` tags.
+//
+// Note: This always uses commit=true because it's only called during initialization,
+// not during runtime dynamic refreshes.
 func (f *filter) Do(i any, param conf.BindParam) (bool, error) {
 	v, ok := i.(refreshable)
 	if !ok || v == nil {
@@ -198,7 +236,17 @@ func (f *filter) Do(i any, param conf.BindParam) (bool, error) {
 	return true, v.onRefresh(f.prop, param, true)
 }
 
-// RefreshField refreshes a field of a bean, optionally registering it as refreshable.
+// RefreshField refreshes a field of a bean and optionally registers it as refreshable.
+//
+// This method is exclusively used during the IOC container initialization phase to:
+//  1. Bind configuration values to struct fields
+//  2. Register fields that implement refreshable for future batch refreshes
+//
+// Parameters:
+//   - v: Reflect value of the field (must be a pointer to the actual field)
+//   - param: Binding parameters including configuration key and path
+//
+// Note: For runtime configuration updates, use Refresh method instead.
 func (p *Properties) RefreshField(v reflect.Value, param conf.BindParam) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()

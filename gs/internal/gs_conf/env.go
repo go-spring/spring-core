@@ -33,6 +33,7 @@ import (
 // All other variables are stored using their original key and value.
 // Malformed environment variables (e.g., "=value") are ignored.
 func extractEnvironments() (*flatten.Properties, error) {
+
 	p := flatten.NewProperties(nil)
 	environs := os.Environ()
 	if len(environs) == 0 {

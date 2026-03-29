@@ -37,10 +37,10 @@ func TestConditionString(t *testing.T) {
 	assert.That(t, fmt.Sprint(c)).Equal(`OnFunc(fn=gs_cond.TestConditionString.func1)`)
 
 	c = OnProperty("a").HavingValue("123")
-	assert.That(t, fmt.Sprint(c)).Equal(`OnProperty(name=a, havingValue=123)`)
+	assert.That(t, fmt.Sprint(c)).Equal(`OnProperty(name=a,havingValue=123)`)
 
 	c = OnProperty("a").HavingValue("123").MatchIfMissing()
-	assert.That(t, fmt.Sprint(c)).Equal(`OnProperty(name=a, havingValue=123, matchIfMissing)`)
+	assert.That(t, fmt.Sprint(c)).Equal(`OnProperty(name=a,havingValue=123,matchIfMissing)`)
 
 	c = OnBean[any]("a")
 	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Type:any,Name:a})`)
@@ -70,7 +70,7 @@ func TestConditionString(t *testing.T) {
 	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Type:any,Name:a})`)
 
 	c = Or(OnBean[any]("a"), OnBean[any]("b"))
-	assert.That(t, fmt.Sprint(c)).Equal(`Or(OnBean(selector={Type:any,Name:a}), OnBean(selector={Type:any,Name:b}))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`Or(OnBean(selector={Type:any,Name:a}),OnBean(selector={Type:any,Name:b}))`)
 
 	c = And(OnBean[any]("a"))
 	assert.That(t, fmt.Sprint(c)).Equal(`OnBean(selector={Type:any,Name:a})`)
@@ -79,13 +79,13 @@ func TestConditionString(t *testing.T) {
 		OnBeanID(gs.BeanID{Name: "a"}),
 		OnBeanID(gs.BeanID{Name: "b"}),
 	)
-	assert.That(t, fmt.Sprint(c)).Equal(`And(OnBean(selector={Name:a}), OnBean(selector={Name:b}))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`And(OnBean(selector={Name:a}),OnBean(selector={Name:b}))`)
 
 	c = None(OnBean[any]("a"))
 	assert.That(t, fmt.Sprint(c)).Equal(`Not(OnBean(selector={Type:any,Name:a}))`)
 
 	c = None(OnBean[any]("a"), OnBean[any]("b"))
-	assert.That(t, fmt.Sprint(c)).Equal(`None(OnBean(selector={Type:any,Name:a}), OnBean(selector={Type:any,Name:b}))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`None(OnBean(selector={Type:any,Name:a}),OnBean(selector={Type:any,Name:b}))`)
 
 	c = And(
 		OnBean[any]("a"),
@@ -94,7 +94,7 @@ func TestConditionString(t *testing.T) {
 			Not(OnBean[any]("c")),
 		),
 	)
-	assert.That(t, fmt.Sprint(c)).Equal(`And(OnBean(selector={Type:any,Name:a}), Or(OnBean(selector={Type:any,Name:b}), Not(OnBean(selector={Type:any,Name:c}))))`)
+	assert.That(t, fmt.Sprint(c)).Equal(`And(OnBean(selector={Type:any,Name:a}),Or(OnBean(selector={Type:any,Name:b}),Not(OnBean(selector={Type:any,Name:c}))))`)
 }
 
 func TestOnFunc(t *testing.T) {
@@ -211,7 +211,7 @@ func TestOnProperty(t *testing.T) {
 
 			cond := OnProperty("test.prop").HavingValue("expr:invalid syntax")
 			_, err := cond.Matches(ctx)
-			assert.Error(t, err).Matches("eval \\\"invalid syntax\\\" returns error")
+			assert.Error(t, err).Matches("unexpected token Identifier")
 		})
 	})
 }

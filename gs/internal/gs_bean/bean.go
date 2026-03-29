@@ -104,96 +104,6 @@ func (d *BeanDefinition) Clone() *BeanDefinition {
 	return &r
 }
 
-// validLifeCycleFunc checks if the given function is a valid lifecycle function.
-// Valid lifecycle functions must have the signature:
-//
-//	func(bean) or func(bean) error
-func validLifeCycleFunc(fnType reflect.Type, beanType reflect.Type) bool {
-	if !typeutil.IsFuncType(fnType) || fnType.NumIn() != 1 {
-		return false
-	}
-	if t := fnType.In(0); t.Kind() == reflect.Interface {
-		if !beanType.Implements(t) {
-			return false
-		}
-	} else if t != beanType {
-		return false
-	}
-	return typeutil.ReturnNothing(fnType) || typeutil.ReturnOnlyError(fnType)
-}
-
-// GetInit returns the bean's initialization function.
-func (d *BeanDefinition) GetInit() any {
-	return d.init
-}
-
-// GetDestroy returns the bean's destruction function.
-func (d *BeanDefinition) GetDestroy() any {
-	return d.destroy
-}
-
-// GetDependsOn returns the list of dependencies for the bean.
-func (d *BeanDefinition) GetDependsOn() []gs.BeanID {
-	return d.dependsOn
-}
-
-// DependsOn adds dependencies to the bean.
-func (d *BeanDefinition) DependsOn(selectors ...gs.BeanID) *BeanDefinition {
-	d.dependsOn = append(d.dependsOn, selectors...)
-	return d
-}
-
-// Exports returns the interfaces exported by the bean.
-func (d *BeanDefinition) Exports() []reflect.Type {
-	return d.exports
-}
-
-// Conditions returns the list of conditions for the bean.
-func (d *BeanDefinition) Conditions() []gs.Condition {
-	return d.conditions
-}
-
-// Condition appends conditions for the bean.
-func (d *BeanDefinition) Condition(conditions ...gs.Condition) *BeanDefinition {
-	d.conditions = append(d.conditions, conditions...)
-	return d
-}
-
-// GetConfiguration returns the configuration for the bean.
-func (d *BeanDefinition) GetConfiguration() *Configuration {
-	return d.configuration
-}
-
-// Configuration sets configuration (include/exclude) for the bean.
-func (d *BeanDefinition) Configuration(c ...Configuration) *BeanDefinition {
-	var cfg Configuration
-	if len(c) > 0 {
-		cfg = c[0]
-	}
-	d.configuration = &Configuration{
-		Includes: cfg.Includes,
-		Excludes: cfg.Excludes,
-	}
-	return d
-}
-
-// Caller records the source file and line number of the bean.
-func (d *BeanDefinition) Caller(skip int) *BeanDefinition {
-	_, file, line, _ := runtime.Caller(skip)
-	d.SetFileLine(file, line)
-	return d
-}
-
-// FileLine returns the source file and line number of the bean.
-func (d *BeanDefinition) FileLine() string {
-	return d.fileLine
-}
-
-// SetFileLine sets the source file and line number of the bean.
-func (d *BeanDefinition) SetFileLine(file string, line int) {
-	d.fileLine = fmt.Sprintf("%s:%d", file, line)
-}
-
 // BeanID returns the bean's identifier.
 func (d *BeanDefinition) BeanID() gs.BeanID {
 	return gs.BeanID{Name: d.GetName(), Type: d.GetType()}
@@ -219,25 +129,54 @@ func (d *BeanDefinition) Interface() any {
 	return d.v.Interface()
 }
 
-// GetArgValue returns the bean’s value for argument injection.
-func (d *BeanDefinition) GetArgValue(ctx gs.ArgContext, t reflect.Type) (reflect.Value, error) {
-	return d.GetValue(), nil
-}
-
-// makeBean creates a new BeanDefinition.
-func makeBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition {
-	return &BeanDefinition{
-		f:      f,
-		t:      t,
-		v:      v,
-		name:   name,
-		status: StatusDefault,
-	}
-}
-
 // Callable returns the bean's callable constructor.
 func (d *BeanDefinition) Callable() *gs_arg.Callable {
 	return d.f
+}
+
+// GetStatus returns the bean's current lifecycle status.
+func (d *BeanDefinition) GetStatus() BeanStatus {
+	return d.status
+}
+
+// GetInit returns the bean's initialization function.
+func (d *BeanDefinition) GetInit() any {
+	return d.init
+}
+
+// GetDestroy returns the bean's destruction function.
+func (d *BeanDefinition) GetDestroy() any {
+	return d.destroy
+}
+
+// FileLine returns the source file and line number of the bean.
+func (d *BeanDefinition) FileLine() string {
+	return d.fileLine
+}
+
+// Conditions returns the list of conditions for the bean.
+func (d *BeanDefinition) Conditions() []gs.Condition {
+	return d.conditions
+}
+
+// GetDependsOn returns the list of dependencies for the bean.
+func (d *BeanDefinition) GetDependsOn() []gs.BeanID {
+	return d.dependsOn
+}
+
+// GetExports returns the interfaces exported by the bean.
+func (d *BeanDefinition) GetExports() []reflect.Type {
+	return d.exports
+}
+
+// GetArgValue returns the bean’s value for argument injection.
+func (d *BeanDefinition) GetArgValue(gs.ArgContext, reflect.Type) (reflect.Value, error) {
+	return d.GetValue(), nil
+}
+
+// GetConfiguration returns the configuration for the bean.
+func (d *BeanDefinition) GetConfiguration() *Configuration {
+	return d.configuration
 }
 
 // Name sets the bean's name.
@@ -246,35 +185,46 @@ func (d *BeanDefinition) Name(name string) *BeanDefinition {
 	return d
 }
 
-// Status returns the bean's current lifecycle status.
-func (d *BeanDefinition) Status() BeanStatus {
-	return d.status
-}
-
-// SetStatus sets the bean's current lifecycle status.
-func (d *BeanDefinition) SetStatus(status BeanStatus) {
-	d.status = status
+// validLifeCycleFunc checks if the given function is a valid lifecycle function.
+// Valid lifecycle function signature: func(bean) or func(bean) error
+func validLifeCycleFunc(fnType reflect.Type, beanType reflect.Type) bool {
+	if !typeutil.IsFuncType(fnType) || fnType.NumIn() != 1 {
+		return false
+	}
+	if t := fnType.In(0); t.Kind() == reflect.Interface {
+		if !beanType.Implements(t) {
+			return false
+		}
+	} else if t != beanType {
+		return false
+	}
+	return typeutil.ReturnNothing(fnType) || typeutil.ReturnOnlyError(fnType)
 }
 
 // Init sets the bean's initialization function.
+// The init function is called after the bean is created and all dependencies are injected.
+// Valid signatures: func(bean) or func(bean) error.
 func (d *BeanDefinition) Init(fn any) *BeanDefinition {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.GetType()) {
-		d.init = fn
-		return d
+	if !validLifeCycleFunc(reflect.TypeOf(fn), d.GetType()) {
+		panic(fmt.Sprintf("invalid init function: got %T, want func(bean) or func(bean) error", fn))
 	}
-	panic("init should be func(bean) or func(bean)error")
+	d.init = fn
+	return d
 }
 
 // Destroy sets the bean's destruction function.
+// The destroy function is called before the bean is destroyed.
+// Valid signatures: func(bean) or func(bean) error.
 func (d *BeanDefinition) Destroy(fn any) *BeanDefinition {
-	if validLifeCycleFunc(reflect.TypeOf(fn), d.GetType()) {
-		d.destroy = fn
-		return d
+	if !validLifeCycleFunc(reflect.TypeOf(fn), d.GetType()) {
+		panic(fmt.Sprintf("invalid destroy function: got %T, want func(bean) or func(bean) error", fn))
 	}
-	panic("destroy should be func(bean) or func(bean)error")
+	d.destroy = fn
+	return d
 }
 
 // InitMethod sets the bean's initialization method by name.
+// The method must have signature: func() or func() error.
 func (d *BeanDefinition) InitMethod(method string) *BeanDefinition {
 	m, ok := d.t.MethodByName(method)
 	if !ok {
@@ -284,6 +234,7 @@ func (d *BeanDefinition) InitMethod(method string) *BeanDefinition {
 }
 
 // DestroyMethod sets the bean's destruction method by name.
+// The method must have signature: func() or func() error.
 func (d *BeanDefinition) DestroyMethod(method string) *BeanDefinition {
 	m, ok := d.t.MethodByName(method)
 	if !ok {
@@ -292,20 +243,32 @@ func (d *BeanDefinition) DestroyMethod(method string) *BeanDefinition {
 	return d.Destroy(m.Func.Interface())
 }
 
+// DependsOn adds dependencies to the bean.
+func (d *BeanDefinition) DependsOn(selectors ...gs.BeanID) *BeanDefinition {
+	d.dependsOn = append(d.dependsOn, selectors...)
+	return d
+}
+
 // Export registers interfaces exported by the bean.
 func (d *BeanDefinition) Export(exports ...reflect.Type) *BeanDefinition {
 	for _, t := range exports {
 		if t.Kind() != reflect.Interface {
-			panic("only interface type can be exported")
+			panic(fmt.Sprintf("export failed: %v is not an interface type", t))
 		}
 		if !d.GetType().Implements(t) {
-			panic(fmt.Sprintf("doesn't implement interface %s", t))
+			panic(fmt.Sprintf("export failed: %v does not implement interface %v", d.t, t))
 		}
 		if slices.Contains(d.exports, t) {
 			continue
 		}
 		d.exports = append(d.exports, t)
 	}
+	return d
+}
+
+// Condition appends conditions for the bean.
+func (d *BeanDefinition) Condition(conditions ...gs.Condition) *BeanDefinition {
+	d.conditions = append(d.conditions, conditions...)
 	return d
 }
 
@@ -323,14 +286,47 @@ func (d *BeanDefinition) OnProfiles(profiles string) *BeanDefinition {
 		if val = strings.TrimSpace(val); !ok || val == "" {
 			return false, nil
 		}
-		ss := strings.Split(strings.TrimSpace(profiles), ",")
+		ss := strings.Split(profiles, ",")
+		for i := range ss {
+			ss[i] = strings.TrimSpace(ss[i])
+		}
 		for s := range strings.SplitSeq(val, ",") {
-			if slices.Contains(ss, s) {
+			if slices.Contains(ss, strings.TrimSpace(s)) {
 				return true, nil
 			}
 		}
 		return false, nil
 	}))
+	return d
+}
+
+// Configuration sets configuration (include/exclude) for the bean.
+func (d *BeanDefinition) Configuration(c ...Configuration) *BeanDefinition {
+	var cfg Configuration
+	if len(c) > 0 {
+		cfg = c[0]
+	}
+	d.configuration = &Configuration{
+		Includes: cfg.Includes,
+		Excludes: cfg.Excludes,
+	}
+	return d
+}
+
+// SetStatus sets the bean's current lifecycle status.
+func (d *BeanDefinition) SetStatus(status BeanStatus) {
+	d.status = status
+}
+
+// SetFileLine sets the source file and line number of the bean.
+func (d *BeanDefinition) SetFileLine(file string, line int) {
+	d.fileLine = fmt.Sprintf("%s:%d", file, line)
+}
+
+// Caller records the source file and line number of the bean.
+func (d *BeanDefinition) Caller(skip int) *BeanDefinition {
+	_, file, line, _ := runtime.Caller(skip)
+	d.SetFileLine(file, line)
 	return d
 }
 
@@ -340,8 +336,31 @@ func (d *BeanDefinition) String() string {
 }
 
 // NewBean creates a new BeanDefinition.
-// If objOrCtor is a constructor function, it binds its arguments and infers bean name.
-// Otherwise, it wraps an existing instance as a bean.
+//
+// Parameters:
+//   - objOrCtor: either a bean instance (struct pointer) or a constructor function
+//   - ctorArgs: optional arguments for constructor binding, ignored if objOrCtor is not a function
+//
+// Returns:
+//   - *BeanDefinition: the created bean definition with metadata and lifecycle information
+//
+// Panics:
+//   - if objOrCtor is not a reference type
+//   - if objOrCtor is nil
+//   - if constructor function has invalid signature (should be func(...)bean or func(...)(bean, error))
+//   - if method constructor receives invalid arguments
+//
+// Examples:
+//
+//	// Create bean from object instance
+//	bean := NewBean(&MyService{})
+//
+//	// Create bean from constructor function
+//	bean := NewBean(NewMyService)
+//
+//	// Create bean from method with owner dependency
+//	parent := NewBean(&Parent{})
+//	child := NewBean((*Parent).CreateChild, parent)
 func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *BeanDefinition {
 
 	var f *gs_arg.Callable
@@ -360,12 +379,12 @@ func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *BeanDefinition {
 
 	t := v.Type()
 	if !typeutil.IsBeanType(t) {
-		panic("bean must be ref type")
+		panic(fmt.Sprintf("bean must be reference type, got %v", t))
 	}
 
 	// Ensure the bean instance is valid and not nil
 	if !v.IsValid() || v.IsNil() {
-		panic("bean can't be nil")
+		panic("bean instance cannot be nil")
 	}
 
 	// Handle constructor functions
@@ -398,7 +417,7 @@ func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *BeanDefinition {
 
 		t = v.Type()
 		if !typeutil.IsBeanType(t) {
-			panic("bean must be ref type")
+			panic(fmt.Sprintf("constructor return type must be reference type, got %v", t))
 		}
 
 		// Derive bean name from constructor function name
@@ -425,11 +444,11 @@ func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *BeanDefinition {
 						case *BeanDefinition:
 							s = gs.BeanID{Type: x.t, Name: x.name}
 						default:
-							panic("the arg of IndexArg[0] should be *BeanDefinition")
+							panic("IndexArg[0] must contain a *BeanDefinition")
 						}
 					}
 				default:
-					panic("ctorArgs[0] should be *BeanDefinition or IndexArg[0]")
+					panic("first constructor argument must be *BeanDefinition or IndexArg[0]")
 				}
 			}
 			cond = gs_cond.OnBeanID(s)
@@ -442,7 +461,7 @@ func NewBean(objOrCtor any, ctorArgs ...gs.Arg) *BeanDefinition {
 		name = strings.TrimPrefix(s[len(s)-1], "*")
 	}
 
-	d := makeBean(t, v, f, name)
+	d := &BeanDefinition{f: f, t: t, v: v, name: name, status: StatusDefault}
 	if cond != nil {
 		d.Condition(cond)
 	}

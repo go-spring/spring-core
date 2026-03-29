@@ -33,6 +33,8 @@ import (
 )
 
 // inited indicates whether the application has been initialized.
+// Once set to true, it prevents further gs.Provide() calls during runtime
+// to ensure all bean definitions are registered during package initialization phase.
 var inited bool
 
 // App defines the configuration interface of a Go-Spring application.
@@ -55,11 +57,51 @@ type AppStarter struct {
 	cfg func(App)
 }
 
+// newApp creates a new application instance.
+func newApp() *AppStarter {
+	inited = true
+	return &AppStarter{app: gs_app.NewApp()}
+}
+
+// Web creates a new application with web server enabled.
+func Web(enable bool) *AppStarter {
+	return Configure(func(app App) {
+		if !enable {
+			app.Property("spring.http.server.enabled", "false")
+		}
+	})
+}
+
 // Configure creates a new application and registers a configuration
 // function that will be applied before the application starts.
+//
+// Example:
+//
+//	gs.Configure(func(app gs.App) {
+//	    app.Property("server.port", "8080")
+//	    app.Provide(&MyService{})
+//	}).Run()
 func Configure(cfg func(App)) *AppStarter {
-	inited = true
-	return &AppStarter{app: gs_app.NewApp(), cfg: cfg}
+	return newApp().Configure(cfg)
+}
+
+// Configure allows you to modify the application configuration.
+// Accumulates configuration functions - each call adds to the chain.
+// Configuration functions execute in order of registration during startApp().
+//
+// Important:
+//   - Multiple Configure() calls accumulate, not replace
+//   - Order matters: earlier configs execute before later ones
+//   - All configs run before app.Start() is called
+func (s *AppStarter) Configure(cfg func(App)) *AppStarter {
+	prev := s.cfg
+	s.cfg = func(app App) {
+		if prev != nil {
+			prev(app)
+		}
+		cfg(app)
+	}
+	return s
 }
 
 // startApp starts the application lifecycle by printing the banner,
@@ -86,8 +128,9 @@ func (s *AppStarter) startApp() error {
 }
 
 // Run creates and starts a new application using default settings.
+// Blocks until termination signal is received (SIGINT/SIGTERM).
 func Run() {
-	Configure(nil).Run()
+	newApp().Run()
 }
 
 // Run starts the application, applies configuration, and waits for
@@ -100,6 +143,7 @@ func (s *AppStarter) Run() {
 	}
 
 	// Listen for termination signals in a separate goroutine
+	// Handles SIGINT (Ctrl+C) and SIGTERM for graceful shutdown
 	goutil.Go(s.app.Context(), func(ctx context.Context) {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
@@ -111,17 +155,46 @@ func (s *AppStarter) Run() {
 	}, goutil.InheritCancel)
 
 	// Wait for shutdown to complete
+	// Blocks until all servers have stopped and cleanup is done
 	s.app.WaitForShutdown()
 }
 
 // RunAsync runs the application asynchronously and
 // returns a function to stop the application.
+// Convenience wrapper that creates a new AppStarter.
+//
+// Returns:
+//   - stop: Function to gracefully shutdown the application
+//   - err: Error if application failed to start (nil on success)
+//
+// Usage:
+//
+//	stop, err := gs.RunAsync()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer stop() // Ensure cleanup
+//	// ... do work ...
 func RunAsync() (stop func(), err error) {
-	return Configure(nil).RunAsync()
+	return newApp().RunAsync()
 }
 
 // RunAsync runs the application asynchronously and
 // returns a function to stop the application.
+//
+// Returns:
+//   - stop: Closure that calls ShutDown() and WaitForShutdown()
+//   - err: Startup error if startApp() fails
+//
+// Behavior:
+//   - Calls startApp() synchronously to initialize application
+//   - On success: Returns stop function for manual shutdown control
+//   - On error: Returns no-op function and error
+//
+// Caller Responsibility:
+//   - Must call stop() to ensure graceful shutdown
+//   - Should handle startup errors appropriately
+//   - Can use defer for guaranteed cleanup
 func (s *AppStarter) RunAsync() (stop func(), err error) {
 
 	if err = s.startApp(); err != nil {
@@ -135,15 +208,35 @@ func (s *AppStarter) RunAsync() (stop func(), err error) {
 }
 
 // RunTest runs a test function using a new application instance.
-// The test function must accept exactly one argument, which must be
-// a pointer to a struct. The struct will be managed as a root bean
-// in the application context.
+// Convenience wrapper that creates a fresh AppStarter for testing.
+//
+// Parameters:
+//   - t: Testing.T instance for test reporting and failure handling
+//   - f: Test function accepting exactly one pointer-to-struct argument
+//
+// Requirements:
+//   - Test function signature: func(*TestStruct)
+//   - TestStruct fields can use autowire/value tags for injection
+//   - Struct is registered as root bean with full dependency injection
+//
+// Example:
+//
+//	func TestExample(t *testing.T) {
+//	    gs.RunTest(t, func(ts *struct {
+//	        DB *Database `autowire:""`
+//	    }) {
+//	        // ts.DB is auto-injected
+//	        result := ts.DB.Query(...)
+//	        assert.NotNil(t, result)
+//	    })
+//	}
 func RunTest(t *testing.T, f any) {
-	Configure(nil).RunTest(t, f)
+	newApp().RunTest(t, f)
 }
 
-// RunTest runs a user-defined test function with a provided test object.
-// It initializes the application, registers the test object as a bean,
+// RunTest runs a user-defined test function with an auto-created test object.
+// It extracts the test object type from the test function parameter, creates
+// the test object, registers it as a root bean, initializes the application,
 // starts the application, executes the test, and ensures graceful shutdown.
 func (s *AppStarter) RunTest(t *testing.T, f any) {
 	ft := reflect.TypeOf(f)

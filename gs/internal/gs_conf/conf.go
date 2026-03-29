@@ -19,17 +19,24 @@
 // layered property set, supporting profile-specific files and optional
 // imports of additional configuration files.
 //
-// Supported configuration sources include (from highest to lowest precedence):
-//   - Command-line arguments
-//   - Operating system environment variables
-//   - Imports declared in profile configuration files (spring.app.imports)
-//   - Profile-specific configuration files (e.g., ./conf/app-dev.yaml)
-//   - Imports declared in application configuration files (spring.app.imports)
-//   - Local configuration files (e.g., ./conf/app.yaml)
-//   - Built-in default properties
+// This implementation follows the Spring Boot layered configuration model,
+// where configuration sources have a well-defined precedence order, and
+// higher-priority sources override lower-priority ones when the same key
+// appears in multiple places.
 //
-// Configuration sources are applied in layers, and later layers override
-// earlier ones when the same key appears multiple times.
+// # Precedence Order (Highest → Lowest)
+//
+// Configuration sources are organized into layers according to priority:
+//
+//  1. **Command-line arguments** - Highest precedence
+//  2. **Operating system environment variables**
+//  3. **Profile-specific configuration** (`app-{profile}.yaml` etc.)
+//     - Imports declared in profile configuration files (`spring.app.imports`)
+//     - The profile-specific configuration file itself
+//  4. **Application base configuration** (`app.yaml` etc.)
+//     - Imports declared in application configuration files (`spring.app.imports`)
+//     - The base application configuration file itself
+//  5. **Built-in default properties** - Lowest precedence
 package gs_conf
 
 import (
@@ -39,7 +46,6 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-core/conf"
-	"github.com/go-spring/stdlib/errutil"
 	"github.com/go-spring/stdlib/flatten"
 )
 
@@ -78,7 +84,7 @@ func (c *AppConfig) Refresh() (flatten.Storage, error) {
 	}
 
 	if err = loadFiles(l, confDir, nil); err != nil {
-		return nil, errutil.Stack(err, "refresh error in source local")
+		return nil, err
 	}
 
 	// Profiles are designed to be orthogonal and independent.
@@ -89,7 +95,7 @@ func (c *AppConfig) Refresh() (flatten.Storage, error) {
 	activeProfiles := checkDuplicates(strings.Split(strActiveProfiles, ","))
 
 	if err = loadFiles(l, confDir, activeProfiles); err != nil {
-		return nil, errutil.Stack(err, "refresh error in source local")
+		return nil, err
 	}
 	return l, nil
 }

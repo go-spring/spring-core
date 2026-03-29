@@ -111,8 +111,10 @@ type ArgContext interface {
 	// Check evaluates whether a given condition is satisfied.
 	Check(c Condition) (bool, error)
 	// Bind binds configuration or property values into the provided [reflect.Value].
+	// Used for primitive types and structs with value tags.
 	Bind(v reflect.Value, tag string) error
 	// Wire injects dependencies (beans) into the provided [reflect.Value].
+	// Used for struct and interface type bean references.
 	Wire(v reflect.Value, tag string) error
 }
 

@@ -23,13 +23,11 @@ import (
 	"github.com/go-spring/stdlib/errutil"
 )
 
-// funcMap stores registered functions that can be referenced in expressions.
-// These functions are available for use in all expressions evaluated by EvalExpr.
 var funcMap = map[string]any{}
 
 // RegisterExpressFunc registers a function under the given name, making it available
-// for use in expressions evaluated by EvalExpr. Functions must be registered before
-// they are referenced in any expression.
+// for use in expressions evaluated by EvalExpr.
+// Must be called in init functions only.
 func RegisterExpressFunc(name string, fn any) {
 	funcMap[name] = fn
 }
@@ -42,11 +40,11 @@ func EvalExpr(input string, val string) (bool, error) {
 	maps.Copy(env, funcMap)
 	r, err := expr.Eval(input, env)
 	if err != nil {
-		return false, errutil.Explain(err, "eval %q returns error", input)
+		return false, err
 	}
 	ret, ok := r.(bool)
 	if !ok {
-		return false, errutil.Explain(nil, "eval %q doesn't return bool value", input)
+		return false, errutil.Explain(nil, "expression must return a boolean value")
 	}
 	return ret, nil
 }

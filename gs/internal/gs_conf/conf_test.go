@@ -36,7 +36,7 @@ func TestAppConfig(t *testing.T) {
 		t.Cleanup(clean)
 		_ = os.Setenv("GS_SPRING_APP_CONFIG_DIR", "${a}")
 		_, err := NewAppConfig().Refresh()
-		assert.Error(t, err).Matches(`resolve string "\${a}" error: property \"a\" not exist`)
+		assert.Error(t, err).Matches(`property \"a\" does not exist`)
 	})
 
 	t.Run("config file not exist", func(t *testing.T) {

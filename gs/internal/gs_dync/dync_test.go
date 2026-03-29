@@ -47,7 +47,7 @@ func TestValue(t *testing.T) {
 	assert.That(t, v.Value()).Equal(0)
 
 	refresh := func(prop flatten.Storage) error {
-		return v.onRefresh(prop, conf.BindParam{Key: "key"}, true)
+		return v.onRefresh(prop, conf.BindParam{Key: "key", Path: "$"}, true)
 	}
 
 	err := refresh(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{
@@ -61,7 +61,7 @@ func TestValue(t *testing.T) {
 			"value": "42",
 		},
 	})))
-	assert.Error(t, err).Matches("bind path= type=int error: property \"key\" isn't simple value")
+	assert.Error(t, err).Matches("failed to resolve value at path \\$: property \"key\" is not a simple value")
 
 	time.Sleep(50 * time.Millisecond)
 	err = refresh(flatten.NewPropertiesStorage(flatten.MapProperties(map[string]any{

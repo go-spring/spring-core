@@ -57,7 +57,7 @@ func TestExtractCmdArgs(t *testing.T) {
 		os.Args = []string{"test", "-D"}
 
 		p, err := extractCmdArgs()
-		assert.Error(t, err).Matches("cmd option -D: needs arg")
+		assert.Error(t, err).Matches("cmd option -D requires an argument")
 		assert.That(t, p).Nil()
 	})
 
@@ -104,7 +104,7 @@ func TestExtractCmdArgs(t *testing.T) {
 		os.Args = []string{"test", "-D", "   =value"}
 
 		p, err := extractCmdArgs()
-		assert.Error(t, err).Matches("cmd option -D: empty key")
+		assert.Error(t, err).Matches("cmd option -D has empty key")
 		assert.That(t, p).Nil()
 	})
 

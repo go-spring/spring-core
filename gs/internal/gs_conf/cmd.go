@@ -43,6 +43,7 @@ const CommandArgsPrefix = "GS_ARGS_PREFIX"
 //
 // Arguments that do not match the configured prefix are ignored.
 func extractCmdArgs() (*flatten.Properties, error) {
+
 	p := flatten.NewProperties(nil)
 	if len(os.Args) <= 1 {
 		return p, nil
@@ -60,7 +61,7 @@ func extractCmdArgs() (*flatten.Properties, error) {
 		if cmdArgs[i] == option {
 			// separated form: <prefix> key=value
 			if i+1 >= len(cmdArgs) {
-				return nil, errutil.Explain(nil, "cmd option %s: needs arg", option)
+				return nil, errutil.Explain(nil, "cmd option %s requires an argument", option)
 			}
 			i++
 			str = cmdArgs[i]
@@ -72,11 +73,11 @@ func extractCmdArgs() (*flatten.Properties, error) {
 			continue
 		}
 		if str = strings.TrimSpace(str); str == "" {
-			return nil, errutil.Explain(nil, "cmd option %s: needs arg", option)
+			return nil, errutil.Explain(nil, "cmd option %s requires an argument", option)
 		}
 		ss := strings.SplitN(str, "=", 2)
 		if strings.TrimSpace(ss[0]) == "" {
-			return nil, errutil.Explain(nil, "cmd option %s: empty key", option)
+			return nil, errutil.Explain(nil, "cmd option %s has empty key", option)
 		}
 		if len(ss) == 1 {
 			ss = append(ss, "true")

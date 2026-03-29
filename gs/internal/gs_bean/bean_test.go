@@ -30,6 +30,11 @@ import (
 	"github.com/go-spring/stdlib/testing/assert"
 )
 
+// makeBean creates a new BeanDefinition.
+func makeBean(t reflect.Type, v reflect.Value, f *gs_arg.Callable, name string) *BeanDefinition {
+	return &BeanDefinition{f: f, t: t, v: v, name: name, status: StatusDefault}
+}
+
 func TestBeanStatus(t *testing.T) {
 	assert.That(t, BeanStatus(-2).String()).Equal("unknown")
 	assert.That(t, StatusDeleted.String()).Equal("deleted")
@@ -74,10 +79,10 @@ func TestBeanDefinition(t *testing.T) {
 		assert.That(t, bean.Callable()).Nil()
 
 		bean.SetStatus(StatusCreated)
-		assert.That(t, StatusCreated).Equal(bean.Status())
+		assert.That(t, StatusCreated).Equal(bean.GetStatus())
 
 		bean.Caller(1)
-		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:79")
+		assert.String(t, bean.FileLine()).HasSuffix("gs/internal/gs_bean/bean_test.go:84")
 
 		bean.Name("test-1")
 		assert.That(t, bean.GetName()).Equal("test-1")
@@ -96,27 +101,27 @@ func TestBeanDefinition(t *testing.T) {
 		bean := makeBean(v.Type(), v, nil, "test")
 		assert.Panic(t, func() {
 			bean.Init(3)
-		}, "init should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid init function: got int, want func\\(bean\\) or func\\(bean\\) error")
 		assert.Panic(t, func() {
 			bean.Init(func() {})
-		}, "init should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid init function: got func\\(\\), want func\\(bean\\) or func\\(bean\\) error")
 		assert.Panic(t, func() {
 			bean.Init(func(int, string) {})
-		}, "init should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid init function: got func\\(int, string\\), want func\\(bean\\) or func\\(bean\\) error")
 		assert.Panic(t, func() {
 			bean.Init(func(io.Reader) {})
-		}, "init should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid init function: got func\\(io.Reader\\), want func\\(bean\\) or func\\(bean\\) error")
 		assert.Panic(t, func() {
 			bean.Init(func(*bytes.Buffer) {})
-		}, "init should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid init function: got func\\(\\*bytes.Buffer\\), want func\\(bean\\) or func\\(bean\\) error")
 		bean.Init(func(TestBeanInterface) {})
 		assert.Panic(t, func() {
 			bean.Init(func(TestBeanInterface) int { return 0 })
-		}, "init should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid init function: got func\\(gs_bean.TestBeanInterface\\) int, want func\\(bean\\) or func\\(bean\\) error")
 		bean.Init(func(TestBeanInterface) error { return nil })
 		assert.Panic(t, func() {
 			bean.Init(func(TestBeanInterface) (int, error) { return 0, nil })
-		}, "init should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid init function: got func\\(gs_bean.TestBeanInterface\\) \\(int, error\\), want func\\(bean\\) or func\\(bean\\) error")
 		bean.Init(InitTestBean)
 		assert.That(t, funcutil.FuncName(bean.GetInit())).Equal("gs_bean.InitTestBean")
 		bean.Init(InitTestBeanV2)
@@ -135,27 +140,27 @@ func TestBeanDefinition(t *testing.T) {
 		bean := makeBean(v.Type(), v, nil, "test")
 		assert.Panic(t, func() {
 			bean.Destroy(3)
-		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid destroy function: got int, want func\\(bean\\) or func\\(bean\\) error")
 		assert.Panic(t, func() {
 			bean.Destroy(func() {})
-		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid destroy function: got func\\(\\), want func\\(bean\\) or func\\(bean\\) error")
 		assert.Panic(t, func() {
 			bean.Destroy(func(int, string) {})
-		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid destroy function: got func\\(int, string\\), want func\\(bean\\) or func\\(bean\\) error")
 		assert.Panic(t, func() {
 			bean.Destroy(func(io.Reader) {})
-		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid destroy function: got func\\(io.Reader\\), want func\\(bean\\) or func\\(bean\\) error")
 		assert.Panic(t, func() {
 			bean.Destroy(func(*bytes.Buffer) {})
-		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid destroy function: got func\\(\\*bytes.Buffer\\), want func\\(bean\\) or func\\(bean\\) error")
 		bean.Destroy(func(TestBeanInterface) {})
 		assert.Panic(t, func() {
 			bean.Destroy(func(TestBeanInterface) int { return 0 })
-		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid destroy function: got func\\(gs_bean.TestBeanInterface\\) int, want func\\(bean\\) or func\\(bean\\) error")
 		bean.Destroy(func(TestBeanInterface) error { return nil })
 		assert.Panic(t, func() {
 			bean.Destroy(func(TestBeanInterface) (int, error) { return 0, nil })
-		}, "destroy should be func\\(bean\\) or func\\(bean\\)error")
+		}, "invalid destroy function: got func\\(gs_bean.TestBeanInterface\\) \\(int, error\\), want func\\(bean\\) or func\\(bean\\) error")
 		bean.Destroy(DestroyTestBean)
 		assert.That(t, funcutil.FuncName(bean.GetDestroy())).Equal("gs_bean.DestroyTestBean")
 		bean.Destroy(DestroyTestBeanV2)
@@ -173,15 +178,15 @@ func TestBeanDefinition(t *testing.T) {
 		v := reflect.ValueOf(&TestBean{})
 		bean := makeBean(v.Type(), v, nil, "test")
 		bean.Export(gs.As[TestBeanInterface]())
-		assert.That(t, len(bean.Exports())).Equal(1)
+		assert.That(t, len(bean.GetExports())).Equal(1)
 		bean.Export(gs.As[TestBeanInterface]())
-		assert.That(t, len(bean.Exports())).Equal(1)
+		assert.That(t, len(bean.GetExports())).Equal(1)
 		assert.Panic(t, func() {
 			bean.Export(reflect.TypeFor[int]())
-		}, "only interface type can be exported")
+		}, "export failed: int is not an interface type")
 		assert.Panic(t, func() {
 			bean.Export(reflect.TypeFor[io.Reader]())
-		}, "doesn't implement interface io.Reader")
+		}, "export failed: \\*gs_bean.TestBean does not implement interface io.Reader")
 	})
 
 	t.Run("on profiles", func(t *testing.T) {
@@ -249,6 +254,21 @@ func TestBeanDefinition(t *testing.T) {
 				assert.That(t, ok).True()
 			}
 		})
+
+		t.Run("profile with spaces", func(t *testing.T) {
+			beanWithSpaces := makeBean(v.Type(), v, nil, "test")
+			beanWithSpaces.OnProfiles("dev, test , prod")
+
+			m := gsmock.NewManager()
+			ctx := gs.NewConditionContextMockImpl(m)
+			ctx.MockProp().ReturnValue("test", true)
+
+			for _, c := range beanWithSpaces.Conditions() {
+				ok, err := c.Matches(ctx)
+				assert.That(t, err).Nil()
+				assert.That(t, ok).True()
+			}
+		})
 	})
 
 	t.Run("configuration", func(t *testing.T) {
@@ -275,18 +295,18 @@ func TestNewBean(t *testing.T) {
 
 		assert.Panic(t, func() {
 			NewBean(new(int))
-		}, "bean must be ref type")
+		}, "bean must be reference type, got \\*int")
 
 		assert.Panic(t, func() {
 			var r **TestBean
 			NewBean(r)
-		}, "bean must be ref type")
+		}, "bean must be reference type, got \\*\\*gs_bean.TestBean")
 	})
 
 	t.Run("nil bean value", func(t *testing.T) {
 		assert.Panic(t, func() {
 			NewBean((*TestBean)(nil))
-		}, "bean can't be nil")
+		}, "bean instance cannot be nil")
 	})
 
 	t.Run("object", func(t *testing.T) {
@@ -324,11 +344,11 @@ func TestNewBean(t *testing.T) {
 				gs_arg.Tag("${v:=3}"),
 				gs_arg.Index(1, gs_arg.Tag("${v:=3}")),
 			)
-		}, "NewArgList error: arguments must be all indexed or non-indexed")
+		}, "arguments must be all indexed or non-indexed")
 
 		assert.Panic(t, func() {
 			NewBean(func() int { return 0 })
-		}, "bean must be ref type")
+		}, "constructor return type must be reference type, got \\*int")
 	})
 
 	t.Run("constructor success", func(t *testing.T) {
@@ -375,12 +395,12 @@ func TestNewBean(t *testing.T) {
 	t.Run("method error - 1", func(t *testing.T) {
 		assert.Panic(t, func() {
 			NewBean((*TestBean).Clone, gs_arg.Tag(""))
-		}, "ctorArgs\\[0] should be \\*BeanDefinition or IndexArg\\[0]")
+		}, "first constructor argument must be \\*BeanDefinition or IndexArg\\[0]")
 	})
 
 	t.Run("method error - 2", func(t *testing.T) {
 		assert.Panic(t, func() {
 			NewBean((*TestBean).Clone, gs_arg.Index(0, gs_arg.Tag("")))
-		}, "the arg of IndexArg\\[0] should be \\*BeanDefinition")
+		}, "IndexArg\\[0] must contain a \\*BeanDefinition")
 	})
 }
