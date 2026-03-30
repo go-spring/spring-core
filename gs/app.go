@@ -119,7 +119,7 @@ func (s *AppStarter) startApp() error {
 
 	// Start application
 	if err := s.app.Start(); err != nil {
-		err = errutil.Stack(err, "start app failed")
+		err = errutil.Explain(err, "start app failed")
 		log.Errorf(s.app.Context(), log.TagAppDef, "%s", err)
 		return err
 	}

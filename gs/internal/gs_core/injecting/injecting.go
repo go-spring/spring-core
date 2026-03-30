@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"container/list"
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -53,10 +54,10 @@ const (
 // It handles bean creation, dependency injection, lifecycle management,
 // dynamic property updates, and destroy callbacks.
 type Injecting struct {
-	p           *gs_dync.Properties                        // Dynamic properties provider
-	beansByName map[string][]*gs_bean.BeanDefinition       // Beans indexed by name
-	beansByType map[reflect.Type][]*gs_bean.BeanDefinition // Beans indexed by type
-	destroyers  []func()                                   // Cleanup functions in reverse order
+	// Dynamic properties provider
+	p *gs_dync.Properties
+	// Cleanup functions in reverse order
+	destroyers []func()
 }
 
 // New creates a new Injecting instance.
@@ -101,13 +102,13 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 	}
 
 	// Index beans by name and type for lookup
-	c.beansByName = make(map[string][]*gs_bean.BeanDefinition)
-	c.beansByType = make(map[reflect.Type][]*gs_bean.BeanDefinition)
+	beansByName := make(map[string][]*gs_bean.BeanDefinition)
+	beansByType := make(map[reflect.Type][]*gs_bean.BeanDefinition)
 	for _, b := range beans {
-		c.beansByName[b.GetName()] = append(c.beansByName[b.GetName()], b)
-		c.beansByType[b.GetType()] = append(c.beansByType[b.GetType()], b)
+		beansByName[b.GetName()] = append(beansByName[b.GetName()], b)
+		beansByType[b.GetType()] = append(beansByType[b.GetType()], b)
 		for _, t := range b.GetExports() { // Register additional exported types
-			c.beansByType[t] = append(c.beansByType[t], b)
+			beansByType[t] = append(beansByType[t], b)
 		}
 	}
 
@@ -116,7 +117,6 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 		// If an error occurred, or there are unresolved beans in the stack,
 		// enrich the error message with the dependency path for easier debugging.
 		if err != nil || len(stack.beans) > 0 {
-			err = errutil.Explain(nil, "%s ↩\n%s", err, stack.Path())
 			log.Errorf(context.Background(), log.TagAppDef, "%s", err)
 		}
 	}()
@@ -124,8 +124,8 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 	r := &Injector{
 		state:                   RefreshDefault,
 		p:                       c.p,
-		beansByName:             c.beansByName,
-		beansByType:             c.beansByType,
+		beansByName:             beansByName,
+		beansByType:             beansByType,
 		forceAutowireIsNullable: forceAutowireIsNullable,
 	}
 
@@ -153,8 +153,6 @@ func (c *Injecting) Refresh(roots, beans []*gs_bean.BeanDefinition) (err error) 
 	if c.p.ObjectsCount() == 0 {
 		c.p = nil
 	}
-	c.beansByName = nil
-	c.beansByType = nil
 	return nil
 }
 
@@ -256,7 +254,7 @@ func toWireString(tags []WireTag) string {
 func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (*gs_bean.BeanDefinition, error) {
 	// Ensure the target type is valid for injection.
 	if !typeutil.IsBeanInjectionTarget(t) {
-		return nil, errutil.Explain(nil, "%s is not a valid receiver type", t.String())
+		return nil, errutil.Explain(nil, "%s is not a valid injection target type", t.String())
 	}
 
 	var foundBeans []*gs_bean.BeanDefinition
@@ -270,7 +268,7 @@ func (c *Injector) getBean(t reflect.Type, tag WireTag, stack *Stack) (*gs_bean.
 		if tag.nullable {
 			return nil, nil
 		}
-		return nil, errutil.Explain(nil, "can't find bean, bean:%q type:%q", tag, t)
+		return nil, errutil.Explain(nil, "cannot find bean: %q type: %q", tag, t)
 	}
 
 	if len(foundBeans) > 1 {
@@ -303,7 +301,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool,
 
 	et := t.Elem()
 	if !typeutil.IsBeanInjectionTarget(et) {
-		return nil, errutil.Explain(nil, "%s is not a valid receiver type", t.String())
+		return nil, errutil.Explain(nil, "%s is not a valid injection target type", t.String())
 	}
 
 	beans := c.beansByType[et]
@@ -350,7 +348,7 @@ func (c *Injector) getBeans(t reflect.Type, tags []WireTag, nullable bool,
 				if item.nullable {
 					continue
 				}
-				return nil, errutil.Explain(nil, "can't find bean, bean:%q type:%q", item, t)
+				return nil, errutil.Explain(nil, "cannot find bean: %q type: %q", item, t)
 			}
 
 			// Classify beans as before or after the '*'
@@ -495,13 +493,13 @@ func (c *Injector) autowire(v reflect.Value, str string, stack *Stack) error {
 
 // wireBean fully constructs, injects dependencies, and initializes the given BeanDefinition.
 // Steps:
-// 1. Detects circular dependencies and returns error if detected.
-// 2. Wires beans declared in GetDependsOn() recursively.
-// 3. Invokes the bean's constructor (if any) via getBeanValue.
-// 4. Performs field-level wiring using wireBeanValue.
-// 5. Calls the bean's Init callback if defined.
-// 6. Registers destroyer for later cleanup.
-// After completion, bean status is set to StatusWired.
+// 1. Wires beans declared in GetDependsOn() recursively.
+// 2. Pushes bean onto the wiring stack (registers destroyer if it has one).
+// 3. Detects circular dependencies; returns error if detected.
+// 4. Invokes the bean's constructor (if any) via getBeanValue.
+// 5. Performs field-level wiring using wireBeanValue.
+// 6. Calls the bean's Init callback if defined.
+// After completion, bean status is set to StatusWired and popped from the stack.
 func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 	//fmt.Println(b.String())
 
@@ -516,14 +514,16 @@ func (c *Injector) wireBean(b *gs_bean.BeanDefinition, stack *Stack) error {
 
 	stack.pushBean(b)
 
-	// Detect circular dependencies
-	if b.GetStatus() == gs_bean.StatusCreating && b.Callable() != nil {
-		if slices.Contains(stack.beans, b) {
-			return errutil.Explain(nil, "found circular autowire")
-		}
+	// If the bean is already being created (StatusCreating), we have a circular dependency
+	// because it's already in the current call stack and being re-entered recursively.
+	// Circular dependencies cannot be resolved without lazy injection.
+	if b.GetStatus() == gs_bean.StatusCreating {
+		stack.popBean()
+		return errutil.Explain(nil, "circular autowire dependency detected")
 	}
 
-	// If the bean is already being created, return early.
+	// If the bean is already created or wired (StatusCreated or StatusWired), return early
+	// pop to keep the stack balanced since we just pushed it.
 	if b.GetStatus() >= gs_bean.StatusCreating {
 		stack.popBean()
 		return nil
@@ -609,7 +609,7 @@ func (c *Injector) getBeanValue(b *gs_bean.BeanDefinition, stack *Stack) (reflec
 
 	// Ensure the value is not nil
 	if b.GetValue().IsNil() {
-		return reflect.Value{}, errutil.Explain(nil, "%s return nil", b.String())
+		return reflect.Value{}, errutil.Explain(nil, "%s returned nil", b.String())
 	}
 
 	// If the value is an interface, unwrap it
@@ -644,6 +644,27 @@ func (c *Injector) wireBeanValue(v reflect.Value, t reflect.Type, stack *Stack) 
 	return c.wireStruct(v, t, param, stack)
 }
 
+// InjectionError wraps an injection failure at a specific field path.
+type InjectionError struct {
+	path string // Field path where injection failed
+	err  error  // The underlying error that caused the failure
+}
+
+// Path returns the full field path where injection failed.
+func (e *InjectionError) Path() string {
+	return e.path
+}
+
+// Unwrap returns the root error.
+func (e *InjectionError) Unwrap() error {
+	return e.err
+}
+
+// Error formats the error with the field path and the root error.
+func (e *InjectionError) Error() string {
+	return fmt.Sprintf("injection failed at %s: %v", e.path, e.err)
+}
+
 // wireStruct inspects each field of a struct and performs wiring as needed.
 // - Handles 'autowire' and 'inject' tags for dependency injection.
 // - Handles 'value' tags for configuration binding.
@@ -673,7 +694,10 @@ func (c *Injector) wireStruct(v reflect.Value, t reflect.Type, opt conf.BindPara
 				stack.lazyFields = append(stack.lazyFields, f)
 			} else {
 				if err := c.autowire(fv, tag, stack); err != nil {
-					return errutil.Explain(err, "%q wired error", fieldPath)
+					if _, ok = errors.AsType[*InjectionError](err); ok {
+						return err
+					}
+					return &InjectionError{path: fieldPath, err: err}
 				}
 			}
 			continue
@@ -781,18 +805,6 @@ func (s *Stack) popBean() {
 	s.beans[n-1] = nil // avoid memory leak
 	s.beans = s.beans[:n-1]
 	log.Debugf(context.Background(), log.TagAppDef, "pop %s %s", b, b.GetStatus())
-}
-
-// Path returns a formatted string representation of the current wiring stack,
-// which is useful for debugging and error messages.
-func (s *Stack) Path() (path string) {
-	if len(s.beans) == 0 {
-		return ""
-	}
-	for _, b := range s.beans {
-		path += fmt.Sprintf("=> %s ↩\n", b)
-	}
-	return path[:len(path)-1] // Trim the trailing newline
 }
 
 // pushDestroyer registers a destroyer for the given bean.

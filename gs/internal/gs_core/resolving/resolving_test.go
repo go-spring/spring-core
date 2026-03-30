@@ -134,7 +134,7 @@ func TestResolving(t *testing.T) {
 			}),
 		)
 		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
-		assert.Error(t, err).Matches("resolve bean error: condition OnFunc(.*) matches error: condition error")
+		assert.Error(t, err).Matches("failed to resolve bean .*: condition OnFunc(.*) matches error: condition error")
 	})
 
 	t.Run("resolve error with multiple conditions", func(t *testing.T) {
@@ -148,7 +148,7 @@ func TestResolving(t *testing.T) {
 			}),
 		)
 		err := r.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
-		assert.Error(t, err).Matches("resolve bean error: condition OnBean(.*) matches error")
+		assert.Error(t, err).Matches("failed to resolve bean .*: condition OnBean(.*) matches error")
 		assert.Error(t, err).Matches("condition OnFunc(.*) matches error: condition error")
 	})
 

@@ -123,13 +123,13 @@ func (c *Resolving) applyModules(p flatten.Storage) error {
 	for _, m := range gs_init.Modules() {
 		if m.Condition != nil {
 			if ok, err := m.Condition.Matches(ctx); err != nil {
-				return err
+				return errutil.Explain(err, "failed to apply module at %s", m.FileLine)
 			} else if !ok {
 				continue
 			}
 		}
 		if err := m.ModuleFunc(c, p); err != nil {
-			return errutil.Explain(err, "apply module error")
+			return errutil.Explain(err, "failed to apply module at %s", m.FileLine)
 		}
 	}
 	return nil
@@ -146,7 +146,7 @@ func (c *Resolving) scanConfigurations() error {
 		}
 		beans, err := c.scanConfiguration(b)
 		if err != nil {
-			return errutil.Explain(err, "scan configuration error")
+			return errutil.Explain(err, "failed to scan configuration bean [%s]", b)
 		}
 		c.beans = append(c.beans, beans...)
 	}
@@ -241,25 +241,7 @@ func (c *Resolving) resolveBeans(p flatten.Storage) error {
 	ctx := &ConditionContext{p: p, c: c}
 	for _, b := range c.beans {
 		if err := ctx.resolveBean(b); err != nil {
-			return errutil.Explain(err, "resolve bean error")
-		}
-	}
-	return nil
-}
-
-// checkDuplicateBeans ensures that no two beans share the same type and name.
-func (c *Resolving) checkDuplicateBeans() error {
-	beansByID := make(map[gs.BeanID]*gs_bean.BeanDefinition)
-	for _, b := range c.beans {
-		if b.GetStatus() == gs_bean.StatusDeleted {
-			continue
-		}
-		for _, t := range append(b.GetExports(), b.GetType()) {
-			beanID := gs.BeanID{Name: b.GetName(), Type: t}
-			if d, ok := beansByID[beanID]; ok {
-				return errutil.Explain(nil, "found duplicate beans [%s] [%s]", b, d)
-			}
-			beansByID[beanID] = b
+			return errutil.Explain(err, "failed to resolve bean [%s]", b)
 		}
 	}
 	return nil
@@ -298,8 +280,7 @@ func (c *ConditionContext) Has(key string) bool {
 }
 
 // Prop returns the string value of the given configuration key.
-// If the key does not exist and a default value is provided, the default is returned.
-// Otherwise, returns an empty string.
+// Returns (value, true) if the key exists, ("", false) otherwise.
 func (c *ConditionContext) Prop(key string) (string, bool) {
 	return c.p.Value(key)
 }
@@ -326,4 +307,22 @@ func (c *ConditionContext) Find(beanID gs.BeanID) ([]gs.ConditionBean, error) {
 		found = append(found, b)
 	}
 	return found, nil
+}
+
+// checkDuplicateBeans ensures that no two beans share the same type and name.
+func (c *Resolving) checkDuplicateBeans() error {
+	beansByID := make(map[gs.BeanID]*gs_bean.BeanDefinition)
+	for _, b := range c.beans {
+		if b.GetStatus() == gs_bean.StatusDeleted {
+			continue
+		}
+		for _, t := range append(b.GetExports(), b.GetType()) {
+			beanID := gs.BeanID{Name: b.GetName(), Type: t}
+			if d, ok := beansByID[beanID]; ok {
+				return errutil.Explain(nil, "found duplicate beans [%s] [%s]", b, d)
+			}
+			beansByID[beanID] = b
+		}
+	}
+	return nil
 }

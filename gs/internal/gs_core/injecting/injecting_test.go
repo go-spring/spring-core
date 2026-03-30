@@ -203,7 +203,7 @@ func TestInjecting(t *testing.T) {
 			objectBean(&LazyB{}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("can't find bean")
+		assert.Error(t, err).Matches("cannot find bean")
 	})
 
 	t.Run("lazy success", func(t *testing.T) {
@@ -342,7 +342,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("int is not a valid receiver type")
+		assert.Error(t, err).Matches("int is not a valid injection target type")
 	})
 
 	t.Run("wire error - ambiguous bean for single value", func(t *testing.T) {
@@ -366,7 +366,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("\\[]int is not a valid receiver type")
+		assert.Error(t, err).Matches("\\[]int is not a valid injection target type")
 	})
 
 	t.Run("wire error - invalid collection pattern", func(t *testing.T) {
@@ -412,7 +412,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("can't find bean")
+		assert.Error(t, err).Matches("cannot find bean")
 	})
 
 	t.Run("wire error - init failure", func(t *testing.T) {
@@ -437,7 +437,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("invalid syntax tag '\\${'")
+		assert.Error(t, err).Matches("invalid syntax: unmatched braces in .*")
 	})
 
 	t.Run("wire error - invalid collection tag", func(t *testing.T) {
@@ -448,7 +448,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("invalid syntax tag '\\*\\?,\\${'")
+		assert.Error(t, err).Matches("invalid syntax: unmatched braces in .*")
 	})
 
 	t.Run("wire error - collection with no matches", func(t *testing.T) {
@@ -538,7 +538,7 @@ func TestInjecting(t *testing.T) {
 			}),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("name=.*  return nil")
+		assert.Error(t, err).Matches("name=.*  returned nil")
 	})
 
 	t.Run("wire error - primitive type", func(t *testing.T) {
@@ -566,7 +566,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("property \"config.int\" not exist")
+		assert.Error(t, err).Matches("property \"config.int\" does not exist")
 	})
 
 	t.Run("wire error - struct - missing prefixed properties", func(t *testing.T) {
@@ -577,7 +577,7 @@ func TestInjecting(t *testing.T) {
 			})),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("property \"svr.config.int\" not exist")
+		assert.Error(t, err).Matches("property \"svr.config.int\" does not exist")
 	})
 
 	t.Run("wire error - destruction failure", func(t *testing.T) {
@@ -765,7 +765,7 @@ func TestCircularBean(t *testing.T) {
 			provideBean(NewG),
 		}
 		err := r.Refresh(extractBeans(beans))
-		assert.Error(t, err).Matches("found circular autowire")
+		assert.Error(t, err).Matches("circular autowire dependency detected")
 	})
 
 	t.Run("found circular - indirect", func(t *testing.T) {
@@ -914,8 +914,8 @@ func TestDyncValue(t *testing.T) {
 		err := r.Refresh(extractBeans(beans))
 		assert.That(t, err).Nil()
 		assert.That(t, r.p).Nil()
-		assert.That(t, r.beansByName).Nil()
-		assert.That(t, r.beansByType).Nil()
+		//assert.That(t, r.beansByName).Nil()
+		//assert.That(t, r.beansByType).Nil()
 
 		runtime.GC()
 		time.Sleep(100 * time.Millisecond)
@@ -934,7 +934,28 @@ func TestDyncValue(t *testing.T) {
 		err := r.Refresh(extractBeans(beans))
 		assert.That(t, err).Nil()
 		assert.That(t, r.p).NotNil()
-		assert.That(t, r.beansByName).Nil()
-		assert.That(t, r.beansByType).Nil()
+		//assert.That(t, r.beansByName).Nil()
+		//assert.That(t, r.beansByType).Nil()
 	})
+}
+
+func TestInjectionErrorFormat(t *testing.T) {
+	// Config -> Service -> Repo (missing)
+	type Repo struct{}
+	type Service struct {
+		Repo *Repo `autowire:""`
+	}
+	type Config struct {
+		Service *Service `autowire:""`
+	}
+
+	// Register Config and Service, but missing Repo
+	cfg := objectBean(&Config{}).Name("config")
+	svc := objectBean(&Service{}).Name("service")
+
+	beans := []*gs_bean.BeanDefinition{cfg, svc}
+	roots, _ := extractBeans(beans)
+	r := New(flatten.NewPropertiesStorage(flatten.NewProperties(nil)))
+	err := r.Refresh(roots, beans)
+	assert.That(t, err).NotNil()
 }

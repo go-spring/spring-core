@@ -94,6 +94,6 @@ func TestContainer(t *testing.T) {
 			}, gs_arg.Tag("${server.address}")),
 		}
 		err := c.Refresh(flatten.NewPropertiesStorage(flatten.NewProperties(nil)), roots)
-		assert.Error(t, err).Matches("property \"server.address\" not exist")
+		assert.Error(t, err).Matches("property \"server.address\" does not exist")
 	})
 }

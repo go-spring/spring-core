@@ -176,11 +176,11 @@ curl http://127.0.0.1:9090/echo
 
 This minimal example already reflects Go-Spring's design philosophy:
 
-✅ **Non-intrusive compatibility**: Directly use Go standard library `http`, no code rewriting needed
-✅ **Zero configuration startup**: No complicated configuration files, just `gs.Run()` to run
-✅ **Lifecycle enhancement**: The framework automatically handles signal capture and graceful exit,
+- ✅ **Non-intrusive compatibility**: Directly use Go standard library `http`, no code rewriting needed
+- ✅ **Zero configuration startup**: No complicated configuration files, just `gs.Run()` to run
+- ✅ **Lifecycle enhancement**: The framework automatically handles signal capture and graceful exit,
    eliminating template code handwriting
-✅ **Gradual integration**: You can use only lifecycle management,
+- ✅ **Gradual integration**: You can use only lifecycle management,
   or gradually introduce DI and configuration capabilities
 
 ### Example 2: Core Features Showcase (Dependency Injection + Dynamic Configuration)
@@ -260,18 +260,18 @@ curl http://127.0.0.1:9090/refresh  # Trigger hot refresh, refresh time will upd
 
 This example covers many core features of Go-Spring:
 
-✅ **Bean registration and dependency injection**: Register beans via `gs.Provide()`,
+- ✅ **Bean registration and dependency injection**: Register beans via `gs.Provide()`,
   framework automatically completes dependency injection
-✅ **Custom configuration at startup**: Supports dynamic configuration through code
+- ✅ **Custom configuration at startup**: Supports dynamic configuration through code
   during application startup, flexibly adapts to different scenarios
-✅ **Automatic configuration binding**: `value` tag directly binds configuration
+- ✅ **Automatic configuration binding**: `value` tag directly binds configuration
   to struct fields, no manual parsing required
-✅ **Layered configuration system**: Follows priority rules:
+- ✅ **Layered configuration system**: Follows priority rules:
   environment variables > in-memory configuration > default values,
   naturally supports multiple environments
-✅ **Dynamic configuration hot reloading**: Natively supported via `gs.Dync[T]` generic,
+- ✅ **Dynamic configuration hot reloading**: Natively supported via `gs.Dync[T]` generic,
   configuration changes take effect in real-time without application restart
-✅ **Configuration refresh mechanism**: Provides `PropertiesRefresher`
+- ✅ **Configuration refresh mechanism**: Provides `PropertiesRefresher`
   to support manual triggering of configuration reload, can be used with configuration centers
 
 ## 4. 🧩 Bean Management

@@ -14,21 +14,6 @@
  * limitations under the License.
  */
 
-// Package gs_core provides the core implementation of the Inversion of Control (IoC)
-// container used by the Go-Spring framework.
-//
-// The container manages the full lifecycle of application beans, including:
-//
-//  1. Resolving phase:
-//     Bean definitions are registered, configuration beans are scanned,
-//     conditions are evaluated, and inactive beans are filtered out.
-//
-//  2. Injecting phase:
-//     Dependencies are resolved and injected, and the final bean graph
-//     is constructed starting from the specified root beans.
-//
-// The resolving phase metadata is discarded after the container is fully
-// refreshed to reduce memory usage.
 package gs_core
 
 import (
@@ -51,14 +36,14 @@ const (
 	Refreshed
 )
 
-// Container represents the core IoC container of the Go-Spring framework.
+// Container is the core IoC container of the Go-Spring framework.
 type Container struct {
 	*resolving.Resolving
 	*injecting.Injecting
 	State RefreshState
 }
 
-// New creates and returns a new IoC container instance.
+// New creates a new IoC container instance.
 func New() *Container {
 	return &Container{
 		Resolving: resolving.New(),
@@ -66,16 +51,25 @@ func New() *Container {
 	}
 }
 
-// Refresh initializes the container and performs the full lifecycle startup.
+// Refresh performs the full container lifecycle startup.
+// The container processes application beans in two phases:
+//
+//  1. Resolving phase:
+//     Bean definitions are registered, configuration beans are scanned,
+//     conditions are evaluated, and inactive beans are filtered out.
+//
+//  2. Injecting phase:
+//     Dependencies are resolved and injected, and the final bean graph
+//     is constructed starting from the specified root beans.
+//
+// After a successful refresh, resolving-phase metadata is discarded to
+// reduce memory usage, and the container transitions to the Refreshed state.
 //
 // Parameters:
 //   - p: configuration storage used for property resolution.
-//   - roots: the root bean definitions that act as entry points for
-//     dependency injection.
+//   - roots: root bean definitions that act as entry points for dependency injection.
 //
-// Refresh should only be called once for a container instance.
-// After a successful refresh, resolving metadata is discarded
-// and the container transitions to the Refreshed state.
+// Refresh should only be called once per container instance.
 func (c *Container) Refresh(p flatten.Storage, roots []*gs_bean.BeanDefinition) error {
 	if c.State != RefreshDefault {
 		return errutil.Explain(nil, "container already refreshed")
@@ -84,17 +78,18 @@ func (c *Container) Refresh(p flatten.Storage, roots []*gs_bean.BeanDefinition) 
 
 	// Step 1: Resolve and prepare all bean definitions.
 	if err := c.Resolving.Refresh(p); err != nil {
-		return err
-	}
-
-	if !testing.Testing() {
-		gs_init.Clear()
+		return errutil.Explain(err, "container resolving error")
 	}
 
 	// Step 2: Run the injecting phase and perform dependency wiring.
 	c.Injecting = injecting.New(p)
 	if err := c.Injecting.Refresh(roots, c.Beans()); err != nil {
-		return err
+		return errutil.Explain(err, "container injecting error")
+	}
+
+	// Step 3: Clear the initialization cache.
+	if !testing.Testing() {
+		gs_init.Clear()
 	}
 
 	c.State = Refreshed
