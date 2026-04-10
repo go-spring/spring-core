@@ -93,9 +93,10 @@ func (c *AppConfig) Refresh() (flatten.Storage, error) {
 		return nil, err
 	}
 	activeProfiles := checkDuplicates(strings.Split(strActiveProfiles, ","))
-
-	if err = loadFiles(l, confDir, activeProfiles); err != nil {
-		return nil, err
+	if len(activeProfiles) > 0 {
+		if err = loadFiles(l, confDir, activeProfiles); err != nil {
+			return nil, err
+		}
 	}
 	return l, nil
 }
