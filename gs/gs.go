@@ -102,6 +102,11 @@ const (
 // BeanID represents a selector for a bean.
 type BeanID = gs.BeanID
 
+// BeanIDFor returns a BeanID for the given type T.
+func BeanIDFor[T any](name ...string) BeanID {
+	return gs.BeanIDFor[T](name...)
+}
+
 // Dync is a generic alias for a dynamic configuration value.
 // Dync values are automatically updated when the underlying configuration changes.
 type Dync[T any] = gs_dync.Value[T]
