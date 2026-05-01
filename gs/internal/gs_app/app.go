@@ -202,7 +202,7 @@ func (app *App) initLog(p flatten.Storage) error {
 	if !p.Exists(loggingKey) { // no logging
 		return nil
 	}
-	s := flatten.NewPrefixedStorage(p, loggingKey)
+	s := flatten.NewPrefixedStorage(p, loggingKey+".")
 	return log.Refresh(s)
 }
 
